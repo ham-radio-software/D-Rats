@@ -61,7 +61,7 @@ def set_base_dir(basedir, mapurl, mapkey):
     
     global BASE_DIR
     BASE_DIR = basedir 
-    if DEBUG_MAPDISPLAY: print("Mapdisplay: BASE_DIR configured to %s: " % BASE_DIR)
+    print("Mapdisplay: BASE_DIR configured to %s: " % BASE_DIR)
   
     #setup of the url where go to retrieve tiles
     global MAP_URL
@@ -470,8 +470,8 @@ class MapWidget(gtk.DrawingArea):
                 (self.width/2) * self.tilesize))
         print("Mapdisplay: We calculate it based on Lat,Lon to be %i, %i" % (x, y))
         print("Mapdisplay: --------------------------------")
-        print("Mapdisplay: self height", self.height)
-        print("Mapdisplay: self width", self.width)
+        print("Mapdisplay: self height %s" % self.height)
+        print("Mapdisplay: self width %s" %self.width)
         print("Mapdisplay: Latitude X Fudge Factor: %i (zoom %i)" % (self.lng_fudge,self.zoom))
         print("Mapdisplay: Latitude Y Fudge Factor: %i (zoom %i)" % (self.lat_fudge,self.zoom))
         print("Mapdisplay: --------------------------------")

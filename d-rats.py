@@ -28,9 +28,9 @@ import gtk
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
 #import module to have spelling correction in chat and email applications
-from d_rats import utils, spell, debug
+from d_rats import utils, spell 
 spell.get_spell().test()
-debug.global_debug()
+
 
 IGNORE_ALL = False
 

@@ -18,20 +18,16 @@
 
 import sys
 import platform
+import os
 
 # this to generate timestamps associated to GPS fixes  
 from time import gmtime, strftime
-
-########################## 
-#debugging config
-
-
 
 debug_path = platform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
     sys.stdout = file(debug_path, "w", 0)
     sys.stderr = sys.stdout
-    #if DEBUG_MAINAPP: print("Mainapp   : Enabled debug log for Win32 systems")
+    print("Mainapp   : Enabled debug log for Win32 systems")
 else:
     try:
         os.unlink(debug_path)
