@@ -31,7 +31,6 @@ sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 from d_rats import utils, spell 
 spell.get_spell().test()
 
-
 IGNORE_ALL = False
 
 # here we design the window which usually comes out at the beginning asking 
