@@ -22,7 +22,8 @@ from optparse import OptionParser
 
 import traceback
 import gtk
- 
+#xxx
+
 
 #m: added d_rats
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
