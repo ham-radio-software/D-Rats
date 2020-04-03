@@ -68,7 +68,7 @@ for k,v in DPRS_TO_APRS.items():
 
 def dprs_to_aprs(symbol):
     if len(symbol) < 2:
-        print "gps       : Invalid DPRS symbol: `%s'" % symbol
+        print("Gps       : Invalid DPRS symbol: `%s'" % symbol)
         return None
     else:
         return DPRS_TO_APRS.get(symbol[0:2], None)
@@ -109,7 +109,7 @@ def set_units(units):
         EARTH_RADIUS = 6380.0
         EARTH_UNITS = "km"
 
-    print "gps       : Set GPS units to %s" % units
+    print("gps       : Set GPS units to %s" % units)
 
 def value_with_units(value):
     if value < 0.5:
@@ -239,7 +239,7 @@ def parse_date(string, fmt):
     try:
         return datetime.datetime.strptime(string, fmt)
     except AttributeError, e:
-        print "gps       : Enabling strptime() workaround for Python <= 2.4.x"
+        print("Gps       : Enabling strptime() workaround for Python <= 2.4.x")
 
     vals = {}
 
@@ -284,9 +284,9 @@ class GPSPosition(object):
 
 
         if int(_checksum[1:], 16) != int(checksum[1:], 16):
-            print "CHECKSUM(%s): %s != %s" % (self.station,
+            print("Gps       : CHECKSUM(%s): %s != %s" % (self.station,
                                               int(_checksum[1:], 16),
-                                              int(checksum[1:], 16))
+                                              int(checksum[1:], 16)))
             #print "Failed to parse DPRS comment:"
             #print "  Comment: |%s|" % self.comment
             #print "  Check: %s %s (%i)" % (checksum, _checksum, astidx)
@@ -583,7 +583,7 @@ class NMEAGPSPosition(GPSPosition):
         try:
             idx = string.index("*")
         except:
-            print "gps      : String does not contain '*XY' checksum"
+            print("Gps       : String does not contain '*XY' checksum")
             return False
 
         segment = string[1:idx]
@@ -592,7 +592,7 @@ class NMEAGPSPosition(GPSPosition):
         _csum = NMEA_checksum(segment).upper()
 
         if csum != _csum:
-            print "gps      : Failed checksum: %s != %s" % (csum, _csum)
+            print("Gps       : Failed checksum: %s != %s" % (csum, _csum))
 
         return csum == _csum
 
@@ -610,7 +610,7 @@ class NMEAGPSPosition(GPSPosition):
         self.latitude = nmea2deg(float(elements[2]), elements[3])
         self.longitude = nmea2deg(float(elements[4]), elements[5])
 
-        print "%f,%f" % (self.latitude, self.longitude)
+        print("Gps       :  %f,%f" % (self.latitude, self.longitude))
 
         self.satellites = int(elements[7])
         self.altitude = float(elements[9])
@@ -665,7 +665,7 @@ class NMEAGPSPosition(GPSPosition):
 
         m = re.match("^.?(\*[A-z0-9]{2})", elements[end])
         if not m:
-            print "gps      : Invalid end: %s" % elements[end]
+            print("Gps       :  Invalid end: %s" % elements[end])
             return
 
         csum = m.group(1)
@@ -680,9 +680,9 @@ class NMEAGPSPosition(GPSPosition):
 
         if elements[2] != "A":
             self.valid = False
-            print "gps      : GPRMC marked invalid by GPS (%s)" % elements[2]
+            print("Gps       : GPRMC marked invalid by GPS (%s)" % elements[2])
         else:
-            print "gps      : GPRMC is valid"
+            print("Gps       : GPRMC is valid")
             self.valid = self._test_checksum(string, csum)
 
     def _from_NMEA_GPGGA(self, string):
@@ -694,7 +694,7 @@ class NMEAGPSPosition(GPSPosition):
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            print "Invalid GPS data: %s" % e
+            print("Gps       : Invalid GPS data: %s" % e)
             self.valid = False
 
     def _from_NMEA_GPRMC(self, string):
@@ -704,7 +704,7 @@ class NMEAGPSPosition(GPSPosition):
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            print "Invalid GPS data: %s" % e
+            print("Gps       : Invalid GPS data: %s" % e)
             self.valid = False
 
     def __init__(self, sentence, station=_("UNKNOWN")):
@@ -715,7 +715,7 @@ class NMEAGPSPosition(GPSPosition):
         elif sentence.startswith("$GPRMC"):
             self._from_NMEA_GPRMC(sentence)
         else:
-            print "gps      : Unsupported GPS sentence type: %s" % sentence    
+            print("Gps       : Unsupported GPS sentence type: %s" % sentence)
 
 class APRSGPSPosition(GPSPosition):
     def _parse_date(self, string):
@@ -753,12 +753,12 @@ class APRSGPSPosition(GPSPosition):
         _crc = "%04X" % GPSA_checksum(m.group(2))
 
         if crc != _crc:
-            print "APRS CRC mismatch: %s != %s (%s)" % (crc, _crc, m.group(2))
+            print("Gps       : APRS CRC mismatch: %s != %s (%s)" % (crc, _crc, m.group(2)))
             return
 
         elements = string.split(",")
         if not elements[0].startswith("$$CRC"):
-            print "Missing $$CRC..."
+            print("Gps       : Missing $$CRC...")
             return
 
         self.station, dst = elements[1].split(">")
@@ -792,7 +792,7 @@ class APRSGPSPosition(GPSPosition):
         elif m.group(2) in "@/":
             self.date = self._parse_date(m.group(1))
         else:
-            print "Unknown timestamp prefix: %s" % m.group(1)
+            print("Gps       : Unknown timestamp prefix: %s" % m.group(1))
             self.date = datetime.datetime.now()
 
         self.latitude = nmea2deg(float(m.group(4)), m.group(5))
@@ -811,7 +811,7 @@ class APRSGPSPosition(GPSPosition):
         try:
             self._parse_GPSA(string)
         except Exception, e:
-            print "Invalid APRS: %s" % e
+            print("Gps       : Invalid APRS: %s" % e)
             return False
 
         return self.valid        
@@ -894,7 +894,7 @@ class GPSSource(object):
         try:
             self.serial = serial.Serial(port=port, baudrate=rate, timeout=1)
         except Exception, e:
-            print "gps      : Unable to open port `%s': %s" % (port, e)
+            print("Gps       : Unable to open port `%s': %s" % (port, e))
             self.broken = _("Unable to open GPS port")
 
         self.thread = None
@@ -940,7 +940,7 @@ class GPSSource(object):
                     elif position.valid:
                         self.position = position
                     else:
-                        print "gps      : Could not parse: %s" % line
+                        print("Gps       : Could not parse: %s" % line)
 
     def get_position(self):
         return self.position
@@ -980,18 +980,18 @@ class NetworkGPSSource(GPSSource):
             _, host, port = self.port.split(":", 3)
             port = int(port)
         except ValueError, e:
-            print "gps      : Unable to parse %s (%s)" % (self.port, e)
+            print("Gps       :  Unable to parse %s (%s)" % (self.port, e))
             self.broken = _("Unable to parse address")
             return False
 
-        print "gps      : Connecting to %s:%i" % (host, port)
+        print("Gps       : Connecting to %s:%i" % (host, port))
 
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((host, port))
             self.sock.settimeout(10)
         except Exception, e:
-            print "gps      : Unable to connect: %s" % e
+            print("Gps       :  Unable to connect: %s" % e)
             self.broken = _("Unable to connect") + ": %s" % e
             self.sock = None
             return False
@@ -1012,7 +1012,7 @@ class NetworkGPSSource(GPSSource):
             except Exception, e:
                 self.sock.close()
                 self.sock = None
-                print _("gps      : GPSd Socket closed")
+                print("Gps       : GPSd Socket closed")
                 continue
 
             line = data.strip()
@@ -1029,7 +1029,7 @@ class NetworkGPSSource(GPSSource):
             elif pos.valid:
                 self.position = pos
             else:
-                print "gps       : Could not parse: %s" % line
+                 print("Gps       : Could not parse: %s" % line)
 
     def get_position(self):
         return self.position
@@ -1054,7 +1054,7 @@ class StaticGPSSource(GPSSource):
             # This is kinda ugly, but assume we're given altitude in the same
             # type of units as we've been asked to display
             self.position.altitude = feet2meters(self.position.altitude)
-        print "gps       : StaticGPSPosition: %s" % self.position
+        print("Gps       : StaticGPSPosition: %s" % self.position)
     def start(self):
         pass
 
@@ -1116,9 +1116,9 @@ if __name__ == "__main__":
     for s in nmea_strings:
         p = NMEAGPSPosition(s)
         if p.valid:
-            print "gps       : Pass: %s" % str(p)
+            print("Gps       : Pass: %s" % str(p))
         else:
-            print "gps       : ** FAIL: %s" % s
+            print("Gps       : ** FAIL: %s" % s)
         
     aprs_strings = [
         "$$CRCCE3E,AE5PL-T>API282,DSTAR*:!3302.39N/09644.66W>/\r",
@@ -1132,7 +1132,7 @@ if __name__ == "__main__":
     for s in aprs_strings:
         p = APRSGPSPosition(s)
         if p.valid:
-            print "gps       : Pass: %s" % str(p)
+            print("Gps       :  Pass: %s" % str(p))
         else:
-            print "gps       : ** FAIL: %s" % s
+            print("Gps       :  ** FAIL: %s" % s)
 

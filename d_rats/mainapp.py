@@ -837,11 +837,11 @@ class MainApp(object):
 	
 	#Send captured position to the mapserver to update our position sweeper  
 	if mapserver_active == "True":
-	    print("Mainapp   : mapserver active: %s -- sending gps fix" % mapserver_active)
+	    print("Mainapp   : Export to external mapserver active: %s -- sending gps fix" % mapserver_active)
 	    #self.callback_gps(lat, lon, call, "altitude: "+alt)
 	    self.callback_gps(fix.latitude, fix.longitude, station=fix.station, comments="altitude: " + str(fix.altitude))
 	else:
-	    print("Mainapp   : mapserver xx NOT active: %s" % mapserver_active)
+	    print("Mainapp   : Export to external mapserver not active: %s" % mapserver_active)
 	return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)	
 	
 	
