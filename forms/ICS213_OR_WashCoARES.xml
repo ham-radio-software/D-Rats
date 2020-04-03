@@ -1,0 +1,50 @@
+<xml>
+<form id='ICS213_OR_WashCoARES'>
+<title>ICS-213 Form</title>
+<field id='_auto_number'>
+<caption>Number</caption>
+<entry type='numeric'>1</entry>
+</field>
+<field id='precedence'>
+<caption>Precedence</caption>
+<entry type='choice'>
+  <choice set="y">Routine</choice>
+  <choice>Welfare</choice>
+  <choice>Priority</choice>
+  <choice>Emergency</choice>
+</entry>
+</field>
+<field id='station'>
+<caption>Originating station</caption>
+<entry type='text'/>
+</field>
+<field id='place'>
+<caption>Originating location</caption>
+<entry type='text'/>
+</field>
+<field id='time'>
+<caption>Time</caption>
+<entry type='time'/>
+</field>
+<field id='date'>
+<caption>Date</caption>
+<entry type='date'/>
+</field>
+<field id='recip'>
+<caption>Recipient</caption>
+<entry type='text'/>
+</field>
+<field id='sender'>
+<caption>Sender</caption>
+<entry type='text'/>
+</field>
+<field id='subject'>
+<caption>Subject</caption>
+<entry type='text'/>
+</field>
+<field id='message'>
+<caption>Message</caption>
+<entry type='multiline'/>
+</field>
+</form>
+</xml>

@@ -1,0 +1,15 @@
+
+
+To to:
+    
+    - d-rats
+     - check why some times the download tiles are saved empty (and then not downloaded)
+
+     - add android version
+     
+     - add decoding for RS-MS1A txt messages      
+     
+     - add tx for RS-MS1A messages (issue is the control code in the message)
+
+
+     - FIX TRANSLATION gettext.translation

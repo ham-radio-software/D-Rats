@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: d-rats
+Version: 0.3.4 alpha
+Summary: D-RATS
+Home-page: UNKNOWN
+Author: Dan Smith, KK7DS - Maurizio Andreotti IZ2LXI 
+Author-email: 
+License: GPL 
+Description: A communications tool for D-STAR
+Platform: Linux, MacOS, Win32

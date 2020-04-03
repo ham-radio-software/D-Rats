@@ -1,0 +1,29 @@
+<xml>
+  <form id="memo">
+    <title>Informal Memo Form</title>
+    <field id="time">
+      <caption>Time</caption>
+      <entry type="time"/>
+    </field>
+    <field id="date">
+      <caption>Date</caption>
+      <entry type="date"/>
+    </field>
+    <field id="_auto_recip">
+      <caption>Recipient</caption>
+      <entry type="text"/>
+    </field>
+    <field id="_auto_sender">
+      <caption>Sender</caption>
+      <entry type="text"/>
+    </field>
+    <field id="_auto_subject">
+      <caption>Subject</caption>
+      <entry type="text"/>
+    </field>
+    <field id="message">
+      <caption>Message</caption>
+      <entry type="multiline"/>
+    </field>
+  </form>
+</xml>

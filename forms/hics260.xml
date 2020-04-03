@@ -1,0 +1,193 @@
+<xml>
+<form id='hics260'>
+<title>HICS 260 - Patient Evacuation Tracking Form</title>
+<field id='date'>
+<caption>Date</caption>
+<entry type='date'/>
+</field>
+<field id='unit'>
+<caption>Unit</caption>
+<entry type='text'/>
+</field>
+<field id='patient_name'>
+<caption>Patient Name</caption>
+<entry type='text'/>
+</field>
+<field id='patient_age'>
+<caption>Age</caption>
+<entry type='numeric'>0</entry>
+</field>
+<field id='patient_mrnum'>
+<caption>MR#</caption>
+<entry type='text'/>
+</field>
+<field id='diagnosis'>
+<caption>Diagnosis</caption>
+<entry type='text'/>
+</field>
+<field id='physician'>
+<caption>Admitting Physician</caption>
+<entry type='text'/>
+</field>
+<field id='family_notified'>
+<caption>Family Notified</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='family_contact'>
+<caption>Family Contact Info</caption>
+<entry type='multiline'/>
+</field>
+<field id='labequip'>
+<caption>Accompanying Equipment</caption>
+<entry type='label'/>
+</field>
+<field id='equipment'>
+<caption></caption>
+<entry type='multiselect'><choice set='n'>Hospital Bed</choice><choice set='n'>IV Pumps</choice><choice set='n'>Isolette/Warmer</choice><choice set='n'>Foley Catheter</choice><choice set='n'>Gurney</choice><choice set='n'>Oxygen</choice><choice set='n'>Traction</choice><choice set='n'>Halo-Device</choice><choice set='n'>Wheel Chair</choice><choice set='n'>Ventilator</choice><choice set='n'>Monitor</choice><choice set='n'>Cranial Bolt/Screw</choice><choice set='n'>Ambulatory</choice><choice set='n'>Chest Tube(s)</choice><choice set='n'>A-Line/Swan</choice><choice set='n'>IO Device</choice></entry>
+</field>
+<field id='isolation'>
+<caption>Isolation</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='isolation_type'>
+<caption>Isolation Type</caption>
+<entry type='text'/>
+</field>
+<field id='isolation_reason'>
+<caption>Isolation Reason</caption>
+<entry type='text'/>
+</field>
+<field id='lab_deploc'>
+<caption>Departing Location</caption>
+<entry type='label'/>
+</field>
+<field id='depart_room'>
+<caption>Departure Room #</caption>
+<entry type='text'/>
+</field>
+<field id='depart_time'>
+<caption>Departure Time</caption>
+<entry type='time'/>
+</field>
+<field id='depart_idband'>
+<caption>ID Band Confirmed</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='depart_idconf'>
+<caption>Confirmed By</caption>
+<entry type='text'/>
+</field>
+<field id='depart_record'>
+<caption>Medical Record Sent</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='depart_address'>
+<caption>Addressograph Sent</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='depart_belongings'>
+<caption>Belongings</caption>
+<entry type='choice'><choice set='y'>None</choice><choice>With Patient</choice><choice>Left in Room</choice></entry>
+</field>
+<field id='depart_valuables'>
+<caption>Valuables</caption>
+<entry type='choice'><choice set='y'>None</choice><choice>With Patient</choice><choice>Left in Safe</choice></entry>
+</field>
+<field id='depart_medications'>
+<caption>Medications</caption>
+<entry type='choice'><choice set='y'>With Patient</choice><choice>Left on Unit</choice><choice>To Pharmacy</choice></entry>
+</field>
+<field id='bagmasktubing_sent'>
+<caption>Bag/Mask w/Tubing Sent</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='bulb_sent'>
+<caption>Bulb Syringe Sent</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='lab_arriveloc'>
+<caption>Arriving Location</caption>
+<entry type='label'/>
+</field>
+<field id='arrive_room'>
+<caption>Arrival Room #</caption>
+<entry type='text'/>
+</field>
+<field id='arrive_time'>
+<caption>Arrival Time</caption>
+<entry type='time'/>
+</field>
+<field id='arrive_idband'>
+<caption>ID Band Confirmed</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='arrive_idconf'>
+<caption>Confirmed By</caption>
+<entry type='text'/>
+</field>
+<field id='arrive_record'>
+<caption>Medical Record Sent</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='arrive_address'>
+<caption>Addressograph</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='arrive_belongings'>
+<caption>Belongings Received</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='arrive_valuables'>
+<caption>Valuables Received</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='arrive_medications'>
+<caption>Medications Received</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='bagmasktubing_recv'>
+<caption>Bag/Mask w/Tubing Received</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='bulb_recv'>
+<caption>Bulb Syringe Received</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='lab_transfer'>
+<caption>Transferring to Another Facility</caption>
+<entry type='label'/>
+</field>
+<field id='time_to_staging'>
+<caption>Time to Staging Area</caption>
+<entry type='time'/>
+</field>
+<field id='time_depart_to_recv'>
+<caption>Time Departing to Receiving Facility</caption>
+<entry type='time'/>
+</field>
+<field id='destination'>
+<caption>Destination</caption>
+<entry type='text'/>
+</field>
+<field id='transport'>
+<caption>Transportation</caption>
+<entry type='text'/>
+</field>
+<field id='idband_conf'>
+<caption>ID Band Confirmed</caption>
+<entry type='toggle'>False</entry>
+</field>
+<field id='idband_confby'>
+<caption>Confirmed by</caption>
+<entry type='text'/>
+</field>
+<field id='fac_depart_time'>
+<caption>Departure Time</caption>
+<entry type='time'/>
+</field>
+<field id='depart_facility'>
+<caption>Facility Name</caption>
+<entry type='text'/>
+</field>
+</form>
+</xml>

@@ -1,0 +1,82 @@
+<xml>
+<form id='radiogram'>
+<title>Radiogram</title>
+<field id='_auto_number'>
+<caption>Number</caption>
+<entry type='text'/>
+</field>
+<field id='precedence'>
+<caption>Precedence</caption>
+<entry type='choice'>
+  <choice set='y'>Routine</choice>
+  <choice>Welfare</choice>
+  <choice>Priority</choice>
+  <choice>Emergency</choice>
+</entry>
+</field>
+<field id='hx'>
+<caption>HX</caption>
+<entry type='text'/>
+</field>
+<field id='station'>
+<caption>Station of Origin</caption>
+<entry type='text'/>
+</field>
+<field id='_auto_check'>
+<caption>Check</caption>
+<entry type='text'/>
+</field>
+<field id='place'>
+<caption>Place of Origin</caption>
+<entry type='text'/>
+</field>
+<field id='time'>
+<caption>Time</caption>
+<entry type='time'></entry>
+</field>
+<field id='date'>
+<caption>Date</caption>
+<entry type='date'></entry>
+</field>
+<field id='recip'>
+<caption>To</caption>
+<entry type='text'/>
+</field>
+<field id='recip_phone'>
+<caption>Recipient Phone #</caption>
+<entry type='text'/>
+</field>
+<field id='_auto_message'>
+<caption>Message</caption>
+<entry type='multiline'/>
+</field>
+<field id='sig'>
+<caption>Signature</caption>
+<entry type='text'/>
+</field>
+<field id='received_from'>
+<caption>Received From</caption>
+<entry type='text'/>
+</field>
+<field id='recv_t'>
+<caption>Received Time</caption>
+<entry type='time'></entry>
+</field>
+<field id='recv_d'>
+<caption>Received Date</caption>
+<entry type='date'></entry>
+</field>
+<field id='sent_to'>
+<caption>Sent To</caption>
+<entry type='text'/>
+</field>
+<field id='sent_t'>
+<caption>Sent Time</caption>
+<entry type='time'></entry>
+</field>
+<field id='sent_d'>
+<caption>Sent Date</caption>
+<entry type='date'></entry>
+</field>
+</form>
+</xml>

@@ -1,0 +1,13 @@
+<xml>
+<form id='email'>
+<title>Email Message</title>
+<field id='subject'>
+<caption>Subject</caption>
+<entry type='text'/>
+</field>
+<field id='message'>
+<caption>Message</caption>
+<entry type='multiline'/>
+</field>
+</form>
+</xml>

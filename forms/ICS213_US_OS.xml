@@ -1,0 +1,57 @@
+<xml>
+<form id='ICS213_US_OS'>
+<title>ICS-213 Form</title>
+<field id='incident'>
+<caption>Incident Name</caption>
+<entry type='text'/>
+</field>
+<field id='time'>
+<caption>Time</caption>
+<entry type='time'/>
+</field>
+<field id='date'>
+<caption>Date</caption>
+<entry type='date'/>
+</field>
+<field id='recip'>
+<caption>To</caption>
+<entry type='text'/>
+</field>
+<field id='to_pos'>
+<caption>ICS Position</caption>
+<entry type='text'/>
+</field>
+<field id='sender'>
+<caption>Sender</caption>
+<entry type='text'/>
+</field>
+<field id='from_pos'>
+<caption>ICS Position</caption>
+<entry type='text'/>
+</field>
+<field id='subject'>
+<caption>Subject</caption>
+<entry type='text'/>
+</field>
+<field id='message'>
+<caption>Message</caption>
+<entry type='multiline'/>
+</field>
+<field id='reply'>
+<caption>Reply</caption>
+<entry type='multiline'/>
+</field>
+<field id='sig'>
+<caption>Signature / Position (person replying)</caption>
+<entry type='text'/>
+</field>
+<field id='date_reply'>
+<caption>Date of reply</caption>
+<entry type='date'/>
+</field>
+<field id='time_reply'>
+<caption>Time of reply</caption>
+<entry type='time'/>
+</field>
+</form>
+</xml>
