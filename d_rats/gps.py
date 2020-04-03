@@ -307,7 +307,6 @@ class GPSPosition(object):
         self.direction = None
         self.APRSIcon = None
         self._original_comment = ""
-
         self._from_coords(lat, lon)
 
     def __iadd__(self, update):
@@ -732,7 +731,7 @@ class APRSGPSPosition(GPSPosition):
         elif suffix == "h":
             ds = time.strftime("%d%m%y", time.gmtime()) + digits
         else:
-            print "gps      : Unknown APRS date suffix: `%s'" % suffix
+            print("Gps       : Unknown APRS date suffix: `%s'" % suffix)
             return datetime.datetime.now()
 
         d = parse_date(ds, "%d%m%y%H%M%S")
@@ -784,7 +783,7 @@ class APRSGPSPosition(GPSPosition):
 
         m = re.search(expr, data)
         if not m:
-            print "Did not match GPS-A: `%s'" % data
+            print("Gps       : Did not match GPS-A: `%s'" % data)
             return
 
         if m.group(1) in "!=":
@@ -904,7 +903,7 @@ class GPSSource(object):
 
     def start(self):
         if self.broken:
-            print "gps      : Not starting broken GPSSource"
+            print("Gps       : Not starting broken GPSSource")
             return
 
         self.invalid = 100
@@ -936,7 +935,7 @@ class GPSSource(object):
 
                     if position.valid and self.position.valid:
                         self.position += position
-                        print _("ME") + ": %s" % self.position
+                        print _("ME") + ": xxxxxxxxxxxxxxxxxxxxxxxxxxxxx %s" % self.position
                     elif position.valid:
                         self.position = position
                     else:

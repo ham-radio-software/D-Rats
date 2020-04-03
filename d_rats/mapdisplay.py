@@ -248,10 +248,10 @@ class MapTile(object):
             for i in range(10):
                 url = self.remote_path()
                 #m
-                print("Mapdisplay: try opening url %s" % url)
+                #print("Mapdisplay: try opening %s" % url)
                 try:
                     fetch_url(url, self._local_path())
-                    print("Mapdisplay: %s opened" %  url)
+                    print("Mapdisplay: opened %s" % url)
                     return True
                 except Exception, e:
                     print("Mapdisplay: [%i] Failed to fetch `%s': %s" % (i, url, e))
