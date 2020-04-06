@@ -57,13 +57,20 @@ uncompress it in a folder of your choice and just run d-rats.exe
 
 AT THE MOMENT THERE IS A "BUILT VERSION" IN THE RAR FILE, BUT THERE ARE SOME KNOWN ISSUES WITH LIBRARIES NOT INCLUDED,  SO IT IS POSSIBLE THAT IT WILL NOT WORK ON YOUR SYSTEM. PLEASE REPORT ME THE PROBLEMS YOU HAVE.  YOUR HELP CAN BE USEFUL TO SORT THIS OUT.
 
-the eventual errors are logged into a file located either at:
+The windows executable can be downlodaded from here:
+      - https://iz2lxi.jimdofree.com/
 
+
+Note that at runtime he eventual errors are logged into a file located either at:
 - d-rats.exe location as d-rats.log
 - C:\Users\<username>\AppData\Roaming\D-RATS-EV\debug.log
 
+
+========================================
+DEVELOPMENT ENVIRONMENT
+========================================
 -----------------------
-DEVELOPMENT ENVIRONMENT (linux)
+Developing on Linux
 -----------------------
 
 Note: the source code of d-rats is quite dated, so use python 2.7
@@ -98,7 +105,7 @@ ans also these libraries required by to export the gps positions in JSON:
         > easy_install gevent-socketio
 
 -----------------------
-DEVELOPMENT ENVIRONMENT (Ms-Windows 10/ 7 /.../xp )
+Developing on Ms-Windows 10/ 7 /.../xp .. XP!!
 -----------------------
 *** important NOTE: THE ONLY KNOWN WINDOWS INSTALLATION ABLE TO CREATE A WORKING COMPILED VERSION ON WINDOWS IS ... WINDOWS XP.
 THIS IS BECAUSE THE LIBRAIRES ORIGINALLY NEEDED DOES NOT WORK CORRECTLY WITH THE MORE RECENT DLLs RELATED TO NETWORK OF THE OPERATING SYSTEM ***
