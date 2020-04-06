@@ -185,9 +185,20 @@ the D-Rats stores its configuration in the user home folder
     C:\Users\ [USERNAME] \AppData\Roaming\D-RATS
 
 -----------------------
-COMPILIGNG IN  MS-WINDOWS 
+COMPILING ON MS-WINDOWS XP
 -----------------------
-Compiling for for MS Windows: launch the "distXP.bat", this will create the "dist" folder within  the source code 
+NOTE: D-Rats sources can be compiled on any windows platform but, when copied to other PC it will work reliably with known issues related to:
+- GTK windows layout and events
+- Networking (eg. for map tiles and Ratflects connectivity )
+
+To get a compiled version it needs to have Windows XP with a certain version of network Dlls, if updated will just not work properly.
+
+To compile for MS Windows: launch the "distXP.bat", this will create the "dist" folder within the source code 
+
+
+
+NOTE: AS OF TODAY THE 
+
 
 ========================================
 OTHER NOTES TO BE ORGANIZED 
