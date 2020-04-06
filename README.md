@@ -28,7 +28,7 @@ Release notes
  - investigate and fix some warnings 
 
 2019-10 version 0.3.5
- - fix maps to use thunderforest maps with API key
+ - fix maps to use Thunderforest maps with API key
  - reorganized gps preferences
  
 2015-6-3  version 0.3.4alfa
