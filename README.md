@@ -16,8 +16,9 @@ Copyrighted by 2008 Dan Smith <dsmith@danplanet.com> and later reviewed in 2015,
 
 The idea here is to read the source, add some comments and eventually do some modifications.
 
-===============
+-----------------------
 Release notes
+-----------------------
 2020 (?) version 0.3.6 (work in progress)
  - fix "get position" / "get all positions"
  - investigate and fix some warnings 
