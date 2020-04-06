@@ -1,41 +1,26 @@
-﻿# Copyright 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+-----------------------
 
 INTRODUCTION
-D-Rats 0.3.ev (evolution) This is a study version of the D-Rats 0.3.3. 
+D-Rats 0.3.x is a study version of the D-Rats 0.3.3. originally developed and Copyrighted by  2008 Dan Smith <dsmith@danplanet.com> and later reviewed by me,  Maurizio Andreotti  <iz2lxi@yahoo.it>
+
+
 The idea here is to read the source, add some comments and eventually do some modifications.
-All mods will be released under the same original licence (GPL).
-
-The source of D-Rats 0.3.ev  is maintained on GIT HUB at this address:
-https://github.com/maurizioandreotti/D-Rats-0.3.ev
-
-into the GIT repository there is also some automated doc created with scripts:
-https://github.com/maurizioandreotti/D-Rats-0.3.ev/tree/master/docs/_build/html
-
-
-Maurizio, IZ2LXI
 
 ========================================
-READY TO RUN -- INSTALLATION ON WINDOWS
+READY TO RUN -- EXECUTION ON WINDOWS
+========================================
 
-
-To install the new version of D-Rats on Windows download "D-RATS_3.3.4alfa.rar"
-from:
-    https://github.com/maurizioandreotti/D-Rats-0.3.ev/blob/master/D-RATS_3.3.4alfa.rar?raw=true
+To install the new version of D-Rats on Windows download the distrubution version (file in .rar format) 
 uncompress it in a folder of your choice and just run d-rats.exe
-
 
 AT THE MOMENT THERE IS A "BUILT VERSION" IN THE RAR FILE, BUT THERE ARE SOME KNOWN ISSUES WITH LIBRARIES NOT INCLUDED,  SO IT IS POSSIBLE THAT IT WILL NOT WORK ON YOUR SYSTEM. PLEASE REPORT ME THE PROBLEMS YOU HAVE.  YOUR HELP CAN BE USEFUL TO SORT THIS OUT.
 
@@ -44,9 +29,8 @@ the eventual errors are logged into a file located either at:
 - d-rats.exe location as d-rats.log
 - C:\Users\<username>\AppData\Roaming\D-RATS-EV\debug.log
 
-
 ========================================
-DEVELOPMENT ENVIROMENT INSTALLATION
+DEVELOPMENT ENVIRONMENT INSTALLATION
 ========================================
 LINUX INSTALL
 
@@ -76,11 +60,13 @@ These are additional libraries which I have added the new webserver function to 
     - greenlet
 
 ========================================
-Ms-Windows 7 installation
+D-Rats development environment on Ms-Windows 10/ 7 /.../xp 
+========================================
+*** important NOTE: THE ONLY KNOWN WINDOWS INSTALLATION ABLE TO CREATE A WORKING COMPILED VERSION ON WINDOWS IS ... WINDOWS XP.
+THIS IS BECAUSE THE LIBRAIRES ORIGINALLY NEEDED DOES NOT WORK CORRECTLY WITH THE MORE RECENT DLLs RELATED TO NETWORK OF THE OPERATING SYSTEM ***
 
 Note: the source code of d-rats is quite dated, so use python 2.7 compiled 32 bit and 32 bit libraries
 (i did a try installing the 64 bit version of python, but wasn't able to find all the libraries needed at 64 bit)
-
 
 INSTALL PYTHON
 
