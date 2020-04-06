@@ -10,10 +10,31 @@ GNU General Public License for more details.
 -----------------------
 
 INTRODUCTION
-D-Rats 0.3.x is a study version of the D-Rats 0.3.3. originally developed and Copyrighted by  2008 Dan Smith <dsmith@danplanet.com> and later reviewed by me,  Maurizio Andreotti  <iz2lxi@yahoo.it>
+D-Rats is a study version of the D-Rats 0.3.3. originally developed and 
+Copyrighted by 2008 Dan Smith <dsmith@danplanet.com> and later reviewed in 2015, 2019 and 2020 by me, Maurizio Andreotti
 
 
 The idea here is to read the source, add some comments and eventually do some modifications.
+
+===============
+Release notes
+2020 (?) version 0.3.6 (work in progress)
+ - fix "get position" / "get all positions"
+ - investigate and fix some warnings 
+
+2019-10 version 0.3.5
+ - fix maps to use thunderforest maps with API key
+ - reorganized gps preferences
+ 
+2015-6-3  version 0.3.4alfa
+ - erlarged map windows to resizable format (from 4:3 to 16:9/resizable)
+ - added other sources of maps
+ - added client to output gps fixes as JSON to D-Rats-D-Rats-WebMap-server
+   
+Sprig 2014, 
+- started  studiyng the original python program, 
+- adding comments and print in the original code as per best understanding
+- studing how to compile the program on windows
 
 ========================================
 READY TO RUN -- EXECUTION ON WINDOWS
