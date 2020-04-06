@@ -17,8 +17,15 @@ Introduction
 D-Rats is a study version of the D-Rats 0.3.3. originally developed and 
 Copyrighted by 2008 Dan Smith <dsmith@danplanet.com> and later reviewed in 2015, 2019 and 2020 by me, Maurizio Andreotti
 
-
 The idea here is to read the source, add some comments and eventually do some modifications.
+
+-----------------------
+Supported systems
+-----------------------
+This program ONLY work with older Linux distributions that still include Python2, GTK2, etc.
+Support for this program on newer distros is NOT possible until major porting work is completed.
+
+On Ms Windows the program works only when compiled on Windows XP 32 bit and distributed keeping some of the DLLs related to GDI and Networking of that version. 
 
 -----------------------
 Release notes
@@ -32,7 +39,7 @@ Release notes
  - reorganized gps preferences
  
 2015-6-3  version 0.3.4alfa
- - erlarged map windows to resizable format (from 4:3 to 16:9/resizable)
+ - erlarged the map window to resizable format (from 4:3 to 16:9/resizable)
  - added other sources of maps
  - added client to output gps fixes as JSON to D-Rats-D-Rats-WebMap-server
    
