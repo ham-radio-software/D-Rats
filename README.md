@@ -85,11 +85,17 @@ Common libraries
     - feedparser
     - libxml2
 
-These are additional libraries which I have added the new webserver function to show positions on googlemap
+ans also these libraries required by to export the gps positions in JSON:
     - flask
-    - gevent: http://www.gevent.org/
-    - gevent-socketio: easy_install gevent-socketio
+    - gevent:
+          from http://www.gevent.org/ or
+          > easy_install gevent
+          
+    - gevent-socketio
+          > easy_install gevent-socketio
+         
     - greenlet
+        > easy_install gevent-socketio
 
 -----------------------
 DEVELOPMENT ENVIRONMENT (Ms-Windows 10/ 7 /.../xp )
