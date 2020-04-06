@@ -1,3 +1,6 @@
+-----------------------
+Copyright note
+-----------------------
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -7,9 +10,10 @@ This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
------------------------
 
-INTRODUCTION
+-----------------------
+Introduction
+-----------------------
 D-Rats is a study version of the D-Rats 0.3.3. originally developed and 
 Copyrighted by 2008 Dan Smith <dsmith@danplanet.com> and later reviewed in 2015, 2019 and 2020 by me, Maurizio Andreotti
 
@@ -51,10 +55,9 @@ the eventual errors are logged into a file located either at:
 - d-rats.exe location as d-rats.log
 - C:\Users\<username>\AppData\Roaming\D-RATS-EV\debug.log
 
-========================================
-DEVELOPMENT ENVIRONMENT INSTALLATION
-========================================
-LINUX INSTALL
+-----------------------
+DEVELOPMENT ENVIRONMENT (linux)
+-----------------------
 
 Note: the source code of d-rats is quite dated, so use python 2.7
 
@@ -81,9 +84,9 @@ These are additional libraries which I have added the new webserver function to 
     - gevent-socketio: easy_install gevent-socketio
     - greenlet
 
-========================================
-D-Rats development environment on Ms-Windows 10/ 7 /.../xp 
-========================================
+-----------------------
+DEVELOPMENT ENVIRONMENT (Ms-Windows 10/ 7 /.../xp )
+-----------------------
 *** important NOTE: THE ONLY KNOWN WINDOWS INSTALLATION ABLE TO CREATE A WORKING COMPILED VERSION ON WINDOWS IS ... WINDOWS XP.
 THIS IS BECAUSE THE LIBRAIRES ORIGINALLY NEEDED DOES NOT WORK CORRECTLY WITH THE MORE RECENT DLLs RELATED TO NETWORK OF THE OPERATING SYSTEM ***
 
@@ -92,10 +95,9 @@ Note: the source code of d-rats is quite dated, so use python 2.7 compiled 32 bi
 
 INSTALL PYTHON
 
- - Get PyTHON: Python 2.7.X 32 bit:
-    http://www.python.it/download/
+ - Get PyTHON: Python 2.7.X 32 bit: http://www.python.it/download/
    
- - get GTK:
+ - get GTK 2:
     - pygtk-all-in-one-2.24.0.win32-py2.7.msi from http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/
  
  - get libXML2 from this page http://users.skynet.be/sbi/libxml-python/
@@ -135,7 +137,7 @@ Common libraries
  - gtk glade module: http://sourceforge.net/projects/gladewin32/
  - gobject
 
-========================================
+-----------------------
 SETTING THE PATH VARIABLE ON MS-WINDOWS
 
 It seems that nasty things happen if you do not have the right order in the path variable… especially if you install local Python and the various libraries, you will easily end up in with a malfunctioning system
@@ -150,15 +152,8 @@ C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;
 C:\Program Files\ThinkPad\Bluetooth Software\;C:\Program Files\ThinkPad\Bluetooth Software\syswow64;C:\Program Files\Microsoft\Web Platform Installer;
 C:\Python27;C:\Python27\Scripts;C:\Program Files (x86)\Common Files;C:\Python27;C:\Python27\Scripts;c:\gtk\bin
 
-
-========================================
-READING / EDITING THE D-RATS APPLICATION
-
-All the files of the source code are text files, so just use an editor able to modify it (notepad as basic)
-
-
-========================================
-EXECUTE THE D-RATS APPLICATION
+-----------------------
+EXECUTE THE D-RATS APPLICATION on Windows
 
 To execute the d-rats application
 
@@ -172,7 +167,7 @@ To execute the d-rats application
    D-Rats_repeater: “python  d-rats_repeater.py”
    Map downloader: “python  d-rats_mapdownloader.py”
       
-========================================
+-----------------------
 D-RATS CONFIGURATION AND LOG FILES
 
 the D-Rats stores its configuration in the user home folder
@@ -182,6 +177,13 @@ the D-Rats stores its configuration in the user home folder
  - on windows this is here:
     C:\Users\ [USERNAME] \AppData\Roaming\D-RATS
 
+-----------------------
+COMPILIGNG IN  MS-WINDOWS 
+-----------------------
+Compiling for for MS Windows: launch the "distXP.bat", this will create the "dist" folder within  the source code 
+
+========================================
+OTHER NOTES TO BE ORGANIZED 
 ========================================
 ERRORS IN FILES TAB
 
@@ -203,15 +205,7 @@ START -> RUN (cmd)
 
 /program files/poedit/bin/msgunfmt ab_AB.mo > ab_AB.po
 
-========================================
-D-RATS FOR MS-WINDOWS 
-    - packaging .exe:   see dist.bat file
-    - installer     :   *** NOT YET STUDIED HOW TO DO THIS ***
-
-========================================
-PACKAGING D-RATS FOR LINUX DISTRIBUTION
-
-    *** NOT YET STUDIED HOW TO DO THIS ***
+ 
 
 ========================================
 RS-MS1A INTEGRATION
@@ -266,25 +260,5 @@ created the interface towards a separate program "WebMap Server extension"
 serving a map.html page where d-rats will output the gps positions of the radios listened
 
 
-=======================================
-Packaging and Distribution
-
-Notes to create the package from the sources code:
-
-the file to be compiled is d-rats (without .py extension)
-
-- install py2exe
-- open cmd
-- goto source folder
- -run:
-    python setup.py py2exe
- 
- this will create the dist folder...
- 
- NOTES:
-  I had to add
-  - add "gio" into the required modules in the config file 
-  - the jpeg62.dll manually nuder GTK/Lib
-  - copy the original dist folder from d-rats installed version
  
    
