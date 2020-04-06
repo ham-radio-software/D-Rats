@@ -160,8 +160,8 @@ Common libraries
 -----------------------
 SETTING THE PATH VARIABLE ON MS-WINDOWS
 
-It seems that nasty things happen if you do not have the right order in the path variable… especially if you install local Python and the various libraries, you will easily end up in with a malfunctioning system
-
+It seems that nasty things happen if you dont have the right order in the path variable. 
+especially if you install locall Python and the various libraries, you will easily end up in with a malfunctioning system
 
 Typical User variable path:
 C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon
@@ -175,18 +175,11 @@ C:\Python27;C:\Python27\Scripts;C:\Program Files (x86)\Common Files;C:\Python27;
 -----------------------
 EXECUTE THE D-RATS APPLICATION on Windows
 
-To execute the d-rats application
+To execute the d-rats application:
 
-- Open a prompt / command line (cmd on widows)
-    C:>
-- Move to the folder where you have placed the source code
-    C:> cd d-rats-3.3.4
-- Execute the d-rats application
+    C:\cd d-rats-3.3.4\:> python d-rats.py
+   
 
-   D-Rats: “python  d-rats.py”
-   D-Rats_repeater: “python  d-rats_repeater.py”
-   Map downloader: “python  d-rats_mapdownloader.py”
-      
 -----------------------
 D-RATS CONFIGURATION AND LOG FILES
 

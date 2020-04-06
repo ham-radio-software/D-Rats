@@ -1,8 +1,7 @@
 
-Welcome to D-rats 0.3.5 compiled for Windows XP. Windows7 and Windows 10
+Welcome to D-Rats compiled for Windows XP. Windows7 and Windows 10
 
 To use this version just unrar it into a folder of your choice and launch d-rats.exe
 it will create its own data folder in parallel to the own created by former d-Rats 0.3.3 install, so not to interfere 
 please report any success or failure to iz2lxi@yahoo.it 
-detailing your operating system
-and attaching the error or debug logs.
+detailing your operating system and attaching the error or debug logs.

@@ -1,4 +1,3 @@
-
 # Copyright 2008 Dan Smith <dsmith@danplanet.com> 
 # review 2015-2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
 #
@@ -119,7 +118,7 @@ def default_build():
         name="d-rats",
         description="D-RATS",
         long_description="A communications tool for D-STAR",
-        author="Dan Smith, KK7DS < v0.3.4alfa ---> Maurizio Andreotti IZ2LXI",
+        author="Dan Smith, KK7DS until v0.3.3, then Maurizio Andreotti IZ2LXI ",
         author_email="iz2lxi@yahoo.it",
         packages=["d_rats", "d_rats.geopy", "d_rats.ui", "d_rats.sessions"],
         version=DRATS_VERSION,
