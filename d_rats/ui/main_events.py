@@ -198,7 +198,7 @@ class EventTab(MainWindowTab):
 
     def _type_selected(self, typesel, filtermodel):
         filter = typesel.get_active_text()
-        print("Filter on %s" % filter)
+        print("MainEvents: Filter set on %s" % filter)
         t = None
         if filter == _("All"):
             t = None

@@ -108,8 +108,7 @@ def set_units(units):
     elif units == _("Metric"):
         EARTH_RADIUS = 6380.0
         EARTH_UNITS = "km"
-
-    print("gps       : Set GPS units to %s" % units)
+    print("Gps       : Set GPS units to %s" % units)
 
 def value_with_units(value):
     if value < 0.5:
@@ -958,7 +957,7 @@ class NetworkGPSSource(GPSSource):
         self.enabled = False
         self.thread = None
         self.position = GPSPosition()
-        print "gps      : NetworkGPSPosition: %s" % self.position
+        print("Gps       : NetworkGPSPosition: %s" % self.position)
         self.last_valid = False
         self.sock = None
         self.broken = None
@@ -979,7 +978,7 @@ class NetworkGPSSource(GPSSource):
             _, host, port = self.port.split(":", 3)
             port = int(port)
         except ValueError, e:
-            print("Gps       :  Unable to parse %s (%s)" % (self.port, e))
+            print("Gps       : Unable to parse %s (%s)" % (self.port, e))
             self.broken = _("Unable to parse address")
             return False
 
@@ -990,7 +989,7 @@ class NetworkGPSSource(GPSSource):
             self.sock.connect((host, port))
             self.sock.settimeout(10)
         except Exception, e:
-            print("Gps       :  Unable to connect: %s" % e)
+            print("Gps       : Unable to connect: %s" % e)
             self.broken = _("Unable to connect") + ": %s" % e
             self.sock = None
             return False
@@ -1082,7 +1081,7 @@ def parse_GPS(string):
             else:
                 string = string[string.index("$")+1:]
         except Exception, e:
-            print "gps      : Exception during GPS parse: %s" % e
+            print("Gps       :  Exception during GPS parse: %s" % e)
             string = string[string.index("$")+1:]
 
     if not fixes:
@@ -1092,7 +1091,7 @@ def parse_GPS(string):
     fixes = fixes[1:]
 
     for extra in fixes:
-        print "gps       : Appending fix: %s" % extra
+        print("Gps       : Appending fix: %s" % extra)
         fix += extra
 
     return fix
@@ -1110,7 +1109,7 @@ if __name__ == "__main__":
         "$GPRMC,230710,A,2748.1414,N,08238.5556,W,000.0,033.1,111208,004.3,W*77",
         ]
                      
-    print "-- NMEA --"
+    print("Gps       : -- NMEA --")
     
     for s in nmea_strings:
         p = NMEAGPSPosition(s)
@@ -1126,7 +1125,7 @@ if __name__ == "__main__":
         "$$CRCA31F,VA2PBI>API282,DSTAR*:/221812z4526.56N07302.34W/\r",
         ]
 
-    print "gps       : \n-- GPS-A --"
+    print("Gps       :  \n-- GPS-A --")
 
     for s in aprs_strings:
         p = APRSGPSPosition(s)

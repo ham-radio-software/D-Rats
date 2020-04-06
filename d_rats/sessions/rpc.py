@@ -351,7 +351,6 @@ class RPCActionSet(gobject.GObject):
 
     def RPC_pos_report(self, job):
         result = {}
-
         mycall = self.__config.get("user", "callsign")
         rqcall = job.get_station()
         
@@ -362,7 +361,6 @@ class RPCActionSet(gobject.GObject):
         
         if rqcall == mycall or rqcall == ".":
             rqcall = None
-    
         try:
             #obtaining current position from config or local gps
             fix = self.emit("get-current-position", rqcall)
@@ -370,15 +368,12 @@ class RPCActionSet(gobject.GObject):
             result = fix.to_NMEA_GGA()
            # result["rc"] = "OK"
             print ("RPC       : case OK")
-            
-            
         except Exception, e:
             print ("RPC       : Case KO : Exception while getting position of %s: " % rqcall)
             log_exception()
             fix = None
             result["rc"] = "KO"
             result["msg"] = "No data for station '%s'" % job.get_station()
-                        
         if fix:
             #sending the position to transport // but this is broken!!
             print ("RPC       : port is           : %s" % self.__port)
@@ -391,9 +386,6 @@ class RPCActionSet(gobject.GObject):
         print ("RPC       : result : %s" % format(result))
         print ("-----------------------")
         return result
-      
-    
-    
     
     def RPC_file_list(self, job):
         result = {}
