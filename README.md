@@ -113,49 +113,52 @@ THIS IS BECAUSE THE LIBRAIRES ORIGINALLY NEEDED DOES NOT WORK CORRECTLY WITH THE
 Note: the source code of d-rats is quite dated, so use python 2.7 compiled 32 bit and 32 bit libraries
 (i did a try installing the 64 bit version of python, but wasn't able to find all the libraries needed at 64 bit)
 
-INSTALL PYTHON
+*INSTALL PYTHON*
+ - Python 2.7.X 32 bit:                         http://www.python.it/download/
 
- - Get PyTHON: Python 2.7.X 32 bit: http://www.python.it/download/
+*INSTALL GTK2 & PYGTK*
+ - gtk+-bundle_2.24.10-20120208_win32.zip       http://www.gtk.org/download/win32.php
+ - pygtk-all-in-one-2.24.0.win32-py2.7.msi      http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/
+ - gtk glade module:                            http://sourceforge.net/projects/gladewin32/
+  
+*INSTALL ASPELL*
+from http://aspell.net/win32/:
+  Aspell-0-50-3-3-Setup.exe -                   http://ftp.gnu.org/gnu/aspell/w32/Aspell-0-50-3-3-Setup.exe
+  Aspell-en-0.50-2-3.exe - (English) -          http://ftp.gnu.org/gnu/aspell/w32/Aspell-en-0.50-2-3.exe
+  Aspell-it-0.50-2-3.exe - (Italian)
+  
+      NOTE: in order to install the right dll for spell-checking refer to: 
+      http://www.d-rats.com/documentation/4-howtos/34-installing-spelling-support/
+
+*PYTHON LIBRARIES via installers*
+ procure and install:
+- gevent-1.0b4.win32-py2.7.exe
+- libxml2-python-2.7.7.win32-py2.7.exe  http://users.skynet.be/sbi/libxml-python/binaries/libxml2-python-2.7.7.win32-py2.7.exe 
+- pyserial-2.7.win32.exe                https://pypi.python.org/pypi/pyserial
+- ppy2exe-0.6.9.win32-py2.7.exe         http://www.py2exe.org/
+- pywin32-219.win32-py2.7.exe           http://sourceforge.net/projects/pywin32/files/pywin32/
+
+*PYTHON LIBRARIES via PIP INSTALL*
+Some libraries will be installable via 
+  c:\python2.7\scripts> pip install "library-name"
    
- - get GTK 2:
-    - pygtk-all-in-one-2.24.0.win32-py2.7.msi from http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/
- 
- - get libXML2 from this page http://users.skynet.be/sbi/libxml-python/
-    http://users.skynet.be/sbi/libxml-python/binaries/libxml2-python-2.7.7.win32-py2.7.exe
+   --list to be completed -- 
+   
+*PYTHON LIBRARIES via EASY INSTALL + source-code.tar.gz*
+Some libraries need to be installed after getting the source code in tar.gz file.
+ c:\python2.7\scripts> pip install> easy-install "path-to-source-code.tar.gz"
 
-ASPELL
-install aspell from http://aspell.net/win32/:
+- BeautifulSoup-3.2.2.tar.gz
+- netifaces-0.10.9.tar.gz
+- feedparser-5.1.3.tar.gz               https://pypi.python.org/pypi/feedparser
+- Flask-0.10.1.tar.gz
+- itsdangerous-0.24.tar.gz
+- MarkupSafe-0.23.tar.gz
+- simplejson-3.6.5.tar.gz               https://pypi.python.org/pypi/simplejson/
+- gobject
 
-http://ftp.gnu.org/gnu/aspell/w32/Aspell-0-50-3-3-Setup.exe
-
-install aspell dictionaries (at least english) http://ftp.gnu.org/gnu/aspell/w32/Aspell-en-0.50-2-3.exe
-
-NOTE: in order to install the right dll for spell-checking refer to: http://www.d-rats.com/documentation/4-howtos/34-installing-spelling-support/
-
-
-PYWIN
-http://sourceforge.net/projects/pywin32/files/pywin32/
-
-INSTALL LIBRARIES
-download source code of:
-  - simplejson https://pypi.python.org/pypi/simplejson/
-  - feedparser https://pypi.python.org/pypi/feedparser
-  - libxml  http://users.skynet.be/sbi/libxml-python/
-  - serial
-  at command prompt:
-c:>easy_install <source code file>.tar.gz
-
-
-PY2EXE
-- py2exe (required by setup.py): http://www.py2exe.org/
-
-SERIAL
-- https://pypi.python.org/pypi/pyserial
-
-Common libraries
- - gtk http://www.gtk.org/download/win32.php
- - gtk glade module: http://sourceforge.net/projects/gladewin32/
- - gobject
+- greenlet-0.4.5-py2.7-win32.egg
+- jinja2-master.zip
 
 -----------------------
 SETTING THE PATH VARIABLE ON MS-WINDOWS
@@ -200,6 +203,14 @@ NOTE: D-Rats sources can be compiled on any windows platform but, when copied to
 To get a compiled version it needs to have Windows XP with a certain version of network Dlls, if updated will just not work properly.
 
 To compile for MS Windows: launch the "distXP.bat", this will create the "dist" folder within the source code 
+
+*DLLs to be removed from Dist folder* 
+These Dlls shall be deleted from the "dist" folder in order to have a working networking
+- dnsapi.dll
+- imm32.dll
+- netapi32.dll
+- ws2_32.dll
+- wsock32.dll
 
 
 ========================================
