@@ -290,7 +290,7 @@ class QSTCAP(QSTThreadedText):
         return str        
 
 class QSTWeatherWU(QSTThreadedText):
-    #to susbtitute with a configurable url
+    #todo susbtitute with a configurable url
     pbase = "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID="
     abase = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query="
     def do_qst(self):

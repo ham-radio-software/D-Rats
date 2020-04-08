@@ -203,9 +203,15 @@ class UnixPlatform(Platform):
             print "Exec child exited"
 
     def open_text_file(self, path):
+        #todo gedit to be moved as parameter in config
+        print("Platform  : received order to open in gedit %s s" % path)
+        print("Platform  : if after this message your linux box crashes, please install gedit")
         self._unix_doublefork_run("gedit", path)
 
     def open_html_file(self, path):
+        #todo gedit to be moved as parameter in config
+        print("Platform  : received order to open in firefox %s s" % path)
+        print("Platform  : if after this message your linux box crashes, please install firefox")        
         self._unix_doublefork_run("firefox", path)
 
     def list_serial_ports(self):
