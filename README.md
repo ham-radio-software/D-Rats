@@ -1,4 +1,9 @@
 -----------------------
+D-RATS
+-----------------------
+D-RATS is a communications tool for D-STAR amateur radio low-speed data (DV mode). It provides: Multi-user chat capabilities; File transfers Structured data transport (forms); and Position tracking and mapping.
+
+-----------------------
 Copyright note
 -----------------------
 This program is free software: you can redistribute it and/or modify
@@ -10,6 +15,16 @@ This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
+
+-----------------------
+Original Author
+-----------------------
+Dan Smith (KK7DS)
+
+-----------------------
+Maintainer 
+-----------------------
+Maurizio Andreotti IZ2LXI
 
 -----------------------
 Introduction
