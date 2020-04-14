@@ -19,7 +19,7 @@ import os
 import tempfile
 import urllib
 
-import platform
+import dplatform
 
 def open_icon_map(iconfn):
     import gtk
@@ -40,9 +40,9 @@ def init_icon_maps():
     global ICON_MAPS
 
     ICON_MAPS = {
-        "/" : open_icon_map(os.path.join(platform.get_platform().source_dir(),
+        "/" : open_icon_map(os.path.join(dplatform.get_platform().source_dir(),
                                          "images", "aprs_pri.png")),
-        "\\": open_icon_map(os.path.join(platform.get_platform().source_dir(),
+        "\\": open_icon_map(os.path.join(dplatform.get_platform().source_dir(),
                                          "images", "aprs_sec.png")),
         }
 

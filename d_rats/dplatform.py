@@ -24,7 +24,7 @@ import subprocess
 import urllib
 
 def find_me():
-    return sys.modules["d_rats.platform"].__file__
+    return sys.modules["d_rats.dplatform"].__file__
 
 class Platform(object):
     # pylint: disable-msg=R0201
@@ -226,7 +226,6 @@ class UnixPlatform(Platform):
             ver = "%s - %s" % (os.uname()[0], ver)
         except Exception:
             ver = " ".join(os.uname())
-
         return ver
 
     def run_sync(self, command):
@@ -395,17 +394,18 @@ class Win32Platform(Platform):
 
     def os_version_string(self):
         import win32api
-
-        vers = { 4: "Windows 2000",
-                 5: "Windows XP",
-                 6: "Windows Vista",
-                 7: "Windows 7",
-                 }
-
-        (pform, _, build, _, _) = win32api.GetVersionEx()
-
-        return vers.get(pform, "Win32 (Unknown %i:%i)" % (pform, build))
-
+        #platform: try to identify windows version
+        vers = { "10.0": "Windows 10",
+                 "6.2": "Windows 8->10",
+                 "6.1": "Windows 7",
+                 "6.0": "Windows Vista",
+                 "5.2": "Windows XP 64-Bit",
+                 "5.1": "Windows XP",
+                 "5.0": "Windows 2000",
+                } 
+        (pform, pver, build, _, _) = win32api.GetVersionEx()
+        return vers.get(str(pform) +"."+ str(pver), "Win32 (Unknown %i.%i)" % (pform, pver)) + " " + str(win32api.GetVersionEx())
+                        
     def play_sound(self, soundfile):
         import winsound
 

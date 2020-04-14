@@ -30,7 +30,12 @@ On Ms Windows the program works only when compiled on Windows XP 32 bit and dist
 -----------------------
 Release notes
 -----------------------
-2020 (?) version 0.3.6 (work in progress)
+2020 (14th April) version 0.3.6 candidate 2
+ - Map: changed background color from red to yellow for station markers
+ - Get version: - looked into OS getversion and partially modified the output to cover Win 7 and 10/8 ids  
+ - renamed platform module to dplatform as platform 
+
+2020 (7th April) version 0.3.6 candidate 1 
  - fix "get position" / "get all positions"
  - investigate and fix some warnings 
 

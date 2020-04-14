@@ -32,7 +32,7 @@ except ImportError:
 
 import rfc822
 import time
-import platform
+import dplatform
 import gobject
 import re
 import random
@@ -141,7 +141,7 @@ class MailThread(threading.Thread, gobject.GObject):
         id = self.config.get("user", "callsign") + \
             time.strftime("%m%d%Y%H%M%S") + \
             mail.get("Message-id", str(random.randint(0, 1000)))
-        mid = platform.get_platform().filter_filename(id)
+        mid = dplatform.get_platform().filter_filename(id)
         ffn = os.path.join(self.config.form_store_dir(),
                            _("Inbox"),
                            "%s.xml" % mid)

@@ -28,7 +28,7 @@ from commands import getstatusoutput as run
 from miscwidgets import make_choice, KeyedListWidget
 import miscwidgets
 import mainapp
-import platform
+import dplatform
 import inputdialog
 import cap
 import wu
@@ -128,7 +128,7 @@ class QSTText(gobject.GObject):
 class QSTExec(QSTText):
     def do_qst(self):
         size_limit = self.config.getint("settings", "qst_size_limit")
-        pform = platform.get_platform()
+        pform = dplatform.get_platform()
         s, o = pform.run_sync(self.text)
         if s:
             print "Qst       : Command failed with status %i" % s

@@ -3,7 +3,7 @@ import time
 
 import gobject
 
-from d_rats import signals, platform, gps, utils, station_status
+from d_rats import signals, dplatform, gps, utils, station_status
 from d_rats.version import DRATS_VERSION
 from d_rats.sessions import base, stateless
 from d_rats.ddt2 import DDT2EncodedFrame, DDT2RawData
@@ -51,7 +51,7 @@ class ChatSession(stateless.StatelessSession, gobject.GObject):
             self.pingfn = self.ping_data
 
     def ping_data(self):
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         return _("Running") + " D-RATS %s (%s)" % (DRATS_VERSION,
                                                    p.os_version_string())
 

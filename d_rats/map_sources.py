@@ -24,7 +24,7 @@ import libxml2
 import gobject
 
 import utils
-import platform
+import dplatform
 
 class Callable:
     def __init__(self, target):
@@ -178,7 +178,7 @@ class MapUSGSRiver(MapPointThreaded):
     def __parse_site(self):
         url = "http://waterdata.usgs.gov/nwis/inventory?search_site_no=%s&format=sitefile_output&sitefile_output_format=xml&column_name=agency_cd&column_name=site_no&column_name=station_nm&column_name=dec_lat_va&column_name=dec_long_va&column_name=alt_va" % self.__site
 
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         try:
             fn, headers = p.retrieve_url(url)
             content = file(fn).read()
@@ -203,7 +203,7 @@ class MapUSGSRiver(MapPointThreaded):
     def __parse_level(self):
         url = "http://waterdata.usgs.gov/nwis/uv?format=rdb&period=1&site_no=%s" % self.__site
 
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         try:
             fn, headers = p.retrieve_url(url)
             line = file(fn).readlines()[-1]
@@ -230,7 +230,7 @@ class MapUSGSRiver(MapPointThreaded):
 
 class MapNBDCBuoy(MapPointThreaded):
     def do_update(self):
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         try:
             fn, headers = p.retrieve_url(self.__url)
             content = file(fn).read()

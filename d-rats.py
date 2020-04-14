@@ -82,7 +82,7 @@ However, please reproduce and report the issue when possible.
             IGNORE_ALL=True
             break
         elif r == gtk.RESPONSE_HELP:
-            p = platform.get_platform()
+            p = dplatform.get_platform()
             p.open_text_file(p.config_file("debug.log"))
 
 
@@ -123,11 +123,11 @@ if __name__ == "__main__":
 
 
     # import the platform module - this will setup all the proper parameters for the different OSs
-    from d_rats import platform
+    from d_rats import dplatform
 
     if opts.config:
         print ("D-Rats     : re-config option found -- Reconfigure D-rats")
-        platform.get_platform(opts.config)
+        dplatform.get_platform(opts.config)
 
     # import the D-Rats main application
     from d_rats import mainapp

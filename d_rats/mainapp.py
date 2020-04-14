@@ -17,13 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-import platform
+import dplatform
 import os
 
 # this to generate timestamps associated to GPS fixes  
 from time import gmtime, strftime
 
-debug_path = platform.get_platform().config_file("debug.log")
+debug_path = dplatform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
     sys.stdout = file(debug_path, "w", 0)
     sys.stderr = sys.stdout
@@ -520,7 +520,7 @@ class MainApp(object):
         locale = locales.get(self.config.get("prefs", "language"), "English")
         print("Mainapp   : Loading locale `%s'" % locale)
 
-        localedir = os.path.join(platform.get_platform().source_dir(),
+        localedir = os.path.join(dplatform.get_platform().source_dir(),
                                  "locale")
         print("Mainapp   : Locale dir is: %s" % localedir)
 
@@ -823,7 +823,6 @@ class MainApp(object):
         source.add_point(point)
         source.save()
         
-        
         #
 	try:
 	    #load static data from configuration 
@@ -843,9 +842,8 @@ class MainApp(object):
 	else:
 	    print("Mainapp   : Export to external mapserver not active: %s" % mapserver_active)
 	return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)	
-	
-	
-	
+
+    
     def __station_status(self, object, sta, stat, msg, port):
         self.mainwindow.tabs["stations"].saw_station(sta, port, stat, msg)
         status = station_status.get_status_msgs()[stat]
@@ -1022,7 +1020,7 @@ class MainApp(object):
         print("-" * 75)
         print("Mainapp   :  D-RATS v%s starting at %s" % (version.DRATS_VERSION,
                                              time.asctime()))
-        print(platform.get_platform())
+        print("Mainapp   : %s " % dplatform.get_platform())
         print("-" * 75)
 
     
@@ -1184,9 +1182,8 @@ class MainApp(object):
             os.remove(lock)
     
     def main(self):
-        
         # Copy default forms before we start
-        distdir = platform.get_platform().source_dir()
+        distdir = dplatform.get_platform().source_dir()
         userdir = self.config.form_source_dir()
         dist_forms = glob.glob(os.path.join(distdir, "forms", "*.x?l"))
         for form in dist_forms:

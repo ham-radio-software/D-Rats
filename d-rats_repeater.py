@@ -24,7 +24,7 @@ import os
 import gettext
 gettext.install("D-RATS")
 
-from d_rats import platform
+from d_rats import dplatform
 from d_rats import transport
 from d_rats import comm
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     
 
     if opts.config:
-        platform.get_platform(opts.config)
+        dplatform.get_platform(opts.config)
 
 from d_rats.comm import SWFSerial
 from d_rats import utils
@@ -235,7 +235,7 @@ class Repeater:
             pipe.write("100 Authentication not required for localhost\r\n")
             return True
 
-        auth_fn = platform.get_platform().config_file("users.txt")
+        auth_fn = dplatform.get_platform().config_file("users.txt")
         try:
             auth = file(auth_fn)
             lines = auth.readlines()
@@ -344,7 +344,7 @@ class RepeaterUI:
         self.tap = None
         self.tick = 0
 
-        self.platform = platform.get_platform()
+        self.platform = dplatform.get_platform()
         self.config = self.load_config()
 
     def load_config(self):
@@ -623,7 +623,7 @@ class RepeaterGUI(RepeaterUI):
         hbox.pack_start(self.trust_local, 0, 0, 0)
 
         def do_edit_users(but):
-            p = platform.get_platform()
+            p = dplatform.get_platform()
             p.open_text_file(p.config_file("users.txt"))
 
         edit_users = gtk.Button("Edit Users")
@@ -874,7 +874,7 @@ if __name__=="__main__":
 
 
     if not opts.debug:
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         f = file(p.config_file("repeater.log"), "w", 0)
         if f:
             sys.stdout = f

@@ -18,7 +18,7 @@ if __name__=="__main__":
     gettext.install("D-RATS")
 
 from d_rats import version
-from d_rats import platform
+from d_rats import dplatform
 from d_rats import formgui
 from d_rats import utils
 from d_rats import signals
@@ -39,7 +39,7 @@ def escaped(string):
     return string.replace("\n", r"\n").replace("\r", r"\r")
 
 def run_lzhuf(cmd, data):
-    p = platform.get_platform()
+    p = dplatform.get_platform()
 
     cwd = tempfile.mkdtemp()
 

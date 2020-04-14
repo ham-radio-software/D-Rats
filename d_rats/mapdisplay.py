@@ -30,7 +30,7 @@ import gtk
 import gobject
 
 import mainapp
-import platform
+import dplatform
 import miscwidgets
 import inputdialog
 import utils
@@ -42,9 +42,7 @@ import debug
 
 ##############
 from math import *
-
 from ui.main_common import ask_for_confirmation
-
 from gps import GPSPosition, distance, value_with_units, DPRS_TO_APRS
 
 CROSSHAIR = "+"
@@ -72,8 +70,6 @@ def set_base_dir(basedir, mapurl, mapkey):
     global MAP_URL_KEY
     MAP_URL_KEY = mapkey 
     print("Mapdisplay: MAP_URL_KEY configured to: %s " %MAP_URL_KEY)
-        
-    
     
 CONFIG = None
 
@@ -83,17 +79,14 @@ PROXY = None
 
 def set_connected(connected):
     global CONNECTED
-
     CONNECTED = connected
 
 def set_tile_lifetime(lifetime):
     global MAX_TILE_LIFE
-
     MAX_TILE_LIFE = lifetime
 
 def set_proxy(proxy):
     global PROXY
-
     PROXY = proxy
 
 def fetch_url(url, local):
@@ -212,7 +205,6 @@ class MapTile(object):
     def tile_edges(self):
         n, w = num2deg(self.x, self.y, self.zoom)
         s, e = num2deg(self.x+1, self.y+1, self.zoom)
-
         return (s, w, n, e)
 
     def lat_range(self):
@@ -243,7 +235,7 @@ class MapTile(object):
                 return False
 
     def fetch(self):
-        #verify if tile is local, if not fetches from web         
+        #verify if tile is local, if not fetches from web
         if not self.is_local():
             for i in range(10):
                 url = self.remote_path()
@@ -314,8 +306,7 @@ class MapTile(object):
             self.x, self.y = deg2num(self.lat, self.lon, self.zoom)
 
         self.dir = BASE_DIR 
-     
-            
+
         #create the local dir to store tiles if doesnt exist 
         if not os.path.isdir(self.dir):
             os.mkdir(self.dir)
@@ -402,7 +393,7 @@ class MapWidget(gtk.DrawingArea):
     
 
     def draw_marker(self, label, lat, lon, img=None):
-        color = "red"
+        color = "yellow" #this is the bg color of the stations markers on the map (before it was red)
 
         try:
             x, y = self.latlon2xy(lat, lon)
@@ -454,7 +445,6 @@ class MapWidget(gtk.DrawingArea):
         # should be, we record the offset and use that to shift the y in
         # further calculations for this zoom level.
 
-
         self.lng_fudge = 0
         self.lat_fudge = 0
         
@@ -462,7 +452,6 @@ class MapWidget(gtk.DrawingArea):
         x, y = self.latlon2xy(n, w)
         self.lng_fudge = ((self.width / 2) * self.tilesize) - x  
         self.lat_fudge = ((self.height / 2) * self.tilesize) - y
-        
         
         print("Mapdisplay: ------ Bounds Calculation ------")
         print("Mapdisplay: Center tile should be at %i,%i" % (\
@@ -596,13 +585,10 @@ class MapWidget(gtk.DrawingArea):
                                         self.tilesize * i,
                                         self.tilesize * j,
                                         ctx)
-
                 self.map_tiles.append(tile)
-
                 count += 1
 
         self.calculate_bounds()
-
         self.emit("new-tiles-loaded")
 
     def export_to(self, filename, bounds=None):
@@ -979,13 +965,13 @@ class MapWindow(gtk.Window):
         d.destroy()
 
         if r == gtk.RESPONSE_YES:
-            #dir = os.path.join(platform.get_platform().config_dir(), "maps")
+            #dir = os.path.join(dplatform.get_platform().config_dir(), "maps")
             dir = BASE_DIR
             shutil.rmtree(dir, True)
             self.map.queue_draw()
 
     def printable_map(self, bounds=None):
-        p = platform.get_platform()
+        p = dplatform.get_platform()
 
         f = tempfile.NamedTemporaryFile()
         fn = f.name
@@ -1018,7 +1004,7 @@ class MapWindow(gtk.Window):
         p.open_html_file(hf)
 
     def save_map(self, bounds=None):
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         f = p.gui_save_file(default_name="map_%s.png" % \
                                 time.strftime("%m%d%Y%_H%M%S"))
         if not f:
@@ -1653,7 +1639,6 @@ class MapWindow(gtk.Window):
             self.add_map_source(s)
 
         self.add_popup_handler(_("New marker here"), set_mark_at)
-
         self.add_popup_handler(_("Broadcast this location"),
                                lambda a, vals:
                                    self.prompt_to_send_loc(vals["lat"],
@@ -1695,8 +1680,7 @@ if __name__ == "__main__":
         m.set_marker(GPSPosition(station="KA7VQH", lat=45.4846, lon=-122.8278))
         m.set_marker(GPSPosition(station="N7QQU", lat=45.5625, lon=-122.8645))
         m.del_marker("N7QQU")
-
-
+        
     m.show()
 
     try:   

@@ -20,7 +20,7 @@ import pango
 
 import os
 
-import platform
+import dplatform
 
 class KeyedListWidget(gtk.HBox):
     __gsignals__ = {
@@ -678,9 +678,9 @@ class FilenameBox(gtk.HBox):
             start = None
 
         if dir:
-            fn = platform.get_platform().gui_select_dir(start)
+            fn = dplatform.get_platform().gui_select_dir(start)
         else:
-            fn = platform.get_platform().gui_save_file(start)
+            fn = dplatform.get_platform().gui_save_file(start)
         if fn:
             self.filename.set_text(fn)
 

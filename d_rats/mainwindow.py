@@ -21,7 +21,7 @@ import sys
 if __name__ == "__main__":
     sys.path.insert(0, ".")
     import mainapp
-    import platform
+    import dplatform
     
     # gettext is the module for translating the labels in different languages  
     import gettext

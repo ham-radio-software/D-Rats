@@ -26,7 +26,7 @@ from miscwidgets import make_choice
 from formgui import FormDialog,FormFile,xml_escape,xml_unescape
 import formgui
 import mainapp
-from d_rats import platform
+from d_rats import dplatform
 
 class FormElementEditor(gtk.Dialog):
     def make_entry_editor(self, id):
@@ -606,7 +606,7 @@ class FormManagerGUI(object):
         self.window.destroy()
 
     def but_import(self, widget, data=None):
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         fn = p.gui_open_file()
         if not fn:
             return
@@ -629,7 +629,7 @@ class FormManagerGUI(object):
         except:
             return
 
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         fn = p.gui_save_file(default_name="%s.xml" % _id)
         if fn:
             shutil.copy(filename, fn)

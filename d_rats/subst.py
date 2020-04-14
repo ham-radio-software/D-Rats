@@ -2,7 +2,7 @@
 
 import ConfigParser
 
-import platform
+import dplatform
 
 sublist = None
 
@@ -39,7 +39,7 @@ def load_subs():
     if sublist:
         return True
 
-    f = platform.get_platform().config_file("subst.conf")
+    f = dplatform.get_platform().config_file("subst.conf")
     if not f:
         return False
 

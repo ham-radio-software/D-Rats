@@ -4,7 +4,7 @@ import os
 
 import inputdialog
 import miscwidgets
-import platform
+import dplatform #imported by kater apparently not used...
 
 sizes = [
     "160x120",

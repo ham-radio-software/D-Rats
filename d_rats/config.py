@@ -27,7 +27,7 @@ import random
 import utils
 import miscwidgets
 import inputdialog
-import platform
+import dplatform
 import geocode_ui
 import config_tips
 import spell
@@ -106,20 +106,25 @@ _DEF_SETTINGS = {
     "outports" : "[]",
     "sockflush" : "0.5",
     "pipelinexfers" : "True",
-    "mapdir" : os.path.join(platform.get_platform().config_dir(), "maps"),
+    
+    # MAP WINDOW
+    "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),
     "maptype": "base",
     "mapurlbase":  "http://a.tile.openstreetmap.org/", 
     "keyformapurlbase": "",
-    
+
     "mapurlcycle": "https://tile.thunderforest.com/cycle/",
-    "keyformapurlcycle": "?apikey=5a1a4a79354244a38707d83969fd88a2",    
+    "keyformapurlcycle": "remove this text to avoid registering and have maps with APIKEY REQUIRED overlay msg ",
     
     "mapurloutdoors": "https://tile.thunderforest.com/outdoors/",
     "keyformapurloutdoors": "?apikey=5a1a4a79354244a38707d83969fd88a2",
      
     "mapurllandscape": "https://tile.thunderforest.com/landscape/",
     "keyformapurllandscape": "?apikey=5a1a4a79354244a38707d83969fd88a2",
-       
+    
+    # GPS
+    #default icon for our station in the map and gpsfixes
+    "default_gps_comment" : "BN  *20",
     
     "warmup_length" : "8",
     "warmup_timeout" : "3",
@@ -135,9 +140,13 @@ _DEF_SETTINGS = {
     "sniff_packets" : "False",
     "map_tile_ttl" : "720",
     "msg_flush" : "60",
+    #xxxxxxxxxx
+    "map_fix_bgcolor": "",
+    "map_fix_comment_bgcolor": "",
+    
     "msg_forward" : "False",
-    "form_logo_dir" : os.path.join(platform.get_platform().config_dir(), "logos"),
-    "default_gps_comment" : "D-RATS Station",
+    "form_logo_dir" : os.path.join(dplatform.get_platform().config_dir(), "logos"),
+    
     "mapserver_ip": "localhost",
     "mapserver_port": "5011",
     "mapserver_active": "False",
@@ -189,7 +198,10 @@ DEFAULTS = {
     "tcp_out" : {},
     "incoming_email" : {},
     "sounds" : _DEF_SOUNDS,
-    "ports" : { "ports_0" : "True,net:ref.d-rats.com:9000,,False,False,RAT" },
+    "ports" : { "ports_0" : "True,net:ref.d-rats.com:9000,,False,False,RAT", 
+                "ports_1" : "False,net:localhost:9000,,False,False,Local RATflector",
+                "ports_2" : "False,net:k3pdr.dstargateway.org:9000,,False,False,K3PDR",
+                },
 }
 
 if __name__ == "__main__":
@@ -238,10 +250,10 @@ def load_portspec(wtree, portspec, info, name):
         utils.combo_select(wtree.get_widget("serial_rate"), info)
 
 def prompt_for_port(portspec=None, info=None, pname=None):
-    p = os.path.join(platform.get_platform().source_dir(), "ui/addport.glade")
+    p = os.path.join(dplatform.get_platform().source_dir(), "ui/addport.glade")
     wtree = gtk.glade.XML(p, "addport", "D-RATS")
 
-    ports = platform.get_platform().list_serial_ports()
+    ports = dplatform.get_platform().list_serial_ports()
 
     sportsel = wtree.get_widget("serial_port")
     tportsel = wtree.get_widget("tnc_port")
@@ -586,7 +598,7 @@ class DratsConfigWidget(gtk.HBox):
 
         def test_sound(button):
             print("Config    : Testing playback of %s" % self.value)
-            p = platform.get_platform()
+            p = dplatform.get_platform()
             p.play_sound(self.value)
 
         w = miscwidgets.FilenameBox(find_dir=False)
@@ -910,7 +922,7 @@ class DratsGPSPanel(DratsPanel):
         alt.add_numeric(0, 29028, 1)
         self.mv(_("Altitude"), alt)
 
-        ports = platform.get_platform().list_serial_ports()
+        ports = dplatform.get_platform().list_serial_ports()
 
         val = DratsConfigWidget(config, "settings", "gpsenabled")
         val.add_bool()
@@ -1804,7 +1816,7 @@ class DratsConfig(ConfigParser.ConfigParser):
     def __init__(self, mainapp, safe=False):
         ConfigParser.ConfigParser.__init__(self)
 
-        self.platform = platform.get_platform()
+        self.platform = dplatform.get_platform()
         self.filename = self.platform.config_file("d-rats.config")
         print("Config    : FILE: %s" % self.filename)
         self.read(self.filename)
@@ -1813,8 +1825,8 @@ class DratsConfig(ConfigParser.ConfigParser):
         self.set_defaults()
 
         if self.get("prefs", "download_dir") == ".":
-            print("Config    : ", os.path.join(platform.get_platform().default_dir(), "D-RATS Shared"))
-            default_dir = os.path.join(platform.get_platform().default_dir(),
+            print("Config    : ", os.path.join(dplatform.get_platform().default_dir(), "D-RATS Shared"))
+            default_dir = os.path.join(dplatform.get_platform().default_dir(),
                                        "D-RATS Shared")
             if not os.path.exists(default_dir):
                 print("Config    : Creating download directory: %s" % default_dir)

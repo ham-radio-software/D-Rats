@@ -31,7 +31,7 @@ import pango
 from miscwidgets import make_choice, KeyedListWidget
 from utils import run_or_error
 from ui.main_common import ask_for_confirmation
-import platform
+import dplatform
 import spell
 
 test = """
@@ -865,7 +865,7 @@ class FormDialog(FormFile, gtk.Dialog):
         return r
 
     def but_save(self, widget, data=None):
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         f = p.gui_save_file(default_name="%s.html" % self.id)
         if not f:
             return
@@ -887,7 +887,7 @@ class FormDialog(FormFile, gtk.Dialog):
         self.export(name)
 
         print "Exported to temporary file: %s" % name
-        platform.get_platform().open_html_file(name)
+        dplatform.get_platform().open_html_file(name)
 
     def calc_check(self, buffer, checkwidget):
         message = buffer.get_text(buffer.get_start_iter(),
@@ -975,7 +975,7 @@ class FormDialog(FormFile, gtk.Dialog):
 
         @run_or_error
         def but_add(but):
-            fn = platform.get_platform().gui_open_file()
+            fn = dplatform.get_platform().gui_open_file()
             if fn:
                 name = os.path.basename(fn)
                 f = file(fn, "rb")
@@ -1006,7 +1006,7 @@ class FormDialog(FormFile, gtk.Dialog):
             name = self.attbox.get_selected()
             if not name:
                 return
-            fn = platform.get_platform().gui_save_file(default_name=name)
+            fn = dplatform.get_platform().gui_save_file(default_name=name)
             if fn:
                 f = file(fn, "wb")
                 data = self.get_attachment(name)

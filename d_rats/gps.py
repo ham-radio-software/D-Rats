@@ -1,7 +1,7 @@
 import re
 import time
 import tempfile
-import platform
+import dplatform
 import datetime
 import subst
 
@@ -880,7 +880,7 @@ class MapImage(object):
         f.write(self.make_html())
         f.flush()
         f.close()
-        p = platform.get_platform()
+        p = dplatform.get_platform()
         p.open_html_file(f.name)
 
 class GPSSource(object):
