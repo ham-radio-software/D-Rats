@@ -110,11 +110,12 @@ _DEF_SETTINGS = {
     # MAP WINDOW
     "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),
     "maptype": "base",
-    "mapurlbase":  "http://a.tile.openstreetmap.org/", 
+    #"mapurlbase":  "http://a.tile.openstreetmap.org/", 
+    "mapurlbase":  "https://tile.openstreetmap.de/",
     "keyformapurlbase": "",
 
     "mapurlcycle": "https://tile.thunderforest.com/cycle/",
-    "keyformapurlcycle": "remove this text to avoid registering and have maps with APIKEY REQUIRED overlay msg ",
+    "keyformapurlcycle": "YOUR APIKEY REQUIRED",
     
     "mapurloutdoors": "https://tile.thunderforest.com/outdoors/",
     "keyformapurloutdoors": "?apikey=5a1a4a79354244a38707d83969fd88a2",
@@ -125,6 +126,8 @@ _DEF_SETTINGS = {
     # GPS
     #default icon for our station in the map and gpsfixes
     "default_gps_comment" : "BN  *20",
+    #background color for markers in the map window
+    "map_marker_bgcolor": "yellow",
     
     "warmup_length" : "8",
     "warmup_timeout" : "3",
@@ -140,9 +143,7 @@ _DEF_SETTINGS = {
     "sniff_packets" : "False",
     "map_tile_ttl" : "720",
     "msg_flush" : "60",
-    #xxxxxxxxxx
-    "map_fix_bgcolor": "",
-    "map_fix_comment_bgcolor": "",
+
     
     "msg_forward" : "False",
     "form_logo_dir" : os.path.join(dplatform.get_platform().config_dir(), "logos"),

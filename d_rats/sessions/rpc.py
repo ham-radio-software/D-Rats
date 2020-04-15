@@ -354,37 +354,34 @@ class RPCActionSet(gobject.GObject):
         mycall = self.__config.get("user", "callsign")
         rqcall = job.get_station()
         
-        print ("-----------------------")
-        print ("RPC       : Position request for `%s'" % rqcall)
-        print ("RPC       : Self=%s" % format(self))
-        
-        
+        print("-----------------------")
+        print("RPC       : Position request for `%s'" % rqcall)
+        print("RPC       : Self=%s" % format(self))
+
         if rqcall == mycall or rqcall == ".":
             rqcall = None
         try:
             #obtaining current position from config or local gps
             fix = self.emit("get-current-position", rqcall)
-            #result["msg"] = '"user-send-chat","CQCQCQ",%s,%s,True' % (self.__port, fix.to_NMEA_GGA())
             result = fix.to_NMEA_GGA()
-           # result["rc"] = "OK"
-            print ("RPC       : case OK")
+
         except Exception, e:
-            print ("RPC       : Case KO : Exception while getting position of %s: " % rqcall)
+            print("RPC       : Case KO : Exception while getting position of %s: " % rqcall)
             log_exception()
             fix = None
             result["rc"] = "KO"
             result["msg"] = "No data for station '%s'" % job.get_station()
         if fix:
             #sending the position to transport // but this is broken!!
-            print ("RPC       : port is           : %s" % self.__port)
-            print ("RPC       : fix is            : %s" % fix)
-            print ("RPC       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA())
+            print("RPC       : port is           : %s" % self.__port)
+            print("RPC       : fix is            : %s" % fix)
+            print("RPC       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA())
             
             self.emit("user-send-chat",
                      "CQCQCQ", self.__port, fix.to_NMEA_GGA(), True)
-                
-        print ("RPC       : result : %s" % format(result))
-        print ("-----------------------")
+
+        print("RPC       : result : %s" % format(result))
+        print("-----------------------")
         return result
     
     def RPC_file_list(self, job):
@@ -487,7 +484,6 @@ class RPCActionSet(gobject.GObject):
             result["rc"] = "File %s deleted" % job.get_file()
         except Exception, e:
             result["rc"] = "Unable to delete %s: %s" % (job.get_file(), e)
-
         return result
 
     def RPC_form_pull(self, job):

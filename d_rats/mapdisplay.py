@@ -328,24 +328,27 @@ class MapWidget(gtk.DrawingArea):
         }
 
     def draw_text_marker_at(self, x, y, text, color="yellow"):
-        gc = self.get_style().black_gc
+        #print("Mapdisplay: draw_text_marker_at %s at x=%s y=%s" %(text, x, y))
 
+        gc = self.get_style().black_gc
+        
+        #setting the size for the text marker 
         if self.zoom < 12:
             size = 'size="x-small"'
-        elif self.zoom < 14:
+        elif self.zoom < 14:    
             size = 'size="small"'
         else:
             size = ''
-
         text = utils.filter_to_ascii(text)
 
         pl = self.create_pango_layout("")
         markup = '<span %s background="%s">%s</span>' % (size, color, text)
         pl.set_markup(markup)
-        y = y - self.lat_fudge
+       
         self.window.draw_layout(gc, int(x), int(y), pl)
 
     def draw_image_at(self, x, y, pb):
+        #print("Mapdisplay: draw_image_at x=%s y=%s" %(x, y))
         gc = self.get_style().black_gc
 
         self.window.draw_pixbuf(gc,
@@ -356,6 +359,7 @@ class MapWidget(gtk.DrawingArea):
         return pb.get_height()
 
     def draw_cross_marker_at(self, x, y):
+        #print("Mapdisplay: draw_cross_marker_at x=%s y=%s" %(x, y))
         width = 2
         cm = self.window.get_colormap()
         color = cm.alloc_color("red")
@@ -393,10 +397,16 @@ class MapWidget(gtk.DrawingArea):
     
 
     def draw_marker(self, label, lat, lon, img=None):
+        #print("Mapdisplay: ----------------- %s" % time.ctime())
+        #print("Mapdisplay: zoom     =%i" % self.zoom)
+        #print("Mapdisplay: draw marker for %s at %s %s" %(label, lat, lon))
+        #print("Mapdisplay: fudge    =%i" % self.lat_fudge)
+        
         color = "yellow" #this is the bg color of the stations markers on the map (before it was red)
 
         try:
             x, y = self.latlon2xy(lat, lon)
+
         except ZeroDivisionError:
             return
 
@@ -452,18 +462,6 @@ class MapWidget(gtk.DrawingArea):
         x, y = self.latlon2xy(n, w)
         self.lng_fudge = ((self.width / 2) * self.tilesize) - x  
         self.lat_fudge = ((self.height / 2) * self.tilesize) - y
-        
-        print("Mapdisplay: ------ Bounds Calculation ------")
-        print("Mapdisplay: Center tile should be at %i,%i" % (\
-                (self.height/2) * self.tilesize,
-                (self.width/2) * self.tilesize))
-        print("Mapdisplay: We calculate it based on Lat,Lon to be %i, %i" % (x, y))
-        print("Mapdisplay: --------------------------------")
-        print("Mapdisplay: self height %s" % self.height)
-        print("Mapdisplay: self width %s" %self.width)
-        print("Mapdisplay: Latitude X Fudge Factor: %i (zoom %i)" % (self.lng_fudge,self.zoom))
-        print("Mapdisplay: Latitude Y Fudge Factor: %i (zoom %i)" % (self.lat_fudge,self.zoom))
-        print("Mapdisplay: --------------------------------")
         
     def broken_tile(self):
         if self.__broken_tile:
@@ -617,7 +615,7 @@ class MapWidget(gtk.DrawingArea):
         self.height = height
         self.width = width
         
-        print("Mapdisplay: mapwidget - height %s, width %s" % (height, width))
+        #print("Mapdisplay: mapwidget - height %s, width %s" % (height, width))
         self.tilesize = tilesize
         self.status = status
 
@@ -1619,8 +1617,7 @@ class MapWindow(gtk.Window):
             for source in self.map_sources:
                 print("Mapdisplay: %s,%s" % (source.get_name(), group))
                 if source.get_name() == group:
-                    print("Mapdisplay: Adding new point %s to %s" % (point.get_name(),
-                                                         source.get_name()))
+                    print("Mapdisplay: Adding new point %s to %s" % (point.get_name(),source.get_name()))
                     source.add_point(point)
                     source.save()
                     return

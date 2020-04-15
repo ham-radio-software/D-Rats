@@ -45,10 +45,15 @@ On Ms Windows the program works only when compiled on Windows XP 32 bit and dist
 -----------------------
 Release notes
 -----------------------
-2020 (14th April) version 0.3.6 candidate 2
- - Map: changed background color from red to yellow for station markers
+2020 (14th April) version 0.3.6 review
  - Get version: - looked into OS getversion and partially modified the output to cover Win 7 and 10/8 ids  
- - renamed platform module to dplatform as platform 
+ - Renamed platform module to dplatform as platform 
+ - Default config: base map set to http//tile.openstreetmap.de
+ - Mapwindow: 
+   - fixed markers postioning with icons 
+   - fixed markers+icons display at zoom 5-18 (zoom 2-4 with increasing quality)
+   - changed background color or markers from red to yellow
+   - modified the “map window title “ adding the map in use 
 
 2020 (7th April) version 0.3.6 candidate 1 
  - fix "get position" / "get all positions"

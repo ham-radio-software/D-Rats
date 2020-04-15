@@ -126,7 +126,7 @@ if __name__ == "__main__":
     from d_rats import dplatform
 
     if opts.config:
-        print ("D-Rats     : re-config option found -- Reconfigure D-rats")
+        print("D-Rats     : re-config option found -- Reconfigure D-rats")
         dplatform.get_platform(opts.config)
 
     # import the D-Rats main application

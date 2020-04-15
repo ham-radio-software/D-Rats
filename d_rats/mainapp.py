@@ -110,7 +110,6 @@ def ping_exec(command):
     if s:
         raise Exception("Failed to run command: %s" % command)
         return None
-
     return o
 
 class CallList(object):
@@ -135,12 +134,10 @@ class CallList(object):
 
     def get_call_pos(self, call):
         (foo, p) = self.data.get(call, (0, None))
-
         return p
 
     def get_call_time(self, call):
         (t, foo) = self.data.get(call, (0, None))
-
         return t
 
     def list(self):
@@ -159,59 +156,55 @@ class MainApp(object):
 
   
     def callback_gps(self, lat, lng, station="", comments=""):
-	#
-	# this is to communicate the gos fixes to the D-Rats Web Map standalone program
-	#
-	
-	#load server ip and port
-	mapserver_ip = self.config.get("settings", "mapserver_ip")
-	mapserver_port = int(self.config.get("settings", "mapserver_port"))
-	
-	# this class broadcasts the gps fixes to the web browsers
-	flat = float(lat)
-	flng = float(lng)
-		
-	# Prepare string to broadcast to internet browsers clients
-	message = '{ "lat": "%f", "lng": "%f", "station": "%s", "comments": "%s","timestamp": "%s"  }' % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-	
-	
-	print("Mainapp   : preparing our gpsfix to send around:", message)
-	 
-	try:
-	    #create an AF_INET, STREAM socket (TCP)
-	    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	except socket.error, msg:
-	    print('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
-	    raise
-	print('Mainapp   :  Socket Created')
-	
-	
-	#Connect to remote server
-	print("Mainapp   :  Connecting to: ", mapserver_ip, ":", mapserver_port)
-	try:
-	    #create an AF_INET, STREAM socket (TCP)
-	    s.connect((mapserver_ip , mapserver_port))
-	    
-	    print("Mainapp   : message to send:", message)
-	    try :
-	       #Set the whole string
-		s.sendall(message)
-		s.close
-	    except socket.error, msg:
-		#Send failed
-		print('Mainapp   :  Send failed of:', message)
-		sys.exit()
-	      
-	    print('Mainapp   :  Message sent successfully')  
-	    
-	except socket.error, msg:
-	    print('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
-	    s.close()
-	    s = None
-	print('Mainapp   :  Socket Created')
-	 
+        #
+        # this is to communicate the gps fixes to the D-Rats Web Map standalone program
+        #
 
-	    
+        #load server ip and port
+        mapserver_ip = self.config.get("settings", "mapserver_ip")
+        mapserver_port = int(self.config.get("settings", "mapserver_port"))
+
+        # this class broadcasts the gps fixes to the web browsers
+        flat = float(lat)
+        flng = float(lng)
+
+        # Prepare string to broadcast to internet browsers clients
+        message = '{ "lat": "%f", "lng": "%f", "station": "%s", "comments": "%s","timestamp": "%s"  }' % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+
+        print("Mainapp   : preparing our gpsfix to send around:", message)
+
+        try:
+            #create an AF_INET, STREAM socket (TCP)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error, msg:
+            print('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
+            raise
+        print('Mainapp   :  Socket Created')
+
+        #Connect to remote server
+        print("Mainapp   :  Connecting to: ", mapserver_ip, ":", mapserver_port)
+        try:
+            #create an AF_INET, STREAM socket (TCP)
+            s.connect((mapserver_ip , mapserver_port))
+            
+            print("Mainapp   : message to send:", message)
+            try :
+               #Set the whole string
+                s.sendall(message)
+                s.close
+            except socket.error, msg:
+                #Send failed
+                print('Mainapp   :  Send failed of:', message)
+                sys.exit()
+
+            print('Mainapp   :  Message sent successfully')  
+            
+        except socket.error, msg:
+            print('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
+            s.close()
+            s = None
+        print('Mainapp   :  Socket Created')
+
     def setup_autoid(self):
         idtext = "(ID)"
 
@@ -589,7 +582,7 @@ class MainApp(object):
 		    
         call = self.config.get("user", "callsign")
         gps.set_units(self.config.get("user", "units"))
-               
+	
 	#setup of the url for retrieving the map tiles depending on the preference
 	if self.config.get("settings", "maptype") == "cycle":
 	    mapurl = self.config.get("settings", "mapurlcycle")
@@ -1099,12 +1092,11 @@ class MainApp(object):
         #load position from config
         print("Mainapp   : load position from config file")
         self.gps = self._static_gps()
-        
-   
+
         #create map instance
         print("Mainapp   : create map window object-----")
         self.map = mapdisplay.MapWindow(self.config)
-        self.map.set_title("D-RATS Map Window")
+        self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
         self.map.connect("reload-sources", lambda m: self._load_map_overlays())
         print("Mainapp   : create map window object: connect object-----" ) 
         self.__connect_object(self.map)
@@ -1134,8 +1126,6 @@ class MainApp(object):
             status = station_status.STATUS_ONLINE
             for port in self.sm.keys():
                 self.chat_session(port).advertise_status(status, msg)
-
-
         gobject.timeout_add(3000, self._refresh_location)
 
     def get_position(self):
@@ -1242,7 +1232,6 @@ class MainApp(object):
             log_exception()
             self.msgrouter = None
 
- 	
         #LOAD THE MAIN WINDOW
         print("Mainapp   : load the main window")
         try:

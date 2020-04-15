@@ -1,3 +1,22 @@
+#!/usr/bin/python
+#
+# Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# review 2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 import re
 import time
 import tempfile
@@ -281,14 +300,14 @@ class GPSPosition(object):
 
         _checksum = DPRS_checksum(self.station, self.comment[:astidx])
 
-
         if int(_checksum[1:], 16) != int(checksum[1:], 16):
-            print("Gps       : CHECKSUM(%s): %s != %s" % (self.station,
-                                              int(_checksum[1:], 16),
-                                              int(checksum[1:], 16)))
-            #print "Failed to parse DPRS comment:"
-            #print "  Comment: |%s|" % self.comment
-            #print "  Check: %s %s (%i)" % (checksum, _checksum, astidx)
+            print("Gps       : ----------")
+            print("Gps       : Failed to parse DPRS comment: %s " % self.comment)
+            print("Gps       : CHECKSUM(%s): %s != %s" % (self.station,int(_checksum[1:], 16),int(checksum[1:], 16)))
+            print("Gps       : Checksum : %s " % checksum)
+            print("Gps       : _checksum: %s " % _checksum)
+            print("Gps       : astidx   : %i " % astidx)
+            print("Gps       : ----------")
             raise Exception("DPRS checksum failed")
 
         self.APRSIcon = dprs_to_aprs(symbol)
