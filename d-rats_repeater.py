@@ -43,8 +43,10 @@ if __name__ == "__main__":
                  dest="console",
                  action="store_true",
                  help="Run in console mode only")
+    o.add_option("-L", "--log",
+                 dest="logpath",
+                 help="Use alternate log file directory")
     (opts, args) = o.parse_args()
-    
 
     if opts.config:
         dplatform.get_platform(opts.config)
@@ -874,8 +876,12 @@ if __name__=="__main__":
 
 
     if not opts.debug:
-        p = dplatform.get_platform()
-        f = file(p.config_file("repeater.log"), "w", 0)
+        if opts.logpath:
+            f = file(opts.logpath + "/repeater.log", "a", 0)
+        else:
+            p = dplatform.get_platform()
+            f = file(p.config_file("repeater.log"), "a", 0)
+
         if f:
             sys.stdout = f
             sys.stderr = f
