@@ -1840,16 +1840,15 @@ class DratsConfig(ConfigParser.ConfigParser):
         
         if not os.path.exists(map_dir):
             print("Config    :  Creating map directory: %s" % map_dir)
-            os.mkdir(map_dir)     
-        if not os.path.exists(map_dir+"\\base"):
-            os.mkdir(map_dir+"\\base")
-        if not os.path.exists(map_dir+"\\cycle"):
-            os.mkdir(map_dir+"\\cycle")
-        if not os.path.exists(map_dir+"\\outdoor"):
-            os.mkdir(map_dir+"\\outdoor")
-        if not os.path.exists(map_dir+"\\landscape"):
-            os.mkdir(map_dir+"\\landscape")
-
+            os.mkdir(map_dir)
+        if not os.path.exists(os.path.join(map_dir, "base")):
+            os.mkdir(os.path.join(map_dir, "base"))
+        if not os.path.exists(os.path.join(map_dir, "cycle")):
+            os.mkdir(os.path.join(map_dir, "cycle"))
+        if not os.path.exists(os.path.join(map_dir, "outdoor")):
+            os.mkdir(os.path.join(map_dir, "outdoor"))
+        if not os.path.exists(os.path.join(map_dir, "landscape")):
+            os.mkdir(os.path.join(map_dir, "landscape"))
 
     def show(self, parent=None):
         ui = DratsConfigUI(self, parent)

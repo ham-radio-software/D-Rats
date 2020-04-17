@@ -90,7 +90,6 @@ class RPCJob(gobject.GObject):
     def set_state(self, state, result={}):
         if not isinstance(result, dict):
             raise Exception("Value of result property must be dict")
-
         if state in self.STATES:
             gobject.idle_add(self.emit, "state-change", state, result)
         else:
@@ -98,7 +97,6 @@ class RPCJob(gobject.GObject):
 
     def unpack(self, raw):
         self._args = {}
-
         if not raw:
             self._args = {}
         else:
@@ -261,7 +259,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
         return frame
 
     def __job_state(self, job, state, _result, id):
-        print "Job state: %s for %i: %s" % (state, id, _result)
+        print("RPC       : Job state: %s for %i: %s" % (state, id, _result))
 
         if state == "running":
             return
@@ -275,7 +273,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
             try:
                 job = self.__decode_rpccall(frame)
             except UnknownRPCCall, e:
-                print "Unable to execute RPC from %s: %s" % (frame.s_station, e)
+                print("RPC       : incoming data : unable to execute RPC from %s: %s" % (frame.s_station, e))
                 return
 
             job.connect("state-change", self.__job_state, frame.seq)
@@ -289,17 +287,17 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
                 del self.__jobs[frame.seq]
                 job.set_state("complete", decode_dict(frame.data))
             else:
-                print "Unknown job %i" % frame.seq
+                print("RPC       : incoming data : Unknown job %i" % frame.seq)
 
         else:
-            print "Unknown RPC frame type %i" % frame.type
+            print("RPC       : incoming data : Unknown RPC frame type %i" % frame.type)
 
     def __send_job(self, job, id):
-        print "Sending job `%s' to %s" % (job.get_desc(), job.get_dest())
+        print("RPC       : Sending job `%s' to %s" % (job.get_desc(), job.get_dest()))
         frame = self.__job_to_frame(job, id)
         job.frame = frame
         self._sm.outgoing(self, frame)
-        print "sent"
+        print("RPC       : Job sent")
 
     def __worker(self):
         for id, (ts, att, job) in self.__jobs.items():
@@ -307,7 +305,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
                 # Reset timer until the block is sent
                 self.__jobs[id] = (time.time(), att, job)
             elif (time.time() - ts) > self.__t_retry:
-                print "Cancelling job %i due to timeout" % id
+                print("RPC       : Cancelling job %i due to timeout" % id)
                 del self.__jobs[id]
                 job.set_state("timeout")
 
@@ -344,7 +342,7 @@ class RPCActionSet(gobject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
-            print "Proxy emit %s: %s" % (signal, args)
+            print("RPC       : Proxy emit %s: %s" % (signal, args))
             gobject.idle_add(self.emit, signal, *args)
 
         return handler
@@ -436,7 +434,7 @@ class RPCActionSet(gobject.GObject):
 
         dir = self.__config.get("prefs", "download_dir")
         path = os.path.join(dir, job.get_file())
-        print "Remote requested %s" % path
+        print("RPC       : Remote requested %s" % path)
         if os.path.exists(path):
             result["rc"] = "OK"
             self.emit("rpc-send-file",
@@ -519,7 +517,7 @@ class RPCActionSet(gobject.GObject):
             result["gtkver"] = ".".join([str(x) for x in gtk.gtk_version])
         except ImportError:
             result["pygtkver"] = result["gtkver"] = "Unknown"
-            print "RPC       :%s" % result
+            print("RPC       : RPC_get_version: %s" % result)
             
         return result
 

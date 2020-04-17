@@ -96,6 +96,22 @@ Note that at runtime he eventual errors are logged into a file located either at
 - d-rats.exe location as d-rats.log
 - C:\Users\<username>\AppData\Roaming\D-RATS-EV\debug.log
 
+========================================
+INSTALL ON LINUX (contrib & credit Marius Petrescu)
+========================================
+
+The installation steps are quite easy (assuming one has all the neede python libs installed):
+
+via package installer: python-glade2, python-libxml2, pythhon-libxslt1
+via pip: pyserial
+
+After this, the steps are as follows:
+
+cd to your D-Rats source directory
+issue 'python setup.py build'
+issue 'python setup.py install'
+This should do it. Main scripts are in /usr/local/bin, configuration and logs will be found in the user's home directory as .d-rats-ev (a hidden directory).
+
 
 ========================================
 DEVELOPMENT ENVIRONMENT
