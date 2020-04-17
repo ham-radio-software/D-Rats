@@ -5,6 +5,18 @@ gps			force default icon on markers which have wrong APRS icons (so to have them
 mapdisplay		check fudge function for zoom 2-4
 mapdisplay	517 	check loading wrong png images
 
+
+*** Config
 config			add yellow color for markers on maps
 config			add wunderground links for QST
 config			add parametric callpouts for firefox and gedit used (in linux)
+ 	
+3. Under Appearance, type your callsign on the Notice Reg Ex line.
+
+5. Under Messages, enable "Automatically Forward Messages".
+ Set Queue flush interval to 30 seconds.
+ Set Station TTL to 600 seconds.
+
+6. Under Transfers, enable "Remote File Transfers".
+ Set Warmup Length to 16.
+ Set Warmup Timeout to 0.

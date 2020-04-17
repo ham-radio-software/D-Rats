@@ -106,7 +106,7 @@ def default_build():
     man_files = []
     for f in _man_files:
         os.system("gzip -c %s > %s" % (f, f+".gz"))
-	man_files.append(f+".gz")
+        man_files.append(f+".gz")
 
     locale_files = []
     for f in _locale_files:
@@ -122,7 +122,7 @@ def default_build():
         author_email="iz2lxi@yahoo.it",
         packages=["d_rats", "d_rats.geopy", "d_rats.ui", "d_rats.sessions"],
         version=DRATS_VERSION,
-        scripts=["d-rats", "d-rats_repeater"],
+        scripts=["d-rats.py", "d-rats_repeater.py"],
         data_files=[('/usr/share/applications', desktop_files),
                     ('/usr/share/icons', ["share/d-rats2.xpm"]),
                     ('/usr/share/d-rats/forms', form_files),
