@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Type=Application
+Exec=d-rats_repeater
+Icon=d-rats2
+StartupNotify=true
+Terminal=false
+Categories=Application;HamRadio
+MimeType=inode/directory
+Name=D-RATS Repeater
+Comment=D-RATS Repeater
+GenericName=D-RATS Repeater
