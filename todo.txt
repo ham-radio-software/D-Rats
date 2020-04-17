@@ -9,11 +9,5 @@ mapdisplay	517 	check loading wrong png images
 config			add yellow color for markers on maps
 config			add wunderground links for QST
 config			add parametric callpouts for firefox and gedit used (in linux)
- 	
 			Appearance, add reminder to add your callsign on the Notice Reg Ex line.
-			Under Messages-->enable by default "Automatically Forward Messages".
-					- Set Queue flush interval to 30 seconds.
- 					- Set Station TTL to 600 seconds.
-			Transfers -> enable "Remote File Transfers".
-					 - Set Warmup Length to 16.
-					 - Set Warmup Timeout to 0.
+

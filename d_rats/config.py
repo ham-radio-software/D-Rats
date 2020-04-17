@@ -124,13 +124,11 @@ _DEF_SETTINGS = {
     "keyformapurllandscape": "?apikey=5a1a4a79354244a38707d83969fd88a2",
     
     # GPS
-    #default icon for our station in the map and gpsfixes
-    "default_gps_comment" : "BN  *20",
-    #background color for markers in the map window
-    "map_marker_bgcolor": "yellow",
-    
-    "warmup_length" : "8",
-    "warmup_timeout" : "3",
+
+    "default_gps_comment" : "BN  *20",     #default icon for our station in the map and gpsfixes
+    "map_marker_bgcolor": "yellow",        #background color for markers in the map window
+    "warmup_length" : "8",                 #changed from 8 to 16 in 0.3.6
+    "warmup_timeout" : "3",                #changed from 3 to 0 in 0.3.6
     "force_delay" : "-2",
     "ping_info" : "",
     "smtp_server" : "",
@@ -142,17 +140,18 @@ _DEF_SETTINGS = {
     "smtp_dogw" : "False",
     "sniff_packets" : "False",
     "map_tile_ttl" : "720",
-    "msg_flush" : "60",
 
+    "msg_flush" : "60",           #changed from 60 to 30sec in 0.3.6
+    "msg_forward" : "True",       #changed from False to True in 0.3.6
+    "station_msg_ttl" : "600",    #changed from 3660 to 600 in 0.3.6
     
-    "msg_forward" : "False",
     "form_logo_dir" : os.path.join(dplatform.get_platform().config_dir(), "logos"),
     
     "mapserver_ip": "localhost",
     "mapserver_port": "5011",
     "mapserver_active": "False",
     "http_proxy" : "",
-    "station_msg_ttl" : "3600",
+    
     "timestamp_positions" : "False",
     "msg_wl2k_mode" : "Network",
     "qst_size_limit" : "2048",
@@ -1830,16 +1829,14 @@ class DratsConfig(ConfigParser.ConfigParser):
             default_dir = os.path.join(dplatform.get_platform().default_dir(),
                                        "D-RATS Shared")
             if not os.path.exists(default_dir):
-                print("Config    : Creating download directory: %s" % default_dir)
+                print("Config    : Creating directory for downloads: %s" % default_dir)
                 os.mkdir(default_dir)
                 self.set("prefs", "download_dir", default_dir)
 
         #create the folder structure for map
         map_dir = self.get("settings", "mapdir")
-        print("Config    : mapdir=%s" % map_dir)
-        
         if not os.path.exists(map_dir):
-            print("Config    :  Creating map directory: %s" % map_dir)
+            print("Config    :  Creating directory for maps: %s" % map_dir)
             os.mkdir(map_dir)
         if not os.path.exists(os.path.join(map_dir, "base")):
             os.mkdir(os.path.join(map_dir, "base"))

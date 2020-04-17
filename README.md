@@ -51,9 +51,15 @@ Release notes
  - Default config: 
      - base map set to http//tile.openstreetmap.de
      - default APRS icon shown changed to a valid one:  BN  *26 
-     - adding localhost ratflector config 
-     - adding k3pdr ratflector (would be useful? Also adding others?)
-
+     Network
+     - added localhost ratflector config 
+     - added k3pdr ratflector (would be useful? Also adding others?)
+     Messages-->enable by default "Automatically Forward Messages".
+     - Set Queue flush interval to 30 seconds.
+     - Set Station TTL to 600 seconds.
+     Transfers -> enable "Remote File Transfers".
+     - Set Warmup Length to 16.
+     - Set Warmup Timeout to 0.
 
  - Mapwindow: 
    - fixed markers postioning with icons 
@@ -109,7 +115,13 @@ After this, the steps are as follows:
 
 cd to your D-Rats source directory
 issue 'python setup.py build'
-issue 'python setup.py install'
+issue 'python setup.py install'    (this could require a sudo)
+
+you can now execute D-Rats from terminal,:
+
+> d-rats.py
+> d-rats-terminal
+
 This should do it. Main scripts are in /usr/local/bin, configuration and logs will be found in the user's home directory as .d-rats-ev (a hidden directory).
 
 
