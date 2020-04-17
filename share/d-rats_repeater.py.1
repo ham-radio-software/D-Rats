@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.TH D-RATS 1 "July 14, 2010"
+.TH D-RATS_REPEATER 1 "April 17, 2020"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -16,22 +16,23 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-d-rats \- A communication tool for D-STAR
+d-rats_repeater.py \- A data exchange gateway for D-RATS
 .SH SYNOPSIS
-.B d-rats
+.B d-rats_repeater.py
 .RI [ options ]
 .br
 .SH DESCRIPTION
 This manual page documents briefly the
-.B d-rats
+.B d-rats_repeater.py
 command.
 .PP
-\fBd-rats\fP is a communications tool for D-STAR low-speed data (DV mode).
-It provides:
-   Multi-user chat capabilities;
-   File transfers
-   Structured data transport (forms); and
-   Position tracking and mapping.
+\fBd-rats_repeater\fP is an application packaged with D-RATS
+which allows multiple D-STAR radios (even on different
+frequencies), that are connected to the same computer, to
+interchange D-RATS information. It also allows gating of
+D-RATS traffic to be interchanged between RF and internet
+users. More detailed information and configuration
+information can be found on the D-RATS web site.
 .SH OPTIONS
 This program follows the usual GNU command line syntax, with long
 options starting with two dashes (`--').
@@ -40,14 +41,17 @@ A summary of options is included below.
 .B \-h, \-\-help
 Show summary of options.
 .TP
-.B \-s, \-\-safe
-Safe mode (ignore configuration).
-.TP
 .B \-c CONFIG, \-\-config=CONFIG
 Use alternate configuration directory.
 .TP
-.B \-p, \-\-profile
-Enable Profiling.
+.B \-d, \-\-debug
+Show debug messages on stdout.
+.TP
+.B \-C, \-\-console
+Run in console mode only.
+.TP
+.B \-L LOGPATH, \-\-log=LOGPATH
+Use alternate log directory.
 .SH AUTHOR
 d-rats was written by Dan Smith.
 .PP
