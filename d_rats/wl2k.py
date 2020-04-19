@@ -240,7 +240,6 @@ class WinLinkCMS:
             raise Exception("Conversation error (unparsable SSID `%s')" % resp)
 
         self._send(self.__ssid())
-
         prompt = self._recv().strip()
         if not prompt.endswith(">"):
             raise Exception("Conversation error (never got prompt)")
@@ -251,7 +250,6 @@ class WinLinkCMS:
         msgs = []
         reading = True
         while reading:
-            resp = self._recv()
             resp = self._recv()
             for l in resp.split("\r"):
                 if l.startswith("FC"):
