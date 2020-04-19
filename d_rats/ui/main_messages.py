@@ -940,6 +940,9 @@ class MessagesTab(MainWindowTab):
 
         self.emit("user-send-form", station, port, fn, "foo")
 
+        if msgrouting.msg_is_locked(fn):
+            msgrouting.msg_unlock(fn)
+
     def _mrk_msg(self, button, read):
         try:
             sel = self._messages.get_selected_messages()
