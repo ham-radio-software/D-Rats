@@ -83,6 +83,7 @@ _DEF_PREFS = {
     "msg_wl2k_server" : "server.winlink.org",
     "msg_wl2k_ssid" : "",
     "msg_wl2k_port" : "8772",
+    "msg_wl2k_password" : "",
     "toolbar_button_size" : "Default",
     "check_spelling" : "False",
     "confirm_exit" : "False",
@@ -1214,7 +1215,10 @@ class DratsMessagePanel(DratsPanel):
         prt = DratsConfigWidget(config, "prefs", "msg_wl2k_port")
         prt.add_numeric(1, 65535, 1)
         lab = gtk.Label(_("Port"))
-        self.mv(_("WL2K Network Server"), srv, lab, prt)
+        pwd = DratsConfigWidget(config, "prefs", "msg_wl2k_password")
+        pwd.add_pass()
+        ptab = gtk.Label(_("Password"))
+        self.mv(_("WL2K Network Server"), srv, lab, prt, ptab, pwd)
 
         rms = DratsConfigWidget(config, "prefs", "msg_wl2k_rmscall")
         rms.add_upper_text(10)
