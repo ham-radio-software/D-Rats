@@ -10,6 +10,7 @@ import gobject
 import struct
 import time
 import re
+import random
 
 sys.path.insert(0, "..")
 
@@ -239,6 +240,7 @@ class WinLinkCMS:
             raise Exception("Conversation error (unparsable SSID `%s')" % resp)
 
         self._send(self.__ssid())
+
         prompt = self._recv().strip()
         if not prompt.endswith(">"):
             raise Exception("Conversation error (never got prompt)")
@@ -249,6 +251,7 @@ class WinLinkCMS:
         msgs = []
         reading = True
         while reading:
+            resp = self._recv()
             resp = self._recv()
             for l in resp.split("\r"):
                 if l.startswith("FC"):
@@ -283,7 +286,7 @@ class WinLinkCMS:
                 except Exception, e:
                     raise
                     #print e
-                    
+
             self._send("FQ")
 
         self._disconnect()
@@ -328,10 +331,14 @@ class WinLinkCMS:
         return 1
 
 class WinLinkTelnet(WinLinkCMS):
-    def __init__(self, callsign, server="server.winlink.org", port=8772):
+    def __init__(self, callsign, server="server.winlink.org", port=8772, passwd=""):
         self.__server = server
         self.__port = port
+        self.__passwd = passwd
         WinLinkCMS.__init__(self, callsign)
+
+    def __ssid(self):
+        return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
 
     def _connect(self):
         class sock_file:
@@ -357,6 +364,9 @@ class WinLinkTelnet(WinLinkCMS):
         self._conn.close()
 
     def _login(self):
+        if len(self.__passwd) == 0:
+            raise Exception("No Winlink password configured")
+
         resp = self._recv()
 
         resp = self._recv()
@@ -371,7 +381,53 @@ class WinLinkTelnet(WinLinkCMS):
         self._send("CMSTELNET")
         resp = self._recv()
 
-        self._send_ssid(resp)
+        try:
+            sw, ver, caps = resp[1:-1].split("-")
+        except Exception:
+            raise Exception("Conversation error (unparsable SSID `%s')" % resp)
+
+        resp = self._recv().strip()
+        if not resp.endswith(">"):
+            raise Exception("Conversation error (never got prompt)")
+
+        self._send("FF")
+
+        resp = self._recv().strip()
+        if not resp.startswith("Login ["):
+            raise Exception("Conversation error (never saw challenge)")
+
+        chall = resp[7:-2]
+
+        resp = self._recv().strip()
+        if not resp.endswith(">"):
+            raise Exception("Conversation error (never got prompt)")
+
+        passwd = "_" + self.__passwd
+
+        rem = 6
+        todo = 3
+        cresp = ""
+        while rem > 0:
+            ch = random.randint(0,255)
+
+            if ch > 127 and rem > todo:
+                cresp += chr(random.randint(33, 126))
+            else:
+                todo -= 1
+                cresp += passwd[int(chall[todo])]
+            rem -= 1
+
+        self._send(cresp)
+
+        resp = self._recv()
+        if not resp.startswith("Hello "):
+            raise Exception("Conversation error (never saw hello)")
+
+        resp = self._recv().strip()
+        if not resp.endswith(">"):
+            raise Exception("Conversation error (never got prompt)")
+
+        self._send(self.__ssid())
 
 class WinLinkRMSPacket(WinLinkCMS):
     def __init__(self, callsign, remote, agw):
@@ -506,7 +562,8 @@ class WinLinkTelnetThread(WinLinkThread):
     def wl2k_connect(self):
         server = self._config.get("prefs", "msg_wl2k_server")
         port = self._config.getint("prefs", "msg_wl2k_port")
-        return WinLinkTelnet(self._callssid, server, port)
+        passwd = self._config.get("prefs", "msg_wl2k_password")
+        return WinLinkTelnet(self._callssid, server, port, passwd)
 
 class WinLinkAGWThread(WinLinkThread):
     def __init__(self, *args, **kwargs):
