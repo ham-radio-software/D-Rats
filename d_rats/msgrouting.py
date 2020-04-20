@@ -279,7 +279,8 @@ class MessageRouter(gobject.GObject):
             del form
 
             if not call:
-                msg_unlock(f)
+                if msg_is_locked(f):
+                    msg_unlock(f)
                 continue
             elif not queue.has_key(call):
                 queue[call] = [f]
@@ -507,7 +508,8 @@ class MessageRouter(gobject.GObject):
                     routed = False
     
                 if not routed:
-                    msg_unlock(msg)
+                    if msg_is_locked(msg):
+                        msg_unlock(msg)
     
     def _run(self):
         while self.__enabled:
@@ -524,7 +526,8 @@ class MessageRouter(gobject.GObject):
                     for msgs in queue.values():
                         for msg in msgs:
                             print "Unlocking %s" % msg
-                            msg_unlock(msg)
+                            if msg_is_locked(msg):
+                                msg_unlock(msg)
 
                 self.__event.clear()
             self.__event.wait(self.__config.getint("settings", "msg_flush"))
