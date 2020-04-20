@@ -11,3 +11,4 @@ config			add wunderground links for QST
 config			add parametric callpouts for firefox and gedit used (in linux)
 			Appearance, add reminder to add your callsign on the Notice Reg Ex line.
 
+when a new map is selected need to close and reopen d-rats for passing to the new map

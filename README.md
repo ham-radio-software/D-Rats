@@ -29,10 +29,29 @@ Maurizio Andreotti IZ2LXI
 -----------------------
 Introduction
 -----------------------
-D-Rats is a study version of the D-Rats 0.3.3. originally developed and 
+This version of D-Rats is a study version of the D-Rats 0.3.3. originally developed and 
 Copyrighted by 2008 Dan Smith <dsmith@danplanet.com> and later reviewed in 2015, 2019 and 2020 by me, Maurizio Andreotti
 
-The idea here is to read the source, add some comments and eventually do some modifications.
+The idea here is to read the source, add some comments and eventually do some modifications and share. 
+Luckily there is no obligation for anybody to use it, in particular if you are happy with the one from Dan.
+
+If this works for you I am happy, If it doesn't ... 
+
+*** Note for awareness and understanding  ***
+
+I picked up D.Rats code as I needed the maps feature back and after some time I released  (in 2015 and in 2019) for benefit of everybody. 
+
+The program is pretty much the one developed by Dan more than 10 years ago based on libraries by the python community which â€“ in many cases - are not supported anymore by anybody â€“  not to mention that the operating system itself changed multiple times, and each of us has a different footprint of applications installed, making each execution situation different. So there is no promise from me that it will work on your PC.
+
+Recompiling it (even unchanged) nowdays for Windows has been challenging and implied going back to windows XP to ensure compatibility and a lot of hours of tests and investigation, I am glad it works for me and some others.  
+
+It was difficult to get it work on my PC (Win10 and XP) with full access to logs and realtime control of what happens (e.g. clicking on some d-rats button, and looking d-rats behaviour result and logs to sort out thinkgs). 
+
+If in your case it does not work, that is an unhappy case which I feel it will continue not working until some magic happens (in particular if there is no valuable feedback provided to understand why it failed). 
+
+If you want to allow some investigation, but there is no obligation, it is needed to share both the debug log, the config file in use and also describe in detail the steps you did to open, configure, and use it. 
+
+Anyhow the code is published and anybody can go look into it and sort out things.
 
 -----------------------
 Supported systems
@@ -65,7 +84,7 @@ Release notes
    - fixed markers postioning with icons 
    - fixed markers+icons display at zoom 5-18 (zoom 2-4 still to be fixed)
    - changed background color or markers from red to yellow
-   - modified the “map window title “ adding the map in use
+   - modified the ï¿½map window title ï¿½ adding the map in use
 
 2020 (7th April) version 0.3.6 candidate 1 
  - fix "get position" / "get all positions"
