@@ -1236,7 +1236,7 @@ class DratsMessagePanel(DratsPanel):
         self.mv(_("WL2K RMS Station"), rms, lab, rpt)
 
         map = {
-            "Network" : [srv._widget, prt._widget],
+            "Network" : [srv._widget, prt._widget, pwd._widget],
             "RMS"     : [rms._widget, rpt._widget],
             }
         disable_by_combo(wlm._widget, map)
