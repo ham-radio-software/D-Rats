@@ -10,7 +10,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 -----------------------
 # Copyright 2008 Dan Smith <dsmith@danplanet.com> 
-# review 2015-2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
 -----------------------
 
 Welcome to D-Rats compiled for Windows - tested on XP, and Windows 10
@@ -19,7 +19,7 @@ Welcome to D-Rats compiled for Windows - tested on XP, and Windows 10
 IF YOU ARE ALREADY A USER OF D-RATS
 
 COMPATIBILITY NOTES
-** D-RATS 0.3.5 ** 
+** D-RATS 0.3.5 --> 0.3.6** 
 this version share the same configuration file of 0.3.5 - there are no actions to be done 
 
 ** D-RATS 0.3.4 ** 

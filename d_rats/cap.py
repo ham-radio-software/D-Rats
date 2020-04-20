@@ -23,7 +23,7 @@ import datetime
 try:
     from hashlib import md5
 except ImportError:
-    print "Installing hashlib replacement hack"
+    print("Installing hashlib replacement hack")
     from utils import ExternalHash as md5
 
 def ev_cmp_exp(ev1, ev2):
@@ -112,7 +112,7 @@ class CAPParser(object):
                         hashes.append(hash.digest())
 
                 except Exception, e:
-                    print "Unable to parse CAP node: %s (%s)" % (child.name, e)
+                    print("Unable to parse CAP node: %s (%s)" % (child.name, e))
 
             child = child.next
 
@@ -154,8 +154,8 @@ if __name__ == "__main__":
 
     c = 0
     for i in cp.events_expiring_after(epoch):
-        print i.report()
+        print(i.report())
         c += 1
 
-    print "%i events" % c
+    print("%i events" % c)
         

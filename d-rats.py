@@ -49,7 +49,7 @@ def handle_exception(exctyp, value, tb):
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
 
-    print "---- GUI Exception ----\n%s\n---- End ----\n" % trace
+    print("---- GUI Exception ----\n%s\n---- End ----\n" % trace)
 
     msg = """
 <b><big>D-RATS has encountered an error.</big></b>

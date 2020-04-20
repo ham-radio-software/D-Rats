@@ -112,7 +112,7 @@ def default_build():
     for f in _locale_files:
         locale_files.append(("/usr/share/d-rats/%s" % os.path.dirname(f), [f]))
 
-    print "LOC: %s" % str(ui_files)
+    print("LOC: %s" % str(ui_files))
 
     setup(
         name="d-rats",

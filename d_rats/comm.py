@@ -48,7 +48,7 @@ def kiss_send_frame(frame, port=0):
     buf = struct.pack("BB", FEND, cmd) + frame + struct.pack("B", FEND)
 
     if TNC_DEBUG:
-        print "Comm      : [TNC] Sending:"
+        print("Comm      : [TNC] Sending:")
         utils.hexprint(buf)
 
     return buf
@@ -81,21 +81,21 @@ def kiss_recv_frame(buf):
             elif ord(char) == TFESC:
                 _buf += chr(FESC)
             else:
-                print "Comm      : [TNC] Bad escape of 0x%x" % ord(char)
+                print("Comm      : [TNC] Bad escape of 0x%x" % ord(char))
                 break
         elif inframe:
             _buf += char
         else:
-            print "Comm      : [TNC] Out-of-frame garbage: 0x%x" % ord(char)
+            print("Comm      : [TNC] Out-of-frame garbage: 0x%x" % ord(char))
         _lst = char
 
     if TNC_DEBUG:
-        print "Comm      : [TNC] Data:"
+        print("Comm      : [TNC] Data:")
         utils.hexprint(data)
 
     if not inframe and _buf:
         # There was not a partial frame started at the end of the data
-        print "Comm      : [TNC] Dumping non-frame data trailer"
+        print("Comm      : [TNC] Dumping non-frame data trailer")
         utils.hexprint(_buf)
         _buf = ""
 
@@ -121,14 +121,14 @@ class TNCSerial(serial.Serial):
 
     def read(self, size):
         if self.__buffer:
-            print "Comm      : Buffer is %i before read" % len(self.__buffer)
+            print("Comm      : Buffer is %i before read" % len(self.__buffer))
         self.__buffer += serial.Serial.read(self, 1024)
 
         framedata = ""
         if kiss_buf_has_frame(self.__buffer):
             framedata, self.__buffer = kiss_recv_frame(self.__buffer)
         elif len(self.__buffer) > 0:
-            print "Comm      : [TNC] Buffer partially-filled (%i b)" % len(self.__buffer)
+            print("Comm      : [TNC] Buffer partially-filled (%i b)" % len(self.__buffer))
 
         return framedata
 
@@ -137,7 +137,7 @@ class SWFSerial(serial.Serial):
     __swf_debug = False
 
     def __init__(self, **kwargs):
-        print "Comm      : Software XON/XOFF control initialized"
+        print("Comm      : Software XON/XOFF control initialized")
         try:
             serial.Serial.__init__(self, **kwargs)
         except TypeError:
@@ -145,7 +145,7 @@ class SWFSerial(serial.Serial):
                 del kwargs["writeTimeout"]
                 serial.Serial.__init__(self, **kwargs)
             else:
-                print "Comm      : Unknown TypeError from Serial.__init__: %s" % e
+                print("Comm      : Unknown TypeError from Serial.__init__: %s" % e)
                 raise e
 
         self.state = True
@@ -163,17 +163,16 @@ class SWFSerial(serial.Serial):
         char = serial.Serial.read(self, 1)
         if char == ASCII_XOFF:
             if self.__swf_debug:
-                print "Comm      : ************* Got XOFF"
+                print("Comm      : ************* Got XOFF")
             self.state = False
         elif char == ASCII_XON:
             if self.__swf_debug:
-                print "------------- Got XON"
+                print("------------- Got XON")
             self.state = True
         elif len(char) == 1:
-            print "Comm      : Aiee! Read a non-XOFF char: 0x%02x `%s`" % (ord(char),
-                                                                   char)
+            print("Comm      : Aiee! Read a non-XOFF char: 0x%02x `%s`" % (ord(char), char))
             self.state = True
-            print "Comm      : Assuming IXANY behavior"
+            print("Comm      : Assuming IXANY behavior")
 
         return self.state
 
@@ -182,20 +181,20 @@ class SWFSerial(serial.Serial):
         pos = 0
         while pos < len(data):
             if self.__swf_debug:
-                print "Comm      : Sending %i-%i of %i" % (pos, pos+chunk, len(data))
+                print("Comm      : Sending %i-%i of %i" % (pos, pos+chunk, len(data)))
             serial.Serial.write(self, data[pos:pos+chunk])
             self.flush()
             pos += chunk
             start = time.time()
             while not self.is_xon():
                 if self.__swf_debug:
-                    print "Comm      : We're XOFF, waiting: %s" % self.state
+                    print("Comm      : We're XOFF, waiting: %s" % self.state)
                 time.sleep(0.01)
                 
                 if (time.time() - start) > self.xoff_limit:
                     #print "XOFF for too long, breaking loop!"
                     #raise DataPathIOError("Write error (flow)")
-                    print "Comm      : XOFF for too long, assuming XON"
+                    print("Comm      : XOFF for too long, assuming XON")
                     self.state = True
 
     def write(self, data):
@@ -249,7 +248,7 @@ class AGWDataPath(DataPath):
             self._agw = agw.AGWConnection(self._addr, int(self._port), self.timeout)
             self._agw.enable_raw()
         except Exception, e:
-            print "Comm      : AGWPE exception on connect: %s" % e
+            print("Comm      : AGWPE exception on connect: %s" % e)
             raise DataPathNotConnectedError("Unable to connect to AGWPE")
 
     def disconnect(self):
@@ -293,7 +292,7 @@ class SerialDataPath(DataPath):
                                      writeTimeout=self.timeout,
                                      xonxoff=0)
         except Exception, e:
-            print "Comm      : Serial exception on connect: %s" % e
+            print("Comm      : Serial exception on connect: %s" % e)
             raise DataPathNotConnectedError("Unable to open serial port")
 
     def disconnect(self):
@@ -308,7 +307,7 @@ class SerialDataPath(DataPath):
         try:
             data = self._serial.read(count)
         except Exception, e:
-            print "Comm      : Serial read exception: %s" % e
+            print("Comm      : Serial read exception: %s" % e)
             utils.log_exception()
             raise DataPathIOError("Failed to read from serial port")
 
@@ -323,7 +322,7 @@ class SerialDataPath(DataPath):
         try:
             self._serial.write(buf)
         except Exception ,e:
-            print "Comm      : Serial write exception: %s" % e
+            print("Comm      : Serial write exception: %s" % e)
             utils.log_exception()
             raise DataPathIOError("Failed to write to serial port")
 
@@ -352,7 +351,7 @@ class TNCDataPath(SerialDataPath):
                                      writeTimeout=self.timeout*10,
                                      xonxoff=0)
         except Exception, e:
-            print "Comm      : TNC exception on connect: %s" % e
+            print("Comm      : TNC exception on connect: %s" % e)
             utils.log_exception()
             raise DataPathNotConnectedError("Unable to open serial port")
 
@@ -499,7 +498,7 @@ class SocketDataPath(DataPath):
                 code, string = line.split(" ", 1)
                 code = int(code)
             except Exception, e:
-                print "Comm      : Error parsing line %s: %s" % (line, e)
+                print("Comm      : Error parsing line %s: %s" % (line, e))
                 raise DataPathNotConnectedError("Conversation error")
 
             return code, string
@@ -507,30 +506,30 @@ class SocketDataPath(DataPath):
         try:
             c, l = getline(self._socket)
         except DataPathNotConnectedError:
-            print "Comm      : Assuming an old-school ratflector for now"
+            print("Comm      : Assuming an old-school ratflector for now")
             return
 
         if c == 100:
-            print "Comm      : Host does not require authentication"
+            print("Comm      : Host does not require authentication")
             return
         elif c != 101:
             raise DataPathNotConnectedError("Unknown response code %i" % c)
 
-        print "Comm      : Doing authentication"
-        print "Comm      : Sending username: %s" % self.call
+        print("Comm      : Doing authentication")
+        print("Comm      : Sending username: %s" % self.call)
         self._socket.send("USER %s\r\n" % self.call)
 
         c, l = getline(self._socket)
         if c == 200:
-            print "Comm      : Host did not require a password"
+            print("Comm      : Host did not require a password")
         elif c != 102:
             raise DataPathNotConnectedError("User rejected username")
 
-        print "Comm      : Sending password: %s" % ("*" * len(self.passwd))
+        print("Comm      : Sending password: %s" % ("*" * len(self.passwd)))
         self._socket.send("PASS %s\r\n" % self.passwd)
 
         c, l = getline(self._socket)
-        print "Comm      : Host responded: %i %s" % (c, l)
+        print("Comm      : Host responded: %i %s" % (c, l))
         if c != 200:
             raise DataPathNotConnectedError("Authentication failed: %s" % l)
 
@@ -540,7 +539,7 @@ class SocketDataPath(DataPath):
             self._socket.connect((self.host, self.port))
             self._socket.settimeout(self.timeout)
         except Exception, e:
-            print "Comm      : Socket connect failed: %s" % e
+            print("Comm      : Socket connect failed: %s" % e)
             self._socket = None
             raise DataPathNotConnectedError("Unable to connect (%s)" % e)
 
@@ -610,7 +609,7 @@ class SocketDataPath(DataPath):
         try:
             self._socket.sendall(buf)
         except Exception, e:
-            print "Comm      : Socket write failed: %s" % e
+            print("Comm      : Socket write failed: %s" % e)
             raise DataPathIOError("Socket write failed")
 
         return
