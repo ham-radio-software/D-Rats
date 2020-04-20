@@ -103,6 +103,8 @@ def default_build():
     _locale_files = glob("locale/*/LC_MESSAGES/D-RATS.mo")
     _man_files = glob("share/*.1")
 
+    os.system("make -C libexec")
+
     man_files = []
     for f in _man_files:
         os.system("gzip -c %s > %s" % (f, f+".gz"))
