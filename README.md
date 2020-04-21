@@ -64,6 +64,14 @@ On Ms Windows the program works only when compiled on Windows XP 32 bit and dist
 -----------------------
 Release notes
 -----------------------
+2020 version 0.3.7 beta
+- Added password for Winlink2000
+- Maps
+  - added deletion of tiles which result defective at map rendering time (deletion will force re-download of the tiles at next map reload)
+  - added map reload after a change is done in the config (this avoid closing and reopening D-rats to change map)
+
+- Continued porting "print" to print() 
+
 2020 (14th April) version 0.3.6 review
  - Get version: - looked into OS getversion and partially modified the output to cover Win 7 and 10/8 ids  
  - Renamed platform module to dplatform as platform 

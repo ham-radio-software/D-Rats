@@ -46,7 +46,7 @@ _DEF_USER = {
 }
 
 _DEF_PREFS = {
-    "download_dir" : ".",
+    "download_dir" : ".", 
     "blinkmsg" : "False",
     "noticere" : "",
     "ignorere" : "",
@@ -116,7 +116,7 @@ _DEF_SETTINGS = {
     "keyformapurlbase": "",
 
     "mapurlcycle": "https://tile.thunderforest.com/cycle/",
-    "keyformapurlcycle": "YOUR APIKEY REQUIRED",
+    "keyformapurlcycle": "?apikey=YOUR APIKEY REQUIRED",
     
     "mapurloutdoors": "https://tile.thunderforest.com/outdoors/",
     "keyformapurloutdoors": "?apikey=5a1a4a79354244a38707d83969fd88a2",
@@ -202,6 +202,7 @@ DEFAULTS = {
     "ports" : { "ports_0" : "True,net:ref.d-rats.com:9000,,False,False,RAT", 
                 "ports_1" : "False,net:localhost:9000,,False,False,Local RATflector",
                 "ports_2" : "False,net:k3pdr.dstargateway.org:9000,,False,False,K3PDR",
+                "ports_3" : "False,/dev/ttyUSB0,9600,False,False,IC2820 ttyUSB0",
                 },
 }
 
@@ -1827,17 +1828,17 @@ class DratsConfig(ConfigParser.ConfigParser):
         self.widgets = []
 
         self.set_defaults()
-
+        
+        #create "D-RATS Shared" folder for file transfers
         if self.get("prefs", "download_dir") == ".":
             print("Config    : ", os.path.join(dplatform.get_platform().default_dir(), "D-RATS Shared"))
-            default_dir = os.path.join(dplatform.get_platform().default_dir(),
-                                       "D-RATS Shared")
+            default_dir = os.path.join(dplatform.get_platform().default_dir(),"D-RATS Shared")
             if not os.path.exists(default_dir):
                 print("Config    : Creating directory for downloads: %s" % default_dir)
                 os.mkdir(default_dir)
                 self.set("prefs", "download_dir", default_dir)
 
-        #create the folder structure for map
+        #create the folder structure for storing the map tiles
         map_dir = self.get("settings", "mapdir")
         if not os.path.exists(map_dir):
             print("Config    :  Creating directory for maps: %s" % map_dir)

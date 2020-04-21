@@ -19,7 +19,7 @@ TIPS_SETTINGS = {
     "port" : _("On Windows, use something like 'COM12'") + "\n" + \
         _("On UNIX, use something like '/dev/ttyUSB0'") + "\n" + \
         _("For a network connection, use something like 'net:host:9000'"),
-    "rate" : _("9600 for mobile radios, 38400 for handhelds"),
+    "rate" : _("Serial rate shall be 38400 for IC92 handhelds, 9600 for all other D-Star radios"),
     "gpsport" : _("Serial port for an NMEA-compliant external GPS"),
     "gpsenabled" : _("If enabled, take current position from the external GPS"),
     "gpsportspeed" : _("The NMEA standard is 4800"),
@@ -45,7 +45,12 @@ TIPS_SETTINGS = {
     "map_tile_ttl" : _("After this many hours, a map tile will be re-fetched, regardless of if it is already stored locally.  0 means never re-fetch.  720 hours is 30 days."),
     "msg_flush" : _("Seconds between each attempt to process forwarded messages.  Do not set this too low!"),
     "station_msg_ttl" : _("If a station was last heard more than this many seconds ago, do not assume you have a clear path (ping it first)"),
-    "timestamp_positions" : _("For each position report recieved, change the callsign to 'callsign.datestamp'.  NOTE: This will generate a LOT of map pointers, use with caution!"),
+
+    "mapurlbase" :_("Path to the online map tile server used to feed the \"base\" map - can be changed to suit what is available to your location"),
+    "maptype" :_("Change this to select a map different from the base one - beware to config the API Key correctly"),
+    "keyformapurlcycle" :_("Insert you API key or completely empty this field to get maps with \"API key required \"overlay"),
+    
+    "timestamp_positions" : _("For each position report received, change the callsign to 'callsign.datestamp'.  NOTE: This will generate a LOT of map pointers, use with caution!"),
     }
 
 sb = _("Specify a .WAV file to be played")
@@ -67,5 +72,4 @@ def get_tip(section, value):
         tip = CONFIG_TIPS[section][value]
     except KeyError:
         tip = None
-
     return tip

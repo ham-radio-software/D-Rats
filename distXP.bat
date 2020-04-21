@@ -1,5 +1,5 @@
-
-echo building distibution
+echo off
+echo building distribution
 
 python setup.py py2exe > compile.log
 
@@ -58,7 +58,7 @@ rem xcopy C:\WINDOWS\system32\WS2_32.dll    dist /y
 rem xcopy C:\WINDOWS\system32\WSOCK32.dll   dist /y
 
 rem adding lzhuff_1.exe
-xcopy .\libexec\lzhuf_1.exe .\dist\libexec\lzhuf_1.exe /y
+xcopy .\libexec\lzhuf_1.exe .\dist\libexec /y
 
 pause
 

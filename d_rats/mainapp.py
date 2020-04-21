@@ -156,10 +156,8 @@ class MainApp(object):
 
   
     def callback_gps(self, lat, lng, station="", comments=""):
-        #
-        # this is to communicate the gps fixes to the D-Rats Web Map standalone program
-        #
 
+        # this is to communicate the gps fixes to the D-Rats Web Map standalone program
         #load server ip and port
         mapserver_ip = self.config.get("settings", "mapserver_ip")
         mapserver_port = int(self.config.get("settings", "mapserver_port"))
@@ -315,8 +313,7 @@ class MainApp(object):
             }
 
         if not self.sm.has_key(name):
-	    #if we are not chatting 1-to-1 let's do CQ
-	    
+            #if we are not chatting 1-to-1 let's do CQ 
             sm = sessionmgr.SessionManager(path, call, **transport_args)
 
             chat_session = sm.start_session("chat",
@@ -333,12 +330,12 @@ class MainApp(object):
                                            rpcactions=rpcactions)
 
             def sniff_event(ss, src, dst, msg, port):
-		#here print the sniffed traffic into the event tab
+                #here print the sniffed traffic into the event tab
                 if dosniff:
                     event = main_events.Event(None, "Sniffer: %s" % msg)
                     self.mainwindow.tabs["event"].event(event)
-		
-		#in any case let's print the station heard into stations tab 
+
+                #in any case let's print the station heard into stations tab 
                 self.mainwindow.tabs["stations"].saw_station(src, port)
 
             ss = sm.start_session("Sniffer",
@@ -394,7 +391,7 @@ class MainApp(object):
             print("Mainapp   : Stopping %s" % portid)
             if self.stop_comms(portid):
                 if sys.platform == "win32":
-                    # Wait for windows to let go of the serial port
+                    # Wait for windows to let go the serial port
                     delay = True
 
         if delay:
@@ -424,7 +421,7 @@ class MainApp(object):
             lon = self.config.get("user", "longitude")
             alt = self.config.get("user", "altitude")
             call = self.config.get("user", "callsign")
-	    mapserver_active = self.config.get("settings", "mapserver_active")
+            mapserver_active = self.config.get("settings", "mapserver_active")
 
         except Exception, e:
             import traceback
@@ -433,17 +430,15 @@ class MainApp(object):
 
 
         print("Mainapp   : Configuring the Static position: %s,%s" % (lat,lon))
-	
-        
+
         # Call the mapserver to update our position sweeper  
-	if mapserver_active == "True":
-	    print("Mainapp   : Mapserver active:", mapserver_active, "call: ", call)
-	    self.callback_gps(lat, lon, call, "altitude: "+alt)
-	else:
-	    print("Mainapp   : Mapserver not active: %s, call:; %s" % (mapserver_active, call))
+        if mapserver_active == "True":
+            print("Mainapp   : Mapserver active:", mapserver_active, "call: ", call)
+            self.callback_gps(lat, lon, call, "altitude: "+alt)
+        else:
+            print("Mainapp   : Mapserver not active: %s, call:; %s" % (mapserver_active, call))
         return gps.StaticGPSSource(lat, lon, alt)
-  
-	
+
     def _refresh_gps(self):
         port = self.config.get("settings", "gpsport")
         rate = self.config.getint("settings", "gpsportspeed")
@@ -579,10 +574,18 @@ class MainApp(object):
 
     def refresh_config(self):
         print("Mainapp   : Refreshing config...")
-		    
+  
         call = self.config.get("user", "callsign")
         gps.set_units(self.config.get("user", "units"))
-	
+
+        self._refresh_comms()
+        self._refresh_gps()
+        self._refresh_mail_threads() 
+        self._refresh_map()
+    
+    def _refresh_map(self):
+	print("Mainapp   : reconfigure Mapwindow with new map")
+    
 	#setup of the url for retrieving the map tiles depending on the preference
 	if self.config.get("settings", "maptype") == "cycle":
 	    mapurl = self.config.get("settings", "mapurlcycle")
@@ -592,25 +595,35 @@ class MainApp(object):
 	    mapkey = self.config.get("settings", "keyformapurllandscape")
 	elif self.config.get("settings", "maptype") == "outdoors":
 	    mapurl = self.config.get("settings", "mapurloutdoors")
-	    mapkey = self.config.get("settings", "keyformapurloutdoors")	
+	    mapkey = self.config.get("settings", "keyformapurloutdoors")
 	else:
 	    mapurl = self.config.get("settings", "mapurlbase")
 	    mapkey = ""
-	    
-        mapdisplay.set_base_dir(os.path.join(self.config.get("settings", "mapdir"), self.config.get("settings", "maptype")), mapurl, mapkey)
+    
+	mapdisplay.set_base_dir(os.path.join(self.config.get("settings", "mapdir"), self.config.get("settings", "maptype")), mapurl, mapkey)
+
+	mapdisplay.set_connected(self.config.getboolean("state","connected_inet"))
+	mapdisplay.set_tile_lifetime(self.config.getint("settings","map_tile_ttl") * 3600)
+	proxy = self.config.get("settings", "http_proxy") or None
+	mapdisplay.set_proxy(proxy)
+
+	self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
+#	self.map.connect("reload-sources", lambda m: self._load_map_overlays())
+	self.map.set_zoom(14)
+
+#	adj = self.map.widget.get_adjustment()
+#	self.map.set_zoom(int(adj.value))
+#	self.map.frame.set_label(_("Zoom") + " (14)")
 	
-
-        mapdisplay.set_connected(self.config.getboolean("state","connected_inet"))
-        mapdisplay.set_tile_lifetime(self.config.getint("settings","map_tile_ttl") * 3600)
-        proxy = self.config.get("settings", "http_proxy") or None
-        mapdisplay.set_proxy(proxy)
 	
-
-	self._refresh_comms()
-        self._refresh_gps()
-        self._refresh_mail_threads()
+	self.map.queue_draw()
 
 
+
+
+
+        return True
+    
     def _refresh_location(self):
         fix = self.get_position()
 
@@ -817,24 +830,23 @@ class MainApp(object):
         source.save()
         
         #
-	try:
-	    #load static data from configuration 
-	    mapserver_active = self.config.get("settings", "mapserver_active")
+        try:
+            #load static data from configuration 
+            mapserver_active = self.config.get("settings", "mapserver_active")
 
-	except Exception, e:
-	    import traceback
-	    traceback.print_exc(file=sys.stdout)
-	    print("Mainapp   : Invalid static position: %s" % e)
+        except Exception, e:
+            import traceback
+            traceback.print_exc(file=sys.stdout)
+            print("Mainapp   : Invalid static position: %s" % e)
 
-	
-	#Send captured position to the mapserver to update our position sweeper  
-	if mapserver_active == "True":
-	    print("Mainapp   : Export to external mapserver active: %s -- sending gps fix" % mapserver_active)
-	    #self.callback_gps(lat, lon, call, "altitude: "+alt)
-	    self.callback_gps(fix.latitude, fix.longitude, station=fix.station, comments="altitude: " + str(fix.altitude))
-	else:
-	    print("Mainapp   : Export to external mapserver not active: %s" % mapserver_active)
-	return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)	
+        #Send captured position to the mapserver to update our position sweeper  
+        if mapserver_active == "True":
+            print("Mainapp   : Export to external mapserver active: %s -- sending gps fix" % mapserver_active)
+            #self.callback_gps(lat, lon, call, "altitude: "+alt)
+            self.callback_gps(fix.latitude, fix.longitude, station=fix.station, comments="altitude: " + str(fix.altitude))
+        else:
+            print("Mainapp   : Export to external mapserver not active: %s" % mapserver_active)
+        return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)	
 
     
     def __station_status(self, object, sta, stat, msg, port):

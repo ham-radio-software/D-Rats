@@ -1,5 +1,5 @@
 # Copyright 2008 Dan Smith <dsmith@danplanet.com> 
-# review 2015-2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -157,7 +157,6 @@ class MarkerEditDialog(inputdialog.FieldDialog):
                 iconsel.set_active(iidx)
             except ValueError:
                 print("Mapdisplay: No such symbol `%s'" % point.get_aprs_symbol())
-
         else:
             iconsel.set_sensitive(False)
 
@@ -307,7 +306,7 @@ class MapTile(object):
 
         self.dir = BASE_DIR 
 
-        #create the local dir to store tiles if doesnt exist 
+        #create the local dir to store tiles if doesn't exist 
         if not os.path.isdir(self.dir):
             os.mkdir(self.dir)
             
@@ -517,6 +516,8 @@ class MapWidget(gtk.DrawingArea):
                 pb = gtk.gdk.pixbuf_new_from_file(path)
             except Exception, e:
                 utils.log_exception()
+                print("Mapdisplay: Deleting the broken tile to force future download %s" % path)
+                os.remove(path)
                 pb = self.broken_tile()
         else:
             pb = self.broken_tile()
@@ -642,7 +643,7 @@ class MapWidget(gtk.DrawingArea):
         return (self.lat, self.lon)
 
     def set_zoom(self, zoom):
-        if zoom > 18 or zoom == 1:
+        if zoom > 18 or zoom == 3:
             return
 
         self.zoom = zoom
