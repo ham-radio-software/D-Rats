@@ -83,8 +83,8 @@ def win32_build():
         windows=[{'script' : "d-rats.py",
                   'icon_resources': [(0x0004, 'd-rats2.ico')]},
                  {'script' : 'd-rats_repeater.py'}],
-#        data_files=["C:\\GTK\\bin\\jpeg62.dll"],
-        data_files=["C:\\GnuWin32\\bin\\jpeg62.dll"],
+# adapt the following line for your system
+        data_files=["C:\\GTK\\bin\\jpeg62.dll"],
         options=opts)
 
 def macos_build():
