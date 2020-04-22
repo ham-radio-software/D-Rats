@@ -10,9 +10,15 @@ DRATS_VERSION = "0.3.7 alfa 20200420b"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
-AUTHORS = "Dan Smith, KK7DS" + chr(13) + "Maurizio Andreotti IZ2LXI"
-AUTHORS_EMAIL= "Dan Smith <dsmith@danplanet.com>;" +chr(13)+"Maurizio Andreotti IZ2LXI <maurizioandreottilc@gmail.com>"
-COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)"+chr(13)+"Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) "
+AUTHORS = "Dan Smith, KK7DS" +chr(13)+ \
+          "Maurizio Andreotti, IZ2LXI" +chr(13)+ \
+          "Marius Petrescu, YO2LOJ"
+AUTHORS_EMAIL= "Dan Smith KK7DS <dsmith@danplanet.com>;" +chr(13)+ \
+          "Maurizio Andreotti IZ2LXI <maurizioandreottilc@gmail.com>" +chr(13)+ \
+          "Marius Petrescu YO2LOJ <marius@yo2loj.ro>"
+COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
+          "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &" +chr(13)+ \
+          "Marius Petrescu (YO2LOJ)"
 LICENCE ="You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>."
 WEBSITE =""
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
