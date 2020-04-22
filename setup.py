@@ -42,12 +42,29 @@ def win32_build():
     opts = {
         "py2exe" : {
             "includes" : "pango,atk,gobject,cairo,pangocairo,win32gui,win32com,win32com.shell,email.iterators,email.generator,gio,simplejson",
-            'dll_excludes': ['api-ms-win-core-processthreads-l1-1-0.dll', 
-                             'api-ms-win-core-profile-l1-1-0.dll',
-                             'api-ms-win-core-libraryloader-l1-2-0.dll', 
-                             'api-ms-win-core-errorhandling-l1-1-0.dll',
-                             'api-ms-win-core-sysinfo-l1-1-0.dll'
-                             ] ,         
+            'dll_excludes': [
+                              'API-MS-Win-Core-Debug-L1-1-0.dll' ,
+                              'API-MS-Win-Core-DelayLoad-L1-1-0.dll' ,
+                              'API-MS-Win-Core-ErrorHandling-L1-1-0.dll' ,
+                              'API-MS-Win-Core-File-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Handle-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Heap-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Interlocked-L1-1-0.dll' ,
+                              'API-MS-Win-Core-IO-L1-1-0.dll' ,
+                              'API-MS-Win-Core-LibraryLoader-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Localization-L1-1-0.dll' ,
+                              'API-MS-Win-Core-LocalRegistry-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Memory-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Misc-L1-1-0.dll' ,
+                              'API-MS-Win-Core-ProcessEnvironment-L1-1-0.dll' ,
+                              'API-MS-Win-Core-ProcessThreads-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Profile-L1-1-0.dll' ,
+                              'API-MS-Win-Core-String-L1-1-0.dll' ,
+                              'API-MS-Win-Core-Synch-L1-1-0.dll' ,
+                              'API-MS-Win-Core-SysInfo-L1-1-0.dll',
+                              'DNSAPI.dll',
+                              'NSI.dll'
+                            ] ,
             "compressed" : 1,
             "optimize" : 2,
             "bundle_files" : 3,
@@ -66,6 +83,7 @@ def win32_build():
         windows=[{'script' : "d-rats.py",
                   'icon_resources': [(0x0004, 'd-rats2.ico')]},
                  {'script' : 'd-rats_repeater.py'}],
+# adapt the following line for your system
         data_files=["C:\\GTK\\bin\\jpeg62.dll"],
         options=opts)
 
