@@ -66,10 +66,10 @@ def run_lzhuf(cmd, data):
     shutil.copy(os.path.abspath(lzhuf_path), cwd)
     run = [lzhuf_path, cmd, "input", "output"]
     
-    print("wl2k      : Running %s in %s" % (run, cwd))
+    print("wl2k       : Running %s in %s" % (run, cwd))
 
     ret = subprocess.call(run, cwd=cwd, **kwargs)
-    print("wl2k      : LZHUF returned %s" % ret)
+    print("wl2k       : LZHUF returned %s" % ret)
     if ret:
         return None
 
@@ -121,7 +121,7 @@ class WinLinkMessage:
 
         i = 0
         while True:
-            print("wl2k      : Reading at %i" % i)
+            print("wl2k       : Reading at %i" % i)
             t = ord(self.recv_exactly(s, 1))
 
             if chr(t) == "*":
@@ -130,20 +130,20 @@ class WinLinkMessage:
 
             if t not in FBB_BLOCK_TYPES.keys():
                 i += 1
-                print("wl2k      : Got %x (%c) while reading %i" % (t, chr(t), i))
+                print("wl2k       : Got %x (%c) while reading %i" % (t, chr(t), i))
                 continue
 
-            print("wl2k      : Found %s at %i" % (FBB_BLOCK_TYPES.get(t, "unknown"), i))
+            print("wl2k       : Found %s at %i" % (FBB_BLOCK_TYPES.get(t, "unknown"), i))
             size = ord(self.recv_exactly(s, 1))
             i += 2 # Account for the type and size
 
             if t == FBB_BLOCK_HDR:
                 header = self.recv_exactly(s, size)
                 self.__name, offset, foo = header.split("\0")
-                print("wl2k      : Name is `%s' offset %s\n" % (self.__name, offset))
+                print("wl2k       : Name is `%s' offset %s\n" % (self.__name, offset))
                 i += size
             elif t == FBB_BLOCK_DAT:
-                print("wl2k      : Reading data block %i bytes" % size)
+                print("wl2k       : Reading data block %i bytes" % size)
                 data += self.recv_exactly(s, size)
                 i += size
             elif t == FBB_BLOCK_EOF:
@@ -151,19 +151,19 @@ class WinLinkMessage:
                 for i in data:
                     cs += ord(i)
                 if (cs % 256) != 0:
-                    print("wl2k      : Ack! %i left from cs %i" % (cs, size))
+                    print("wl2k       : Ack! %i left from cs %i" % (cs, size))
                 
                 break
 
-        print("wl2k      : Got data: %i bytes" % len(data))
+        print("wl2k       : Got data: %i bytes" % len(data))
         self.__content = self.__decode_lzhuf(data)
         if self.__content is None:
             raise Exception("Failed to decode compressed message")
         
         if len(data) != self.__csize:
-            print("wl2k      : Compressed size %i != %i" % (len(data), self.__csize))
+            print("wl2k       : Compressed size %i != %i" % (len(data), self.__csize))
         if len(self.__content) != self.__usize:
-            print("wl2k      : Uncompressed size %i != %i" % (len(self.__content), self.__usize))
+            print("wl2k       : Uncompressed size %i != %i" % (len(self.__content), self.__usize))
 
     def send_to_socket(self, s):
         data = self.__lzh_content
@@ -216,14 +216,14 @@ class WinLinkCMS:
         return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
 
     def _send(self, string):
-        print("wl2k      :  -> %s" % string)
+        print("wl2k       :  -> %s" % string)
         self._conn.send(string + "\r")
 
     def __recv(self):
         resp = ""
         while not resp.endswith("\r"):
             resp += self._conn.recv(1)
-        print("wl2k      :  <- %s" % escaped(resp))
+        print("wl2k       :  <- %s" % escaped(resp))
         return resp
 
     def _recv(self):
@@ -252,7 +252,7 @@ class WinLinkCMS:
             resp = self._recv()
             for l in resp.split("\r"):
                 if l.startswith("FC"):
-                    print("wl2k      : Creating message for %s" % l)
+                    print("wl2k       : Creating message for %s" % l)
                     msgs.append(WinLinkMessage(l))
                 elif l.startswith("F>"):
                     reading = False
@@ -263,7 +263,7 @@ class WinLinkCMS:
                 elif not l:
                     pass
                 else:
-                    print("wl2k      : Invalid line: %s" % l)
+                    print("wl2k       : Invalid line: %s" % l)
                     raise Exception("Conversation error (%s while listing)" % l)
 
         return msgs
@@ -277,7 +277,7 @@ class WinLinkCMS:
             self._send("FS %s" % ("Y" * len(self.__messages)))
 
             for msg in self.__messages:
-                print("wl2k      : Getting message...")
+                print("wl2k       : Getting message...")
                 try:
                     msg.read_from_socket(self._conn)
                 except Exception, e:
@@ -535,8 +535,8 @@ class WinLinkThread(threading.Thread, gobject.GObject):
             wlm = WinLinkMessage()
             wlm.set_id(mid)
             wlm.set_content(mt, subj)
-            print("wl2k      : m  : %s" % m)
-            print("wl2k      : mt : %s" % mt)
+            print("wl2k       : m  : %s" % m)
+            print("wl2k       : mt : %s" % mt)
             wl.send_messages([wlm])
 
             #self._emit("form-sent", -999, 
@@ -578,7 +578,7 @@ def wl2k_auto_thread(ma, *args, **kwargs):
 
     #May need for AGW
     #call = config.get("user", "callsign")
-    print("wl2k      : WL2K Mode is: %s" % mode)
+    print("wl2k       : WL2K Mode is: %s" % mode)
     if mode == "Network":
         mt = WinLinkTelnetThread(ma.config, *args, **kwargs)
     elif mode == "RMS":
@@ -603,9 +603,9 @@ if __name__=="__main__":
         agwc = agw.AGWConnection("127.0.0.1", 8000, 0.5)
         wl = WinLinkRMSPacket("KK7DS", "N7AAM-11", agwc)
         count = wl.get_messages()
-        print("wl2k      : %i messages" % count)
+        print("wl2k       : %i messages" % count)
         for i in range(0, count):
-            print("wl2k      : --Message %i--\n%s\n--End--\n\n" % (i, wl.get_message(i).get_content()))
+            print("wl2k       : --Message %i--\n%s\n--End--\n\n" % (i, wl.get_message(i).get_content()))
     else:
         text = "This is a test!"
         _m = """Mid: 12345_KK7DS\r
