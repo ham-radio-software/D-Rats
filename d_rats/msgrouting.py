@@ -70,7 +70,7 @@ def msg_lock(fn):
         success = False
     MSG_LOCK_LOCK.release()
 
-    #print "Locked %s: %s" % (fn, success)
+    #print("Locked %s: %s" % (fn, success))
     return success
 
 def msg_unlock(fn):
@@ -83,7 +83,7 @@ def msg_unlock(fn):
         success = False
     MSG_LOCK_LOCK.release()
 
-    #print "Unlocked %s: %s" % (fn, success)
+    #print("Unlocked %s: %s" % (fn, success))
     return success
 
 def gratuitous_next_hop(route, path):

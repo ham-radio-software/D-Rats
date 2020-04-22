@@ -65,7 +65,7 @@ class Session(object):
         return self.inq.dequeue_all()
 
     def close(self, force=False):
-        print "Got close request"
+        print("Base      : Got close request")
         if force:
             self.state = ST_CLSD
 

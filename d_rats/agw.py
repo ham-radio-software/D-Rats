@@ -230,7 +230,7 @@ def agw_recv_frame(s):
                 f.unpack(data)
                 data = ""
             except Exception, e:
-                #print "Failed: %s" % e
+                #print("Failed: %s" % e)
                 continue
             prin("Agw       : %s -> %s [%s]" % (f.get_from(), f.get_to(), chr(f.kind)))
             utils.hexprint(f.get_payload())

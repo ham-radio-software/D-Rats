@@ -71,7 +71,7 @@ class SessionManager(object):
             try:
                 f(d, reason, session)
             except Exception, e:
-                print "Sessionmgr: Exception in session CB: %s" % e
+                print("Sessionmgr: Exception in session CB: %s" % e)
 
     def register_session_cb(self, function, data):
         self.session_cb[function] = data
@@ -87,7 +87,7 @@ class SessionManager(object):
             del self.sessions[self.control._id]
 
         for s in self.sessions.values():
-            print "Sessionmgr: Stopping session `%s'" % s.name
+            print("Sessionmgr: Stopping session `%s'" % s.name)
             s.close(force)
 
         if not force:
@@ -109,12 +109,12 @@ class SessionManager(object):
                 frame.d_station != self.station and \
                 frame.session != 1:
             # Not CQ, not us, and not chat
-            print "Sessionmgr: Received frame for station `%s'" % frame.d_station
+            print("Sessionmgr: Received frame for station `%s'" % frame.d_station)
             return
         elif frame.s_station == self.station:
             # Either there is another station using our callsign, or
             # this packet arrived back at us due to a loop
-            print "Sessionmgr: Received looped frame"
+            print("Sessionmgr: Received looped frame")
             return
         #
         #mmmmmm 
@@ -124,14 +124,14 @@ class SessionManager(object):
            #self.emit("user-send-chat", "CQCQCQ", port, "$$Msg,IZ000,,0011D,%s" % d, True)        
         
         if not frame.session in self.sessions.keys():
-            print "Sessionmgr: Incoming frame for unknown session `%i'" % frame.session
+            print("Sessionmgr: Incoming frame for unknown session `%i'" % frame.session)
             return
 
         session = self.sessions[frame.session]
 
         if session.stateless == False and \
                 session._st != frame.s_station:
-            print "Sessionmgr: Received frame from invalid station `%s' (expecting `%s'" % (frame.s_station, session._st)
+            print("Sessionmgr: Sessionmgr: Received frame from invalid station `%s' (expecting `%s'" % (frame.s_station, session._st))
             return
 
         if session.handler:
@@ -140,9 +140,7 @@ class SessionManager(object):
             session.inq.enqueue(frame)
             session.notify()
 
-        print "Sessionmgr: Received block %i:%i for session `%s'" % (frame.seq,
-                                                         frame.type,
-                                                         session.name)
+        print("Sessionmgr: Received block %i:%i for session `%s'" % (frame.seq, frame.type, session.name))
 
     def outgoing(self, session, block):
         self.last_frame = time.time()
@@ -177,7 +175,7 @@ class SessionManager(object):
         id = self._get_new_session_id()
         if id is None:
             # FIXME
-            print "Sessionmgr: No free slots?  I can't believe it!"
+            print("Sessionmgr: No free slots?  I can't believe it!")
 
         session._sm = self
         session._id = id
@@ -195,7 +193,7 @@ class SessionManager(object):
         try:
             del self.sessions[id]
         except Exception, e:
-            print "Sessionmgr: No session %s to deregister" % id
+            print("Sessionmgr: No session %s to deregister" % id)
 
     def start_session(self, name, dest=None, cls=None, **kwargs):
         if not cls:
@@ -235,11 +233,11 @@ class SessionManager(object):
         try:
             del self.sessions[id]
         except Exception, e:
-            print "Sessionmgr: Unable to deregister session"
+            print("Sessionmgr: Unable to deregister session")
 
     def get_session(self, rid=None, rst=None, lid=None):
         if not (rid or rst or lid):
-            print "Sessionmgr: get_station() with no selectors!"
+            print("Sessionmgr: get_station() with no selectors!")
             return None
 
         for s in self.sessions.values():
@@ -275,7 +273,7 @@ if __name__ == "__main__":
     s = sm.start_session("chat", dest="CQCQCQ", cls=sessions.ChatSession)
 
     def cb(data, args):
-        print "---------[ CHAT DATA ]------------"
+        print("Sessionmgr: ---------[ CHAT DATA ]------------")
 
     s.register_cb(cb)
 
@@ -286,14 +284,14 @@ if __name__ == "__main__":
         S.send_file("inputdialog.py")
     else:
         def h(data, reason, session):
-            print "Sessionmgr: Session CB: %s" % reason
+            print("Sessionmgr: Session CB: %s" % reason)
             if reason == "new,in":
-                print "Sessionmgr: Receiving file"
+                print("Sessionmgr: Receiving file")
                 t = threading.Thread(target=session.recv_file,
                                      args=("/tmp",))
                 t.setDaemon(True)
                 t.start()
-                print "Sessionmgr: Done"
+                print("Sessionmgr: Done")
 
         sm.register_session_cb(h, None)
 
@@ -301,10 +299,10 @@ if __name__ == "__main__":
         while True:
             time.sleep(30)
     except Exception, e:
-        print "Sessionmgr: ------- Closing"
+        print("Sessionmgr: ------- Closing")
 
     sm.shutdown()
 
 #    blocks = s.recv_blocks()
 #    for b in blocks:
-#        print "Chat message: %s: %s" % (b.get_info()[2], b.get_data())
+#        print("Sessionmgr: Chat message: %s: %s" % (b.get_info()[2], b.get_data()))

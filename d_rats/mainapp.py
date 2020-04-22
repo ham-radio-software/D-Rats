@@ -610,12 +610,6 @@ class MainApp(object):
 	self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
 #	self.map.connect("reload-sources", lambda m: self._load_map_overlays())
 	self.map.set_zoom(14)
-
-#	adj = self.map.widget.get_adjustment()
-#	self.map.set_zoom(int(adj.value))
-#	self.map.frame.set_label(_("Zoom") + " (14)")
-	
-	
 	self.map.queue_draw()
 
 

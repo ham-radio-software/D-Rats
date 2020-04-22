@@ -117,8 +117,8 @@ class StationsList(MainWindowTab):
             iter = model.iter_next(iter)
 
         if action == "ping":
-            print "-------------------"
-            print "MainStation: executing ping"
+            print("-------------------")
+            print("MainStation: executing ping")
             # FIXME: Use the port we saw the user on
             self.emit("ping-station", station, port)
         elif action == "conntest":
@@ -135,46 +135,44 @@ class StationsList(MainWindowTab):
             
         #asking positions to remote stations
         elif action == "reqpos":
-            print "-------------------"
-            print "MainStation: executing position request to: %s" % station
+            print("-------------------")
+            print("MainStation: executing position request to: %s" % station)
             job = rpc.RPCPositionReport(station, "Position Request")
            
             def log_result(job, state, result):
-                 rc = result.get("rc", "(Error)")
-                 msg = result.get("msg", "(Error)")
-                 if rc == "KO":
-                     event = main_events.Event(None,
-                                               "%s %s: %s" % (station,
+                rc = result.get("rc", "(Error)")
+                msg = result.get("msg", "(Error)")
+                if rc == "KO":
+                    event = main_events.Event(None,
+                                                "%s %s: %s" % (station,
                                                _(" says "),
                                                 msg))
-                     self.emit("event", event)
-                 else:
-                     # rc == "OK": 
-                     event = main_events.Event(None, result)             
-                 print "MainStation: result returned: %s" % str(result)
-                 print "MainStation: event returned: %s" % event
-                
+                    self.emit("event", event)
+                else:
+                      # rc == "OK": 
+                    event = main_events.Event(None, result)             
+                    print("MainStation: result returned: %s" % str(result))
+                    print("MainStation: event returned: %s" % event)
             job.set_station(station)
             job.connect("state-change", log_result)
 
             # FIXME: Send on the port where we saw this user
             self.emit("submit-rpc-job", job, port)
             
-            
         elif action == "clearall":
             model.clear()
             self.__calls = []
             self._update_station_count()
         elif action == "pingall":
-            print "-------------------"
-            print "MainStation: executing ping all"
+            print("-------------------")
+            print("MainStation: executing ping all")
             stationlist = self.emit("get-station-list")
             for port in stationlist.keys():
-                print "MainStation: Doing CQCQCQ ping on port %s" % port
+                print("MainStation: Doing CQCQCQ ping on port %s" % port)
                 self.emit("ping-station", "CQCQCQ", port)
         elif action == "reqposall":
-            print "-------------------"
-            print "MainStation: requesting position to all known stations"
+            print("-------------------")
+            print("MainStation: requesting position to all known stations")
             job = rpc.RPCPositionReport("CQCQCQ", "Position Request")
             job.set_station(".")
             stationlist = self.emit("get-station-list")
@@ -201,8 +199,7 @@ class StationsList(MainWindowTab):
                         job.get_dest(),
                         result.get("version", "Unknown"),
                         result.get("os", "Unknown"))
-                    print "MainStation: Station %s reports version info: %s" % (\
-                        job.get_dest(), result)
+                    print("MainStation: Station %s reports version info: %s" % (job.get_dest(), result))
 
                 else:
                     msg = "No version response from %s" % job.get_dest()
@@ -314,7 +311,7 @@ class StationsList(MainWindowTab):
         try:
             self.__view.set_tooltip_column(2)
         except AttributeError:
-            print "MainStation: This version of GTK is old; disabling station tooltips"
+            print("MainStation: This version of GTK is old; disabling station tooltips")
 
         self.__view.connect("button_press_event", self._mouse_cb)
 

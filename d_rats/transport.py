@@ -115,10 +115,10 @@ class Transporter(object):
             except comm.DataPathIOError, e:
                 if not self.pipe.can_reconnect:
                     break
-                print "Transport : Data path IO error: %s" % e
+                print("Transport : Data path IO error: %s" % e)
                 try:
                     time.sleep(i)
-                    print "Transport : Attempting reconnect..."
+                    print("Transport : Attempting reconnect...")
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
@@ -133,10 +133,10 @@ class Transporter(object):
             except comm.DataPathIOError, e:
                 if not self.pipe.can_reconnect:
                     break
-                print "Transport : Data path IO error: %s" % e
+                print("Transport : Data path IO error: %s" % e)
                 try:
                     time.sleep(i) 
-                    print "Transport : Attempting reconnect..."
+                    print("Transport : Attempting reconnect...")
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
@@ -176,16 +176,15 @@ class Transporter(object):
             f = ddt2.DDT2EncodedFrame()
             try:
                 if f.unpack(block):
-                    print "Transport : Got a block: %s" % f
+                    print("Transport : Got a block: %s" % f)
                     self._handle_frame(f)
                 elif self.compat:
                     self._send_text_block(block)
                 else:
-                    print "Transport : Found a broken block (S:%i E:%i len(buf):%i" % (\
-                        s, e, len(self.inbuf))
+                    print("Transport : Found a broken block (S:%i E:%i len(buf):%i" % (s, e, len(self.inbuf)))
                     utils.hexprint(block)
             except Exception, e:
-                print "Transport : Failed to process block:"
+                print("Transport : Failed to process block:")
                 utils.log_exception()
 
     def _match_gps(self):
@@ -200,7 +199,7 @@ class Transporter(object):
         if m:
             return m.group(1)
         if "$$CRC" in self.inbuf:
-            print "Transport : Didn't match:\n%s" % repr(self.inbuf)
+            print("Transport : Didn't match:\n%s" % repr(self.inbuf))
 
         return None
 
@@ -218,7 +217,7 @@ class Transporter(object):
         result = self._match_gps()
         if result:
             self.inbuf = self.inbuf.replace(result, "")
-            print "Transport : Found GPS string: %s" % repr(result)
+            print("Transport : Found GPS string: %s" % repr(result))
             self._send_text_block(result)
         else:
             return None
@@ -245,7 +244,7 @@ class Transporter(object):
                     # long before transmitting
                     delay = self.force_delay
 
-                print "Transport : Waiting %.1f sec before transmitting" % delay
+                print("Transport : Waiting %.1f sec before transmitting" % delay)
                 time.sleep(delay)
                 delayed = True
 
@@ -259,10 +258,10 @@ class Transporter(object):
                 warmup_f.d_station = "!"
                 warmup_f.data = ("\x01" * self.warmup_length)
                 warmup_f.set_compress(False)
-                print "Transport : Sending warm-up: %s" % warmup_f
+                print("Transport : Sending warm-up: %s" % warmup_f)
                 self.__send(warmup_f.get_packed())
 
-            print "Transport : Sending block: %s" % f
+            print("Transport : Sending block: %s" % f)
             f._xmit_s = time.time()
             self.__send(f.get_packed())
             f._xmit_e = time.time()
@@ -282,7 +281,7 @@ class Transporter(object):
             except comm.DataPathNotConnectedError, e:
                 if self.msg_fn:
                     self.msg_fn("Unable to connect (%s)" % e)
-                print "Transport : Comm %s did not connect: %s" % (self.pipe, e)
+                print("Transport : Comm %s did not connect: %s" % (self.pipe, e))
                 return
 
         if authfn and not authfn(self.pipe):
@@ -296,7 +295,7 @@ class Transporter(object):
             try:
                 self.get_input()
             except Exception, e:
-                print "Transport : Exception while getting input: %s" % e
+                print("Transport : Exception while getting input: %s" % e)
                 utils.log_exception()
                 self.enabled = False
                 break
@@ -308,13 +307,13 @@ class Transporter(object):
                 if self.compat:
                     self._send_text_block(self.inbuf)
                 else:
-                    print "### Unconverted data: %s" % self.inbuf
+                    print("Transport : ### Unconverted data: %s" % self.inbuf)
                 self.inbuf = ""
 
             try:
                 self.send_frames()
             except Exception, e:
-                print "Exception while sending frames: %s" % e
+                print("Transport : Exception while sending frames: %s" % e)
                 self.enabled = False
                 break
 
@@ -325,7 +324,7 @@ class Transporter(object):
         
     def send_frame(self, frame):
         if not self.enabled:
-            print "Transport : Refusing to queue block for dead transport"
+            print("Transport : Refusing to queue block for dead transport")
             return
         self.outq.enqueue(frame)
 
@@ -338,11 +337,11 @@ class Transporter(object):
         self.outq.lock()
         for b in self.outq._queue[:]:
             if b.session == id:
-                print "Transport : Flushing block: %s" % b
+                print("Transport : Flushing block: %s" % b)
                 try:
                     self.outq._queue.remove(b)
                 except ValueError:
-                    print "Transport : Block disappeared while flushing?"
+                    print("Transport : Block disappeared while flushing?")
         self.outq.unlock()
 
     def __str__(self):
@@ -375,7 +374,7 @@ class TestPipe(object):
 """$GPGGA,023531.36,4531.4940,N,12254.9766,W,1,07,1.3,63.7,M,-21.4,M,,*64\r\n$GPRMC,023531.36,A,4531.4940,N,12254.9766,W,0.00,113.7,010808,17.4,E,A*27\rK7TAY M ,/10-13/\r"""
                 
 
-        print "Transport : Made some data: %s" % self.buf
+        print("Transport :  Made some data: %s" % self.buf)
 
     
     def __init__(self, src="Sender", dst="Recvr"):
@@ -411,7 +410,7 @@ def test_simple():
     time.sleep(2)
 
     f = t.recv_frame()
-    print "Transport : Received block: %s" % f
+    print("Transport :  Received block: %s" % f)
 
     t.disable()
 

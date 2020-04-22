@@ -52,5 +52,5 @@ class RequestRemoteObjectUI(gtk.Dialog):
         try:
             return self.__list.get_item(self.__list.get_selected())[1]
         except Exception, e:
-            print "Unable to get selected item: %s" % e
+            print("ReqObj    : Unable to get selected item: %s" % e)
             return None

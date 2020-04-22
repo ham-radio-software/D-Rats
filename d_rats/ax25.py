@@ -21,7 +21,7 @@ class BitStuffContext:
         print("Register: %s" % bstr_pos(self.register))
         self.bits += 1
         if self.bits == 8:
-            print "Pushing"
+            print("Ax25      : Pushing")
             self.push()
 
     def store_bit(self, bit):

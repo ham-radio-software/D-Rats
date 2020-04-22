@@ -17,7 +17,7 @@ class SocketSession(stateful.StatefulSession):
             self.status_cb = self._status
 
     def _status(self, msg):
-        print "Socket Status: %s" % msg
+        print("Sock      : Socket Status: %s" % msg)
 
 class SocketListener(object):
     def __init__(self, sm, dest, sport, dport, addr='0.0.0.0'):
@@ -56,11 +56,11 @@ class SocketListener(object):
             except socket.timeout:
                 continue
             except Exception, e:
-                print "Socket exception: %s" % e
+                print("Sock      : Socket exception: %s" % e)
                 self.enabled = False
                 break
 
-            print "%i: Incoming socket connection from %s" % (self.dport, addr)
+            print("Sock      : %i: Incoming socket connection from %s" % (self.dport, addr))
 
             s = self.sm.start_session(name=name,
                                       dest=self.dest,
@@ -69,9 +69,9 @@ class SocketListener(object):
             while s.get_state() != base.ST_CLSD and self.enabled:
                 s.wait_for_state_change(1)
 
-            print "%s ended" % name
+            print("Sock      : %s ended" % name)
             self.dsock.close()
             self.dsock = None
 
         sock.close()
-        print "TCP:%i shutdown" % self.dport
+        print("Sock      : TCP:%i shutdown" % self.dport)

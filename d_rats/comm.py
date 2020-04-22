@@ -192,7 +192,7 @@ class SWFSerial(serial.Serial):
                 time.sleep(0.01)
                 
                 if (time.time() - start) > self.xoff_limit:
-                    #print "XOFF for too long, breaking loop!"
+                    #print("XOFF for too long, breaking loop!")
                     #raise DataPathIOError("Write error (flow)")
                     print("Comm      : XOFF for too long, assuming XON")
                     self.state = True
@@ -434,7 +434,7 @@ class TNCAX25DataPath(TNCDataPath):
         fcs = compute_fcs(hdr + buf)
         data = hdr + buf + struct.pack(">H", fcs)
 
-        #print "Transmitting AX.25 Frame:"
+        #print("Transmitting AX.25 Frame:")
         #utils.hexprint(data)
         TNCDataPath.write(self, data)
 
