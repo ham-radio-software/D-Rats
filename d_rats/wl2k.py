@@ -601,7 +601,7 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         wl = self.wl2k_connect()
         for mt in self.__send_msgs:
 
-            m = re.search("Mid: (.*)\r\nSubject: (.*)\r\n", mt)
+            m = re.search("Mid: (.*)\r\nSubject: (.*)\r\n", mt.get_content())
             if m:
                 mid = m.groups()[0]
                 subj = m.groups()[1]
@@ -611,12 +611,10 @@ class WinLinkThread(threading.Thread, gobject.GObject):
 
             wlm = WinLinkMessage()
             wlm.set_id(mid)
-            wlm.set_content(mt, subj)
+            wlm.set_content(mt.get_content(), subj)
             print("wl2k       : m  : %s" % m)
             print("wl2k       : mt : %s" % mt)
             wl.send_messages([wlm])
-
-            #self._emit("form-sent", -999, 
 
         return "Complete"
 
@@ -696,7 +694,7 @@ Body: %i\r
 
         m = WinLinkMessage()
         m.set_id("1234_KK7DS")
-        m.set_content(_m)
+        m.set_content(_m.get_content())
         wl = WinLinkTelnet("KK7DS")
         wl.send_messages([m])
 
