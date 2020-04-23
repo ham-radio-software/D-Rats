@@ -107,23 +107,24 @@ class QSTText(gobject.GObject):
     __gsignals__ = {
         "qst-fired" : (gobject.SIGNAL_RUN_LAST,
                  gobject.TYPE_NONE,
-                 (gobject.TYPE_STRING,)),
+                 (gobject.TYPE_STRING, gobject.TYPE_STRING)),
         }
 
-    def __init__(self, config, content):
+    def __init__(self, config, content, key):
         gobject.GObject.__init__(self)
 
         self.config = config
         self.prefix = "[QST] "
         self.text = content
         self.raw = False
+        self.key = key
 
     def do_qst(self):
         return self.text
 
     def fire(self):
         val = self.do_qst()
-        self.emit("qst-fired", self.prefix + val)
+        self.emit("qst-fired", self.prefix + val, self.key)
 
 class QSTExec(QSTText):
     def do_qst(self):
@@ -150,8 +151,8 @@ class QSTFile(QSTText):
         return text[:size_limit]
 
 class QSTGPS(QSTText):
-    def __init__(self, config, content):
-        QSTText.__init__(self, config, content)
+    def __init__(self, *args, **kw):
+        QSTText.__init__(self, *args, **kw)
 
         self.prefix = ""
         self.raw = True
@@ -204,7 +205,8 @@ class QSTThreadedText(QSTText):
             print("Qst       : Skipping QST because no data was returned")
             return
 
-        gobject.idle_add(self.emit, "qst-fired", "%s%s" % (self.prefix, msg))
+        gobject.idle_add(self.emit, "qst-fired",
+                         "%s%s" % (self.prefix, msg), self.key)
 
     def fire(self):
         if self.thread:
@@ -218,8 +220,8 @@ class QSTThreadedText(QSTText):
         print("Qst       : Started a thread for QST data...")
 
 class QSTRSS(QSTThreadedText):
-    def __init__(self, config, content):
-        QSTThreadedText.__init__(self, config, content)
+    def __init__(self, *args, **kw):
+        QSTThreadedText.__init__(self, *args, **kw)
 
         self.last_id = ""
 
@@ -661,7 +663,7 @@ class QSTEditDialog(gtk.Dialog):
         self.__current.show()
 
     def _make_controls(self):
-        hbox = gtk.HBox(False, 2)
+        hbox = gtk.HBox(False, 5)
 
         self._type = make_choice(self._types.keys(), False, default=_("Text"))
         self._type.set_size_request(100, -1)
@@ -669,11 +671,24 @@ class QSTEditDialog(gtk.Dialog):
         self._type.connect("changed", self._select_type)
         hbox.pack_start(self._type, 0, 0, 0)
 
+        lab = gtk.Label(_("every"))
+        lab.show()
+        hbox.pack_start(lab, 0, 0 , 0)
+
         intervals = ["1", "5", "10", "20", "30", "60", ":30", ":15"]
         self._freq = make_choice(intervals, True, default="60")
         self._freq.set_size_request(75, -1)
         self._freq.show()
         hbox.pack_start(self._freq, 0, 0, 0)
+
+        lab = gtk.Label(_("minutes on port"))
+        lab.show()
+        hbox.pack_start(lab, 0, 0, 0)
+
+        self._port = make_choice([_("Current"), _("All")], False,
+                                 default="Current")
+        self._port.show()
+        hbox.pack_start(self._port, 0, 0, 0)
 
         hbox.show()
         return hbox
@@ -714,6 +729,10 @@ class QSTEditDialog(gtk.Dialog):
             self._freq.child.set_text(self._config.get(self._ident, "freq"))
             self._select_type(self._type)
             self.__current.from_qst(self._config.get(self._ident, "content"))
+            try:
+                combo_select(self._port, self._config.get(self._ident, "port"))
+            except:
+                pass
         else:
             self._select_type(self._type)
 
@@ -725,6 +744,7 @@ class QSTEditDialog(gtk.Dialog):
         self._config.set(self._ident, "freq", self._freq.get_active_text())
         self._config.set(self._ident, "content", self.__current.to_qst())
         self._config.set(self._ident, "type", self._type.get_active_text())
+        self._config.set(self._ident, "port", self._port.get_active_text())
 
 def get_qst_class(typestr):
     classes = {

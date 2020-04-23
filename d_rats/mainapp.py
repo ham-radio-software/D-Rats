@@ -1256,7 +1256,7 @@ class MainApp(object):
             for port in self.sm.keys():
                 self.chat_session(port).advertise_status(status, msg)
 
-            time.sleep(0.5) # HACK
+            time.sleep(2) # HACK
 
 def get_mainapp(): 
     return MAINAPP

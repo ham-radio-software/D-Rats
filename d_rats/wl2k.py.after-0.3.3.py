@@ -97,7 +97,7 @@ class WinLinkAttachment:
 
     def get_content(self):
         return self.__content
-    
+
 class WinLinkMessage:
     def __init__(self, header=None):
         self.__name = ""
@@ -119,8 +119,6 @@ class WinLinkMessage:
 
     def __encode_lzhuf(self, data):
         return run_lzhuf_encode(data)
-
-
 
     def decode_message(self):
         files = []
@@ -183,8 +181,6 @@ class WinLinkMessage:
             msg += "\r\n\x00"
 
         self.set_content(msg, name)
-
-
 
     def recv_exactly(self, s, l):
         data = ""
@@ -546,7 +542,7 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         self.__send_msgs = send_msgs
 
     def __create_form(self, msg):
-        mail = email.message_from_string(msg.get_content())
+        mail, attachments = msg.decode_message()
 
         sender = mail.get("From", "Unknown")
 
@@ -573,6 +569,10 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         form.set_path_src(sender.strip())
         form.set_path_dst(self._callsign)
         form.set_path_mid(msg.get_id())
+
+        for attachment in attachments:
+            form.add_attachment(attachment.get_name(), attachment.get_content())
+
         form.add_path_element("@WL2K")
         form.add_path_element(self._config.get("user", "callsign"))
         form.save_to(formfn)
@@ -599,24 +599,8 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         server = self._config.get("prefs", "msg_wl2k_server")
         port = self._config.getint("prefs", "msg_wl2k_port")
         wl = self.wl2k_connect()
-        for mt in self.__send_msgs:
-
-            m = re.search("Mid: (.*)\r\nSubject: (.*)\r\n", mt)
-            if m:
-                mid = m.groups()[0]
-                subj = m.groups()[1]
-            else:
-                mid = time.strftime("%H%M%SDRATS")
-                subj = "Message"
-
-            wlm = WinLinkMessage()
-            wlm.set_id(mid)
-            wlm.set_content(mt, subj)
-            print("wl2k       : m  : %s" % m)
-            print("wl2k       : mt : %s" % mt)
+        for wlm in self.__send_msgs:
             wl.send_messages([wlm])
-
-            #self._emit("form-sent", -999, 
 
         return "Complete"
 

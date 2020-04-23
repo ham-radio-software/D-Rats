@@ -34,4 +34,3 @@ if __name__ == "__main__":
 	print("LICENCE:               ", LICENCE)
 	print("WEBSITE:               ", WEBSITE)
 	print("TRANSLATIONS:          ", TRANSLATIONS)
-

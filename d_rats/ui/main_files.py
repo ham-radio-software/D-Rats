@@ -379,7 +379,7 @@ class FilesTab(MainWindowTab):
 
         r = gtk.CellRendererText()
         col = gtk.TreeViewColumn(_("Date"), r, text=3)
-        col.set_sort_column_id(2)
+        col.set_sort_column_id(3)
         col.set_cell_data_func(r, render_date)
         view.append_column(col)
 

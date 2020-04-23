@@ -27,8 +27,11 @@ import random
 import utils
 import miscwidgets
 import inputdialog
+
 import dplatform
-import geocode_ui
+#change from 0.3.3>
+#import geocode_ui
+
 import config_tips
 import spell
 
@@ -128,8 +131,8 @@ _DEF_SETTINGS = {
 
     "default_gps_comment" : "BN  *20",     #default icon for our station in the map and gpsfixes
     "map_marker_bgcolor": "yellow",        #background color for markers in the map window
-    "warmup_length" : "8",                 #changed from 8 to 16 in 0.3.6
-    "warmup_timeout" : "3",                #changed from 3 to 0 in 0.3.6
+    "warmup_length" : "16",                 #changed from 8 to 16 in 0.3.6
+    "warmup_timeout" : "0",                #changed from 3 to 0 in 0.3.6
     "force_delay" : "-2",
     "ping_info" : "",
     "smtp_server" : "",
@@ -162,6 +165,7 @@ _DEF_SETTINGS = {
     "msg_smtp_port" : "9025",
     "delete_from" : "",
     "remote_admin_passwd" : "",
+    "expire_stations" : "60",
 }
 
 _DEF_STATE = {
@@ -917,8 +921,8 @@ class DratsGPSPanel(DratsPanel):
         lon.add_coords()
         self.mv(_("Longitude"), lon)
 
-        geo = AddressLookup(_("Lookup"), lat, lon, window)
-        self.mv(_("Lookup by address"), geo)
+        #geo = AddressLookup(_("Lookup"), lat, lon, window)
+        #self.mv(_("Lookup by address"), geo)
 
         alt = DratsConfigWidget(config, "user", "altitude")
         alt.add_numeric(0, 29028, 1)
@@ -1021,6 +1025,11 @@ class DratsAppearancePanel(DratsPanel):
         val = DratsConfigWidget(config, "prefs", "confirm_exit")
         val.add_bool()
         self.mv(_("Confirm exit"), val)
+
+        val = DratsConfigWidget(config, "settings", "expire_stations")
+        val.add_numeric(0, 9999, 1)
+        cap = gtk.Label(_("minutes"))
+        self.mv(_("Expire stations after"), val, cap)
 
 class DratsChatPanel(DratsPanel):
     def __init__(self, config):
