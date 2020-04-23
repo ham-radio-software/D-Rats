@@ -20,33 +20,33 @@ rem D-Rats also depends from these OS c:libraries,
 rem which in theory should be inovked from the OS and not distributed 
 rem but by trial and errors need to be added to the package otherwise 
 rem it will not work correctly
-xcopy C:\WINDOWS\system32\ADVAPI32.dll  dist /y
-xcopy C:\WINDOWS\system32\COMDLG32.dll  dist /y
-xcopy C:\WINDOWS\system32\COMCTL32.dll  dist /y
-xcopy C:\WINDOWS\system32\CRYPT32.dll   dist /y
+rem xcopy C:\WINDOWS\system32\ADVAPI32.dll  dist /y
+rem xcopy C:\WINDOWS\system32\COMDLG32.dll  dist /y
+rem xcopy C:\WINDOWS\system32\COMCTL32.dll  dist /y
+rem xcopy C:\WINDOWS\system32\CRYPT32.dll   dist /y
 
-xcopy C:\WINDOWS\system32\GDI32.dll     dist /y
-xcopy C:\WINDOWS\system32\gdiplus.dll   dist /y
+rem xcopy C:\WINDOWS\system32\GDI32.dll     dist /y
+rem xcopy C:\WINDOWS\system32\gdiplus.dll   dist /y
 
-xcopy C:\WINDOWS\system32\KERNEL32.dll  dist /y
+rem xcopy C:\WINDOWS\system32\KERNEL32.dll  dist /y
 
-xcopy C:\WINDOWS\system32\MPR.dll       dist /y
-xcopy C:\WINDOWS\system32\msvcrt.dll    dist /y
-xcopy C:\WINDOWS\system32\MSIMG32.DLL   dist /y
-xcopy C:\WINDOWS\system32\MSWSOCK.dll   dist /y
+rem xcopy C:\WINDOWS\system32\MPR.dll       dist /y
+rem xcopy C:\WINDOWS\system32\msvcrt.dll    dist /y
+rem xcopy C:\WINDOWS\system32\MSIMG32.DLL   dist /y
+rem xcopy C:\WINDOWS\system32\MSWSOCK.dll   dist /y
 
 
-xcopy C:\WINDOWS\system32\OLE32.dll     dist /y
-xcopy C:\WINDOWS\system32\OLEAUT32.dll  dist /y
+rem xcopy C:\WINDOWS\system32\OLE32.dll     dist /y
+rem xcopy C:\WINDOWS\system32\OLEAUT32.dll  dist /y
 
-xcopy C:\WINDOWS\system32\SHELL32.DLL   dist /y
-xcopy C:\WINDOWS\system32\SHLWAPI.DLL   dist /y
+rem xcopy C:\WINDOWS\system32\SHELL32.DLL   dist /y
+rem xcopy C:\WINDOWS\system32\SHLWAPI.DLL   dist /y
 
-xcopy C:\WINDOWS\system32\USER32.dll    dist /y
-xcopy C:\WINDOWS\system32\USP10.DLL    dist /y
-xcopy C:\WINDOWS\system32\VERSION.dll   dist /y
-xcopy C:\WINDOWS\system32\WINMM.dll     dist /y
-xcopy C:\WINDOWS\system32\WINSPOOL.DRV  dist /y
+rem xcopy C:\WINDOWS\system32\USER32.dll    dist /y
+rem xcopy C:\WINDOWS\system32\USP10.DLL     dist /y
+rem xcopy C:\WINDOWS\system32\VERSION.dll   dist /y
+rem xcopy C:\WINDOWS\system32\WINMM.dll     dist /y
+rem xcopy C:\WINDOWS\system32\WINSPOOL.DRV  dist /y
 
 
 rem D-Rats also depends from these libraries, but shall not be distributed as otherwise will 
