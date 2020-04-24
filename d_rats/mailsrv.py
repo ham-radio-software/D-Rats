@@ -298,8 +298,8 @@ class DRATS_SMTPServer(smtpd.SMTPServer):
         form.set_path_src(sender)
         form.set_path_dst(recip)
         form.save_to(ffn)
-
-        msgrouting.msg_unlock(ffn)
+        if msgrouting.msg_is_locked(ffn):
+            msgrouting.msg_unlock(ffn)
 
 class DRATS_SMTPServerThread(threading.Thread):
     def __init__(self, config):
