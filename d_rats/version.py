@@ -4,9 +4,8 @@
 # minor mods 2015-2020 by Maurizio Andreotti <iz2lxi> maurizioandreottilc@gmail.com>
 #
 ##this module contains the d-rats version variables
-#latest version being 0.3.3 updated to 0.3.4 (which is the alpha for this documentation project)
 
-DRATS_VERSION = "0.3.7 alfa 20200423b"
+DRATS_VERSION = "0.3.7 alfa 20200424"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
