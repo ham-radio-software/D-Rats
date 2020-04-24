@@ -452,8 +452,6 @@ class WinLinkTelnet(WinLinkCMS):
         self._conn.close()
 
     def _login(self):
-        if len(self.__passwd) == 0:
-            raise Exception("No Winlink password configured")
 
         resp = self._recv()
 
@@ -478,42 +476,43 @@ class WinLinkTelnet(WinLinkCMS):
         if not resp.endswith(">"):
             raise Exception("Conversation error (never got prompt)")
 
-        self._send("FF")
+        if len(self.__passwd) > 0:
+            self._send("FF")
 
-        resp = self._recv().strip()
-        if not resp.startswith("Login ["):
-            raise Exception("Conversation error (never saw challenge)")
+            resp = self._recv().strip()
+            if not resp.startswith("Login ["):
+                raise Exception("Conversation error (never saw challenge)")
 
-        chall = resp[7:-2]
+            chall = resp[7:-2]
 
-        resp = self._recv().strip()
-        if not resp.endswith(">"):
-            raise Exception("Conversation error (never got prompt)")
+            resp = self._recv().strip()
+            if not resp.endswith(">"):
+                raise Exception("Conversation error (never got prompt)")
 
-        passwd = "_" + self.__passwd
+            passwd = "_" + self.__passwd
 
-        rem = 6
-        todo = 3
-        cresp = ""
-        while rem > 0:
-            ch = random.randint(0,255)
+            rem = 6
+            todo = 3
+            cresp = ""
+            while rem > 0:
+                ch = random.randint(0,255)
 
-            if ch > 127 and rem > todo:
-                cresp += chr(random.randint(33, 126))
-            else:
-                todo -= 1
-                cresp += passwd[int(chall[todo])]
-            rem -= 1
+                if ch > 127 and rem > todo:
+                    cresp += chr(random.randint(33, 126))
+                else:
+                    todo -= 1
+                    cresp += passwd[int(chall[todo])]
+                rem -= 1
 
-        self._send(cresp)
+            self._send(cresp)
 
-        resp = self._recv()
-        if not resp.startswith("Hello "):
-            raise Exception("Conversation error (never saw hello)")
+            resp = self._recv()
+            if not resp.startswith("Hello "):
+                raise Exception("Conversation error (never saw hello)")
 
-        resp = self._recv().strip()
-        if not resp.endswith(">"):
-            raise Exception("Conversation error (never got prompt)")
+            resp = self._recv().strip()
+            if not resp.endswith(">"):
+                raise Exception("Conversation error (never got prompt)")
 
         self._send(self.__ssid())
 
