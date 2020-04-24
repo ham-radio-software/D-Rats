@@ -940,7 +940,8 @@ class MainApp(object):
         else:
             refresh_folder = "Inbox"
 
-        msgrouting.msg_unlock(fn)
+        if msgrouting.msg_is_locked(fn):
+            msgrouting.msg_unlock(fn)
         self.mainwindow.tabs["messages"].refresh_if_folder(refresh_folder)
 
         event = main_events.FormEvent(id, msg)
