@@ -120,44 +120,6 @@ class WinLinkMessage:
     def __encode_lzhuf(self, data):
         return run_lzhuf_encode(data)
 
-
-
-    def decode_message(self):
-        files = []
-        body_length = 0
-        for line in self.__content.split("\r\n"):
-            if not line:
-                break
-            header, value = line.split(": ")
-            if header == "File":
-                length, name = value.split(" ", 1)
-                try:
-                    files.append((name, int(length)))
-                except ValueError:
-                    print "Error parsing File header length `%s'" % length
-            elif header == "Body":
-                try:
-                    body_length = int(value)
-                except ValueError:
-                    raise Exception("Error parsing Body header" +\
-                                        "length `%s'" % value)
-
-        content = self.__content
-
-        body_start = content.index("\r\n\r\n") + 4
-        rest = content[body_start + body_length:]
-        content = content[:body_start + body_length]
-
-        attachments = []
-        for name, length in files:
-            filedata = rest[2:length+2] # Length includes leading CRLF
-            print "File %s %i (%i)" % (name, len(filedata), length)
-            rest = rest[length+2:]
-            attachments.append(WinLinkAttachment(name, filedata))
-
-
-        return email.message_from_string(content), attachments
-
     def encode_message(self, src, dst, name, body, attachments):
         msgid = time.strftime("D%H%M%S") + src
         
@@ -183,8 +145,6 @@ class WinLinkMessage:
             msg += "\r\n\x00"
 
         self.set_content(msg, name)
-
-
 
     def recv_exactly(self, s, l):
         data = ""
@@ -546,14 +506,26 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         self.__send_msgs = send_msgs
 
     def __create_form(self, msg):
-        mail = email.message_from_string(msg.get_content())
-
+        content = msg.get_content()
+        mail = email.message_from_string(content)
+	
         sender = mail.get("From", "Unknown")
 
         if ":" in sender:
             method, sender = sender.split(":", 1)
         
         sender = "WL2K:" + sender
+
+        body = mail.get("Body", "0")
+
+        try:
+            body_length = int(body)
+        except ValueError:
+            raise Exception("Error parsing Body header length `%s'" % value)
+
+        body_start = content.index("\r\n\r\n") + 4
+        rest = content[body_start + body_length:]
+        message = content[body_start:body_start + body_length]
 
         if self._callsign == self._config.get("user", "callsign"):
             box = "Inbox"
@@ -569,7 +541,17 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         form.set_field_value("_auto_sender", sender)
         form.set_field_value("recipient", self._callsign)
         form.set_field_value("subject", mail.get("Subject", "Unknown"))
-        form.set_field_value("message", mail.get_payload())
+        form.set_field_value("message", message)
+
+        files = mail.get_all("File")
+        if files:
+            for att in files:
+                length, name = att.split(" ", 1)
+                filedata = rest[2:int(length)+2] # Length includes leading CRLF
+                print "File %s %i (%i)" % (name, len(filedata), int(length))
+                rest = rest[int(length)+2:]
+                form.add_attachment(name, filedata)
+
         form.set_path_src(sender.strip())
         form.set_path_dst(self._callsign)
         form.set_path_mid(msg.get_id())
@@ -584,7 +566,7 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         count = wl.get_messages()
         for i in range(0, count):
             msg = wl.get_message(i)
-            formfn = self.__create_form(msg)        
+            formfn = self.__create_form(msg)
 
             self._emit("form-received", -999, formfn)
 
