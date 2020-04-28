@@ -62,8 +62,11 @@ def win32_build():
                               'API-MS-Win-Core-String-L1-1-0.dll' ,
                               'API-MS-Win-Core-Synch-L1-1-0.dll' ,
                               'API-MS-Win-Core-SysInfo-L1-1-0.dll',
-                              'DNSAPI.dll',
-                              'NSI.dll'
+                              'DNSAPI.DLL',
+                              'MSIMG32.DLL',
+                              'MSWSOCK.dll',
+                              'NSI.DLL' ,
+                              'USP10.DLL'
                             ] ,
             "compressed" : 1,
             "optimize" : 2,
