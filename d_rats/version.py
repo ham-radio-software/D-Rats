@@ -5,7 +5,7 @@
 #
 ##this module contains the d-rats version variables
 
-DRATS_VERSION = "0.3.7 beta 20200424"
+DRATS_VERSION = "0.3.7 beta 20200428"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"

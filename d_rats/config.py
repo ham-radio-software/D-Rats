@@ -94,6 +94,7 @@ _DEF_PREFS = {
     "msg_wl2k_rmsport" : "",
 }
 
+#these settings are used to popoulate the config when D-Rats is executed the first time
 _DEF_SETTINGS = {
     "socket_pw" : "",
     "ddt_block_size" : "512",
@@ -166,6 +167,46 @@ _DEF_SETTINGS = {
     "delete_from" : "",
     "remote_admin_passwd" : "",
     "expire_stations" : "60",
+    #FIXME - for any reason these lines are not loaded as default config in the ports section 
+    "ports" : { #"ports_0" : "True,net:ref.d-rats.com:9000,,True,True,RAT",
+                "ports_1" : "False,net:127.0.0.1:14550,,True,False,APRS (on Localhost)",
+                "ports_2" : "False,net:dcs007.xreflector.net:9000,,True,False,EUROPE Netherlands",
+                "ports_3" : "False,/dev/ttyUSB0,9600,True,True,IC2820 ttyUSB0",
+                "ports_4" : "False,COM1,38400,True,True,ICOM E-92D COM1",
+                "ports_5" : "False,COM2,9600,True,True,ICOM ID-51 COM2",
+                "ports_6" : "False,net:w5sf.ratflector.com:9000,,True,False,MEXICO",
+                "ports_7" : "False,net:localhost:9000,,False,False,My RAT flector (on localhost)",
+                "ports_8" : "False,net:n1kxj.ddns.net:9000,,True,False,New Englad",
+                "ports_9" : "False,net:52.87.128.252:9000,,True,False,North Carolina ARES",
+                "ports_10" : "False,net:pldares.ratflector.com:9000,,True,False,PAULDIN",
+                "ports_11" : "False,net:sewx.ratflector.com:9000,,True,False,SE WX Net",
+                "ports_12" : "False,net:hs0zer.no-ip.com:9000,,True,False,THAILAND Bangkok",
+                "ports_13" : "False,net:alabama.ratflector.com:9000,,True,False,USA ALABAMA",
+                "ports_14" : "False,net:drats.auburn.edu:9000,,True,False,USA Alabama Statewide ARES",
+                "ports_15" : "False,net:cfl.ratflector.net:9000,,True,False,USA Central Florida",
+                "ports_16" : "False,net:ae5he.ratflector.com:9000,,True,False,USA EL PASO",
+                "ports_17" : "False,net:wa7fw.dstargateway.org:9000,,True,False,USA Federal Way WA",
+                "ports_18" : "False,net:gaares.ratflector.com:9000,,True,False,USA GAARES",
+                "ports_19" : "False,net:drats.gaares.org:9000,,True,False,USA Georgia Statewide ARES",
+                "ports_20" : "False,net:gwinnettares.dyndns.org:9000,,True,False,USA Gwinnett Co ARES",
+                "ports_21" : "False,net:w5mpz.org:9000,,True,False,USA NEW MEXICO Albuquerque",
+                "ports_22" : "False,net:nfl.ratflector.net:9000,,True,False,USA Northern Florida",
+                "ports_23" : "False,net:rat.gaampr.net:9000,,True,False,USA NW GA ARES",
+                "ports_24" : "False,net:k3pdr.dstargateway.org:9000,,True,False,USA Philadelphia Digital Radio Association (PDRA) K3PDR",
+                "ports_25" : "False,net:d-rats.wa7dre.org:9000,,True,False,USA Spokane Washington Digital Radio Enthusiasts",
+                "ports_26" : "False,net:StTammany.ratflector.com:9000,,True,False,USA St. Tammany Parish",
+                "ports_27" : "False,net:tn.ratflector.com:9000,,True,False,USA TENESSEE",
+                "ports_28" : "False,net:ducknest.duckdns.org:9000,,True,False,USA Texas - Big Spring",
+                "ports_29" : "False,net:W5AW.ratflector.com:9000,,True,False,USA TEXAS (W5AW)",
+                "ports_30" : "False,net:ae5he.ham-radio-op.net:9000,,True,False,USA TEXAS El Paso",
+                "ports_31" : "False,net:155.98.24.13:9000,,True,False,USA Utah Salt Lake County",
+                "ports_32" : "False,net:wa7dr.ratflector.com:9000,,True,False,USA WASHINGTON",
+                "ports_33" : "False,net:gwinnettares.ratflector.com:9000,,True,False,UTAH",
+                "ports_34" : "False,net:W5SF.ratflector.com:9000,,True,False,W5SF",
+                "ports_35" : "False,net:n1rcw.ddns.net:9000,,True,False,WX - n1rcw",
+                "ports_36" : "False,net:dcs007.ratflector.com:9000,,True,False,WX dcs007",
+                "ports_37" : "False,net:wa7dre.ratflector.com:9000,,True,False,XLX - wa7dre",
+                },
 }
 
 _DEF_STATE = {
@@ -193,6 +234,7 @@ _DEF_SOUNDS = {
     "files_enabled" : "False",
 }
 
+#these settings are used when D-Rats is opened any time (not just the first time) before that the config file is loaded
 DEFAULTS = {
     "user" : _DEF_USER,
     "prefs" : _DEF_PREFS,
@@ -203,11 +245,10 @@ DEFAULTS = {
     "tcp_out" : {},
     "incoming_email" : {},
     "sounds" : _DEF_SOUNDS,
-    "ports" : { "ports_0" : "True,net:ref.d-rats.com:9000,,False,False,RAT", 
-                "ports_1" : "False,net:localhost:9000,,False,False,Local RATflector",
-                "ports_2" : "False,net:k3pdr.dstargateway.org:9000,,False,False,K3PDR",
-                "ports_3" : "False,/dev/ttyUSB0,9600,False,False,IC2820 ttyUSB0",
-                },
+    
+    # the "ports" setting in particular is magic in the sense that all lines here are 
+    # recreated any time that D-Rats starts in config file regardless if the users deletes them 
+    "ports" : { "ports_0" : "True,net:ref.d-rats.com:9000,,False,False,RAT" }, 
 }
 
 if __name__ == "__main__":
@@ -861,7 +902,7 @@ class DratsMapPanel(DratsPanel):
         DratsPanel.__init__(self, config)
        
         
-        #asking which map use
+        #asking which map to use
         val = DratsConfigWidget(config, "settings", "maptype")
         val.add_combo(["base", "cycle", "outdoors", "landscape"])
         self.mv(_("Map to use"), val)
@@ -877,8 +918,7 @@ class DratsMapPanel(DratsPanel):
 
         val = DratsConfigWidget(config, "settings", "keyformapurlcycle", True)
         val.add_text()
-        self.mv(_("Key string to append to CycleMap url"), val)         
-        
+        self.mv(_("Key string to append to CycleMap url"), val)
         
         #landscape
         val = DratsConfigWidget(config, "settings", "mapurllandscape", True)
@@ -887,8 +927,7 @@ class DratsMapPanel(DratsPanel):
 
         val = DratsConfigWidget(config, "settings", "keyformapurllandscape", True)
         val.add_text()
-        self.mv(_("Key string to append to landscape url"), val)   
-        
+        self.mv(_("Key string to append to landscape url"), val)
         
         #outdoors
         val = DratsConfigWidget(config, "settings", "mapurloutdoors", True)
@@ -954,6 +993,7 @@ class DratsGPSPanel(DratsPanel):
             import qst
             dprs = qst.do_dprs_calculator(config.get("settings",
                                                      "default_gps_comment"))
+            print("Config    : Setting GPS comment to DPRS: %s " % dprs)
             if dprs is not None:
                 config.set("settings", "default_gps_comment", dprs)
                 val._widget.set_text(dprs)
