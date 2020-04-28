@@ -499,7 +499,7 @@ class GPSPosition(object):
         else:
             sta = self.station
 
-        s = "%s>%s,DSTAR*:@%sh" % (sta, dest, stamp)
+        s = "%s>%s,DSTAR*:/%sh" % (sta, dest, stamp)
 
         if self.latitude > 0:
             ns = "N"
@@ -515,12 +515,17 @@ class GPSPosition(object):
             ew = "W"            
             lm = -1
 
-        s += "%.2f%s%s%08.2f%s%s" % (deg2nmea(self.latitude * Lm), ns,
-                                     symtab,
-                                     deg2nmea(self.longitude * lm), ew,
-                                     symbol)
+        s += "%07.2f%s%s%08.2f%s%s" % (deg2nmea(self.latitude * Lm), ns,
+                                        symtab,
+                                        deg2nmea(self.longitude * lm), ew,
+                                        symbol)
         if self.speed and self.direction:
-            s += "%.1f/%.1f" % (float(self.speed), float(self.direction))
+            s += "%03.0f/%03.0f" % (float(self.direction), float(self.speed))
+
+        if self.altitude:
+            s += "/A=%06i" % meters2feet(float(self.altitude))
+        else:
+            s += "/"
 
         if self.comment:
             l = 43
@@ -528,10 +533,6 @@ class GPSPosition(object):
                 l -= len("/A=xxxxxx")
 
             s += "%s" % self.comment[:l]
-            
-        if self.altitude:
-            s += "%s/A=%06i" % (self.comment and " " or "",
-                                meters2feet(float(self.altitude)))
 
         s += "\r"
 
@@ -795,7 +796,7 @@ class APRSGPSPosition(GPSPosition):
         #11 = altitude string
         
         expr = "^(([@/])[0-9]{6}([/hz])|!|=)" + \
-            "([0-9]{4}\.[0-9]{2})([NS])(.)?" + \
+            "([0-9]{1,4}\.[0-9]{2})([NS])(.)?" + \
             "([0-9]{5}\.[0-9]{2})([EW])(.)" + \
             "([^/]*)(/A=[0-9]{6})?"
 
@@ -816,6 +817,7 @@ class APRSGPSPosition(GPSPosition):
         self.longitude = nmea2deg(float(m.group(7)), m.group(8))
         self.comment = m.group(10).strip()
         self._original_comment = self.comment
+        self.APRSIcon = m.group(6) + m.group(9)
 
         if len(m.groups()) == 11 and m.group(11):
             _, alt = m.group(11).split("=")
@@ -1142,6 +1144,7 @@ if __name__ == "__main__":
         "$$CRC1F72,KI4IFW-1>APRATS,DSTAR*:@291930/4531.50N/12254.98W>APRS test beacon /A=000022",
         "$$CRC80C3,VA2PBI>APU25N,DSTAR*:=4539.33N/07330.28W-73 de Pierre D-Star Montreal {UIV32N}",
         "$$CRCA31F,VA2PBI>API282,DSTAR*:/221812z4526.56N07302.34W/\r",
+        '$$CRCF471,AB9FT-ML>APRATS,DSTAR*:@214235h0.00S/00000.00W>ON D-RATS at Work\r',
         ]
 
     print("Gps       :  \n-- GPS-A --")

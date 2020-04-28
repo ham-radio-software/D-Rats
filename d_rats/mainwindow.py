@@ -101,7 +101,8 @@ class MainWindow(MainWindowElement):
             d = gtk.AboutDialog()
             d.set_transient_for(self._wtree.get_widget("mainwindow"))
 
-            verinfo = "GTK %s\nPyGTK %s\nLibXML using %.1f KB\n" % ( \
+            verinfo = "Python %s\nGTK %s\nPyGTK %s\nLibXML using %.1f KB\n" %(\
+                sys.version.split()[0],
                 ".".join([str(x) for x in gtk.gtk_version]),
                 ".".join([str(x) for x in gtk.pygtk_version]),
                 libxml2.memoryUsed() / 1024.0)
@@ -112,7 +113,6 @@ class MainWindow(MainWindowElement):
             d.set_website(WEBSITE)
             d.set_authors((AUTHORS,))
             d.set_comments(DRATS_DESCRIPTION)
-
             d.set_translator_credits(TRANSLATIONS)
             d.set_comments(verinfo)
 
@@ -297,6 +297,7 @@ class MainWindow(MainWindowElement):
         self._current_tab = "messages"
         ic = "incomingcolor"
         cpr = COPYRIGHT
+
         self.tabs["chat"]._display_line("D-RATS v%s" % DRATS_VERSION, True, ic)
         self.tabs["chat"]._display_line(cpr, True, ic)
         self.tabs["chat"]._display_line("", True)
@@ -314,6 +315,16 @@ class MainWindow(MainWindowElement):
             self.__window.set_default_size(h, w)
         else:
             self.__window.resize(h, w)
+
+        try:
+            import gtkmacintegration
+            mbar = self._wtree.get_widget("menubar1")
+            mbar.hide()
+            gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
+            gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
+            print "Enabled OSX menubar integration"
+        except ImportError:
+            pass
 
         self.__window.show()
 

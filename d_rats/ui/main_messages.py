@@ -494,7 +494,8 @@ class MessageList(MainWindowElement):
                                 ]
             dlg.hide()
             dlg.update_dst()
-            msgrouting.msg_unlock(filename)
+            if msgrouting.msg_is_locked(filename):
+                msgrouting.msg_unlock(filename)
             if response in saveable_actions:
                 print "Saving to %s" % filename
                 dlg.save_to(filename)
@@ -935,7 +936,8 @@ class MessagesTab(MainWindowTab):
 
         station, port = prompt_for_station(stations, self._config)
         if not station:
-            msgrouting.msg_unlock(fn)
+            if msgrouting.msg_is_locked(fn):
+	            msgrouting.msg_unlock(fn)
             return
 
         self.emit("user-send-form", station, port, fn, "foo")

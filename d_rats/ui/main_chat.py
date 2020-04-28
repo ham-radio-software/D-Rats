@@ -51,14 +51,16 @@ class ChatQM(MainWindowElement):
     __gsignals__ = {
         "user-sent-qm" : (gobject.SIGNAL_RUN_LAST,
                           gobject.TYPE_NONE,
-                          (gobject.TYPE_STRING,))
+                          (gobject.TYPE_STRING, # Content
+                           gobject.TYPE_STRING, # Should be empty
+                           ))
         }
 
     def _send_qm(self, view, path, col):
         model = view.get_model()
         iter = model.get_iter(path)
         text = model.get(iter, 0)[0]
-        self.emit("user-sent-qm", text)
+        self.emit("user-sent-qm", text, "")
 
     def _add_qm(self, button, store):
         d = inputdialog.TextInputDialog(title=_("Add Quick Message"))
@@ -123,7 +125,10 @@ class ChatQST(MainWindowElement):
     __gsignals__ = {
         "qst-fired" : (gobject.SIGNAL_RUN_LAST,
                        gobject.TYPE_NONE,
-                       (gobject.TYPE_STRING, gobject.TYPE_BOOLEAN)),
+                       (gobject.TYPE_STRING,  # Content
+                        gobject.TYPE_STRING,  # QST config key
+                        gobject.TYPE_BOOLEAN, # Is raw
+                        )),
         }
 
     def _send_qst(self, view, path, col):
@@ -253,8 +258,8 @@ class ChatQST(MainWindowElement):
 
         return cnt
 
-    def _qst_fired(self, q, content):
-        self.emit("qst-fired", content, q.raw)
+    def _qst_fired(self, q, content, key):
+        self.emit("qst-fired", content, key, q.raw)
 
     def _tick(self):
         iter = self._store.get_iter_first()
@@ -298,7 +303,7 @@ class ChatQST(MainWindowElement):
             if not qc:
                 print "Error: unable to get QST class `%s'" % t
                 continue
-            q = qc(self._config, c)
+            q = qc(self._config, c, i)
             q.connect("qst-fired", self._qst_fired)
 
             self._qsts[i] = (q, self._remaining_for(f) * 60)
@@ -448,9 +453,21 @@ class ChatTab(MainWindowTab):
 
         self.emit("user-send-chat", dcall, port, text, False)
 
-    def _send_msg(self, qm, msg, raw, dest):
-        port = dest.get_active_text()
-        self.emit("user-send-chat", "CQCQCQ", port, msg, raw)
+    def _send_msg(self, qm, msg, conf_key, raw, dest):
+        if conf_key:
+            try:
+                port = self._config.get(conf_key, "port")
+            except:
+                port = _("Current")
+        else:
+            port = _("Current")
+            
+        if port == _("Current"):
+            port = dest.get_active_text()
+            self.emit("user-send-chat", "CQCQCQ", port, msg, raw)
+        elif port == _("All"):
+            for i in self.__ports:
+                self.emit("user-send-chat", "CQCQCQ", i, msg, raw)
 
     def _bcast_file(self, but, dest):
         dir = self._config.get("prefs", "download_dir")
@@ -637,6 +654,8 @@ class ChatTab(MainWindowTab):
 
         self.__tb_buttons = {}
 
+        self.__ports = []
+
         addf = self._wtree.get_widget("main_menu_addfilter")
         addf.connect("activate", self._add_filter)
 
@@ -785,13 +804,13 @@ class ChatTab(MainWindowTab):
 
         dest, = self._getw("destination")
 
-        ports = []
+        self.__ports = []
         for p in self._config.options("ports"):
             spec = self._config.get("ports", p)
             vals = spec.split(",")
             if vals[0] == "True":
-                ports.append(vals[-1])
-        ports.sort()
+                self.__ports.append(vals[-1])
+        self.__ports.sort()
 
         model = dest.get_model()
         if model:
@@ -799,10 +818,10 @@ class ChatTab(MainWindowTab):
         else:
             model = gtk.ListStore(gobject.TYPE_STRING)
             dest.set_model(model)
-        for port in ports:
+        for port in self.__ports:
             model.append((port,))
-        if ports:
-            utils.combo_select(dest, ports[0])
+        if self.__ports:
+            utils.combo_select(dest, self.__ports[0])
 
     def get_selected_port(self):
         dest, = self._getw("destination")

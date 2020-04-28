@@ -747,6 +747,15 @@ class FormFile(object):
         else:
             return None
 
+    def get_field_caption(self, id):
+        els = self.__get_xpath("//form/field[@id='%s']/caption" % id)
+        if len(els) == 1:
+            return xml_unescape(els[0].getContent().strip())
+        elif len(els) > 1:
+            raise Exception("More than one id=%s node!" % id)
+        else:
+            return None
+
     def set_field_value(self, id, value):
         els = self.__get_xpath("//form/field[@id='%s']/entry" % id)
         print "Setting %s to %s (%i)" % (id, value, len(els))

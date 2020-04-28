@@ -25,6 +25,7 @@ import gettext
 gettext.install("D-RATS")
 
 from d_rats import dplatform
+
 from d_rats import transport
 from d_rats import comm
 
@@ -130,12 +131,14 @@ class Repeater:
 
         srcinfo = self.calls.get(frame.s_station, None)
         if srcinfo is None and frame.s_station != "CQCQCQ":
+
             print("Adding new station %s to port %s" % (frame.s_station,transport))
             self.calls[frame.s_station] = CallInfo(frame.s_station,
                                                    transport)
         elif srcinfo:
             if srcinfo.last_transport() != transport:
                 print("Station %s moved to port %s" % (frame.s_station,transport))
+
             srcinfo.just_heard(transport)
 
         dstinfo = self.calls.get(frame.d_station, None)
@@ -153,7 +156,6 @@ class Repeater:
                      self.__call_timeout))
                 
         print("Repeating frame to %s on all ports" % frame.d_station)
-
         for path in self.paths[:]:
             if path == transport:
                 continue
@@ -203,6 +205,7 @@ class Repeater:
                 cmd, value = line.split(" ", 1)
             except Exception, e:
                 print("Unable to read auth command: `%s': %s" % (line, e))
+
                 pipe.write("501 Invalid Syntax\r\n")
                 break
 
@@ -233,7 +236,7 @@ class Repeater:
         elif self.trustlocal and host == "127.0.0.1":
             pipe.write("100 Authentication not required for localhost\r\n")
             return True
-
+          
         auth_fn = dplatform.get_platform().config_file("users.txt")
         try:
             auth = file(auth_fn)
@@ -274,6 +277,7 @@ class Repeater:
             return
 
         print("Accepted new client %s:%i" % addr)
+
         path = comm.SocketDataPath(csocket)
         tport = transport.Transporter(path,
                                       authfn=self.auth_user,
@@ -877,8 +881,8 @@ if __name__=="__main__":
             f = file(opts.logpath + "/repeater.log", "a", 0)
         else:
             p = dplatform.get_platform()
+            #f = file(p.config_file("repeater.log"), "w", 0)
             f = file(p.config_file("repeater.log"), "a", 0)
-
         if f:
             sys.stdout = f
             sys.stderr = f

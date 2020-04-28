@@ -387,17 +387,18 @@ class MessageRouter(gobject.GObject):
 
         call = self.__config.get("user", "callsign")
         call = "".join([x for x in call if x.isalpha()])
-        mid = time.strftime("D%H%M%S") + call[:12]
 
-        msg = "Mid: %s\r\n" % mid + \
-            "Subject: %s\r\n" % form.get_subject_string() + \
-            "From: %s\r\n" % form.get_path_src() + \
-            "To: %s\r\n" % dst + \
-            "Body: %i\r\n" % len(payload) + \
-            "Date: %s\r\n" % time.strftime("%Y/%m/%d %H:%M", time.gmtime()) + \
-            "\r\n" + \
-            payload + "\r\n" + \
-            "\r\n"
+        attachments = []
+        for name, length in form.get_attachments():
+            data = form.get_attachment(name)
+            attachments.append(wl2k.WinLinkAttachment(name, data))
+
+        msg = wl2k.WinLinkMessage()
+        msg.encode_message(form.get_path_src(),
+                           [dst],
+                           form.get_subject_string(),
+                           payload,
+                           attachments)
 
         return msg
 
@@ -509,6 +510,7 @@ class MessageRouter(gobject.GObject):
     
                 if not routed:
                     if msg_is_locked(msg):
+                        print("Msgrouting: unlocking message %s" % msg)
                         msg_unlock(msg)
     
     def _run(self):
