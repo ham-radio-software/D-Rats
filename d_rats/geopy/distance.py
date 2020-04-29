@@ -1,5 +1,8 @@
+from __future__ import absolute_import
 from math import *
-import util
+#py3 from . import util
+import six
+from six.moves import map
 
 # Average great-circle radius in kilometers, from Wikipedia.
 # Using a sphere with this radius results in an error of up to about 0.5%.
@@ -138,7 +141,7 @@ class Distance(object):
         """Return a new Distance ``other`` times the length of ``self``,
         ``other`` is a number (int, float, long, or Decimal).
         """
-        if isinstance(other, (int, float, long, Decimal)):
+        if isinstance(other, (int, float, int, Decimal)):
             other = float(other)
             return Distance(self.kilometers * other)
         else:
@@ -153,7 +156,7 @@ class Distance(object):
         """
         if isinstance(other, Distance):
             return float(self.kilometers) / other.kilometers
-        elif isinstance(other, (int, float, long, Decimal)):
+        elif isinstance(other, (int, float, int, Decimal)):
             other = float(other)
             return Distance(self.kilometers / other)
         else:
@@ -170,9 +173,9 @@ class GeodesicDistance(Distance):
         geodesic points ``a`` and ``b``, using the ``calculate`` method to
         determine this distance.
         """
-        if isinstance(a, basestring):
+        if isinstance(a, six.string_types):
             a = util.parse_geo(a)
-        if isinstance(b, basestring):
+        if isinstance(b, six.string_types):
             b = util.parse_geo(b)
         
         self.a = a
@@ -205,8 +208,8 @@ class GreatCircleDistance(GeodesicDistance):
     RADIUS = EARTH_RADIUS
     
     def calculate(self):
-        lat1, lng1 = map(radians, self.a)
-        lat2, lng2 = map(radians, self.b)
+        lat1, lng1 = list(map(radians, self.a))
+        lat2, lng2 = list(map(radians, self.b))
         
         sin_lat1, cos_lat1 = sin(lat1), cos(lat1)
         sin_lat2, cos_lat2 = sin(lat2), cos(lat2)
@@ -253,10 +256,10 @@ class VincentyDistance(GeodesicDistance):
     ELLIPSOID = ELLIPSOIDS['WGS-84']
     
     def calculate(self):
-        lat1, lng1 = map(radians, self.a)
-        lat2, lng2 = map(radians, self.b)
+        lat1, lng1 = list(map(radians, self.a))
+        lat2, lng2 = list(map(radians, self.b))
         
-        if isinstance(self.ELLIPSOID, basestring):
+        if isinstance(self.ELLIPSOID, six.string_types):
             major, minor, f = ELLIPSOIDS[self.ELLIPSOID]
         else:
             major, minor, f = self.ELLIPSOID
@@ -355,7 +358,7 @@ distance = VincentyDistance
 
 
 def destination(start, bearing, distance, radius=EARTH_RADIUS):
-    lat1, lng1 = map(radians, start)
+    lat1, lng1 = list(map(radians, start))
     bearing = radians(bearing)
     
     if isinstance(distance, Distance):
@@ -374,13 +377,13 @@ def destination(start, bearing, distance, radius=EARTH_RADIUS):
 
 def vincenty_destination(start, bearing, distance,
                          ellipsoid=ELLIPSOIDS['WGS-84']):
-    lat1, lng1 = map(radians, start)
+    lat1, lng1 = list(map(radians, start))
     bearing = radians(bearing)
     
     if isinstance(distance, Distance):
         distance = distance.kilometers
     
-    if isinstance(ellipsoid, basestring):
+    if isinstance(ellipsoid, six.string_types):
         ellipsoid = ELLIPSOIDS[ellipsoid]
     
     major, minor, f = ellipsoid

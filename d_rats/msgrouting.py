@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -14,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import threading
 import time
@@ -21,6 +24,7 @@ import os
 import smtplib
 import shutil
 from glob import glob
+from six.moves import range
 
 try:
     from email.mime.multipart import MIMEMultipart
@@ -36,12 +40,12 @@ except ImportError:
 
 import gobject
 
-import formgui
-import signals
-import emailgw
-import utils
-import wl2k
-import mainapp
+from . import formgui
+from . import signals
+#py3 from . import emailgw
+from . import utils
+from . import wl2k
+#py3 from . import mainapp
 import traceback
 
 CALL_TIMEOUT_RETRY = 300
@@ -59,13 +63,13 @@ def msg_is_locked(fn):
 def msg_lock(fn):
     MSG_LOCK_LOCK.acquire()
     if not msg_is_locked(fn):
-        lf = file(__msg_lockfile(fn), "w")
+        lf = open(__msg_lockfile(fn), "w")
         traceback.print_stack(file=lf)
         lf.close()
         success = True
     else:
-        lf = file(__msg_lockfile(fn), "r")
-        print("Msgrouting: ------ LOCK OWNED BY -------\n%s------------\n" % lf.read())
+        lf = open(__msg_lockfile(fn), "r")
+        print(("Msgrouting: ------ LOCK OWNED BY -------\n%s------------\n" % lf.read()))
         lf.close()
         success = False
     MSG_LOCK_LOCK.release()
@@ -96,8 +100,8 @@ def gratuitous_next_hop(route, path):
 
     for i in range(0, len(path_nodes)):
         if path_nodes[i] != route_nodes[i]:
-            print("Msgrouting: Path element %i (%s) does not match route %s" % \
-                (i, path_nodes[i], route_nodes[i]))
+            print(("Msgrouting: Path element %i (%s) does not match route %s" % \
+                (i, path_nodes[i], route_nodes[i])))
             return None
 
     return route_nodes[len(path_nodes)]
@@ -111,7 +115,7 @@ def is_sendable_dest(mycall, string):
 
     # Empty string
     if not string.strip():
-        print("Msgrouting: empty: %s %s" % (string, string.strip()))
+        print(("Msgrouting: empty: %s %s" % (string, string.strip())))
         return False
 
     # Is an email address:
@@ -213,7 +217,7 @@ class MessageRouter(gobject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
-            print("Msgrouting: Proxy emit %s: %s" % (signal, args))
+            print(("Msgrouting: Proxy emit %s: %s" % (signal, args)))
             self._emit(signal, *args)
         return handler
 
@@ -236,7 +240,7 @@ class MessageRouter(gobject.GObject):
     def _get_routes(self):
         rf = self.__config.platform.config_file("routes.txt")
         try:
-            f = file(rf)
+            f = open(rf)
             lines = f.readlines()
             f.close()
         except IOError:
@@ -250,8 +254,8 @@ class MessageRouter(gobject.GObject):
             try:
                 dest, gw, port = line.split()
                 routes[dest] = gw
-            except Exception, e:
-                print("Msgrouting: Error parsing line '%s': %s" % (line, e))
+            except Exception as e:
+                print(("Msgrouting: Error parsing line '%s': %s" % (line, e)))
 
         return routes
 
@@ -260,7 +264,7 @@ class MessageRouter(gobject.GObject):
         time.sleep(t)
 
     def _p(self, string):
-        print("Msgrouting: [MR] %s" % string)
+        print(("Msgrouting: [MR] %s" % string))
         import sys
         sys.stdout.flush()
 
@@ -271,7 +275,7 @@ class MessageRouter(gobject.GObject):
         fl = glob(os.path.join(qd, "*.xml"))
         for f in fl:
             if not msg_lock(f):
-                print("Msgrouting: Message %s is locked, skipping" % f)
+                print(("Msgrouting: Message %s is locked, skipping" % f))
                 continue
 
             form = formgui.FormFile(f)
@@ -282,7 +286,7 @@ class MessageRouter(gobject.GObject):
                 if msg_is_locked(f):
                     msg_unlock(f)
                 continue
-            elif not queue.has_key(call):
+            elif call not in queue:
                 queue[call] = [f]
             else:
                 queue[call].append(f)
@@ -296,12 +300,12 @@ class MessageRouter(gobject.GObject):
         self._emit("user-send-form", call, port, filename, "Foo")
 
     def _sent_recently(self, call):
-        if self.__sent_call.has_key(call):
+        if call in self.__sent_call:
             return (time.time() - self.__sent_call[call]) < CALL_TIMEOUT_RETRY
         return False
 
     def _port_free(self, port):
-        return not self.__sent_port.has_key(port)
+        return port not in self.__sent_port
 
     def _route_msg(self, src, dst, path, slist, routes):
         invalid = []
@@ -319,20 +323,20 @@ class MessageRouter(gobject.GObject):
             if ";" in dst:
                 # Gratuitous routing takes precedence
                 route = gratuitous_next_hop(dst, path)
-                print("Msgrouting: Route for %s: %s (%s)" % (dst, route, path))
+                print(("Msgrouting: Route for %s: %s (%s)" % (dst, route, path)))
                 break
             elif "@" in dst and dst not in invalid and \
                     not ":" in dst and \
                     emailgw.validate_incoming(self.__config, src, dst):
                 # Out via email
                 route = dst
-            elif slist.has_key(dst) and dst not in invalid:
+            elif dst in slist and dst not in invalid:
                 # Direct send
                 route = dst
-            elif routes.has_key(dst) and routes[dst] not in invalid:
+            elif dst in routes and routes[dst] not in invalid:
                 # Static route present
                 route = routes[dst]
-            elif routes.has_key("*") and routes["*"] not in invalid:
+            elif "*" in routes and routes["*"] not in invalid:
                 # Default route
                 route = routes["*"]
             elif dst.upper().startswith("WL2K:"):
@@ -346,15 +350,15 @@ class MessageRouter(gobject.GObject):
             if route.upper().startswith("WL2K:"):
                 break # WL2K is easy
             elif route != dst and route in path:
-                print("Msgrouting: Route %s in path" % route)
+                print(("Msgrouting: Route %s in path" % route))
                 invalid.append(route)
                 route = None # Don't route to the same location twice
             elif self._is_station_failed(route):
-                print("Msgrouting: Route %s is failed" % route)
+                print(("Msgrouting: Route %s is failed" % route))
                 invalid.append(route)
                 route = None # This one is not responding lately
             elif old(route) and self._station_pinged_out(route):
-                print("Msgrouting: Route %s for %s is pinged out" % (route, dst))
+                print(("Msgrouting: Route %s for %s is pinged out" % (route, dst)))
                 invalid.append(route)
                 route = None # This one has been pinged and isn't responding
             else:
@@ -452,7 +456,7 @@ class MessageRouter(gobject.GObject):
             if status:
                 self._emit("form-sent", -1, msgfn)
             else:
-                print("Msgrouting: Failed to send via WL2K: %s" % error)
+                print(("Msgrouting: Failed to send via WL2K: %s" % error))
 
         mt = wl2k.wl2k_auto_thread(mainapp.get_mainapp(), src, send_msgs=[msg])
         mt.connect("mail-thread-complete", complete)
@@ -510,7 +514,7 @@ class MessageRouter(gobject.GObject):
     
                 if not routed:
                     if msg_is_locked(msg):
-                        print("Msgrouting: unlocking message %s" % msg)
+                        print(("Msgrouting: unlocking message %s" % msg))
                         msg_unlock(msg)
     
     def _run(self):
@@ -522,12 +526,12 @@ class MessageRouter(gobject.GObject):
 
                 try:
                     self._run_one(queue)
-                except Exception, e:
+                except Exception as e:
                     utils.log_exception()
                     print("Msgrouting: Fail-safe unlocking messages in queue:")
                     for msgs in queue.values():
                         for msg in msgs:
-                            print("Msgrouting: Unlocking %s" % msg)
+                            print(("Msgrouting: Unlocking %s" % msg))
                             if msg_is_locked(msg):
                                 msg_unlock(msg)
 
@@ -562,7 +566,7 @@ class MessageRouter(gobject.GObject):
 
     def _station_failed(self, call):
         self.__failed_stations[call] = self.__failed_stations.get(call, 0) + 1
-        print("Msgrouting: Fail count for %s is %i" % (call, self.__failed_stations[call]))
+        print(("Msgrouting: Fail count for %s is %i" % (call, self.__failed_stations[call])))
 
     def _is_station_failed(self, call):
         return self.__failed_stations.get(call, 0) >= 3
@@ -584,7 +588,7 @@ class MessageRouter(gobject.GObject):
             msg_unlock(fn)
 
         call = self.__file_to_call.get(fn, None)
-        if call and self.__sent_call.has_key(call):
+        if call and call in self.__sent_call:
             # This callsign completed (or failed) a transfer
             if failed:
                 self._station_failed(call)
@@ -595,7 +599,7 @@ class MessageRouter(gobject.GObject):
             del self.__sent_call[call]
             del self.__file_to_call[fn]
 
-        if self.__sent_port.has_key(port):
+        if port in self.__sent_port:
             # This port is now open for another transfer
             del self.__sent_port[port]
 

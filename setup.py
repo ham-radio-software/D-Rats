@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 
 from d_rats.version import DRATS_VERSION
@@ -135,7 +137,7 @@ def default_build():
     for f in _locale_files:
         locale_files.append(("/usr/share/d-rats/%s" % os.path.dirname(f), [f]))
 
-    print("LOC: %s" % str(ui_files))
+    print(("LOC: %s" % str(ui_files)))
 
     setup(
         name="d-rats",

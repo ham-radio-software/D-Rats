@@ -5,7 +5,8 @@
 #
 ##this module contains the d-rats version variables
 
-DRATS_VERSION = "0.3.7 beta 20200428"
+from __future__ import print_function
+DRATS_VERSION = "0.3.8 beta 1 porting code to python3"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
@@ -23,13 +24,13 @@ WEBSITE =""
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
 		
 if __name__ == "__main__":
-	print("DRATS_VERSION:         ", DRATS_VERSION)
-	print("DRATS_NAME:            ", DRATS_NAME)
-	print("DRATS_DESCRIPTION:     ", DRATS_DESCRIPTION)
-	print("DRATS_LONG_DESCRIPTION:", DRATS_LONG_DESCRIPTION)
-	print("AUTHORS:               ", AUTHORS)
-	print("AUTHORS_EMAIL:         ", AUTHORS_EMAIL)
-	print("COPYRIGHT:             ", COPYRIGHT)
-	print("LICENCE:               ", LICENCE)
-	print("WEBSITE:               ", WEBSITE)
-	print("TRANSLATIONS:          ", TRANSLATIONS)
+	print(("DRATS_VERSION:         ", DRATS_VERSION))
+	print(("DRATS_NAME:            ", DRATS_NAME))
+	print(("DRATS_DESCRIPTION:     ", DRATS_DESCRIPTION))
+	print(("DRATS_LONG_DESCRIPTION:", DRATS_LONG_DESCRIPTION))
+	print(("AUTHORS:               ", AUTHORS))
+	print(("AUTHORS_EMAIL:         ", AUTHORS_EMAIL))
+	print(("COPYRIGHT:             ", COPYRIGHT))
+	print(("LICENCE:               ", LICENCE))
+	print(("WEBSITE:               ", WEBSITE))
+	print(("TRANSLATIONS:          ", TRANSLATIONS))
