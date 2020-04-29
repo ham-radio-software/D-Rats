@@ -64,7 +64,14 @@ On Ms Windows the program works only when compiled on Windows XP 32 bit and dist
 -----------------------
 Release notes
 -----------------------
-2020 version 0.3.7 beta
+
+2020-04-28 version 0.3.8 - modernize
+first run of updating syntax to python3
+
+2020-04-24  version 0.3.7 beta 2
+ recovered code from latest version distributed by Dan in 2012-2014
+ 
+2020-04-20  version 0.3.7 beta 1
 - Added password for Winlink2000
 - Maps
   - added deletion of tiles which result defective at map rendering time (deletion will force re-download of the tiles at next map reload)
