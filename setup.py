@@ -43,7 +43,7 @@ def win32_build():
 
     opts = {
         "py2exe" : {
-            "includes" : "pango,atk,gobject,cairo,pangocairo,win32gui,win32com,win32com.shell,email.iterators,email.generator,gio,simplejson",
+            "includes" : "pango,atk,gobject,cairo,pangocairo,win32gui,win32com,win32com.shell,email.iterators,email.generator,gio,simplejson,six,xmlrpclib,SimpleXMLRPCServer,SocketServer,BaseHTTPServer",
             'dll_excludes': [
                               'API-MS-Win-Core-Debug-L1-1-0.dll' ,
                               'API-MS-Win-Core-DelayLoad-L1-1-0.dll' ,
