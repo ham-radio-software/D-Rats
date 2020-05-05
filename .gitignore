@@ -213,3 +213,11 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+#############
+## D-Rats
+#############
+libexec/*.o
+libexec/lzhuf
+share/*.1.gz
+
