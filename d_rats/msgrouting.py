@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -42,10 +41,15 @@ import gobject
 
 from . import formgui
 from . import signals
-#py3 from . import emailgw
+#py3   from . import emailgw
+
+
 from . import utils
 from . import wl2k
-#py3 from . import mainapp
+
+#py3   from . import mainapp
+
+
 import traceback
 
 CALL_TIMEOUT_RETRY = 300

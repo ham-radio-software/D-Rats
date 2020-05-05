@@ -27,7 +27,9 @@ import shutil
 from .miscwidgets import make_choice
 from .formgui import FormDialog,FormFile,xml_escape,xml_unescape
 from . import formgui
+
 #py3 from . import mainapp
+    
 from d_rats import dplatform
 
 class FormElementEditor(gtk.Dialog):

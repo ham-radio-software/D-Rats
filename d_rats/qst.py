@@ -29,7 +29,10 @@ import threading
 from commands import getstatusoutput as run
 from .miscwidgets import make_choice, KeyedListWidget
 from . import miscwidgets
+
+import os
 #py3 from . import mainapp
+    
 from . import dplatform
 from . import inputdialog
 from . import cap
