@@ -100,7 +100,29 @@ class StationsList(MainWindowTab):
 
     _signals = __gsignals__
 
+    def _expire(self):
+        now = time.time()
+        ttl = self._config.getint("settings", "expire_stations")
+        if ttl == 0:
+            return
+
+        store = self.__view.get_model()
+        iter = store.get_iter_first()
+        while iter:
+            station, stamp = store.get(iter, 0, 1)
+            if (now - stamp) > (ttl * 60):
+                print "Expired station %s (%i minutes since heard)" % \
+                    (station, (now - stamp) / 60)
+                self.__calls.remove(station)
+                self._update_station_count()
+                if not store.remove(iter):
+                    break
+            else:
+                iter = store.iter_next(iter)
+        
+
     def _update(self):
+        self._expire()
         self.__view.queue_draw()
 
         return True

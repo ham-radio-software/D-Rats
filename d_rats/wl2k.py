@@ -87,6 +87,17 @@ def run_lzhuf_encode(data):
     lzh = struct.pack("<H", calc_checksum(lzh)) + lzh
     return lzh
 
+class WinLinkAttachment:
+    def __init__(self, name, content):
+        self.__name = name
+        self.__content = content
+
+    def get_name(self):
+        return self.__name
+
+    def get_content(self):
+        return self.__content
+    
 class WinLinkMessage:
     def __init__(self, header=None):
         self.__name = ""
@@ -108,6 +119,87 @@ class WinLinkMessage:
 
     def __encode_lzhuf(self, data):
         return run_lzhuf_encode(data)
+
+    def encode_message(self, src, dst, name, body, attachments):
+        msgid = time.strftime("D%H%M%S") + src
+        
+        msg = "Mid: %s\r\n" % msgid[:12] + \
+            "Subject: %s\r\n" % name + \
+            "From: %s\r\n" % src
+        for _dst in dst:
+            msg += "To: %s\r\n" % _dst
+
+        msg += "Body: %i\r\n" % len(body) + \
+            "Date: %s\r\n" % time.strftime("%Y/%m/%d %H:%M", time.gmtime())
+
+        for attachment in attachments:
+            msg += "File: %i %s\r\n" % (len(attachment.get_content()),
+                                        attachment.get_name())
+
+        msg += "\r\n" + body + "\r\n"
+
+        for attachment in attachments:
+            msg += attachment.get_content() + "\r\n"
+
+        if attachments:
+            msg += "\r\n\x00"
+
+        self.set_content(msg, name)
+
+    def create_form(self, config, callsign):
+        mail = email.message_from_string(self.__content)
+	
+        sender = mail.get("From", "Unknown")
+
+        if ":" in sender:
+            method, sender = sender.split(":", 1)
+        
+        sender = "WL2K:" + sender
+
+        body = mail.get("Body", "0")
+
+        try:
+            body_length = int(body)
+        except ValueError:
+            raise Exception("Error parsing Body header length `%s'" % value)
+
+        body_start = self.__content.index("\r\n\r\n") + 4
+        rest = self.__content[body_start + body_length:]
+        message = self.__content[body_start:body_start + body_length]
+
+        if callsign == config.get("user", "callsign"):
+            box = "Inbox"
+        else:
+            box = "Outbox"
+
+        template = os.path.join(config.form_source_dir(),
+                                "email.xml")
+        formfn = os.path.join(config.form_store_dir(),
+                              box, "%s.xml" % self.get_id())
+
+        form = formgui.FormFile(template)
+        form.set_field_value("_auto_sender", sender)
+        form.set_field_value("recipient", callsign)
+        form.set_field_value("subject", mail.get("Subject", "Unknown"))
+        form.set_field_value("message", message)
+
+        files = mail.get_all("File")
+        if files:
+            for att in files:
+                length, name = att.split(" ", 1)
+                filedata = rest[2:int(length)+2] # Length includes leading CRLF
+                print "File %s %i (%i)" % (name, len(filedata), int(length))
+                rest = rest[int(length)+2:]
+                form.add_attachment(name, filedata)
+
+        form.set_path_src(sender.strip())
+        form.set_path_dst(callsign)
+        form.set_path_mid(self.get_id())
+        form.add_path_element("@WL2K")
+        form.add_path_element(config.get("user", "callsign"))
+        form.save_to(formfn)
+
+        return formfn
 
     def recv_exactly(self, s, l):
         data = ""
@@ -360,8 +452,6 @@ class WinLinkTelnet(WinLinkCMS):
         self._conn.close()
 
     def _login(self):
-        if len(self.__passwd) == 0:
-            raise Exception("No Winlink password configured")
 
         resp = self._recv()
 
@@ -386,42 +476,43 @@ class WinLinkTelnet(WinLinkCMS):
         if not resp.endswith(">"):
             raise Exception("Conversation error (never got prompt)")
 
-        self._send("FF")
+        if len(self.__passwd) > 0:
+            self._send("FF")
 
-        resp = self._recv().strip()
-        if not resp.startswith("Login ["):
-            raise Exception("Conversation error (never saw challenge)")
+            resp = self._recv().strip()
+            if not resp.startswith("Login ["):
+                raise Exception("Conversation error (never saw challenge)")
 
-        chall = resp[7:-2]
+            chall = resp[7:-2]
 
-        resp = self._recv().strip()
-        if not resp.endswith(">"):
-            raise Exception("Conversation error (never got prompt)")
+            resp = self._recv().strip()
+            if not resp.endswith(">"):
+                raise Exception("Conversation error (never got prompt)")
 
-        passwd = "_" + self.__passwd
+            passwd = "_" + self.__passwd
 
-        rem = 6
-        todo = 3
-        cresp = ""
-        while rem > 0:
-            ch = random.randint(0,255)
+            rem = 6
+            todo = 3
+            cresp = ""
+            while rem > 0:
+                ch = random.randint(0,255)
 
-            if ch > 127 and rem > todo:
-                cresp += chr(random.randint(33, 126))
-            else:
-                todo -= 1
-                cresp += passwd[int(chall[todo])]
-            rem -= 1
+                if ch > 127 and rem > todo:
+                    cresp += chr(random.randint(33, 126))
+                else:
+                    todo -= 1
+                    cresp += passwd[int(chall[todo])]
+                rem -= 1
 
-        self._send(cresp)
+            self._send(cresp)
 
-        resp = self._recv()
-        if not resp.startswith("Hello "):
-            raise Exception("Conversation error (never saw hello)")
+            resp = self._recv()
+            if not resp.startswith("Hello "):
+                raise Exception("Conversation error (never saw hello)")
 
-        resp = self._recv().strip()
-        if not resp.endswith(">"):
-            raise Exception("Conversation error (never got prompt)")
+            resp = self._recv().strip()
+            if not resp.endswith(">"):
+                raise Exception("Conversation error (never got prompt)")
 
         self._send(self.__ssid())
 
@@ -468,46 +559,12 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         self._callssid = callssid
         self.__send_msgs = send_msgs
 
-    def __create_form(self, msg):
-        mail = email.message_from_string(msg.get_content())
-
-        sender = mail.get("From", "Unknown")
-
-        if ":" in sender:
-            method, sender = sender.split(":", 1)
-        
-        sender = "WL2K:" + sender
-
-        if self._callsign == self._config.get("user", "callsign"):
-            box = "Inbox"
-        else:
-            box = "Outbox"
-
-        template = os.path.join(self._config.form_source_dir(),
-                                "email.xml")
-        formfn = os.path.join(self._config.form_store_dir(),
-                              box, "%s.xml" % msg.get_id())
-
-        form = formgui.FormFile(template)
-        form.set_field_value("_auto_sender", sender)
-        form.set_field_value("recipient", self._callsign)
-        form.set_field_value("subject", mail.get("Subject", "Unknown"))
-        form.set_field_value("message", mail.get_payload())
-        form.set_path_src(sender.strip())
-        form.set_path_dst(self._callsign)
-        form.set_path_mid(msg.get_id())
-        form.add_path_element("@WL2K")
-        form.add_path_element(self._config.get("user", "callsign"))
-        form.save_to(formfn)
-
-        return formfn
-
     def _run_incoming(self):
         wl = self.wl2k_connect()
         count = wl.get_messages()
         for i in range(0, count):
             msg = wl.get_message(i)
-            formfn = self.__create_form(msg)        
+            formfn = msg.create_form(self._config, self._callsign)
 
             self._emit("form-received", -999, formfn)
 
@@ -524,7 +581,7 @@ class WinLinkThread(threading.Thread, gobject.GObject):
         wl = self.wl2k_connect()
         for mt in self.__send_msgs:
 
-            m = re.search("Mid: (.*)\r\nSubject: (.*)\r\n", mt)
+            m = re.search("Mid: (.*)\r\nSubject: (.*)\r\n", mt.get_content())
             if m:
                 mid = m.groups()[0]
                 subj = m.groups()[1]
@@ -534,12 +591,10 @@ class WinLinkThread(threading.Thread, gobject.GObject):
 
             wlm = WinLinkMessage()
             wlm.set_id(mid)
-            wlm.set_content(mt, subj)
+            wlm.set_content(mt.get_content(), subj)
             print("wl2k       : m  : %s" % m)
             print("wl2k       : mt : %s" % mt)
             wl.send_messages([wlm])
-
-            #self._emit("form-sent", -999, 
 
         return "Complete"
 
@@ -619,7 +674,7 @@ Body: %i\r
 
         m = WinLinkMessage()
         m.set_id("1234_KK7DS")
-        m.set_content(_m)
+        m.set_content(_m.get_content())
         wl = WinLinkTelnet("KK7DS")
         wl.send_messages([m])
 

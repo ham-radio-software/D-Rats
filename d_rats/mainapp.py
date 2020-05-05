@@ -940,7 +940,8 @@ class MainApp(object):
         else:
             refresh_folder = "Inbox"
 
-        msgrouting.msg_unlock(fn)
+        if msgrouting.msg_is_locked(fn):
+            msgrouting.msg_unlock(fn)
         self.mainwindow.tabs["messages"].refresh_if_folder(refresh_folder)
 
         event = main_events.FormEvent(id, msg)
@@ -1256,7 +1257,7 @@ class MainApp(object):
             for port in self.sm.keys():
                 self.chat_session(port).advertise_status(status, msg)
 
-            time.sleep(0.5) # HACK
+            time.sleep(2) # HACK
 
 def get_mainapp(): 
     return MAINAPP

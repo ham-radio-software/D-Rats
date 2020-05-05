@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# review 2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,14 +23,13 @@ from optparse import OptionParser
 import traceback
 import gtk
 
-#m: added d_rats
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
 #import module to have spelling correction in chat and email applications
 from d_rats import utils, spell 
 spell.get_spell().test()
 
-IGNORE_ALL = False
+IGNORE_ALL=False
 
 # here we design the window which usually comes out at the beginning asking 
 # to "ignore/ignore all" the exceptions
@@ -38,6 +37,7 @@ def handle_exception(exctyp, value, tb):
     
     # this eventually starts the initial window with the list of errors and the
     # buttons to open log or ignore errors
+
     global IGNORE_ALL
 
     if exctyp is KeyboardInterrupt or IGNORE_ALL:
@@ -53,13 +53,8 @@ def handle_exception(exctyp, value, tb):
 
     msg = """
 <b><big>D-RATS has encountered an error.</big></b>
-
-This may be non-fatal, so you may click <b>Ignore</b> below to attempt to continue running. 
-Otherwise, click 'Quit' to terminate D-RATS now. If you are planning to file a bug for this issue, 
-please click <b>Debug Log</b> below and include the contents in the bug tracker.
-
-If you need to ignore all additional warnings for this session, click <b>Ignore All</b>.  
-However, please reproduce and report the issue when possible.
+This may be non-fatal, so you may click <b>Ignore</b> below to attempt to continue running.  Otherwise, click 'Quit' to terminate D-RATS now. If you are planning to file a bug for this issue, please click <b>Debug Log</b> below and include the contents in the bug tracker.
+If you need to ignore all additional warnings for this session, click <b>Ignore All</b>.  However, please reproduce and report the issue when possible.
 """
 
     def extra(dialog):
@@ -100,8 +95,6 @@ def uninstall_excepthook():
 
 def ignore_exception(exctyp, value, tb):
     return
-
-#
 #-------------- main d-rats module -----------------    def set_defaults(self):---
 #
 if __name__ == "__main__":
@@ -121,7 +114,6 @@ if __name__ == "__main__":
                  help="Enable profiling")
     (opts, args) = o.parse_args()
 
-
     # import the platform module - this will setup all the proper parameters for the different OSs
     from d_rats import dplatform
 
@@ -138,10 +130,8 @@ if __name__ == "__main__":
     import libxml2
     libxml2.debugMemory(1)
 
-
     # create the mainapp with the basic options 
     app = mainapp.MainApp(safe=opts.safe)
-
 
     # finally let's open the default application triggering it differently if we 
     # want to profile it (which is running the app under profile control to see what happens) 

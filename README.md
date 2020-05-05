@@ -64,53 +64,8 @@ On Ms Windows the program works only when compiled on Windows XP 32 bit and dist
 -----------------------
 Release notes
 -----------------------
-2020 version 0.3.7 beta
-- Added password for Winlink2000
-- Maps
-  - added deletion of tiles which result defective at map rendering time (deletion will force re-download of the tiles at next map reload)
-  - added map reload after a change is done in the config (this avoid closing and reopening D-rats to change map)
-
-- Continued porting "print" to print() 
-
-2020 (14th April) version 0.3.6 review
- - Get version: - looked into OS getversion and partially modified the output to cover Win 7 and 10/8 ids  
- - Renamed platform module to dplatform as platform 
- - Default config: 
-     - base map set to http//tile.openstreetmap.de
-     - default APRS icon shown changed to a valid one:  BN  *26 
-     Network
-     - added localhost ratflector config 
-     - added k3pdr ratflector (would be useful? Also adding others?)
-     Messages-->enable by default "Automatically Forward Messages".
-     - Set Queue flush interval to 30 seconds.
-     - Set Station TTL to 600 seconds.
-     Transfers -> enable "Remote File Transfers".
-     - Set Warmup Length to 16.
-     - Set Warmup Timeout to 0.
-
- - Mapwindow: 
-   - fixed markers postioning with icons 
-   - fixed markers+icons display at zoom 5-18 (zoom 2-4 still to be fixed)
-   - changed background color or markers from red to yellow
-   - modified the �map window title � adding the map in use
-
-2020 (7th April) version 0.3.6 candidate 1 
- - fix "get position" / "get all positions"
- - investigate and fix some warnings 
-
-2019-10 version 0.3.5
- - fix maps to use Thunderforest maps with API key
- - reorganized gps preferences
- 
-2015-6-3  version 0.3.4alfa
- - erlarged the map window to resizable format (from 4:3 to 16:9/resizable)
- - added other sources of maps
- - added client to output gps fixes as JSON to D-Rats-D-Rats-WebMap-server
-   
-Sprig 2014, 
-- started  studiyng the original python program, 
-- adding comments and print in the original code as per best understanding
-- studing how to compile the program on windows
+see change log: 
+https://github.com/maurizioandreotti/D-Rats/blob/master/changelog
 
 ========================================
 FOR MORE INFO HAVE A WALK IN THE WIKI
@@ -166,16 +121,3 @@ the D-Rats stores its configuration in the user home folder
 
  - on windows this is here:
     C:\Users\ [USERNAME] \AppData\Roaming\D-RATS
-
-
-========================================
-OTHER NOTES TO BE ORGANIZED 
-========================================
-ERRORS IN FILES TAB
-
-if you happen to see "strange" files appearing into the files tabs, together with un-working d-rats,
-then this is most probably happening because of a bad order in the PATH variable of your windows pc.
-
-i.e. have you put the aspell path at the beginning of the PATH instead of at its end?
-
-   
