@@ -95,8 +95,7 @@ INSTALL ON LINUX (contrib & credit Marius Petrescu)
 
 The installation steps are quite easy (assuming one has all the neede python libs installed):
 
-via package installer: python-glade2, python-libxml2, pythhon-libxslt1
-via pip: pyserial
+via package installer: python-glade2, python-libxml2, python-libxslt1, python-serial
 
 After this, the steps are as follows:
 
