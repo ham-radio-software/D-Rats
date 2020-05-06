@@ -1,11 +1,13 @@
+from __future__ import absolute_import
 import re
-import htmlentitydefs
-from distance import arc_degrees
+import six.moves.html_entities
+from .distance import arc_degrees
+from six import unichr
 
 # Unicode characters for symbols that appear in coordinate strings:
-DEGREE = unichr(htmlentitydefs.name2codepoint['deg'])
-ARCMIN = unichr(htmlentitydefs.name2codepoint['prime'])
-ARCSEC = unichr(htmlentitydefs.name2codepoint['Prime'])
+DEGREE = unichr(six.moves.html_entities.name2codepoint['deg'])
+ARCMIN = unichr(six.moves.html_entities.name2codepoint['prime'])
+ARCSEC = unichr(six.moves.html_entities.name2codepoint['Prime'])
 
 def parse_geo(string, regex=None):
     """Return a 2-tuple of Decimals parsed from ``string``. The default

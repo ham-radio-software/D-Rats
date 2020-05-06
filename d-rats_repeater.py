@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import threading
 import time
 import socket
-import ConfigParser
+import six.moves.configparser
 import os
 
 import gettext
@@ -132,30 +134,30 @@ class Repeater:
         srcinfo = self.calls.get(frame.s_station, None)
         if srcinfo is None and frame.s_station != "CQCQCQ":
 
-            print("Adding new station %s to port %s" % (frame.s_station,transport))
+            print(("Adding new station %s to port %s" % (frame.s_station,transport)))
             self.calls[frame.s_station] = CallInfo(frame.s_station,
                                                    transport)
         elif srcinfo:
             if srcinfo.last_transport() != transport:
-                print("Station %s moved to port %s" % (frame.s_station,transport))
+                print(("Station %s moved to port %s" % (frame.s_station,transport)))
 
             srcinfo.just_heard(transport)
 
         dstinfo = self.calls.get(frame.d_station, None)
         if dstinfo is not None:
             if not dstinfo.last_transport().enabled:
-                print("Last transport for %s is dead" % frame.d_station)
+                print(("Last transport for %s is dead" % frame.d_station))
             elif dstinfo.last_heard() < self.__call_timeout:
-                print("Delivering frame to %s at %s" % (frame.d_station, dstinfo.last_transport()))
+                print(("Delivering frame to %s at %s" % (frame.d_station, dstinfo.last_transport())))
                 dstinfo.last_transport().send_frame(frame.get_copy())
                 return
             else:
-                print("Last port for %s was %i sec ago (>%i sec)" % \
+                print(("Last port for %s was %i sec ago (>%i sec)" % \
                     (frame.d_station,
                      dstinfo.last_heard(),
-                     self.__call_timeout))
+                     self.__call_timeout)))
                 
-        print("Repeating frame to %s on all ports" % frame.d_station)
+        print(("Repeating frame to %s on all ports" % frame.d_station))
         for path in self.paths[:]:
             if path == transport:
                 continue
@@ -173,8 +175,8 @@ class Repeater:
             self.condition.acquire()
             try:
                 self.__repeat(transport, frame)
-            except Exception, e:
-                print("Exception during __repeat: %s" % e)
+            except Exception as e:
+                print(("Exception during __repeat: %s" % e))
             self.condition.release()
 
         transport.inhandler = handler
@@ -203,8 +205,8 @@ class Repeater:
                 continue
             try:
                 cmd, value = line.split(" ", 1)
-            except Exception, e:
-                print("Unable to read auth command: `%s': %s" % (line, e))
+            except Exception as e:
+                print(("Unable to read auth command: `%s': %s" % (line, e)))
 
                 pipe.write("501 Invalid Syntax\r\n")
                 break
@@ -239,11 +241,11 @@ class Repeater:
           
         auth_fn = dplatform.get_platform().config_file("users.txt")
         try:
-            auth = file(auth_fn)
+            auth = open(auth_fn)
             lines = auth.readlines()
             auth.close()
-        except Exception, e:
-            print("Failed to open %s: %s" % (auth_fn, e))
+        except Exception as e:
+            print(("Failed to open %s: %s" % (auth_fn, e)))
 
         pipe.write("101 Authorization required\r\n")
         username, password = self.auth_exchange(pipe)
@@ -254,16 +256,16 @@ class Repeater:
             try:
                 u, p = line.split(" ", 1)
                 u = u.upper()
-            except Exception, e:
-                print("Failed to parse line %i in users.txt: %s" % (lno, line))
+            except Exception as e:
+                print(("Failed to parse line %i in users.txt: %s" % (lno, line)))
                 continue
 
             if u == username and p == password:
-                print("Authorized user %s" % u)
+                print(("Authorized user %s" % u))
                 pipe.write("200 Authorized\r\n")
                 return True
 
-        print("User %s failed to authenticate" % username)
+        print(("User %s failed to authenticate" % username))
         pipe.write("500 Not authorized\r\n")
         return False
 
@@ -276,7 +278,7 @@ class Repeater:
         except:
             return
 
-        print("Accepted new client %s:%i" % addr)
+        print(("Accepted new client %s:%i" % addr))
 
         path = comm.SocketDataPath(csocket)
         tport = transport.Transporter(path,
@@ -293,7 +295,7 @@ class Repeater:
         except:
             return
 
-        print("Accepted new GPS client %s:%i" % addr)
+        print(("Accepted new GPS client %s:%i" % addr))
         self.gps_sockets.append(csocket)
 
     def listen_on(self, port):
@@ -352,7 +354,7 @@ class RepeaterUI:
 
     def load_config(self):
         self.config_fn = self.platform.config_file("repeater.config")
-        config = ConfigParser.ConfigParser()
+        config = six.moves.configparser.ConfigParser()
         config.add_section("settings")
         config.set("settings", "devices", "[]")
         config.set("settings", "acceptnet", "True")
@@ -372,7 +374,7 @@ class RepeaterUI:
 
     def save_config(self, config):
         self.sync_config()
-        f = file(self.config_fn, "w")
+        f = open(self.config_fn, "w")
         config.write(f)
         f.close()
 
@@ -380,7 +382,7 @@ class RepeaterUI:
         reqauth = self.config.get("settings", "require_auth") == "True"
         trustlocal = self.config.get("settings", "trust_local") == "True"
         gps_okay_ports = self.config.get("tweaks", "allow_gps").split(",")
-        print("Repeater id is %s" % id)
+        print(("Repeater id is %s" % id))
         self.repeater = Repeater(id, reqauth, trustlocal, gps_okay_ports)
         for dev,param in paths:
             to = 0
@@ -388,11 +390,11 @@ class RepeaterUI:
                 try:
                     net, host, port = dev.split(":", 2)
                     port = int(port)
-                except Exception, e:
-                    print("Invalid net string: %s (%s)" % (dev, e))
+                except Exception as e:
+                    print(("Invalid net string: %s (%s)" % (dev, e)))
                     continue
 
-                print("Socket %s %i (%s)" % (host, port, param))
+                print(("Socket %s %i (%s)" % (host, port, param)))
 
                 if param:
                     path = comm.SocketDataPath((host, port, id, param))
@@ -402,13 +404,13 @@ class RepeaterUI:
                 try:
                     tnc, port, device = dev.split(":", 2)
                     device = int(device)
-                except Exception, e:
-                    print("Invalid tnc string: %s (%s)" % (dev, e))
+                except Exception as e:
+                    print(("Invalid tnc string: %s (%s)" % (dev, e)))
                     continue
-                print("TNC %s %i" % (dev.replace("tnc:", ""), int(param)))
+                print(("TNC %s %i" % (dev.replace("tnc:", ""), int(param))))
                 path = comm.TNCDataPath((dev.replace("tnc:", ""), int(param)))
             else:
-                print("Serial: %s %i" % (dev, int(param)))
+                print(("Serial: %s %i" % (dev, int(param))))
                 path = comm.SerialDataPath((dev, int(param)))
                 to = 3
 
@@ -461,8 +463,8 @@ class RepeaterGUI(RepeaterUI):
             l = eval(self.config.get("settings", "devices"))
             for d,r in l:
                 self.dev_list.add_item(d, r)
-        except Exception, e:
-            print("Unable to load devices: %s" % e)
+        except Exception as e:
+            print(("Unable to load devices: %s" % e))
 
     def make_devices(self):
         frame = gtk.Frame("Paths")
@@ -837,7 +839,7 @@ class RepeaterGUI(RepeaterUI):
         try:
             if self.config.get("settings", "state") == "True":
                 self.button_on(None, None)
-        except Exception, e:
+        except Exception as e:
             print(e)
 
 class RepeaterConsole(RepeaterUI):
@@ -854,8 +856,8 @@ class RepeaterConsole(RepeaterUI):
                 idfreq = 0
             else:
                 idfreq = int(idfreq)
-        except Exception, e:
-            print("Failed to parse network info: %s" % e)
+        except Exception as e:
+            print(("Failed to parse network info: %s" % e))
             acceptnet = False
 
         if acceptnet:
@@ -878,11 +880,11 @@ if __name__=="__main__":
 
     if not opts.debug:
         if opts.logpath:
-            f = file(opts.logpath + "/repeater.log", "a", 0)
+            f = open(opts.logpath + "/repeater.log", "a", 0)
         else:
             p = dplatform.get_platform()
             #f = file(p.config_file("repeater.log"), "w", 0)
-            f = file(p.config_file("repeater.log"), "a", 0)
+            f = open(p.config_file("repeater.log"), "a", 0)
         if f:
             sys.stdout = f
             sys.stderr = f

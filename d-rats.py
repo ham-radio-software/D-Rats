@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 from optparse import OptionParser
@@ -49,7 +51,7 @@ def handle_exception(exctyp, value, tb):
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
 
-    print("---- GUI Exception ----\n%s\n---- End ----\n" % trace)
+    print(("---- GUI Exception ----\n%s\n---- End ----\n" % trace))
 
     msg = """
 <b><big>D-RATS has encountered an error.</big></b>

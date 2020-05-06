@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import time
 import datetime
 import os
@@ -115,7 +117,7 @@ class RPCFileListJob(RPCJob):
             self._args[item] = ""
 
     def get_file_list(self):
-        return self._args.keys()
+        return list(self._args.keys())
 
     def do(self, rpcactions):
         return rpcactions.RPC_file_list(self)
@@ -259,7 +261,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
         return frame
 
     def __job_state(self, job, state, _result, id):
-        print("RPC       : Job state: %s for %i: %s" % (state, id, _result))
+        print(("RPC       : Job state: %s for %i: %s" % (state, id, _result)))
 
         if state == "running":
             return
@@ -272,8 +274,8 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
         if frame.type == self.T_RPCREQ:
             try:
                 job = self.__decode_rpccall(frame)
-            except UnknownRPCCall, e:
-                print("RPC       : incoming data : unable to execute RPC from %s: %s" % (frame.s_station, e))
+            except UnknownRPCCall as e:
+                print(("RPC       : incoming data : unable to execute RPC from %s: %s" % (frame.s_station, e)))
                 return
 
             job.connect("state-change", self.__job_state, frame.seq)
@@ -282,18 +284,18 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
                 job.set_state("complete", result)
 
         elif frame.type == self.T_RPCACK:
-            if self.__jobs.has_key(frame.seq):
+            if frame.seq in self.__jobs:
                 ts, att, job = self.__jobs[frame.seq]
                 del self.__jobs[frame.seq]
                 job.set_state("complete", decode_dict(frame.data))
             else:
-                print("RPC       : incoming data : Unknown job %i" % frame.seq)
+                print(("RPC       : incoming data : Unknown job %i" % frame.seq))
 
         else:
-            print("RPC       : incoming data : Unknown RPC frame type %i" % frame.type)
+            print(("RPC       : incoming data : Unknown RPC frame type %i" % frame.type))
 
     def __send_job(self, job, id):
-        print("RPC       : Sending job `%s' to %s" % (job.get_desc(), job.get_dest()))
+        print(("RPC       : Sending job `%s' to %s" % (job.get_desc(), job.get_dest())))
         frame = self.__job_to_frame(job, id)
         job.frame = frame
         self._sm.outgoing(self, frame)
@@ -305,7 +307,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
                 # Reset timer until the block is sent
                 self.__jobs[id] = (time.time(), att, job)
             elif (time.time() - ts) > self.__t_retry:
-                print("RPC       : Cancelling job %i due to timeout" % id)
+                print(("RPC       : Cancelling job %i due to timeout" % id))
                 del self.__jobs[id]
                 job.set_state("timeout")
 
@@ -342,7 +344,7 @@ class RPCActionSet(gobject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
-            print("RPC       : Proxy emit %s: %s" % (signal, args))
+            print(("RPC       : Proxy emit %s: %s" % (signal, args)))
             gobject.idle_add(self.emit, signal, *args)
 
         return handler
@@ -353,8 +355,8 @@ class RPCActionSet(gobject.GObject):
         rqcall = job.get_station()
         
         print("-----------------------")
-        print("RPC       : Position request for `%s'" % rqcall)
-        print("RPC       : Self=%s" % format(self))
+        print(("RPC       : Position request for `%s'" % rqcall))
+        print(("RPC       : Self=%s" % format(self)))
 
         if rqcall == mycall or rqcall == ".":
             rqcall = None
@@ -363,22 +365,22 @@ class RPCActionSet(gobject.GObject):
             fix = self.emit("get-current-position", rqcall)
             result = fix.to_NMEA_GGA()
 
-        except Exception, e:
-            print("RPC       : Case KO : Exception while getting position of %s: " % rqcall)
+        except Exception as e:
+            print(("RPC       : Case KO : Exception while getting position of %s: " % rqcall))
             log_exception()
             fix = None
             result["rc"] = "KO"
             result["msg"] = "No data for station '%s'" % job.get_station()
         if fix:
             #sending the position to transport // but this is broken!!
-            print("RPC       : port is           : %s" % self.__port)
-            print("RPC       : fix is            : %s" % fix)
-            print("RPC       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA())
+            print(("RPC       : port is           : %s" % self.__port))
+            print(("RPC       : fix is            : %s" % fix))
+            print(("RPC       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA()))
             
             self.emit("user-send-chat",
                      "CQCQCQ", self.__port, fix.to_NMEA_GGA(), True)
 
-        print("RPC       : result : %s" % format(result))
+        print(("RPC       : result : %s" % format(result)))
         print("-----------------------")
         return result
     
@@ -434,7 +436,7 @@ class RPCActionSet(gobject.GObject):
 
         dir = self.__config.get("prefs", "download_dir")
         path = os.path.join(dir, job.get_file())
-        print("RPC       : Remote requested %s" % path)
+        print(("RPC       : Remote requested %s" % path))
         if os.path.exists(path):
             result["rc"] = "OK"
             self.emit("rpc-send-file",
@@ -480,7 +482,7 @@ class RPCActionSet(gobject.GObject):
         try:
             os.remove(path)
             result["rc"] = "File %s deleted" % job.get_file()
-        except Exception, e:
+        except Exception as e:
             result["rc"] = "Unable to delete %s: %s" % (job.get_file(), e)
         return result
 
@@ -517,7 +519,7 @@ class RPCActionSet(gobject.GObject):
             result["gtkver"] = ".".join([str(x) for x in gtk.gtk_version])
         except ImportError:
             result["pygtkver"] = result["gtkver"] = "Unknown"
-            print("RPC       : RPC_get_version: %s" % result)
+            print(("RPC       : RPC_get_version: %s" % result))
             
         return result
 

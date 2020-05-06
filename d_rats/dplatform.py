@@ -16,12 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
 import glob
 import commands
 import subprocess
-import urllib
+import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+from six.moves import range
 
 def find_me():
     return sys.modules["d_rats.dplatform"].__file__
@@ -152,7 +155,7 @@ class Platform(object):
 
     def retrieve_url(self, url):
         if self._connected:
-            return urllib.urlretrieve(url)
+            return six.moves.urllib.request.urlretrieve(url)
 
         raise Exception("Not connected")
 
@@ -194,7 +197,7 @@ class UnixPlatform(Platform):
         if pid1 == 0:
             pid2 = os.fork()
             if pid2 == 0:
-                print("dPlatform : Exec'ing %s" % str(args))
+                print(("dPlatform : Exec'ing %s" % str(args)))
                 os.execlp(args[0], *args)
             else:
                 sys.exit(0)
@@ -204,13 +207,13 @@ class UnixPlatform(Platform):
 
     def open_text_file(self, path):
         #todo gedit to be moved as parameter in config
-        print("dPlatform : received order to open in gedit %s s" % path)
+        print(("dPlatform : received order to open in gedit %s s" % path))
         print("dPlatform : if after this message your linux box crashes, please install gedit")
         self._unix_doublefork_run("gedit", path)
 
     def open_html_file(self, path):
         #todo gedit to be moved as parameter in config
-        print("dPlatform : received order to open in firefox %s s" % path)
+        print(("dPlatform : received order to open in firefox %s s" % path))
         print("dPlatform : if after this message your linux box crashes, please install firefox")        
         self._unix_doublefork_run("firefox", path)
 
@@ -220,7 +223,7 @@ class UnixPlatform(Platform):
     def os_version_string(self):
         # pylint: disable-msg=W0703
         try:
-            issue = file("/etc/issue.net", "r")
+            issue = open("/etc/issue.net", "r")
             ver = issue.read().strip()
             issue.close()
             ver = "%s - %s" % (os.uname()[0], ver)
@@ -237,16 +240,16 @@ class UnixPlatform(Platform):
 
         try:
             (t, r, c, f, b) = sndhdr.what(soundfile)
-        except Exception, e:
-            print("dPlatform :Unable to determine sound header of %s: %s" % (soundfile, e))
+        except Exception as e:
+            print(("dPlatform :Unable to determine sound header of %s: %s" % (soundfile, e)))
             return
 
         if t != "wav":
-            print("dPlatform : Unable to play non-wav file %s" % soundfile)
+            print(("dPlatform : Unable to play non-wav file %s" % soundfile))
             return
 
         if b != 16:
-            print("dPlatform :Unable to support strange non-16-bit audio (%i)" % b)
+            print(("dPlatform :Unable to support strange non-16-bit audio (%i)" % b))
             return
 
         dev = None
@@ -256,13 +259,13 @@ class UnixPlatform(Platform):
             dev.channels(c)
             dev.speed(r)
 
-            f = file(soundfile, "rb")
+            f = open(soundfile, "rb")
             dev.write(f.read())
             f.close()
 
             dev.close()
-        except Exception, e:
-            print("dPlatform :Error playing sound %s: %s" % (soundfile, e))
+        except Exception as e:
+            print(("dPlatform :Error playing sound %s: %s" % (soundfile, e)))
         
         if dev:
             dev.close()
@@ -270,7 +273,7 @@ class UnixPlatform(Platform):
 class MacOSXPlatform(UnixPlatform):
     def __init__(self, basepath):
         # We need to make sure DISPLAY is set
-        if not os.environ.has_key("DISPLAY"):
+        if "DISPLAY" not in os.environ:
             print("dPlatform :Forcing DISPLAY for MacOS")
             os.environ["DISPLAY"] = ":0"
 
@@ -360,8 +363,8 @@ class Win32Platform(Platform):
 
         try:
             fname, _, _ = win32gui.GetOpenFileNameW()
-        except Exception, e:
-            print("dPlatform : Failed to get filename: %s" % e)
+        except Exception as e:
+            print(("dPlatform : Failed to get filename: %s" % e))
             return None
 
         return str(fname)
@@ -372,8 +375,8 @@ class Win32Platform(Platform):
 
         try:
             fname, _, _ = win32gui.GetSaveFileNameW(File=default_name)
-        except Exception, e:
-            print("dPlatform :Failed to get filename: %s" % e)
+        except Exception as e:
+            print(("dPlatform :Failed to get filename: %s" % e))
             return None
 
         return str(fname)
@@ -385,8 +388,8 @@ class Win32Platform(Platform):
         try:
             pidl, _, _ = shell.SHBrowseForFolder()
             fname = shell.SHGetPathFromIDList(pidl)
-        except Exception, e:
-            print("dPlatform :ailed to get directory: %s" % e)
+        except Exception as e:
+            print(("dPlatform :ailed to get directory: %s" % e))
             return None
 
         return str(fname)
@@ -432,11 +435,11 @@ def get_platform(basepath=None):
 def do_test():
     __pform = get_platform()
     
-    print("dPlatform : Config dir: %s" % __pform.config_dir())
-    print("dPlatform : Default dir: %s" % __pform.default_dir())
-    print("dPlatform : Log file (foo): %s" % __pform.log_file("foo"))
-    print("dPlatform : Serial ports: %s" % __pform.list_serial_ports())
-    print("dPlatform :OS Version: %s" % __pform.os_version_string())
+    print(("dPlatform : Config dir: %s" % __pform.config_dir()))
+    print(("dPlatform : Default dir: %s" % __pform.default_dir()))
+    print(("dPlatform : Log file (foo): %s" % __pform.log_file("foo")))
+    print(("dPlatform : Serial ports: %s" % __pform.list_serial_ports()))
+    print(("dPlatform :OS Version: %s" % __pform.os_version_string()))
  #  __pform.open_text_file("d-rats.py")
     
  #   print("Open file: %s" % __pform.gui_open_file())

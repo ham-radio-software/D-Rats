@@ -15,9 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import gtk
 
-from miscwidgets import make_choice
+from .miscwidgets import make_choice
 
 class TextInputDialog(gtk.Dialog):
     def respond_ok(self, *args):
@@ -83,7 +85,7 @@ class ExceptionDialog(gtk.MessageDialog):
 
 class FieldDialog(gtk.Dialog):
     def __init__(self, **kwargs):
-        if "buttons" not in kwargs.keys():
+        if "buttons" not in list(kwargs.keys()):
             kwargs["buttons"] = (gtk.STOCK_OK, gtk.RESPONSE_OK,
                                  gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
 
@@ -96,7 +98,7 @@ class FieldDialog(gtk.Dialog):
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)        
 
     def response(self, _):
-        print "Blocking response"
+        print("Blocking response")
         return
 
     def add_field(self, label, widget, validator=None, full=False):

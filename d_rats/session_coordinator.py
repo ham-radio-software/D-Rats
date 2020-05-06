@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import socket
 import threading
 import time
@@ -22,11 +24,11 @@ import os
 
 import gobject
 
-import formgui
-import emailgw
-import signals
-import msgrouting
-from utils import run_safe, run_gtk_locked
+from . import formgui
+from . import emailgw
+from . import signals
+from . import msgrouting
+from .utils import run_safe, run_gtk_locked
 
 from d_rats.sessions import base, file, form, sock
 
@@ -69,7 +71,7 @@ class FileBaseThread(SessionThread):
         else:
             retries = ""
 
-        if vals.has_key("start_time"):
+        if "start_time" in vals:
             elapsed = time.time() - vals["start_time"]
             kbytes = vals[self.progress_key]
             speed = " %2.2f B/s" % (kbytes / elapsed)
@@ -106,7 +108,7 @@ class FileBaseThread(SessionThread):
         else:
             units = "B"
 
-        if self.session.stats.has_key("start_time"):
+        if "start_time" in self.session.stats:
             start = self.session.stats["start_time"]
             exmsg = " (%i%s @ %2.2f B/s)" % (\
                 size, units,
@@ -226,7 +228,7 @@ class SocketThread(SessionThread):
     def worker(self, data):
         (sock, timeout) = data
 
-        print("SessCoord : *** Socket thread alive (%i timeout)" % timeout)
+        print(("SessCoord : *** Socket thread alive (%i timeout)" % timeout))
 
         sock.settimeout(timeout)
 
@@ -234,14 +236,14 @@ class SocketThread(SessionThread):
             t = time.time()
             try:
                 sd = self.socket_read(sock, 512, timeout)
-            except Exception, e:
-                print("SessCoord : %s " % str(e))
+            except Exception as e:
+                print(("SessCoord : %s " % str(e)))
                 break
-            print("SessCoord : Waited %f sec for socket" % (time.time() - t))
+            print(("SessCoord : Waited %f sec for socket" % (time.time() - t)))
 
             try:
                 rd = self.session.read(512)
-            except base.SessionClosedError, e:
+            except base.SessionClosedError as e:
                 print("SessCoord : Session closed")
                 self.enabled = False
                 break
@@ -249,11 +251,11 @@ class SocketThread(SessionThread):
             self.status()
 
             if sd:
-                print("SessCoord : Sending socket data (%i)" % len(sd))
+                print(("SessCoord : Sending socket data (%i)" % len(sd)))
                 self.session.write(sd)
 
             if rd:
-                print("SessCoord : Sending radio data (%i)" % len(rd))
+                print(("SessCoord : Sending radio data (%i)" % len(rd)))
                 sock.sendall(rd)
         
         print("SessCoord : Closing session")
@@ -311,17 +313,17 @@ class SessionCoordinator(gobject.GObject):
 
         try:
             session = self.sm.sessions[id]
-        except Exception, e:
-            print("SessCoord : Session `%i' not found: %s" % (id, e))
+        except Exception as e:
+            print(("SessCoord : Session `%i' not found: %s" % (id, e)))
             return        
 
-        if self.sthreads.has_key(id):
+        if id in self.sthreads:
             del self.sthreads[id]
         session.close(force)
 
     def create_socket_listener(self, sport, dport, dest):
-        if dport not in self.socket_listeners.keys():
-            print("SessCoord : Starting a listener for port %i->%s:%i" % (sport, dest, dport))
+        if dport not in list(self.socket_listeners.keys()):
+            print(("SessCoord : Starting a listener for port %i->%s:%i" % (sport, dest, dport)))
             self.socket_listeners[dport] = \
                 sock.SocketListener(self.sm, dest, sport, dport)
             print("SessCoord : Started")
@@ -362,8 +364,8 @@ class SessionCoordinator(gobject.GObject):
         try:
             foo, port = session.name.split(":", 2)
             port = int(port)
-        except Exception, e:
-            print("SessCoord : Invalid socket session name %s: %s" % (session.name, e))
+        except Exception as e:
+            print(("SessCoord : Invalid socket session name %s: %s" % (session.name, e)))
             session.close()
             return
 
@@ -383,7 +385,7 @@ class SessionCoordinator(gobject.GObject):
                         return
 
                 raise Exception("Port %i not configured" % port)
-            except Exception, e:
+            except Exception as e:
                 msg = _("Error starting socket session: %s") % e
                 self.emit("session-status-update", session._id, msg)
                 session.close()
@@ -397,7 +399,7 @@ class SessionCoordinator(gobject.GObject):
         if session._id <= 3:
             return # Skip control, chat, sniff, rpc
 
-        print("SessCoord : New session (%s) of type: %s" % (direction, session.__class__))
+        print(("SessCoord : New session (%s) of type: %s" % (direction, session.__class__)))
         self.emit("session-started", session._id, type)
 
         if isinstance(session, form.FormTransferSession):
@@ -407,7 +409,7 @@ class SessionCoordinator(gobject.GObject):
         elif isinstance(session, sock.SocketSession):
             self.new_socket(session, direction)
         else:
-            print("SessCoord : *** Unknown session type: %s" % session.__class__.__name__)
+            print(("SessCoord : *** Unknown session type: %s" % session.__class__.__name__))
 
     def new_session(self, type, session, direction):
         gobject.idle_add(self._new_session, type, session, direction)
@@ -434,7 +436,7 @@ class SessionCoordinator(gobject.GObject):
             name = os.path.basename(filename)
 
         self.outgoing_files.insert(0, filename)
-        print("SessCoord : Outgoing files: %s" % self.outgoing_files)
+        print(("SessCoord : Outgoing files: %s" % self.outgoing_files))
 
         xfer = file.FileTransferSession
         bs = self.config.getint("settings", "ddt_block_size")
@@ -452,7 +454,7 @@ class SessionCoordinator(gobject.GObject):
         
     def send_form(self, dest, filename, name="Form"):
         self.outgoing_forms.insert(0, filename)
-        print("SessCoord : Outgoing forms: %s" % self.outgoing_forms)
+        print(("SessCoord : Outgoing forms: %s" % self.outgoing_forms))
 
         xfer = form.FormTransferSession
 
@@ -479,5 +481,5 @@ class SessionCoordinator(gobject.GObject):
 
     def shutdown(self):
         for dport, listener in self.socket_listeners.items():
-            print("SessCoord : Stopping TCP:%i" % dport)
+            print(("SessCoord : Stopping TCP:%i" % dport))
             listener.stop()

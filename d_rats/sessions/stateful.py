@@ -15,12 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import threading
 import time
 
 from d_rats import transport
 from d_rats.ddt2 import DDT2EncodedFrame
 from d_rats.sessions import base
+from six.moves import range
 
 T_SYN    = 0
 T_ACK    = 1
@@ -119,10 +122,10 @@ class StatefulSession(base.Session):
             limit = hardlimit
 
         count = limit - len(self.outstanding)
-        print("Stateful  : New limit is %i (%i/%i), queueing %i" % (limit, self.out_limit, hardlimit,  count))
+        print(("Stateful  : New limit is %i (%i/%i), queueing %i" % (limit, self.out_limit, hardlimit,  count)))
         if count < 0:
             # Need to requeue some blocks to shrink our window
-            print("Stateful  : Need to requeue %i blocks to shrink window" % abs(count))
+            print(("Stateful  : Need to requeue %i blocks to shrink window" % abs(count)))
             for i in range(abs(count)):
                 print("Stateful  : Requeuing block...")
                 b = self.outstanding[-1]
@@ -138,7 +141,7 @@ class StatefulSession(base.Session):
                         self.outq.requeue(b)
                         break
 
-                    print("Stateful  : Queuing %i for send (%i)" % (b.seq, count))
+                    print(("Stateful  : Queuing %i for send (%i)" % (b.seq, count)))
                     self.outstanding.append(b)
                 else:
                     break
@@ -166,11 +169,11 @@ class StatefulSession(base.Session):
             # there is no turnaround delay
             timeout = 12
 
-        print("Stateful  : ## Timeout for %i bytes @ %i bps: %.1f sec" % (pending_size, rate, timeout))
-        print("Stateful  : ##  Remaining: %.1f sec" % (timeout - (time.time() - self._xms)))
+        print(("Stateful  : ## Timeout for %i bytes @ %i bps: %.1f sec" % (pending_size, rate, timeout)))
+        print(("Stateful  : ##  Remaining: %.1f sec" % (timeout - (time.time() - self._xms))))
 
         if self.__attempts:
-            print("Stateful  : ## Waiting for ACK, timeout in %i" % (self.__ack_timeout - time.time()))
+            print(("Stateful  : ## Waiting for ACK, timeout in %i" % (self.__ack_timeout - time.time())))
             return (self.__ack_timeout - time.time()) <= 0
         else:
             return (timeout - (time.time() - self._xms)) <= 0
@@ -182,7 +185,7 @@ class StatefulSession(base.Session):
         # FIXME: This needs to support 16-bit block numbers!
         f.data = "".join([chr(x) for x in blocks])
 
-        print("Stateful  : Requesting ack of blocks %s" % blocks)
+        print(("Stateful  : Requesting ack of blocks %s" % blocks))
         self._sm.outgoing(self, f)
 
     def send_blocks(self):
@@ -229,7 +232,7 @@ class StatefulSession(base.Session):
                 self.stats["retries"] += 1
                 b.sent_event.clear()
 
-            print("Stateful  : Sending %i" % b.seq)
+            print(("Stateful  : Sending %i" % b.seq))
             self._sm.outgoing(self, b)
             toack.append(b.seq)
             t = time.time()
@@ -250,7 +253,7 @@ class StatefulSession(base.Session):
         self.update_xmt(last_block)
         self.stats["sent_wire"] += len(last_block.data)
         self.ts = time.time()
-        print("Stateful  : Block sent after: %f" % (self.ts - t))
+        print(("Stateful  : Block sent after: %f" % (self.ts - t)))
 
     def send_ack(self, blocks):
         f = DDT2EncodedFrame()
@@ -258,7 +261,7 @@ class StatefulSession(base.Session):
         f.type = T_ACK
         f.data = "".join([chr(x) for x in blocks])
 
-        print("Stateful  : Acking blocks %s (%s)" % (blocks, {"" : f.data}))
+        print(("Stateful  : Acking blocks %s (%s)" % (blocks, {"" : f.data})))
 
         self._sm.outgoing(self, f)
 
@@ -284,7 +287,7 @@ class StatefulSession(base.Session):
                 self._rtt_measure["end"] = time.time()
                 self.waiting_for_ack = False
                 acked = [ord(x) for x in b.data]
-                print("Stateful  : Acked blocks: %s (/%i)" % (acked, len(self.outstanding)))
+                print(("Stateful  : Acked blocks: %s (/%i)" % (acked, len(self.outstanding))))
                 for block in self.outstanding[:]:
                     self._rtt_measure["size"] += block._xmit_z
                     if block.seq in acked:
@@ -292,7 +295,7 @@ class StatefulSession(base.Session):
                         self.stats["sent_size"] += len(block.data)
                         self.outstanding.remove(block)
                     else:
-                        print("Stateful  : Block %i outstanding, but not acked" % block.seq)
+                        print(("Stateful  : Block %i outstanding, but not acked" % block.seq))
                 if len(self.outstanding) == 0:
                     print("Stateful  : This ACKed every block")
                     if self.__full_acks >= 0:
@@ -306,7 +309,7 @@ class StatefulSession(base.Session):
                     else:
                         self.__full_acks -= 1
             elif b.type == T_DAT:
-                print("Stateful  : Got block %i" % b.seq)
+                print(("Stateful  : Got block %i" % b.seq))
                 # FIXME: For 16-bit blocks
                 if b.seq == 0 and self.iseq == 255:
                     # Reset received list, because remote will only send
@@ -324,27 +327,27 @@ class StatefulSession(base.Session):
                 # FIXME: This needs to support 16-bit block numbers!
                 for i in [ord(x) for x in b.data]:
                     if i in self.recv_list:
-                        print("Stateful  : Acking block %i" % i)
+                        print(("Stateful  : Acking block %i" % i))
                         toack.append(i)
                     else:
-                        print("Stateful  : Naking block %i" % i)
+                        print(("Stateful  : Naking block %i" % i))
 
                 self.send_ack(toack)
             else:
-                print("Stateful  : Got unknown type: %i" % b.type)
+                print(("Stateful  : Got unknown type: %i" % b.type))
 
         if self.oob_queue:
-            print("Stateful  : Waiting OOO blocks: %s" % self.oob_queue.keys())
+            print(("Stateful  : Waiting OOO blocks: %s" % list(self.oob_queue.keys())))
         # Process any OOO blocks, if we should
-        while next(self.iseq) in self.oob_queue.keys():
+        while next(self.iseq) in list(self.oob_queue.keys()):
             block = self.oob_queue[next(self.iseq)]
-            print("Stateful  : Queuing now in-order block %i: %s" % (next(self.iseq), block))
+            print(("Stateful  : Queuing now in-order block %i: %s" % (next(self.iseq), block)))
             del self.oob_queue[next(self.iseq)]
             enqueue(block)            
 
     def update_xmt(self, block):
         self._xmt = (self._xmt + block.get_xmit_bps()) / 2.0
-        print("Stateful  : Average transmit rate: %i bps" % self._xmt)
+        print(("Stateful  : Average transmit rate: %i bps" % self._xmt))
         
     def calculate_rtt(self):
         rtt = self._rtt_measure["end"] - self._rtt_measure["start"]
@@ -356,8 +359,8 @@ class StatefulSession(base.Session):
             # keep the last-known rate or leave it zero so that is_timeout()
             # will use a worst-case estimation
             self._rtr = size / rtt
-            print("Stateful  : ## Calculated rate for session %i: %.1f bps" % (self._id,self._rtr))
-            print("Stateful  : ##  %i bytes in %.1f sec" % (size, self._rtt_measure["end"] - self._rtt_measure["start"]))
+            print(("Stateful  : ## Calculated rate for session %i: %.1f bps" % (self._id,self._rtr)))
+            print(("Stateful  : ##  %i bytes in %.1f sec" % (size, self._rtt_measure["end"] - self._rtt_measure["start"])))
 
         self._rtt_measure["start"] = self._rtt_measure["end"] = 0
         self._rtt_measure["size"] = 0
@@ -375,7 +378,7 @@ class StatefulSession(base.Session):
                 print("Stateful  : Short-circuit")
                 continue # Short circuit because we have things to send
 
-            print("Stateful  : Session loop (%s:%s)" % (self._id, self.name))
+            print(("Stateful  : Session loop (%s:%s)" % (self._id, self.name)))
 
             if self.outstanding:
                 print("Stateful  : Outstanding data, short sleep")
@@ -477,17 +480,17 @@ class StatefulSession(base.Session):
             block = blocks[0]
             del blocks[0]
 
-            print("Stateful  : Waiting for block %i to be ack'd" % block.seq)
+            print(("Stateful  : Waiting for block %i to be ack'd" % block.seq))
             block.sent_event.wait()
             if block.sent_event.isSet():
-                print("Stateful  : Block %i is sent, waiting for ack" % block.seq)
+                print(("Stateful  : Block %i is sent, waiting for ack" % block.seq))
                 block.ackd_event.wait(timeout)
                 if block.ackd_event.isSet() and block.sent_event.isSet():
-                    print("Stateful  : %i ACKED" % block.seq)
+                    print(("Stateful  : %i ACKED" % block.seq))
                 else:
-                    print("Stateful  : %i Not ACKED (probably canceled)" % block.seq)
+                    print(("Stateful  : %i Not ACKED (probably canceled)" % block.seq))
                     break
             else:
-                print("Stateful  : Block %i not sent?" % block.seq)
+                print(("Stateful  : Block %i not sent?" % block.seq))
 
 

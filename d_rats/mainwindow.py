@@ -17,20 +17,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 if __name__ == "__main__":
     sys.path.insert(0, ".")
-    import mainapp
-    import dplatform
+    from . import mainapp
+    from . import dplatform
     
     # gettext is the module for translating the labels in different languages  
     import gettext
     lang = gettext.translation("D-RATS", localedir="./locale", languages=["en"])
     lang.install()
     
-    print("Mainwind : sys.path=", sys.path)
+    print(("Mainwind : sys.path=", sys.path))
 
-import version
+from . import version
 import os
 import time
 
@@ -158,7 +160,7 @@ class MainWindow(MainWindowElement):
 
         def do_conninet(but):
             self._config.set("state", "connected_inet", but.get_active())
-            print("Mainwind : change on connection status to %s" % but.get_active())
+            print(("Mainwind : change on connection status to %s" % but.get_active()))
 
         def do_showpane(but, pane):
             self._config.set("state", "sidepane_visible", but.get_active())
@@ -199,7 +201,7 @@ class MainWindow(MainWindowElement):
                 args.append("./d-rats_repeater")
             else:
                 args.append("d-rats_repeater")
-            print("Mainwind   : Running proxy: %s" % str(args))
+            print(("Mainwind   : Running proxy: %s" % str(args)))
             p = subprocess.Popen(args)
 
         quit = self._wtree.get_widget("main_menu_quit")
@@ -322,7 +324,7 @@ class MainWindow(MainWindowElement):
             mbar.hide()
             gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
             gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
-            print "Enabled OSX menubar integration"
+            print("Enabled OSX menubar integration")
         except ImportError:
             pass
 
@@ -362,7 +364,7 @@ if __name__ == "__main__":
     conf = config.DratsConfig(None)
 
     def test(chat, station, msg):
-        print("Mainwind   : %s->%s" % (station, msg))
+        print(("Mainwind   : %s->%s" % (station, msg)))
 
     chat = ChatTab(wtree, conf)
     chat.connect("user-sent-message", test)

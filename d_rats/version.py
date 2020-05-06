@@ -5,7 +5,8 @@
 #
 ##this module contains the d-rats version variables
 
-DRATS_VERSION = "0.3.7 20200505"
+from __future__ import print_function
+DRATS_VERSION = "0.3.8 beta 2 porting code to python3"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
