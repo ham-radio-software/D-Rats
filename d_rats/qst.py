@@ -587,6 +587,7 @@ class QSTStationEditWidget(QSTEditWidget):
         hbox = gtk.HBox(False, 10)
 
         # This is really ugly, but to fix it requires more work
+        from . import mainapp
         self.__sources = mainapp.get_mainapp().map.get_map_sources()
         sources = [x.get_name() for x in self.__sources]
         self.__group = miscwidgets.make_choice(sources,
