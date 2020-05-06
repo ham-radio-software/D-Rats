@@ -19,8 +19,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 import os
+
+import sys
+
 import math
 import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+from six.moves.urllib.error import URLError, HTTPError
 import time
 import random
 import shutil
@@ -95,7 +99,10 @@ def set_proxy(proxy):
 def fetch_url(url, local):
     global CONNECTED
     global PROXY
-
+  
+    #setup of d-rats user_agent
+    from . import version  
+    
     if not CONNECTED:
         raise Exception("Not connected")
 
@@ -108,14 +115,30 @@ def fetch_url(url, local):
         six.moves.urllib.request.install_opener(opener)
     else:
         proxies = None
-
     #data = six.moves.urllib.request.urlopen(url, proxies=proxies)
-    data = six.moves.urllib.request.urlopen(url)
-    local_file = open(local, "wb")
+    req = six.moves.urllib.request.Request(url, None, version.HTTP_CLIENT_HEADERS)
+
+    try:
+        data = six.moves.urllib.request.urlopen(req)
+    except HTTPError as e:
+        if e.code == 404:
+            return
+        else:
+            print("HTTP error while retrieving tile: "
+                    "code: {}, reason: {} - {} [{}]".format( e.code, e.reason, str(e), url)
+            )
+            return
+    except Exception as e:
+            print("Error while retrieving info from {}".format(str(e)))
+            return
+
+    print('Mapdisplay: all is good so create the jpg file')
     d = data.read()
+    local_file = open(local, "wb")
     local_file.write(d)
     data.close()
     local_file.close()
+                
 
 class MarkerEditDialog(inputdialog.FieldDialog):
     def __init__(self):
@@ -254,7 +277,7 @@ class MapTile(object):
                     print(("Mapdisplay: opened %s" % url))
                     return True
                 except Exception as e:
-                    print(("Mapdisplay: [%i] Failed to fetch `%s': %s" % (i, url, e)))
+                    print("Mapdisplay: [%i] Failed to fetch `%s': %s" % (i, url, e))
 
             return False
         else:
@@ -524,9 +547,19 @@ class MapWidget(gtk.DrawingArea):
             try:
                 pb = gtk.gdk.pixbuf_new_from_file(path)
             except Exception as e:
-                utils.log_exception()
-                print(("Mapdisplay: Deleting the broken tile to force future download %s" % path))
-                os.remove(path)
+                #this is the case  when some jpg tile file cannot be loaded - typically this was due to html content 
+                # saved as jpg (due to an un trapped http error), or due to really corrupted jpg 
+                #(e.g. d-rats was closed before completig file save )
+                
+                #utils.log_exception()
+                #removing broken tiles                
+                if os.path.exists(path):
+                    print(("Mapdisplay: Deleting the broken tile to force future download %s" % path))
+                    os.remove(path)
+                #else:
+                    #usually this happens when a tile file has not been create after fetching from the tile as some error was got
+                    #print(("Mapdisplay: broken tile  not found - skipping deletion of: %s" % path))
+                    
                 pb = self.broken_tile()
         else:
             pb = self.broken_tile()

@@ -163,6 +163,7 @@ class QSTGPS(QSTText):
 
         self.prefix = ""
         self.raw = True
+        from . import mainapp #hack
         self.mainapp = mainapp.get_mainapp()
         self.fix = None
 

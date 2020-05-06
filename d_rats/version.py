@@ -6,7 +6,9 @@
 ##this module contains the d-rats version variables
 
 from __future__ import print_function
-DRATS_VERSION = "0.3.8 beta 2 porting code to python3"
+import sys
+
+DRATS_VERSION = "0.3.8 beta 3"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
@@ -22,6 +24,9 @@ COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
 LICENCE ="You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>."
 WEBSITE =""
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
+
+HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION +  sys.version.split()[0]}
+print("Version : headers=%s" % HTTP_CLIENT_HEADERS)
 		
 if __name__ == "__main__":
 	print("DRATS_VERSION:         ", DRATS_VERSION)
