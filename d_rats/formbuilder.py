@@ -435,7 +435,7 @@ class FormBuilderGUI(gtk.Dialog):
         self.props = {}
         
         frame = gtk.Frame("Form Properties")
-
+        from . import mainapp # Hack to force import of mainapp 
         path = mainapp.get_mainapp().config.get("settings", "form_logo_dir")
         logos = []
         for fn in glob.glob(os.path.join(path, "*.*")):
@@ -482,6 +482,7 @@ class FormBuilderGUI(gtk.Dialog):
         d = FormDialog("Preview of form",
                        n,
                        parent=self)
+        from . import mainapp # Hack for this difficult case
         config = mainapp.get_mainapp().config
         d.configure(config)
         d.run()

@@ -101,7 +101,8 @@ def do_dprs_calculator(initial=""):
         return
 
     dicon = gps.APRS_TO_DPRS[aicon]
-
+    
+    from . import mainapp # Hack to force import of mainapp 
     callsign = mainapp.get_mainapp().config.get("user", "callsign")
     string = "%s%s %s" % (dicon, over, mstr)
 
@@ -329,9 +330,8 @@ class QSTWeatherWU(QSTThreadedText):
 
 class QSTStation(QSTGPSA):
     def get_source(self, name):
-        from . import mainapp
-        app = mainapp.get_mainapp() # Hack for this difficult case
-        sources = app.map.get_map_sources()
+        from . import mainapp # Hack to foce mainapp load
+        sources = mainapp.get_mainapp().map.get_map_sources()
 
         for source in sources:
             if source.get_name() == name:

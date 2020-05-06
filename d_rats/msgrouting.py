@@ -461,7 +461,8 @@ class MessageRouter(gobject.GObject):
                 self._emit("form-sent", -1, msgfn)
             else:
                 print(("Msgrouting: Failed to send via WL2K: %s" % error))
-
+        
+        from . import mainapp # Hack to force import of mainapp 
         mt = wl2k.wl2k_auto_thread(mainapp.get_mainapp(), src, send_msgs=[msg])
         mt.connect("mail-thread-complete", complete)
         mt.connect("event", self.__proxy_emit("event"))
