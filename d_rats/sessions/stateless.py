@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
 from d_rats.ddt2 import DDT2EncodedFrame
 from d_rats.sessions import base
 

@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
-import ConfigParser
+from __future__ import absolute_import
+from __future__ import print_function
+import six.moves.configparser
 
-import dplatform
+from . import dplatform
 
 sublist = None
 
@@ -10,7 +12,7 @@ class SubstitutionList(object):
     delim = "/"
 
     def __init__(self, configfile):
-        self.config = ConfigParser.ConfigParser()
+        self.config = six.moves.configparser.ConfigParser()
         self.config.read(configfile)
 
     def get_sub(self, key):
@@ -27,7 +29,7 @@ class SubstitutionList(object):
 
             sub = self.get_sub(key)
 
-            print "Substitution for %s was: %s" % (key, sub)
+            print("Substitution for %s was: %s" % (key, sub))
 
             string = first + sub + last
 
@@ -49,10 +51,10 @@ def load_subs():
 
 def subst_string(string):
     if not load_subs():
-        print "Unable to load substitution list"
+        print("Unable to load substitution list")
         return string
     else:
         return sublist.subst(string)
 
 if __name__ == "__main__":
-    print subst_string("Status: /10-14/")
+    print(subst_string("Status: /10-14/"))

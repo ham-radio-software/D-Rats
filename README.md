@@ -67,6 +67,7 @@ Release notes
 see change log: 
 https://github.com/maurizioandreotti/D-Rats/blob/master/changelog
 
+
 -----------------------
 FOR MORE INFO HAVE A WALK IN THE WIKI
 https://github.com/maurizioandreotti/D-Rats/wiki/D-Rats-Evolution-wiki

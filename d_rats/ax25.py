@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from six.moves import range
 bstr_pos = lambda n: n>0 and bstr_pos(n>>1)+str(n&1) or ''
 
 class BitStuffContext:
@@ -18,7 +21,7 @@ class BitStuffContext:
             self.ones += 1
         else:
             self.ones = 0
-        print("Register: %s" % bstr_pos(self.register))
+        print(("Register: %s" % bstr_pos(self.register)))
         self.bits += 1
         if self.bits == 8:
             print("Ax25      : Pushing")

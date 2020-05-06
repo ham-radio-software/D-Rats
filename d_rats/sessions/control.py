@@ -15,12 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import struct
 
 from d_rats.utils import log_exception
 from d_rats.ddt2 import DDT2EncodedFrame
 from d_rats.sessions import base, stateful, stateless
 from d_rats.sessions import file, form, sock
+from six.moves import range
 
 T_PNG = 0
 T_END = 1
@@ -43,9 +46,9 @@ class ControlSession(base.Session):
             l, r = struct.unpack("BB", frame.data)
             session = self._sm.sessions[l]
             session._rs = r
-            print("Control   : Signaled waiting session thread (l=%i r=%i)" % (l, r))
-        except Exception, e:
-            print("Control   : Failed to lookup new session event: %s" % e)
+            print(("Control   : Signaled waiting session thread (l=%i r=%i)" % (l, r)))
+        except Exception as e:
+            print(("Control   : Failed to lookup new session event: %s" % e))
 
         if session.get_state() == base.ST_CLSW:
             session.set_state(base.ST_CLSD)
@@ -54,23 +57,23 @@ class ControlSession(base.Session):
         elif session.get_state() == base.ST_SYNC:
             session.set_state(base.ST_OPEN)
         else:
-            print("Control   : ACK for session in invalid state: %i" % session.get_state())
+            print(("Control   : ACK for session in invalid state: %i" % session.get_state()))
         
     def ctl_end(self, frame):
-        print("Control   : End of session %s" % frame.data)
+        print(("Control   : End of session %s" % frame.data))
 
         try:
             id = int(frame.data)
-        except Exception, e:
-            print("Control   : Session end request had invalid ID: %s" % e)
+        except Exception as e:
+            print(("Control   : Session end request had invalid ID: %s" % e))
             return
 
         try:
             session = self._sm.sessions[id]
             session.set_state(base.ST_CLSD)
             self._sm.stop_session(session)
-        except Exception, e:
-            print("Control   : Session %s ended but not registered" % id)
+        except Exception as e:
+            print(("Control   : Session %s ended but not registered" % id))
             return
 
         frame.d_station = frame.s_station
@@ -84,29 +87,29 @@ class ControlSession(base.Session):
         try:
             (id,) = struct.unpack("B", frame.data[:1])
             name = frame.data[1:]
-        except Exception, e:
-            print("Control   : Session request had invalid ID: %s" % e)
+        except Exception as e:
+            print(("Control   : Session request had invalid ID: %s" % e))
             return
 
-        print("Control   : New session %i from remote" % id)
+        print(("Control   : New session %i from remote" % id))
 
         exist = self._sm.get_session(rid=id, rst=frame.s_station)
         if exist:
-            print("Control   : Re-acking existing session %s:%i:%i" % (frame.s_station, id, exist._id))
+            print(("Control   : Re-acking existing session %s:%i:%i" % (frame.s_station, id, exist._id)))
             self.ack_req(frame.s_station, struct.pack("BB", id, exist._id))
             return
 
-        print("Control   : ACK'ing session request for %i" % id)
+        print(("Control   : ACK'ing session request for %i" % id))
 
         try:
             c = self.stypes[frame.type]
-            print("Control   : Got type: %s" % c)
+            print(("Control   : Got type: %s" % c))
             s = c(name)
             s._rs = id
             s.set_state(base.ST_OPEN)
-        except Exception, e:
+        except Exception as e:
             log_exception()
-            print("Control   : Can't start session type `%s': %s" % (frame.type, e))
+            print(("Control   : Can't start session type `%s': %s" % (frame.type, e)))
             return
                 
         num = self._sm._register_session(s, frame.s_station, "new,in")
@@ -116,7 +119,7 @@ class ControlSession(base.Session):
 
     def ctl(self, frame):
         if frame.d_station != self._sm.station:
-            print("Control   : Control ignoring frame for station %s" % frame.d_station)
+            print(("Control   : Control ignoring frame for station %s" % frame.d_station))
             return
 
         if frame.type == T_ACK:
@@ -126,7 +129,7 @@ class ControlSession(base.Session):
         elif frame.type >= T_NEW:
             self.ctl_new(frame)
         else:
-            print("Control   : Unknown control message type %i" % frame.type)
+            print(("Control   : Unknown control message type %i" % frame.type))
             
     def new_session(self, session):
         f = DDT2EncodedFrame()
@@ -155,7 +158,7 @@ class ControlSession(base.Session):
                 print("Control   : Waiting for synchronization")
                 wait_time = 15
             else:
-                print("Control   : Established session %i:%i" % (session._id, session._rs))
+                print(("Control   : Established session %i:%i" % (session._id, session._rs)))
                 session.set_state(base.ST_OPEN)
                 return True
 

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import re
 
 def find_us_callsigns(string):
@@ -31,7 +32,7 @@ def find_callsigns(config, string):
     enabled = [y for x,y in cs if x]
 
     for t in callsign_functions.keys():
-        if callsign_functions.has_key(t) and t in enabled:
+        if t in callsign_functions and t in enabled:
             list += callsign_functions[t](string)
     
     return list

@@ -15,17 +15,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import time
 import threading
 import os
 import struct
 import socket
 
-from ddt2 import DDT2EncodedFrame
-import transport
+from .ddt2 import DDT2EncodedFrame
+from . import transport
 
-from sessions import base, control, stateful, stateless
-from sessions import file, form, sock, sniff
+from .sessions import base, control, stateful, stateless
+from .sessions import file, form, sock, sniff
+from six.moves import range
 
 class SessionManager(object):
     def set_comm(self, pipe, **kwargs):
@@ -70,8 +73,8 @@ class SessionManager(object):
         for f,d in self.session_cb.items():
             try:
                 f(d, reason, session)
-            except Exception, e:
-                print("Sessionmgr: Exception in session CB: %s" % e)
+            except Exception as e:
+                print(("Sessionmgr: Exception in session CB: %s" % e))
 
     def register_session_cb(self, function, data):
         self.session_cb[function] = data
@@ -83,11 +86,11 @@ class SessionManager(object):
         if force:
             self.tport.disable()
 
-        if self.sessions.has_key(self.control._id):
+        if self.control._id in self.sessions:
             del self.sessions[self.control._id]
 
         for s in self.sessions.values():
-            print("Sessionmgr: Stopping session `%s'" % s.name)
+            print(("Sessionmgr: Stopping session `%s'" % s.name))
             s.close(force)
 
         if not force:
@@ -109,7 +112,7 @@ class SessionManager(object):
                 frame.d_station != self.station and \
                 frame.session != 1:
             # Not CQ, not us, and not chat
-            print("Sessionmgr: Received frame for station `%s'" % frame.d_station)
+            print(("Sessionmgr: Received frame for station `%s'" % frame.d_station))
             return
         elif frame.s_station == self.station:
             # Either there is another station using our callsign, or
@@ -123,15 +126,15 @@ class SessionManager(object):
         #sample rs-ms1a string CQCQCQ: $$Msg,IZ2LXI,,0011DCtest transmission
            #self.emit("user-send-chat", "CQCQCQ", port, "$$Msg,IZ000,,0011D,%s" % d, True)        
         
-        if not frame.session in self.sessions.keys():
-            print("Sessionmgr: Incoming frame for unknown session `%i'" % frame.session)
+        if not frame.session in list(self.sessions.keys()):
+            print(("Sessionmgr: Incoming frame for unknown session `%i'" % frame.session))
             return
 
         session = self.sessions[frame.session]
 
         if session.stateless == False and \
                 session._st != frame.s_station:
-            print("Sessionmgr: Sessionmgr: Received frame from invalid station `%s' (expecting `%s'" % (frame.s_station, session._st))
+            print(("Sessionmgr: Sessionmgr: Received frame from invalid station `%s' (expecting `%s'" % (frame.s_station, session._st)))
             return
 
         if session.handler:
@@ -140,7 +143,7 @@ class SessionManager(object):
             session.inq.enqueue(frame)
             session.notify()
 
-        print("Sessionmgr: Received block %i:%i for session `%s'" % (frame.seq, frame.type, session.name))
+        print(("Sessionmgr: Received block %i:%i for session `%s'" % (frame.seq, frame.type, session.name)))
 
     def outgoing(self, session, block):
         self.last_frame = time.time()
@@ -161,7 +164,7 @@ class SessionManager(object):
         self._sid_lock.acquire()
         if self._sid_counter >= 255:
             for id in range(0, 255):
-                if id not in self.sessions.keys():
+                if id not in list(self.sessions.keys()):
                     self._sid_counter = id
         else:
             id = self._sid_counter
@@ -187,13 +190,13 @@ class SessionManager(object):
         return id
 
     def _deregister_session(self, id):
-        if self.sessions.has_key(id):
+        if id in self.sessions:
             self.fire_session_cb(self.sessions[id], "end")
 
         try:
             del self.sessions[id]
-        except Exception, e:
-            print("Sessionmgr: No session %s to deregister" % id)
+        except Exception as e:
+            print(("Sessionmgr: No session %s to deregister" % id))
 
     def start_session(self, name, dest=None, cls=None, **kwargs):
         if not cls:
@@ -232,7 +235,7 @@ class SessionManager(object):
     def end_session(self, id):
         try:
             del self.sessions[id]
-        except Exception, e:
+        except Exception as e:
             print("Sessionmgr: Unable to deregister session")
 
     def get_session(self, rid=None, rst=None, lid=None):
@@ -257,9 +260,9 @@ class SessionManager(object):
 if __name__ == "__main__":
     #p = transport.TestPipe(dst="KI4IFW")
 
-    import comm
+    from . import comm
     import sys
-    import sessions
+    from . import sessions
 
     #if sys.argv[1] == "KI4IFW":
     #    p = comm.SerialDataPath(("/dev/ttyUSB0", 9600))
@@ -284,7 +287,7 @@ if __name__ == "__main__":
         S.send_file("inputdialog.py")
     else:
         def h(data, reason, session):
-            print("Sessionmgr: Session CB: %s" % reason)
+            print(("Sessionmgr: Session CB: %s" % reason))
             if reason == "new,in":
                 print("Sessionmgr: Receiving file")
                 t = threading.Thread(target=session.recv_file,
@@ -298,7 +301,7 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(30)
-    except Exception, e:
+    except Exception as e:
         print("Sessionmgr: ------- Closing")
 
     sm.shutdown()
