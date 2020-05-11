@@ -852,7 +852,7 @@ c
                             <child>
                               <widget class="GtkComboBox" id="event_typesel">
                                 <property name="visible">True</property>
-                                <property name="items" translatable="yes">All
+                                <property name="items" translatable="no">All
 File Transfers
 Form Transfers
 Position Reports

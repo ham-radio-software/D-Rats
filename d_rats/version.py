@@ -8,7 +8,7 @@
 from __future__ import print_function
 import sys
 
-DRATS_VERSION = "0.3.8 beta 3"
+DRATS_VERSION = "0.3.8 beta 4 "
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
@@ -25,7 +25,7 @@ LICENCE ="You should have received a copy of the GNU General Public License alon
 WEBSITE =""
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
 
-HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION +  sys.version.split()[0]}
+HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION }
 print("Version : headers=%s" % HTTP_CLIENT_HEADERS)
 		
 if __name__ == "__main__":

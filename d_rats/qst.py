@@ -172,6 +172,7 @@ class QSTGPS(QSTText):
 
     def do_qst(self):
         if not self.fix:
+            from . import mainapp #hack
             fix = self.mainapp.get_position()
         else:
             fix = self.fix
@@ -186,6 +187,7 @@ class QSTGPS(QSTText):
 class QSTGPSA(QSTGPS):
     def do_qst(self):
         if not self.fix:
+            from . import mainapp #hack
             fix = self.mainapp.get_position()
         else:
             fix = self.fix
@@ -702,6 +704,7 @@ class QSTEditDialog(gtk.Dialog):
         return hbox
 
     def __init__(self, config, ident, parent=None):
+        print("qst      : defining qst types")
         self._types = {
             _("Text") : QSTTextEditWidget(),
             _("File") : QSTFileEditWidget(),

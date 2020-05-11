@@ -90,7 +90,7 @@ class SessionEvent(Event):
         self.__portid = port_id
         self.__sessionid = session_id
         self.__restart_info = None
-
+ 
     def get_portid(self):
         return self.__portid
 
@@ -200,15 +200,15 @@ class EventTab(MainWindowTab):
         filter = typesel.get_active_text()
         print("MainEvents: Filter set on %s" % filter)
         t = None
-        if filter == _("All"):
+        if filter == _("All") or filter ==_("Tutto"):
             t = None
-        elif filter == _("File Transfers"):
+        elif filter == _("File Transfers") or filter ==_("Trasferimento File"):
             t = EVENT_FILE_XFER
-        elif filter == _("Form Transfers"):
+        elif filter == _("Form Transfers") or filter ==_("Trasferimento Messaggi"):
             t = EVENT_FORM_XFER
-        elif filter == _("Pings"):
+        elif filter == _("Pings") or filter ==_("Ping"):
             t = EVENT_PING
-        elif filter == _("Position Reports"):
+        elif filter == _("Position Reports") or filter ==_("Rapporto di Posizione"):
             t = EVENT_POS_REPORT
 
         if t is None:
@@ -244,6 +244,7 @@ class EventTab(MainWindowTab):
         column.set_sort_order(srt)
 
     def _get_sort_asc(self):
+        print("mainEvetns: sorting events in ascending order")
         srt = self._config.getint("state", "events_sort")
         return srt == gtk.SORT_ASCENDING
 

@@ -116,6 +116,7 @@ def build_image_dialog(filename, image, dlgParent=None):
 def send_image(fn, dlgParent=None):
     if not has_image_support():
         msg = _("No support for resizing images.  Send unaltered?")
+        from .ui import main_common
         if main_common.ask_for_confirmation(msg, dlgParent):
             return fn
         else:
