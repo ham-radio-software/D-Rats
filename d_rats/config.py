@@ -116,8 +116,8 @@ _DEF_SETTINGS = {
     "pipelinexfers" : "True",
     
     #Weather API
-    "qst_owuri" : "https://api.openweathermap.org/data/2.5/onecall?",
-    "qst_owappid" : "ecd42c31b76e59e83de5cb8c16f7bd95",
+    "qst_owuri" : "https://api.openweathermap.org/data/2.5/",
+    "qst_owappid" : "ecd42c31b76e59e83de5cb8c16f7bd95a",
     
     # MAP WINDOW
     "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),

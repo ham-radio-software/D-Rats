@@ -304,18 +304,11 @@ class QSTCAP(QSTThreadedText):
 class QSTWeatherWU(QSTThreadedText):
     print("sqt       : QSTWeatherWU class retired")
 
-class QSTOpenWeather(QSTThreadedText):
-    #todo susbtitute with a configurable url
-    #pbase = "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=" #personal
-    #abase = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query=" #
-  
+class QSTOpenWeather(QSTThreadedText): 
     def do_qst(self):
         import urllib
         import json 
-        #import codecs
-        #import gzip        
-        #from sys import argv, exit
-        
+        weath = ""
         obs = wu.WUObservation()
         owuri = self.config.get("settings", "qst_owuri")
         owappid = self.config.get("settings", "qst_owappid")
@@ -326,38 +319,132 @@ class QSTOpenWeather(QSTThreadedText):
             print(("Qst       : Unable to split weather QST %s: %s" % (self.text, e)))
             return None
 
-        try:
-            if t == _("Current"):  #per location keyCal
-                url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
-                print("Qst       : Current weather at %s" % url )          
-                weath =  str("--Weather Summary  for %s -- \n" % s)
-                weath = weath + str("Current Temperature: %.2f C\n" % (float(dataJSON['main']['temp']) - 273.0))
-                weath = weath + str("Maximum Temperature: %.2f C\n" %  (float(dataJSON['main']['temp_min']) - 273.0))
-                weath = weath + str("Humidity: %d %%\n" %  int(dataJSON['main']['humidity']))
-                #if dataJSON['wind']['gust']:
-                #   weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))
-                weath = weath + str("Wind Speed: %.2f km/hr\n" % float(dataJSON['wind']['speed']))
-                weath = weath + str("Condition: %s\n" % dataJSON['weather'][0]['description'])  
-                print("Qst       : weather forecast: %s " % weath)
-                
-                
-            elif t == _("Forecast"): #per coordinates
-                #https://api.openweathermap.org/data/2.5/onecall?lat=45.802020&lon=9.430000&appid=ecd42c31b76e59e83de5cb8c16f7bd95
-                url = owuri + "forecast/daily?" + urllib.urlencode({'q': s, 'appid': owappid})
-                print("Qst       : Forecast weather at %s" % url )          
-            else:
-                print("Qst       : Unknown Weather type %s" % t)
-                return None
-            
+#---to be restore when forecats are done
+     #   try:
+        if t == _("Current"):
+            url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
+            print("Qst       : %s " % url)
             urlRead = urllib.urlopen(url).read()
             dataJSON = json.loads(urlRead)
             print(dataJSON)
+    
+            # Check the value of "cod" key is equal to "404", means city is found otherwise, city is not found 
+            if dataJSON["cod"] != "404": 
             
-            #need to check if openweather returned some error on location
+                wname = str(dataJSON['name'])
+                wcountry = str(dataJSON['sys']['country'])
+                wlat = str(dataJSON['coord']['lat'])
+                wlon = str(dataJSON['coord']['lon'])
+                wdesc = str(dataJSON['weather'][0]['description'])
+                wtmin = float(dataJSON['main']['temp_min'])
+                wtemp = float(dataJSON['main']['temp'])
+                wtmax = float(dataJSON['main']['temp_max'])
+                whumidity = int(dataJSON['main']['humidity'])
+                wpressure = int(dataJSON['main']['pressure'])
+                wwindspeed = float(dataJSON['wind']['speed'])
+
+                weath = ("Current weather at %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
+                weath = weath + str("Conditions: %s\n" % wdesc)
+                weath = weath + str("Current Temperature: %.2f C (%.2f F) \n" % ((wtemp - 273.0),(wtemp*9/5- 459.67)))
+                weath = weath + str("Minimum Temperature: %.2f C (%.2f F) \n" % ((wtmin - 273.0),(wtmin*9/5- 459.67)))
+                weath = weath + str("Maximum Temperature: %.2f C (%.2f F) \n" % ((wtmax - 273.0),(wtmax*9/5- 459.67)))
+                weath = weath + str("Humidity: %d %% \n" % whumidity)
+                weath = weath + str("Pressure: %d hpa \n" %  wpressure)
+                   #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
+                weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
+                
+                print("Qst       : %s" % weath)
+                
+                return weath
+            else: 
+                print("Qst       : weather forecast: %s city not found" % s)
+                return None
             
-        except Exception as e:
-            print(("Qst       : Error getting weather: %s" % e))
+        elif t == _("Forecast"): 
+            url = owuri + "forecast?" + urllib.urlencode({'q': s, 'appid': owappid, 'mode': "json"})
+            print("Qst       : %s " % url)
+            urlRead = urllib.urlopen(url).read()
+            dataJSON = json.loads(urlRead)
+            print(dataJSON)
+        
+            # Check the value of "cod" key is equal to "404", means city is found otherwise, city is not found 
+            if dataJSON["cod"] != "404": 
+                
+                wname = str(dataJSON['city']['name'])
+                wcountry = str(dataJSON['city']['country'])
+                wlat = str(dataJSON['city']['coord']['lat'])
+                wlon = str(dataJSON['city']['coord']['lon'])
+
+            
+                weath = ("Forecast weather for %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
+                                    
+              
+                # set date to start iterating through
+                current_date = ''
+                # Iterates through the array of dictionaries named list in json_data
+                for item in dataJSON['list']:
+
+                    # Time of the weather data received, partitioned into 3 hour blocks
+                    wtime = item['dt_txt']
+
+                    # Split the time into date and hour [2018-04-15 06:00:00]
+                    next_date, hour = wtime.split(' ')
+
+                    # Stores the current date and prints it once
+                    if current_date != next_date:
+                        current_date = next_date
+                        year, month, day = current_date.split('-')
+                        date = {'y': year, 'm': month, 'd': day}
+                        weath = weath + ('\n{d}/{m}/{y}'.format(**date))
+                        # Grabs the first 2 integers from our HH:MM:SS string to get the hours
+                    hour = int(hour[:2])
+
+                    # Sets the AM (ante meridiem) or PM (post meridiem) period
+                    if hour < 12:
+                        if hour == 0:
+                            hour = 12
+                        meridiem = 'AM'
+                    else:
+                        if hour > 12:
+                            hour -= 12
+                        meridiem = 'PM'
+                    
+                    # Weather condition
+                    description = item['weather'][0]['description'],
+                    wtemp = item['main']['temp']    
+                    wtmin = item['main']['temp_min']
+                    wtmax = item['main']['temp_max']
+                    whumidity = item['main']['humidity']
+                    wpressure = item['main']['pressure']
+                    wwindspeed = item['wind']['speed']
+                    
+                    #prepare string with weather conditions
+                    # Timestamp as [HH:MM AM/PM]
+                    weath = weath + ('\n%i:00 %s ' % (hour, meridiem))
+                    # Weather forecast and temperatures
+                    weath = weath + ("Weather condition: %s \n" % description )
+                    weath = weath + ("Avg Temp: %.2f C (%.2f F) \n" % ((wtemp - 273.15), (wtemp * 9/5 - 459.67)))
+                    weath = weath + ("Min Temp: %.2f C (%.2f F) \n" % ((wtmin - 273.0),(wtmin*9/5- 459.67)))
+                    weath = weath + ("Max Temp: %.2f C (%.2f F) \n" % ((wtmax - 273.0),(wtmax*9/5- 459.67)))
+                    weath = weath + ("Humidity: %d %%  " % whumidity)
+                    weath = weath + ("Pressure: %d hpa  " %  wpressure)
+                       #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
+                    weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
+                
+                print("Qst       : %s" % weath) 
+                return  weath
+            else: 
+                print("Qst       : weather forecast: %s city not found" % s)
+                return None
+            
+        else:
+            print("Qst       : Unknown Weather type %s" % t)
             return None
+
+#---to be restore when forecats are done           
+    #    except Exception as e:
+    #        print(("Qst       : Error getting weather: %s" % e))
+    #        return None
         
 
         return weath
@@ -658,7 +745,7 @@ class QSTStationEditWidget(QSTEditWidget):
                            self.__station.get_active_text())
 
 class QSTWUEditWidget(QSTEditWidget):
-    label_text = _("Enter a WeatherUnderground station ID:")
+    label_text = _("Enter an Open Weather station name:")
 
     def __init__(self):
         QSTEditWidget.__init__(self)
