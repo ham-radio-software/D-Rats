@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -114,6 +114,10 @@ _DEF_SETTINGS = {
     "outports" : "[]",
     "sockflush" : "0.5",
     "pipelinexfers" : "True",
+    
+    #Weather API
+    "qst_owuri" : "https://api.openweathermap.org/data/2.5/onecall?",
+    "qst_owappid" : "ecd42c31b76e59e83de5cb8c16f7bd95",
     
     # MAP WINDOW
     "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),
@@ -1105,7 +1109,16 @@ class DratsChatPanel(DratsPanel):
         val = DratsConfigWidget(config, "settings", "qst_size_limit")
         val.add_numeric(1, 9999, 1)
         self.mv(_("QST Size Limit"), val)
-
+        
+        #weather api
+        val = DratsConfigWidget(config, "settings", "qst_owuri", True)
+        val.add_text()
+        self.mv(_("OpenWeather uri"), val)    
+        
+        val = DratsConfigWidget(config, "settings", "qst_owappid", True)
+        val.add_text()
+        self.mv(_("OpenWeather appid"), val)    
+        
 class DratsSoundPanel(DratsPanel):
     def __init__(self, config):
         DratsPanel.__init__(self, config)

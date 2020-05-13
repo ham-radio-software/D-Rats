@@ -302,11 +302,23 @@ class QSTCAP(QSTThreadedText):
         return str        
 
 class QSTWeatherWU(QSTThreadedText):
+    print("sqt       : QSTWeatherWU class retired")
+
+class QSTOpenWeather(QSTThreadedText):
     #todo susbtitute with a configurable url
-    pbase = "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID="
-    abase = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query="
+    #pbase = "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=" #personal
+    #abase = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query=" #
+  
     def do_qst(self):
+        import urllib
+        import json 
+        #import codecs
+        #import gzip        
+        #from sys import argv, exit
+        
         obs = wu.WUObservation()
+        owuri = self.config.get("settings", "qst_owuri")
+        owappid = self.config.get("settings", "qst_owappid")
         
         try:
             t, s = self.text.split("/", 2)
@@ -315,21 +327,44 @@ class QSTWeatherWU(QSTThreadedText):
             return None
 
         try:
-            if t == _("Airport"):
-                base = self.abase
-            elif t == _("Personal"):
-                base = self.pbase
+            if t == _("Current"):  #per location keyCal
+                url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
+                print("Qst       : Current weather at %s" % url )          
+                weath =  str("--Weather Summary  for %s -- \n" % s)
+                weath = weath + str("Current Temperature: %.2f C\n" % (float(dataJSON['main']['temp']) - 273.0))
+                weath = weath + str("Maximum Temperature: %.2f C\n" %  (float(dataJSON['main']['temp_min']) - 273.0))
+                weath = weath + str("Humidity: %d %%\n" %  int(dataJSON['main']['humidity']))
+                #if dataJSON['wind']['gust']:
+                #   weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))
+                weath = weath + str("Wind Speed: %.2f km/hr\n" % float(dataJSON['wind']['speed']))
+                weath = weath + str("Condition: %s\n" % dataJSON['weather'][0]['description'])  
+                print("Qst       : weather forecast: %s " % weath)
+                
+                
+            elif t == _("Forecast"): #per coordinates
+                #https://api.openweathermap.org/data/2.5/onecall?lat=45.802020&lon=9.430000&appid=ecd42c31b76e59e83de5cb8c16f7bd95
+                url = owuri + "forecast/daily?" + urllib.urlencode({'q': s, 'appid': owappid})
+                print("Qst       : Forecast weather at %s" % url )          
             else:
-                print(("Qst       : Unknown QSTWeatherWU type %s" % t))
+                print("Qst       : Unknown Weather type %s" % t)
                 return None
-
-            print(("Qst       : Getting %s%s for %s/%s" % ( base, self.text, t, s)))
-            obs.from_uri(base + s)
+            
+            urlRead = urllib.urlopen(url).read()
+            dataJSON = json.loads(urlRead)
+            print(dataJSON)
+            
+            #need to check if openweather returned some error on location
+            
         except Exception as e:
             print(("Qst       : Error getting weather: %s" % e))
             return None
+        
 
-        return str(obs)
+        return weath
+        #return str(obs)
+
+
+
 
 class QSTStation(QSTGPSA):
     def get_source(self, name):
@@ -640,7 +675,7 @@ class QSTWUEditWidget(QSTEditWidget):
         self.__station.show()
         hbox.pack_start(self.__station, 0, 0, 0)
 
-        types = [_("Airport"), _("Personal")]
+        types = [_("Current"), _("Forecast")]
         self.__type = miscwidgets.make_choice(types, False, types[0])
         self.__type.show()
         hbox.pack_start(self.__type, 0, 0, 0)
@@ -654,7 +689,7 @@ class QSTWUEditWidget(QSTEditWidget):
             t, s = content.split("/", 2)
         except:
             print(("Qst       : Unable to split `%s'" % content))
-            t = _("Airport")
+            t = _("Current")
             s = _("UNKNOWN")
 
         combo_select(self.__type, t)
@@ -714,7 +749,7 @@ class QSTEditDialog(gtk.Dialog):
             _("RSS")  : QSTRSSEditWidget(),
             _("CAP")  : QSTCAPEditWidget(),
             _("Station") : QSTStationEditWidget(),
-            _("Weather (WU)") : QSTWUEditWidget(),
+            _("OpenWeather") : QSTWUEditWidget(),
             }
 
         gtk.Dialog.__init__(self,
@@ -767,7 +802,8 @@ def get_qst_class(typestr):
         _("Station") : QSTStation,
         _("RSS")     : QSTRSS,
         _("CAP")     : QSTCAP,
-        _("Weather (WU)") : QSTWeatherWU,
+        _("Weather (WU)") : QSTWeatherWU, #legacy class
+        _("OpenWeather") : QSTOpenWeather,
         }
 
     if not HAVE_FEEDPARSER:
