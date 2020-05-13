@@ -1,7 +1,5 @@
-20200513 - 0.3.8 - beta 5
-- removed weather QST feature based on Weather underground APIs (now retired)
-    --> users still having weather QSTs based on Weather Underground will need to remove those editing the config file
-- added Open Weather APIs for "current" and "forecasts"
+------------
+20200513 - 0.3.8 
 
 20200512 - 0.3.8 - beta 4 
 - fixed filter on event log and Jpg file send 
