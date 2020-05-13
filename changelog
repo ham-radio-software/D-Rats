@@ -1,7 +1,17 @@
-20200504 0.3.8 alfa
+20200513 - 0.3.8 - beta 5
+- removed weather QST feature based on Weather underground APIs (now retired)
+    --> users still having weather QSTs based on Weather Underground will need to remove those editing the config file
+- added Open Weather APIs for "current" and "forecasts"
+
+20200512 - 0.3.8 - beta 4 
+- fixed filter on event log and Jpg file send 
+
+20200504 - 0.3.8 - alfa
 - started modernized code to be compliant with python3
+- no other fixes 
+
 -----------------------------
-20200423 version 0.3.7 candidate release
+20200423 - 0.3.7 - candidate release
 
  - recovered code from  Dan's http://dev.d-rats.com/drats_daily/daily-02232012/
   
@@ -30,14 +40,14 @@
        - Fix displaying GPS-A icons properly.
 
 -----------------------------
-20200423 version 0.3.7 beta a
+20200423 - 0.3.7 beta a
 - Maps
   - added deletion of tiles which result defective at map rendering time (deletion will force re-download of the tiles at next map reload)
   - added map reload after a change is done in the config (this avoid closing and reopening D-rats to change map)
 - Continued porting "print" to print() 
 
 --------------------------
-20200414 version 0.3.6 
+20200414 - 0.3.6 
  - Get version: - looked into OS getversion and partially modified the output to cover Win 7 and 10/8 ids  
  - Renamed platform module to dplatform as platform 
  - Default config: 
@@ -59,13 +69,13 @@
    - modified the map window title adding the map in use
    
 --------------------------
-20200407 version 0.3.6 candidate 1 
+20200407 -  0.3.6 candidate 1 
 - fixed "get position" / "get all positions"
 - investigated and fix some warnings
 - added more output to debuglog during program execution to facilitate issue detection
 
 --------------------------
-201910 version 0.3.5
+201910 -  0.3.5
 - fix maps to use Thunderforest maps with API key
 - reorganized gps preferences
 --------------------------
