@@ -323,7 +323,7 @@ class MessageRouter(gobject.GObject):
 
         while True:
             # Choose the @route for @dst
-
+            from . import emailgw #hack to import emailgw
             if ";" in dst:
                 # Gratuitous routing takes precedence
                 route = gratuitous_next_hop(dst, path)

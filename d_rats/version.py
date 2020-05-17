@@ -8,7 +8,7 @@
 from __future__ import print_function
 import sys
 
-DRATS_VERSION = "0.3.9 beta 1 "
+DRATS_VERSION = "0.3.9 beta 2 "
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
