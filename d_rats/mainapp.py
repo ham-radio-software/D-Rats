@@ -171,18 +171,18 @@ class MainApp(object):
         # Prepare string to broadcast to internet browsers clients
         message = '{ "lat": "%f", "lng": "%f", "station": "%s", "comments": "%s","timestamp": "%s"  }' % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
 
-        print(("Mainapp   : preparing our gpsfix to send around:", message))
+        print("Mainapp   : preparing our gpsfix in JSON :", message)
 
         try:
             #create an AF_INET, STREAM socket (TCP)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error as msg:
-            print(('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]))
+            print('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
             raise
         print('Mainapp   :  Socket Created')
 
         #Connect to remote server
-        print(("Mainapp   :  Connecting to: ", mapserver_ip, ":", mapserver_port))
+        print("Mainapp   :  Connecting to: ", mapserver_ip, ":", mapserver_port)
         try:
             #create an AF_INET, STREAM socket (TCP)
             s.connect((mapserver_ip , mapserver_port))
@@ -820,8 +820,13 @@ class MainApp(object):
                                        fix.latitude,
                                        fix.longitude,
                                        fix.altitude,
-                                       fix.comment)
-        point.set_icon_from_aprs_sym(fix.APRSIcon)
+                                       fix.comment)        
+        if fix.APRSIcon == None:
+            point.set_icon_from_aprs_sym('\?')
+            print("gps       : APRSIcon missing - forced to: \? ")
+        else:
+            point.set_icon_from_aprs_sym(fix.APRSIcon)
+            
         source.add_point(point)
         source.save()
         

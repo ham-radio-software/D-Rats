@@ -8,7 +8,7 @@
 from __future__ import print_function
 import sys
 
-DRATS_VERSION = "0.3.9 beta 2 "
+DRATS_VERSION = "0.3.9 beta 3 "
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
@@ -16,7 +16,7 @@ AUTHORS = "Dan Smith, KK7DS" +chr(13)+ \
           "Maurizio Andreotti, IZ2LXI" +chr(13)+ \
           "Marius Petrescu, YO2LOJ"
 AUTHORS_EMAIL= "Dan Smith KK7DS <dsmith@danplanet.com>;" +chr(13)+ \
-          "Maurizio Andreotti IZ2LXI <maurizioandreottilc@gmail.com>" +chr(13)+ \
+          "Maurizio Andreotti IZ2LXI <maurizio.iz2lxi@gmail.com>" +chr(13)+ \
           "Marius Petrescu YO2LOJ <marius@yo2loj.ro>"
 COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
           "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &" +chr(13)+ \
