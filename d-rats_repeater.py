@@ -30,6 +30,7 @@ from d_rats import dplatform
 
 from d_rats import transport
 from d_rats import comm
+from d_rats.debug import printlog
 
 if __name__ == "__main__":
     from optparse import OptionParser
@@ -134,35 +135,35 @@ class Repeater:
         srcinfo = self.calls.get(frame.s_station, None)
         if srcinfo is None and frame.s_station != "CQCQCQ":
 
-            print(("Adding new station %s to port %s" % (frame.s_station,transport)))
+            printlog("Repeater  : Adding new station %s to port %s" % (frame.s_station,transport))
             self.calls[frame.s_station] = CallInfo(frame.s_station,
                                                    transport)
         elif srcinfo:
             if srcinfo.last_transport() != transport:
-                print(("Station %s moved to port %s" % (frame.s_station,transport)))
+                printlog("Repeater  : Station %s moved to port %s" % (frame.s_station,transport))
 
             srcinfo.just_heard(transport)
 
         dstinfo = self.calls.get(frame.d_station, None)
         if dstinfo is not None:
             if not dstinfo.last_transport().enabled:
-                print(("Last transport for %s is dead" % frame.d_station))
+                printlog("Repeater  : Last transport for %s is dead" % frame.d_station)
             elif dstinfo.last_heard() < self.__call_timeout:
-                print(("Delivering frame to %s at %s" % (frame.d_station, dstinfo.last_transport())))
+                printlog("Repeater  : Delivering frame to %s at %s" % (frame.d_station, dstinfo.last_transport()))
                 dstinfo.last_transport().send_frame(frame.get_copy())
                 return
             else:
-                print(("Last port for %s was %i sec ago (>%i sec)" % \
+                printlog("Repeater  : Last port for %s was %i sec ago (>%i sec)" % \
                     (frame.d_station,
                      dstinfo.last_heard(),
-                     self.__call_timeout)))
+                     self.__call_timeout))
                 
-        print(("Repeating frame to %s on all ports" % frame.d_station))
+        printlog("Repeater  : Repeating frame to %s on all ports" % frame.d_station)
         for path in self.paths[:]:
             if path == transport:
                 continue
             if not path.enabled:
-                print("Found a stale path, removing...")
+                printlog("Repeater  : Found a stale path, removing...")
                 path.disable()
                 self.paths.remove(path)
             else:
@@ -176,7 +177,7 @@ class Repeater:
             try:
                 self.__repeat(transport, frame)
             except Exception as e:
-                print(("Exception during __repeat: %s" % e))
+                printlog("Repeater  : Exception during __repeat: %s" % e)
             self.condition.release()
 
         transport.inhandler = handler
@@ -206,7 +207,7 @@ class Repeater:
             try:
                 cmd, value = line.split(" ", 1)
             except Exception as e:
-                print(("Unable to read auth command: `%s': %s" % (line, e)))
+                printlog("Repeater  : Unable to read auth command: `%s': %s" % (line, e))
 
                 pipe.write("501 Invalid Syntax\r\n")
                 break
@@ -225,7 +226,7 @@ class Repeater:
                 pipe.write("102 %s okay\r\n" % cmd)
 
         if not username or not password:
-            print("Negotiation failed with client")
+            printlog("Repeater  : Negotiation failed with client")
 
         return username, password
 
@@ -245,7 +246,7 @@ class Repeater:
             lines = auth.readlines()
             auth.close()
         except Exception as e:
-            print(("Failed to open %s: %s" % (auth_fn, e)))
+            printlog("Repeater  : Failed to open %s: %s" % (auth_fn, e))
 
         pipe.write("101 Authorization required\r\n")
         username, password = self.auth_exchange(pipe)
@@ -257,15 +258,15 @@ class Repeater:
                 u, p = line.split(" ", 1)
                 u = u.upper()
             except Exception as e:
-                print(("Failed to parse line %i in users.txt: %s" % (lno, line)))
+                printlog("Repeater  : Failed to parse line %i in users.txt: %s" % (lno, line))
                 continue
 
             if u == username and p == password:
-                print(("Authorized user %s" % u))
+                printlog(("Authorized user %s" % u))
                 pipe.write("200 Authorized\r\n")
                 return True
 
-        print(("User %s failed to authenticate" % username))
+        printlog("Repeater  : User %s failed to authenticate" % username)
         pipe.write("500 Not authorized\r\n")
         return False
 
@@ -278,7 +279,7 @@ class Repeater:
         except:
             return
 
-        print(("Accepted new client %s:%i" % addr))
+        printlog("Repeater  : Accepted new client %s:%i" % addr)
 
         path = comm.SocketDataPath(csocket)
         tport = transport.Transporter(path,
@@ -295,7 +296,7 @@ class Repeater:
         except:
             return
 
-        print(("Accepted new GPS client %s:%i" % addr))
+        printlog("Repeater  : Accepted new GPS client %s:%i" % addr)
         self.gps_sockets.append(csocket)
 
     def listen_on(self, port):
@@ -318,7 +319,7 @@ class Repeater:
 
             time.sleep(0.5)
 
-        print("Repeater thread ended")
+        printlog("Repeater  : Repeater thread ended")
 
     def repeat(self):
         self.repeat_thread = threading.Thread(target=self._repeat)
@@ -333,11 +334,11 @@ class Repeater:
         self.condition.release()
 
         if self.repeat_thread:
-            print("Stopping repeater")
+            printlog("Repeater  : Stopping repeater")
             self.repeat_thread.join()
 
         for p in self.paths:
-            print("Stopping")
+            printlog("Repeater  : Stopping")
             p.disable()
 
         if self.socket:
@@ -382,7 +383,7 @@ class RepeaterUI:
         reqauth = self.config.get("settings", "require_auth") == "True"
         trustlocal = self.config.get("settings", "trust_local") == "True"
         gps_okay_ports = self.config.get("tweaks", "allow_gps").split(",")
-        print(("Repeater id is %s" % id))
+        printlog("Repeater  : Repeater id is %s" % id)
         self.repeater = Repeater(id, reqauth, trustlocal, gps_okay_ports)
         for dev,param in paths:
             to = 0
@@ -391,10 +392,10 @@ class RepeaterUI:
                     net, host, port = dev.split(":", 2)
                     port = int(port)
                 except Exception as e:
-                    print(("Invalid net string: %s (%s)" % (dev, e)))
+                    printlog(("Invalid net string: %s (%s)" % (dev, e)))
                     continue
 
-                print(("Socket %s %i (%s)" % (host, port, param)))
+                printlog("Repeater  : Socket %s %i (%s)" % (host, port, param))
 
                 if param:
                     path = comm.SocketDataPath((host, port, id, param))
@@ -405,12 +406,12 @@ class RepeaterUI:
                     tnc, port, device = dev.split(":", 2)
                     device = int(device)
                 except Exception as e:
-                    print(("Invalid tnc string: %s (%s)" % (dev, e)))
+                    printlog("Repeater  : Invalid tnc string: %s (%s)" % (dev, e))
                     continue
-                print(("TNC %s %i" % (dev.replace("tnc:", ""), int(param))))
+                printlog("Repeater  : TNC %s %i" % (dev.replace("tnc:", ""), int(param)))
                 path = comm.TNCDataPath((dev.replace("tnc:", ""), int(param)))
             else:
-                print(("Serial: %s %i" % (dev, int(param))))
+                printlog("Repeater  : Serial: %s %i" % (dev, int(param)))
                 path = comm.SerialDataPath((dev, int(param)))
                 to = 3
 
@@ -464,7 +465,7 @@ class RepeaterGUI(RepeaterUI):
             for d,r in l:
                 self.dev_list.add_item(d, r)
         except Exception as e:
-            print(("Unable to load devices: %s" % e))
+            printlog(("Unable to load devices: %s" % e))
 
     def make_devices(self):
         frame = gtk.Frame("Paths")
@@ -840,7 +841,7 @@ class RepeaterGUI(RepeaterUI):
             if self.config.get("settings", "state") == "True":
                 self.button_on(None, None)
         except Exception as e:
-            print(e)
+            printlog(e)
 
 class RepeaterConsole(RepeaterUI):
     def main(self):
@@ -857,7 +858,7 @@ class RepeaterConsole(RepeaterUI):
             else:
                 idfreq = int(idfreq)
         except Exception as e:
-            print(("Failed to parse network info: %s" % e))
+            printlog("Repeater  : Failed to parse network info: %s" % e)
             acceptnet = False
 
         if acceptnet:
@@ -889,7 +890,7 @@ if __name__=="__main__":
             sys.stdout = f
             sys.stderr = f
         else:
-            print("Failed to open log")
+            printlog("Repeater  : Failed to open log")
 
     if opts.console:
         r = RepeaterConsole()

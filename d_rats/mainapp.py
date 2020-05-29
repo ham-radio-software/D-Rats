@@ -170,9 +170,9 @@ class MainApp(object):
 
         # Prepare string to broadcast to internet browsers clients
         message = '{ "lat": "%f", "lng": "%f", "station": "%s", "comments": "%s","timestamp": "%s"  }' % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-
         print("Mainapp   : preparing our gpsfix in JSON :", message)
-
+        
+      
         try:
             #create an AF_INET, STREAM socket (TCP)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -823,7 +823,7 @@ class MainApp(object):
                                        fix.comment)        
         if fix.APRSIcon == None:
             point.set_icon_from_aprs_sym('\?')
-            print("gps       : APRSIcon missing - forced to: \? ")
+            print("Mainapp   : APRSIcon missing - forced to: \? ")
         else:
             point.set_icon_from_aprs_sym(fix.APRSIcon)
             
