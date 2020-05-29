@@ -27,7 +27,6 @@ import gettext
 gettext.install("D-RATS")
 
 from d_rats import dplatform
-
 from d_rats import transport
 from d_rats import comm
 from d_rats.debug import printlog

@@ -363,27 +363,36 @@ class RPCActionSet(gobject.GObject):
         try:
             #obtaining current position from config or local gps
             fix = self.emit("get-current-position", rqcall)
-            result = fix.to_NMEA_GGA()
-
+            #result = fix.to_NMEA_GGA()
+            result["rc"] = "True"
+            result["msg"] = fix.to_APRS(symtab=self.__config.get("settings", "aprssymtab"),
+                               symbol=self.__config.get("settings", "aprssymbol"))
+            
         except Exception as e:
             print(("RPC       : Case KO : Exception while getting position of %s: " % rqcall))
             log_exception()
             fix = None
-            result["rc"] = "KO"
-            result["msg"] = "No data for station '%s'" % job.get_station()
+            result["rc"] = "False"
+            result["msg"] = " No data for station '%s'" % job.get_station()
+
         if fix:
             #sending the position to transport // but this is broken!!
             print(("RPC       : port is           : %s" % self.__port))
             print(("RPC       : fix is            : %s" % fix))
             print(("RPC       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA()))
+            print(("RPC       : fix in APRS is: %s" % result))
             
+            #self.emit("user-send-chat","CQCQCQ", self.__port, fix.to_NMEA_GGA(), True)            
             self.emit("user-send-chat",
-                     "CQCQCQ", self.__port, fix.to_NMEA_GGA(), True)
+                      "CQCQCQ", 
+                      self.__port, 
+                      result["msg"],
+                      True)
 
-        print(("RPC       : result : %s" % format(result)))
-        print("-----------------------")
-        return result
-    
+        print("--------------------------------------------------------------------------------------------")
+        
+        return None
+            
     def RPC_file_list(self, job):
         result = {}
     
