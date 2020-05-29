@@ -1,4 +1,10 @@
 
+20200529 - 0.3.9 - beta 3
+- added timestamp in repeater log 
+
+20200519 - 0.3.9 - beta2
+- fixed import of emailgw global variable in WL2K
+
 20200513 - 0.3.9 - beta 1
 - removed weather QST feature based on Weather underground APIs (now retired)
     --> users still having weather QSTs based on Weather Underground will need to remove those editing the config file
