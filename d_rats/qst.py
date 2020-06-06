@@ -302,7 +302,7 @@ class QSTCAP(QSTThreadedText):
         return str        
 
 class QSTWeatherWU(QSTThreadedText):
-    print("sqt       : QSTWeatherWU class retired")
+    print("Qst       : QSTWeatherWU class retired")
 
 class QSTOpenWeather(QSTThreadedText): 
     def do_qst(self):
@@ -319,7 +319,7 @@ class QSTOpenWeather(QSTThreadedText):
             print(("Qst       : Unable to split weather QST %s: %s" % (self.text, e)))
             return None
 
-#---to be restore when forecats are done
+#---to be restore when forecasts are done
      #   try:
         if t == _("Current"):
             url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
@@ -343,7 +343,7 @@ class QSTOpenWeather(QSTThreadedText):
                 wpressure = int(dataJSON['main']['pressure'])
                 wwindspeed = float(dataJSON['wind']['speed'])
 
-                weath = ("Current weather at %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
+                weath = ("\nCurrent weather at %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
                 weath = weath + str("Conditions: %s\n" % wdesc)
                 weath = weath + str("Current Temperature: %.2f C (%.2f F) \n" % ((wtemp - 273.0),(wtemp*9/5- 459.67)))
                 weath = weath + str("Minimum Temperature: %.2f C (%.2f F) \n" % ((wtmin - 273.0),(wtmin*9/5- 459.67)))
@@ -376,7 +376,7 @@ class QSTOpenWeather(QSTThreadedText):
                 wlon = str(dataJSON['city']['coord']['lon'])
 
             
-                weath = ("Forecast weather for %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
+                weath = ("\nForecast weather for %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
                                     
               
                 # set date to start iterating through
@@ -449,8 +449,6 @@ class QSTOpenWeather(QSTThreadedText):
 
         return weath
         #return str(obs)
-
-
 
 
 class QSTStation(QSTGPSA):
@@ -807,7 +805,7 @@ class QSTEditDialog(gtk.Dialog):
         lab.show()
         hbox.pack_start(lab, 0, 0 , 0)
 
-        intervals = ["1", "5", "10", "20", "30", "60", ":30", ":15"]
+        intervals = ["1", "5", "10", "20", "30", "60", "120", "180", ":30", ":15"]
         self._freq = make_choice(intervals, True, default="60")
         self._freq.set_size_request(75, -1)
         self._freq.show()
@@ -894,6 +892,8 @@ def get_qst_class(typestr):
         }
 
     if not HAVE_FEEDPARSER:
+    #the  HAVE_FEEDPARSER varibale is setup at d-rats launch when it checks if feedparses can be imported 
+    #for any reason feedparser import could fail also if the module is compiled (as it happens in my case on Windows10)       
         del classes[_("RSS")]
 
     return classes.get(typestr, None)

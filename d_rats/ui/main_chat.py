@@ -93,7 +93,7 @@ class ChatQM(MainWindowElement):
         iter = model.get_iter_first()
         while iter:
             msg, = model.get(iter, 0)
-            print "Setting %i: %s" % (i, msg)
+            print("Mainchat  : Setting %i: %s" % (i, msg))
             self._config.set("quick", "msg_%i" % i, msg)
             iter = model.iter_next(iter)
             i += 1
@@ -301,7 +301,7 @@ class ChatQST(MainWindowElement):
                               
             qc = qst.get_qst_class(t)
             if not qc:
-                print "Error: unable to get QST class `%s'" % t
+                print("Mainchat  : Error : unable to get QST class `%s'" % t)
                 continue
             q = qc(self._config, c, i)
             q.connect("qst-fired", self._qst_fired)
@@ -378,12 +378,18 @@ class ChatTab(MainWindowTab):
             return None
 
     def _display_line(self, text, apply_filters, *attrs, **kwargs):
+        print("Mainchat  : text: %s " % text)
         match = re.match("^([^#].*)(#[^/]+)//(.*)$", text)
+        print("Mainchat  : match: %s " % match)
+        print("Mainchat  : kwargs: %s " % kwargs)
+        print("Mainchat  : apply_filters: %s " % apply_filters)
+    #    print("Mainchat  : attrs: %s " % attrs)
+        #private channel
         if "priv_src" in kwargs.keys():
             channel = "@%s" % kwargs["priv_src"]
             display = self._display_for_channel(channel)
             if not display:
-                print "Creating channel %s" % channel
+                print("Mainchat  : Creating channel %s" % channel)
                 self._build_filter(channel)
                 self._save_filters()
                 display = self._display_for_channel(channel)
@@ -393,6 +399,7 @@ class ChatTab(MainWindowTab):
             display = self._display_for_channel(channel)
         elif apply_filters:
             display = self._display_matching_filter(text)
+            print("Mainchat  : display: %s " % display)
             noticere = self._config.get("prefs", "noticere")
             ignorere = self._config.get("prefs", "ignorere")
             if noticere and re.search(noticere, text):
@@ -496,11 +503,12 @@ class ChatTab(MainWindowTab):
         display.get_buffer().set_text("")
 
     def _tab_selected(self, tabs, page, num):
+        #
         self._unhighlight_tab(num)
-
+        
+        #activate the removefilter button in case we are not on the main chat channel (num!=0)
         delf = self._wtree.get_widget("main_menu_delfilter")
         delf.set_sensitive(num != 0)
-
         self.__tb_buttons[_("Remove Filter")].set_sensitive(num != 0)
 
     def _tab_reordered(self, tabs, page, num):
@@ -537,10 +545,12 @@ class ChatTab(MainWindowTab):
         idx = self.__filtertabs.get_current_page()
         page = self.__filtertabs.get_nth_page(idx)
         text = self.__filtertabs.get_tab_label(page).get_text()
-
-        del self.__filters[text]
-        self.__filtertabs.remove_page(idx)
-
+        print("Mainchat  : removing %s " % text)
+        if (text!= "Main"):
+            del self.__filters[text]
+            self.__filtertabs.remove_page(idx)
+        else:
+            display_error("Mainchat  : Cannot remove Main tab")
         self._save_filters()
 
     def _view_log(self, but):

@@ -660,6 +660,7 @@ class MainApp(object):
         kwargs = {}
 
         if dst != "CQCQCQ":
+            #so we are messaging into a private channel
             to = " -> %s:" % dst
             kwargs["priv_src"] = src
         else:

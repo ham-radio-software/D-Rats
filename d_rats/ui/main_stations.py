@@ -247,6 +247,12 @@ class StationsList(MainWindowTab):
             job.set_account(vals[0], vals[1], vals[2], vals[4], vals[3])
             job.connect("state-change", log_result)
             self.emit("submit-rpc-job", job, port)
+        elif action == "qrz":
+            import webbrowser
+            callsign = station.split("-")
+            print("mainstat  : looking on QRZ.com for %s " % callsign[0])
+            webbrowser.open('https://www.qrz.com/lookup?callsign=%s' % callsign[0], new=2)
+
 
     def _make_station_menu(self, station, port):
         xml = """
@@ -258,6 +264,7 @@ class StationsList(MainWindowTab):
     <menuitem action="sendfile"/>
     <menuitem action="version"/>
     <menuitem action="mcheck"/>
+    <menuitem action="qrz"/>
     <separator/>
     <menuitem action="remove"/>
     <menuitem action="reset"/>
@@ -276,7 +283,8 @@ class StationsList(MainWindowTab):
                    ("remove", _("Remove"), gtk.STOCK_DELETE),
                    ("reset", _("Reset"), gtk.STOCK_JUMP_TO),
                    ("version", _("Get version"), gtk.STOCK_ABOUT),
-                   ("mcheck", _("Request mail check"), None)]
+                   ("mcheck", _("Request mail check"), None),
+                   ("qrz", _("Check on Qrz.com"), None)]
 
         for action, label, stock in actions:
             a = gtk.Action(action, label, None, stock)
