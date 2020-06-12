@@ -42,6 +42,7 @@ from six.moves import range
 
 BAUD_RATES = ["1200", "2400", "4800", "9600", "19200", "38400", "115200"]
 
+#these settings are used to popoulate the config when D-Rats is executed the first time
 _DEF_USER = {
     "name" : "A. Mateur",
     "callsign" : "",
@@ -97,7 +98,6 @@ _DEF_PREFS = {
     "msg_wl2k_rmsport" : "",
 }
 
-#these settings are used to popoulate the config when D-Rats is executed the first time
 _DEF_SETTINGS = {
     "socket_pw" : "",
     "ddt_block_size" : "512",
@@ -115,11 +115,11 @@ _DEF_SETTINGS = {
     "sockflush" : "0.5",
     "pipelinexfers" : "True",
     
-    #Weather API
+    #Weather APIs
     "qst_owuri" : "https://api.openweathermap.org/data/2.5/",
     "qst_owappid" : "ecd42c31b76e59e83de5cb8c16f7bd95a",
     
-    # MAP WINDOW
+    #MAPS APIs
     "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),
     "maptype": "base",
     #"mapurlbase":  "http://a.tile.openstreetmap.org/", 
@@ -135,10 +135,10 @@ _DEF_SETTINGS = {
     "mapurllandscape": "https://tile.thunderforest.com/landscape/",
     "keyformapurllandscape": "?apikey=5a1a4a79354244a38707d83969fd88a2",
     
-    # GPS
-
+    #GPS
     "default_gps_comment" : "BN  *20",     #default icon for our station in the map and gpsfixes
     "map_marker_bgcolor": "yellow",        #background color for markers in the map window
+    
     "warmup_length" : "16",                 #changed from 8 to 16 in 0.3.6
     "warmup_timeout" : "0",                #changed from 3 to 0 in 0.3.6
     "force_delay" : "-2",
@@ -153,7 +153,7 @@ _DEF_SETTINGS = {
     "sniff_packets" : "False",
     "map_tile_ttl" : "720",
 
-    "msg_flush" : "60",           #changed from 60 to 30sec in 0.3.6
+    "msg_flush" : "30",           #changed from 60 to 30sec in 0.3.6
     "msg_forward" : "True",       #changed from False to True in 0.3.6
     "station_msg_ttl" : "600",    #changed from 3660 to 600 in 0.3.6
     

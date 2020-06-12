@@ -27,9 +27,9 @@ TIPS_SETTINGS = {
     "aprssymbol" : _("The symbol character for GPS-A beacons"),
     "compatmode" : _("Treat incoming raw text (and garbage) as chat data and display it on-screen"),
     "mapdir" : _("Alternate location to store cached map images"),
-    "warmup_length" : _("Amount of fake data to send during a warmup cycle"),
-    "warmup_timeout" : _("Length of time between transmissions that must pass before we send a warmup block to open the power-save circuits on handhelds"),
-    "force_delay" : _("Amount of time to wait between transmissions in seconds (a positive number is a fixed delay, a negative value means 'randomly choose between 0 and X')"),
+    "warmup_length" : _("Amount of bytes to to prefix to each packet during a warmup cycle after a period of idle"),
+    "warmup_timeout" : _("Amount of seconds between transmissions that must pass before we send a warmup block to open the power-save circuits on handhelds"),    
+    "force_delay" : _("Amount of seconds to wait between transmissions (a positive number is a fixed delay, a negative value means 'randomly choose between 0 and X')"),
     "delete_from" : _("Comma-separated list of callsigns that may delete files remotely"),
     "remote_admin_passwd" : _("Password required for remote administration tasks (blank for none)"),
     "ping_info" : _("Text string to return in response to a ping.") + "\n" + \

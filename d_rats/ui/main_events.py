@@ -244,7 +244,7 @@ class EventTab(MainWindowTab):
         column.set_sort_order(srt)
 
     def _get_sort_asc(self):
-        print("mainEvetns: sorting events in ascending order")
+        #print("mainEvents: sorting events in ascending order")
         srt = self._config.getint("state", "events_sort")
         return srt == gtk.SORT_ASCENDING
 
