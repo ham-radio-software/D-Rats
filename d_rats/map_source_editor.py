@@ -17,6 +17,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+#importing print() wrapper
+from .debug import printlog
+
 import os
 import shutil
 from glob import glob
@@ -88,7 +91,7 @@ class MapSourcesEditor(object):
     def __init__(self, config):
         fn = config.ship_obj_fn("ui/mainwindow.glade")
         if not os.path.exists(fn):
-            print(fn)
+            printlog(fn)
             raise Exception("Unable to load UI file")
         wtree = gtk.glade.XML(fn, "srcs_dialog", "D-RATS")
 
@@ -116,7 +119,7 @@ class MapSourcesEditor(object):
                                          sed))
                 except Exception as e:
                     utils.log_exception()
-                    print("Failed to open source %s:%s" % (stype, key))
+                    printlog("Failed to open source %s:%s" % (stype, key))
 
     def run(self):
         return self.__dialog.run()
@@ -131,7 +134,7 @@ class MapSourceEditor(object):
 
         fn = config.ship_obj_fn("ui/mainwindow.glade")
         if not os.path.exists(fn):
-            print(fn)
+            printlog(fn)
             raise Exception("Unable to load UI file")
         self._wtree = gtk.glade.XML(fn, "src_dialog", "D-RATS")
 
@@ -229,7 +232,7 @@ class RiverMapSourceEditor(MapSourceEditor):
             self._config.remove_option("rivers", "%s.label" % id)
         except Exception as e:
             log_exception()
-            print("Error deleting rivers/%s: %s" % (id, e))
+            printlog("Error deleting rivers/%s: %s" % (id, e))
 
     def save(self):
         if not self._config.has_section("rivers"):
@@ -276,7 +279,7 @@ class BuoyMapSourceEditor(MapSourceEditor):
             self._config.remove_option("buoys", "%s.label" % id)
         except Exception as e:
             log_exception()
-            print("Error deleting buoys/%s: %s" % (id, e))
+            printlog("Error deleting buoys/%s: %s" % (id, e))
 
 
     def save(self):

@@ -17,6 +17,10 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import gtk
 import pygtk
 import gobject
@@ -46,13 +50,13 @@ try:
     import feedparser
     HAVE_FEEDPARSER = True
 except ImportError as e:
-    print("Qst       : FeedParser not available")
+    printlog("Qst       : FeedParser not available")
     HAVE_FEEDPARSER = False
 
 try:
     from hashlib import md5
 except ImportError:
-    print("Qst       : Installing hashlib replacement hack")
+    printlog("Qst       : Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
 def do_dprs_calculator(initial=""):
@@ -71,7 +75,7 @@ def do_dprs_calculator(initial=""):
         deficn = gps.DPRS_TO_APRS.get(dsym, "/#")
         defovr = cur[2]
         if defovr not in overlays:
-            print(("Qst       : Overlay %s not in list" % defovr))
+            printlog(("Qst       : Overlay %s not in list" % defovr))
             defovr = " "
     else:
         deficn = "/#"
@@ -139,7 +143,7 @@ class QSTExec(QSTText):
         pform = dplatform.get_platform()
         s, o = pform.run_sync(self.text)
         if s:
-            print(("Qst       : Command failed with status %i" % s))
+            printlog(("Qst       : Command failed with status %i" % s))
 
         return o[:size_limit]
 
@@ -149,7 +153,7 @@ class QSTFile(QSTText):
         try:
             f = NetFile(self.text)
         except:
-            print(("Qst       : Unable to open file `%s'" % self.text))
+            printlog(("Qst       : Unable to open file `%s'" % self.text))
             return
 
         text = f.read()
@@ -212,7 +216,7 @@ class QSTThreadedText(QSTText):
         self.thread = None
 
         if not msg:
-            print("Qst       : Skipping QST because no data was returned")
+            printlog("Qst       : Skipping QST because no data was returned")
             return
 
         gobject.idle_add(self.emit, "qst-fired",
@@ -220,14 +224,14 @@ class QSTThreadedText(QSTText):
 
     def fire(self):
         if self.thread:
-            print("Qst       : QST thread still running, not starting another")
+            printlog("Qst       : QST thread still running, not starting another")
             return
 
         # This is a race, but probably pretty safe :)
         self.thread = threading.Thread(target=self.threaded_fire)
         self.thread.setDaemon(True)
         self.thread.start()
-        print("Qst       : Started a thread for QST data...")
+        printlog("Qst       : Started a thread for QST data...")
 
 class QSTRSS(QSTThreadedText):
     def __init__(self, *args, **kw):
@@ -241,7 +245,7 @@ class QSTRSS(QSTThreadedText):
         try:
             entry = rss.entries[-1]
         except IndexError:
-            print("Qst       : RSS feed had no entries")
+            printlog("Qst       : RSS feed had no entries")
             return None
 
         try:
@@ -280,7 +284,7 @@ class QSTCAP(QSTThreadedText):
         if self.last_date is None:
             self.determine_starting_item()
 
-        print(("Qst       : Last date is %s" % self.last_date))
+        printlog(("Qst       : Last date is %s" % self.last_date))
 
         cp = cap.CAPParserURL(self.text)
         newev = cp.events_effective_after(self.last_date)
@@ -290,19 +294,19 @@ class QSTCAP(QSTThreadedText):
         try:
             self.last_date = newev[-1].effective
         except IndexError:
-            print("Qst       : CAP feed had no entries")
+            printlog("Qst       : CAP feed had no entries")
             return None
 
         str = ""
 
         for i in newev:
-            print(("Qst       : Sending CAP that is effective %s" % i.effective))
+            printlog(("Qst       : Sending CAP that is effective %s" % i.effective))
             str += "\r\n-----\r\n%s\r\n-----\r\n" % i.report()
 
         return str        
 
 class QSTWeatherWU(QSTThreadedText):
-    print("Qst       : QSTWeatherWU class retired")
+    printlog("Qst       : QSTWeatherWU class retired")
 
 class QSTOpenWeather(QSTThreadedText): 
     def do_qst(self):
@@ -316,17 +320,17 @@ class QSTOpenWeather(QSTThreadedText):
         try:
             t, s = self.text.split("/", 2)
         except Exception as e:
-            print(("Qst       : Unable to split weather QST %s: %s" % (self.text, e)))
+            printlog(("Qst       : Unable to split weather QST %s: %s" % (self.text, e)))
             return None
 
 #---to be restore when forecasts are done
      #   try:
         if t == _("Current"):
             url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
-            print("Qst       : %s " % url)
+            printlog("Qst       : %s " % url)
             urlRead = urllib.urlopen(url).read()
             dataJSON = json.loads(urlRead)
-            print(dataJSON)
+            printlog(dataJSON)
     
             # Check the value of "cod" key is equal to "404", means city is found otherwise, city is not found 
             if dataJSON["cod"] != "404": 
@@ -353,19 +357,19 @@ class QSTOpenWeather(QSTThreadedText):
                    #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
                 weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
                 
-                print("Qst       : %s" % weath)
+                printlog("Qst       : %s" % weath)
                 
                 return weath
             else: 
-                print("Qst       : weather forecast: %s city not found" % s)
+                printlog("Qst       : weather forecast: %s city not found" % s)
                 return None
             
         elif t == _("Forecast"): 
             url = owuri + "forecast?" + urllib.urlencode({'q': s, 'appid': owappid, 'mode': "json"})
-            print("Qst       : %s " % url)
+            printlog("Qst       : %s " % url)
             urlRead = urllib.urlopen(url).read()
             dataJSON = json.loads(urlRead)
-            print(dataJSON)
+            printlog(dataJSON)
         
             # Check the value of "cod" key is equal to "404", means city is found otherwise, city is not found 
             if dataJSON["cod"] != "404": 
@@ -431,19 +435,19 @@ class QSTOpenWeather(QSTThreadedText):
                        #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
                     weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
                 
-                print("Qst       : %s" % weath) 
+                printlog("Qst       : %s" % weath) 
                 return  weath
             else: 
-                print("Qst       : weather forecast: %s city not found" % s)
+                printlog("Qst       : weather forecast: %s city not found" % s)
                 return None
             
         else:
-            print("Qst       : Unknown Weather type %s" % t)
+            printlog("Qst       : Unknown Weather type %s" % t)
             return None
 
 #---to be restore when forecats are done           
     #    except Exception as e:
-    #        print(("Qst       : Error getting weather: %s" % e))
+    #        printlog(("Qst       : Error getting weather: %s" % e))
     #        return None
         
 
@@ -474,17 +478,17 @@ class QSTStation(QSTGPSA):
         try:
             (group, station) = self.text.split("::", 1)
         except Exception as e:
-            print(("Qst       : QSTStation Error: %s" % e))
+            printlog(("Qst       : QSTStation Error: %s" % e))
             return None
 
         source = self.get_source(group)
         if source is None:
-            print(("Qst       : Unknown group %s" % group))
+            printlog(("Qst       : Unknown group %s" % group))
             return
 
         point = self.get_station(source, station)
         if point is None:
-            print(("Qst       : Unknown station %s in group %s" % (station, group)))
+            printlog(("Qst       : Unknown station %s in group %s" % (station, group)))
             return
 
         self.fix = gps.GPSPosition(point.get_latitude(),
@@ -493,7 +497,7 @@ class QSTStation(QSTGPSA):
         self.fix.set_station(self.fix.station,
                              "VIA %s" % self.config.get("user", "callsign"))
 
-        print(("Qst       : Sending position for %s/%s: %s" % (group, station, self.fix)))
+        printlog(("Qst       : Sending position for %s/%s: %s" % (group, station, self.fix)))
 
         return QSTGPSA.do_qst(self)
 
@@ -773,7 +777,7 @@ class QSTWUEditWidget(QSTEditWidget):
         try:
             t, s = content.split("/", 2)
         except:
-            print(("Qst       : Unable to split `%s'" % content))
+            printlog(("Qst       : Unable to split `%s'" % content))
             t = _("Current")
             s = _("UNKNOWN")
 
@@ -824,7 +828,7 @@ class QSTEditDialog(gtk.Dialog):
         return hbox
 
     def __init__(self, config, ident, parent=None):
-        print("qst      : defining qst types")
+        printlog("qst      : defining qst types")
         self._types = {
             _("Text") : QSTTextEditWidget(),
             _("File") : QSTFileEditWidget(),

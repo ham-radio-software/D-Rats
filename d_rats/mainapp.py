@@ -18,9 +18,14 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import sys
 from . import dplatform
 import os
+
 
 # this to generate timestamps associated to GPS fixes  
 from time import gmtime, strftime
@@ -29,7 +34,7 @@ debug_path = dplatform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
     sys.stdout = open(debug_path, "w", 0)
     sys.stderr = sys.stdout
-    print("Mainapp   : Enabled debug log for Win32 systems")
+    printlog("Mainapp   : Enabled debug log for Win32 systems")
 else:
     try:
         os.unlink(debug_path)
@@ -170,40 +175,40 @@ class MainApp(object):
 
         # Prepare string to broadcast to internet browsers clients
         message = '{ "lat": "%f", "lng": "%f", "station": "%s", "comments": "%s","timestamp": "%s"  }' % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-        print("Mainapp   : preparing our gpsfix in JSON :", message)
+        printlog("Mainapp   : preparing our gpsfix in JSON :", message)
         
       
         try:
             #create an AF_INET, STREAM socket (TCP)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error as msg:
-            print('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
+            printlog('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
             raise
-        print('Mainapp   :  Socket Created')
+        printlog('Mainapp   :  Socket Created')
 
         #Connect to remote server
-        print("Mainapp   :  Connecting to: ", mapserver_ip, ":", mapserver_port)
+        printlog("Mainapp   :  Connecting to: ", mapserver_ip, ":", mapserver_port)
         try:
             #create an AF_INET, STREAM socket (TCP)
             s.connect((mapserver_ip , mapserver_port))
             
-            print(("Mainapp   : message to send:", message))
+            printlog(("Mainapp   : message to send:", message))
             try :
                #Set the whole string
                 s.sendall(message)
                 s.close
             except socket.error as msg:
                 #Send failed
-                print(('Mainapp   :  Send failed of:', message))
+                printlog(('Mainapp   :  Send failed of:', message))
                 sys.exit()
 
-            print('Mainapp   :  Message sent successfully')  
+            printlog('Mainapp   :  Message sent successfully')  
             
         except socket.error as msg:
-            print(('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]))
+            printlog(('Mainapp   :  Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]))
             s.close()
             s = None
-        print('Mainapp   :  Socket Created')
+        printlog('Mainapp   :  Socket Created')
 
     def setup_autoid(self):
         idtext = "(ID)"
@@ -232,44 +237,48 @@ class MainApp(object):
                 sport = int(sport)
                 dport = int(dport)
             except Exception as e:
-                print(("Mainapp   : Failed to parse TCP forward config %s: %s" % (forward, e)))
+                printlog(("Mainapp   : Failed to parse TCP forward config %s: %s" % (forward, e)))
                 return
 
             try:
                 sc.create_socket_listener(sport, dport, station)
-                print(("Mainapp   : Started socket listener %i:%i@%s" % \
-                    (sport, dport, station)))
+                printlog("Mainapp   : Started socket listener %i:%i@%s" % \
+                    (sport, dport, station))
             except Exception as e:
-                print(("Mainapp   : Failed to start socket listener %i:%i@%s: %s" % \
-                    (sport, dport, station, e)))
+                printlog("Mainapp   : Failed to start socket listener %i:%i@%s: %s" % \
+                    (sport, dport, station, e))
 
     def start_comms(self, portid):
+        printlog("Mainapp   : Starting Comms")
+        #load from the "ports" config the line related to portid
         spec = self.config.get("ports", portid)
         try:
+            #try getting the config params from splitting the config line
             enb, port, rate, dosniff, raw, name = spec.split(",")
-            enb = (enb == "True")
-            dosniff = (dosniff == "True")
-            raw = (raw == "True")
+            enb = (enb == "True")           #means port is enabled
+            dosniff = (dosniff == "True")   #means traffic sniffing to be active
+            raw = (raw == "True")           #means raw to be active
         except Exception as e:
-            print(("Mainapp   : Failed to parse portspec %s:" % spec))
+            printlog("Mainapp   : Failed to parse portspec %s:" % spec)
             log_exception()
             return
 
         if not enb:
+            #if port not enabled, and was already active, let's cancel it
             if name in self.sm:
                 del self.sm[name]
             return
 
-        print(("Mainapp   : Starting port %s (%s)" % (portid, name)))
+        printlog("Mainapp   : Starting port %s (%s)" % (portid, name))
 
         call = self.config.get("user", "callsign")
 
         if port in self.__unused_pipes:
             path = self.__unused_pipes[port]
             del self.__unused_pipes[port]
-            print(("Mainapp   : Re-using path %s for port %s" % (path, port)))
+            printlog("Mainapp   : Re-using path %s for port %s" % (path, port))
         elif port.startswith("tnc-ax25:"):
-            print(("Mainapp   : Port %s" %  port))
+            printlog("Mainapp   : Port %s as tnc-ax25" %  port)
             tnc, _port, tncport, path = port.split(":")
             path = path.replace(";", ",")
             _port = "%s:%s" % (_port, tncport)
@@ -281,7 +290,7 @@ class MainApp(object):
             path = comm.SocketDataPath(("127.0.0.1", 20003, call, None))
         elif port.startswith("agwpe:"):
             path = comm.AGWDataPath(port, 0.5)
-            print(("Mainapp   : Opening AGW: %s" % path))
+            printlog("Mainapp   : Opening AGW: %s" % path)
         elif ":" in port:
             try:
                 (mode, host, sport) = port.split(":")
@@ -386,11 +395,53 @@ class MainApp(object):
     def sc(self, portname):
         return self.sm[portname][1]
 
+    def check_comms_status(self):
+        #added in 0.3.10
+        printlog("Mainapp   : Check ports status ")
+        printlog("Mainapp   : Ports expected to be already started:")
+        for portid in self.sm.keys():
+            printlog("Mainapp   : %s" % portid)
+        
+        printlog("Mainapp   : Checking all Ports from config:")          
+        for portid in self.config.options("ports"):
+            printlog("Mainapp   : portid %s" % portid)
+                               
+            #load from the "ports" config the line related to portid
+            spec = self.config.get("ports", portid)
+            try:
+                #try getting the config params from splitting the config line
+                enb, port, rate, dosniff, raw, name = spec.split(",")
+                enb = (enb == "True")           #means port is enabled
+                dosniff = (dosniff == "True")   #means traffic sniffing to be active
+                raw = (raw == "True")           #means raw to be active
+            except Exception as e:
+                printlog("Mainapp   : Failed to parse portspec %s:" % spec)
+                log_exception()
+                return
+            
+            if name in self.__pipes:
+                printlog("Mainapp   : Port %s already started!" % name)
+            else:
+                printlog("Mainapp   : Port %s not started" % name)
+            
+            
+    
+    def check_stations_status(self):
+    #added in 0.3.10        
+        printlog("Mainapp   : Check stations")
+        station_list = self.emit("get-station-list")
+        stations = []
+        for portlist in station_list.values():
+            stations += [str(x) for x in portlist]
+            station, port = prompt_for_station(stations, self._config)
+            printlog("Mainapp   : Stations %s resulting on port %s" % station, port)
+           
     def _refresh_comms(self):
         delay = False
-
+        printlog("Mainapp   : refreshing comms")
+        
         for portid in self.sm.keys():
-            print(("Mainapp   : Stopping %s" % portid))
+            printlog("Mainapp   : Stopping %s" % portid)
             if self.stop_comms(portid):
                 if sys.platform == "win32":
                     # Wait for windows to let go the serial port
@@ -400,15 +451,19 @@ class MainApp(object):
             time.sleep(0.25)
 
         for portid in self.config.options("ports"):
-            print(("Mainapp   : Starting %s" % portid))
+            printlog("Mainapp   : Re-Starting %s" % portid)
             self.start_comms(portid)
 
         for spec, path in self.__unused_pipes.items():
-            print(("Mainapp   : Path %s for port %s no longer needed" % (path, spec)))
+            printlog("Mainapp   : Path %s for port %s no longer needed" % (path, spec))
             path.disconnect()
 
         self.__unused_pipes = {}
 
+        #added in 0.3.10
+        #checking status
+        self.check_comms_status()
+        #self.check_stations_status()
  
     def _static_gps(self):
         #inizialize the variables to store our local position data fetched from configuration
@@ -428,17 +483,16 @@ class MainApp(object):
         except Exception as e:
             import traceback
             traceback.print_exc(file=sys.stdout)
-            print(("Mainapp   : Invalid static position: %s" % e))
+            printlog("Mainapp   : Invalid static position: %s" % e)
 
-
-        print(("Mainapp   : Configuring the Static position: %s,%s" % (lat,lon)))
+        printlog("Mainapp   : Configuring the Static position: %s,%s" % (lat,lon))
 
         # Call the mapserver to update our position sweeper  
         if mapserver_active == "True":
-            print(("Mainapp   : Mapserver active:", mapserver_active, "call: ", call))
+            printlog("Mainapp   : Mapserver active:", mapserver_active, "call: ", call)
             self.callback_gps(lat, lon, call, "altitude: "+alt)
         else:
-            print(("Mainapp   : Mapserver not active: %s, call:; %s" % (mapserver_active, call)))
+            printlog("Mainapp   : Mapserver not active: %s, call:; %s" % (mapserver_active, call))
         return gps.StaticGPSSource(lat, lon, alt)
 
     def _refresh_gps(self):
@@ -446,7 +500,7 @@ class MainApp(object):
         rate = self.config.getint("settings", "gpsportspeed")
         enab = self.config.getboolean("settings", "gpsenabled")
 
-        print(("Mainapp   : GPS: %s on %s@%i" % (enab, port, rate)))
+        printlog(("Mainapp   : GPS: %s on %s@%i" % (enab, port, rate)))
 
         if enab:
             if self.gps:
@@ -488,7 +542,7 @@ class MainApp(object):
                 smtpsrv.start()
                 self.mail_threads["SMTPSRV"] = smtpsrv
         except Exception as e:
-            print(("Mainapp   : Unable to start SMTP server: %s" % e))
+            printlog("Mainapp   : Unable to start SMTP server: %s" % e)
             log_exception()
 
         try:
@@ -497,7 +551,7 @@ class MainApp(object):
                 pop3srv.start()
                 self.mail_threads["POP3SRV"] = pop3srv
         except Exception as e:
-            print(("Mainapp   : Unable to start POP3 server: %s" % e))
+            printlog("Mainapp   : Unable to start POP3 server: %s" % e)
             log_exception()
 
     def _refresh_lang(self):
@@ -508,11 +562,11 @@ class MainApp(object):
                     "Dutch" : "nl",
                     }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        print(("Mainapp   : Loading locale `%s'" % locale))
+        printlog("Mainapp   : Loading locale `%s'" % locale)
 
         localedir = os.path.join(dplatform.get_platform().source_dir(),
                                  "locale")
-        print(("Mainapp   : Locale dir is: %s" % localedir))
+        printlog("Mainapp   : Locale dir is: %s" % localedir)
 
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
@@ -525,10 +579,10 @@ class MainApp(object):
             gtk.glade.bindtextdomain("D-RATS", localedir)
             gtk.glade.textdomain("D-RATS")
         except LookupError:
-            print(("Mainapp   : Unable to load language `%s'" % locale))
+            printlog("Mainapp   : Unable to load language `%s'" % locale)
             gettext.install("D-RATS")
         except IOError as e:
-            print(("Mainapp   : Unable to load translation for %s: %s" % (locale, e)))
+            printlog("Mainapp   : Unable to load translation for %s: %s" % (locale, e))
             gettext.install("D-RATS")
 
     def _load_map_overlays(self):
@@ -546,7 +600,7 @@ class MainApp(object):
             except Exception as e:
                 from . import utils
                 utils.log_exception()
-                print(("Mainapp   : Failed to load source type %s" % stype))
+                printlog("Mainapp   : Failed to load source type %s" % stype)
                 continue
 
             for sname in sources:
@@ -555,9 +609,8 @@ class MainApp(object):
                     self.map.add_map_source(source)
                 except Exception as e:
                     log_exception()
-                    print(("Mainapp   : Failed to load map source %s: %s" % \
-                        (source.get_name(), e)))
-
+                    printlog("Mainapp   : Failed to load map source %s: %s" % \
+                        (source.get_name(), e))
                 if sname == _("Stations"):
                     self.stations_overlay = source
 
@@ -575,7 +628,7 @@ class MainApp(object):
                                                               fn)
 
     def refresh_config(self):
-        print("Mainapp   : Refreshing config...")
+        printlog("Mainapp   : Refreshing config...")
   
         call = self.config.get("user", "callsign")
         gps.set_units(self.config.get("user", "units"))
@@ -586,7 +639,7 @@ class MainApp(object):
         self._refresh_map()
     
     def _refresh_map(self):
-	print("Mainapp   : reconfigure Mapwindow with new map")
+	printlog("Mainapp   : reconfigure Mapwindow with new map")
     
 	#setup of the url for retrieving the map tiles depending on the preference
 	if self.config.get("settings", "maptype") == "cycle":
@@ -613,11 +666,6 @@ class MainApp(object):
 #	self.map.connect("reload-sources", lambda m: self._load_map_overlays())
 	self.map.set_zoom(14)
 	self.map.queue_draw()
-
-
-
-
-
         return True
     
     def _refresh_location(self):
@@ -690,16 +738,16 @@ class MainApp(object):
 # ---------- STANDARD SIGNAL HANDLERS --------------------
 
     def __status(self, object, status):
-        self.mainwindow.set_status(status)
+        self.mainwindow.set_status(status)       
 
     def __user_stop_session(self, object, sid, port, force=False):
-        print(("Mainapp   : User did stop session %i (force=%s)" % (sid, force)))
+        printlog("Mainapp   : User did stop session %i (force=%s)" % (sid, force))
         try:
             sm, sc = self.sm[port]
             session = sm.sessions[sid]
             session.close(force)
         except Exception as e:
-            print(("Mainapp   : Session `%i' not found: %s" % (sid, e)))
+            printlog("Mainapp   : Session `%i' not found: %s" % (sid, e))
 
     def __user_cancel_session(self, object, sid, port):
         self.__user_stop_session(object, sid, port, True)
@@ -736,11 +784,11 @@ class MainApp(object):
 
         for station in station_list:
             if station.get_port() not in list(stations.keys()):
-                print(("Mainapp   : Station %s has unknown port %s" % (station,
+                printlog(("Mainapp   : Station %s has unknown port %s" % (station,
                                                           station.get_port())))
             else:
-                stations[station.get_port()].append(station)
-
+                stations[station.get_port()].append(station)    
+        
         return stations
 
     def __get_message_list(self, object, station):
@@ -754,10 +802,12 @@ class MainApp(object):
 
     def __config_changed(self, object):
         self.refresh_config()
+        
 
-    def __show_map_station(self, object, station):
-        print("Mainapp   : Showing Map Window")
+    def __show_map_station(self, object, station):      
+        printlog("Mainapp   : Showing Map Window")
         self.map.show()
+
 
     def __ping_station(self, object, station, port):
         self.chat_session(port).ping_station(station)
@@ -798,7 +848,7 @@ class MainApp(object):
                 return s
 
             try:
-                print(("Mainapp   :  Creating a map source for %s" % station))
+                printlog(("Mainapp   :  Creating a map source for %s" % station))
                 s = map_sources.MapFileSource.open_source_by_name(self.config,
                                                                   station,
                                                                   True)
@@ -824,7 +874,7 @@ class MainApp(object):
                                        fix.comment)        
         if fix.APRSIcon == None:
             point.set_icon_from_aprs_sym('\?')
-            print("Mainapp   : APRSIcon missing - forced to: \? ")
+            printlog("Mainapp   : APRSIcon missing - forced to: \? ")
         else:
             point.set_icon_from_aprs_sym(fix.APRSIcon)
             
@@ -839,15 +889,15 @@ class MainApp(object):
         except Exception as e:
             import traceback
             traceback.print_exc(file=sys.stdout)
-            print(("Mainapp   : Invalid static position: %s" % e))
+            printlog("Mainapp   : Invalid static position: %s" % e)
 
         #Send captured position to the mapserver to update our position sweeper  
         if mapserver_active == "True":
-            print(("Mainapp   : Export to external mapserver active: %s -- sending gps fix" % mapserver_active))
+            printlog(("Mainapp   : Export to external mapserver active: %s -- sending gps fix" % mapserver_active))
             #self.callback_gps(lat, lon, call, "altitude: "+alt)
             self.callback_gps(fix.latitude, fix.longitude, station=fix.station, comments="altitude: " + str(fix.altitude))
         else:
-            print(("Mainapp   : Export to external mapserver not active: %s" % mapserver_active))
+            printlog(("Mainapp   : Export to external mapserver not active: %s" % mapserver_active))
         return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)	
 
     
@@ -887,7 +937,7 @@ class MainApp(object):
         elif id == 0:
             msg = "Port connected"
 
-        print(("Mainapp   : [SESSION %i]: %s" % (id, msg)))
+        printlog("Mainapp   : [SESSION %i]: %s" % (id, msg))
 
         event = main_events.SessionEvent(id, port, msg)
         self.mainwindow.tabs["event"].event(event)
@@ -915,7 +965,7 @@ class MainApp(object):
         if port:
             id = "%s_%s" % (id, port)
 
-        print(("Mainapp   : [NEWFORM %s]: %s" % (id, fn)))
+        printlog("Mainapp   : [NEWFORM %s]: %s" % (id, fn))
         f = formgui.FormFile(fn)
 
         msg = '%s "%s" %s %s' % (_("Message"),
@@ -934,12 +984,12 @@ class MainApp(object):
         bounce = "@" in src and "@" in dst
         isseen = myc in f.get_path()[:-1]
 
-        print(("Mainapp   : Decision: " + \
+        printlog("Mainapp   : Decision: " + \
             "fwd:%s " % fwd_on + \
             "sendable:%s " % is_dst + \
             "next:%s " % nextst + \
             "bounce:%s " % bounce + \
-            "seen:%s " % isseen))
+            "seen:%s " % isseen)
 
         if fwd_on and is_dst and not bounce and not isseen:
             msg += " (%s %s)" % (_("forwarding to"), nextst)
@@ -970,7 +1020,7 @@ class MainApp(object):
         self.msgrouter.form_xfer_done(fn, port, False)
         if port:
             id = "%s_%s" % (id, port)
-        print(("Mainapp   : [FORMSENT %s]: %s" % (id, fn)))
+        printlog("Mainapp   : [FORMSENT %s]: %s" % (id, fn))
         event = main_events.FormEvent(id, _("Message Sent"))
         event.set_as_final()
 
@@ -980,7 +1030,7 @@ class MainApp(object):
     def __file_sent(self, object, id, fn, port=None):
         if port:
             id = "%s_%s" % (id, port)
-        print(("Mainapp   : [FILESENT %s]: %s" % (id, fn)))
+        printlog(("Mainapp   : [FILESENT %s]: %s" % (id, fn)))
         _fn = os.path.basename(fn)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Sent"))
         event = main_events.FileEvent(id, msg)
@@ -1021,15 +1071,15 @@ class MainApp(object):
                 try:
                     object.connect(signal, handler, *args)
                 except Exception:
-                    print(("Mainapp   : Failed to attach signal %s" % signal))
+                    printlog("Mainapp   : Failed to attach signal %s" % signal)
                     raise
 
     def _announce_self(self):
-        print(("-" * 75))
-        print(("Mainapp   :  D-RATS v%s starting at %s" % (version.DRATS_VERSION,
-                                             time.asctime())))
-        print(("Mainapp   : %s " % dplatform.get_platform()))
-        print(("-" * 75))
+        printlog("-" * 75)
+        printlog("Mainapp   :  D-RATS v%s starting at %s" % (version.DRATS_VERSION,
+                                             time.asctime()))
+        printlog("Mainapp   : %s " % dplatform.get_platform())
+        printlog("-" * 75)
 
     
     def __init__(self, **args):
@@ -1105,38 +1155,38 @@ class MainApp(object):
             message = _("You must enter a callsign to continue")
 
         #load position from config
-        print("Mainapp   : load position from config file")
+        printlog("Mainapp   : load position from config file")
         self.gps = self._static_gps()
 
         #create map instance
-        print("Mainapp   : create map window object-----")
+        printlog("Mainapp   : create map window object-----")
         self.map = mapdisplay.MapWindow(self.config)
         self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
         self.map.connect("reload-sources", lambda m: self._load_map_overlays())
-        print("Mainapp   : create map window object: connect object-----" ) 
+        printlog("Mainapp   : create map window object: connect object-----" ) 
         self.__connect_object(self.map)
 
-        print("Mainapp   : query local gps device to see our current position")
+        printlog("Mainapp   : query local gps device to see our current position")
         pos = self.get_position()
         self.map.set_center(pos.latitude, pos.longitude)
         self.map.set_zoom(14)
         self.__map_point = None
 
-        print("Mainapp   : load main window with self config")
+        printlog("Mainapp   : load main window with self config")
         self.mainwindow = mainwindow.MainWindow(self.config)
         
-        print("Mainapp   : connect main window")
+        printlog("Mainapp   : connect main window")
         self.__connect_object(self.mainwindow)
-        print("Mainapp   : connect tabs")
+        printlog("Mainapp   : connect tabs")
         for tab in self.mainwindow.tabs.values():
             self.__connect_object(tab)
         
-        print("Mainapp   : invoke config refresh")
+        printlog("Mainapp   : invoke config refresh")
         self.refresh_config()
         self._load_map_overlays()
 
         if self.config.getboolean("prefs", "dosignon") and self.chat_session:
-            print("Mainapp   : going online")
+            printlog("Mainapp   : going online")
             msg = self.config.get("prefs", "signon")
             status = station_status.STATUS_ONLINE
             for port in self.sm.keys():
@@ -1169,7 +1219,7 @@ class MainApp(object):
             try:
                 routeto, station, port = line.split()
             except Exception:
-                print(("Mainapp   : Line %i of %s not valid" % (lno, routes)))
+                printlog(("Mainapp   : Line %i of %s not valid" % (lno, routes)))
                 continue
 
             self.mainwindow.tabs["stations"].saw_station(station.upper(), port)
@@ -1183,7 +1233,7 @@ class MainApp(object):
                             "*",
                             ".lock*")
         for lock in glob.glob(path):
-            print(("Mainapp   : Removing stale message lock %s" % lock))
+            printlog(("Mainapp   : Removing stale message lock %s" % lock))
             os.remove(lock)
     
     def main(self):
@@ -1201,17 +1251,17 @@ class MainApp(object):
             except Exception:
                 needupd = True
             if not os.path.exists(user_fname) or needupd:
-                print(("Mainapp   : Installing dist form %s -> %s" % (fname, user_fname)))
+                printlog("Mainapp   : Installing dist form %s -> %s" % (fname, user_fname))
                 try:
                     shutil.copyfile(form, user_fname)
                 except Exception as e:
-                    print(("Mainapp   :  AILED: %s" % e))
+                    printlog(("Mainapp   :  AILED: %s" % e))
 
         self.clear_all_msg_locks()
 
         if len(self.config.options("ports")) == 0 and \
                 self.config.has_option("settings", "port"):
-            print("Mainapp   : Migrating single-port config to multi-port")
+            printlog("Mainapp   : Migrating single-port config to multi-port")
 
             port = self.config.get("settings", "port")
             rate = self.config.get("settings", "rate")
@@ -1234,7 +1284,7 @@ class MainApp(object):
             self.__connect_object(self.plugsrv.get_proxy())
             self.plugsrv.serve_background()
         except Exception as e:
-            print(("Mainapp   : Unable to start plugin server: %s" % e))
+            printlog("Mainapp   : Unable to start plugin server: %s" % e)
             self.plugsrv = None
 
         self.load_static_routes()
@@ -1248,15 +1298,15 @@ class MainApp(object):
             self.msgrouter = None
 
         #LOAD THE MAIN WINDOW
-        print("Mainapp   : load the main window")
+        printlog("Mainapp   : load the main window")
         try:
             gtk.main()
         except KeyboardInterrupt:
             pass
         except Exception as e:
-            print(("Mainapp   : Got exception on close: %s" % e))
+            printlog("Mainapp   : Got exception on close: %s" % e)
 
-        print("Mainapp   : Saving config...")
+        printlog("Mainapp   : Saving config...")
         self.config.save()
 
         if self.config.getboolean("prefs", "dosignoff") and self.sm:

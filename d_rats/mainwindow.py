@@ -19,6 +19,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+#importing printlog() wrapper
+from .debug import printlog
+
 import sys
 if __name__ == "__main__":
     sys.path.insert(0, ".")
@@ -30,7 +33,7 @@ if __name__ == "__main__":
     lang = gettext.translation("D-RATS", localedir="./locale", languages=["en"])
     lang.install()
     
-    print(("Mainwind : sys.path=", sys.path))
+    printlog(("Mainwind : sys.path=", sys.path))
 
 from . import version
 import os
@@ -97,7 +100,10 @@ class MainWindow(MainWindowElement):
         def do_save_and_quit(but):
             window.set_default_size(*window.get_size())
             window.destroy()
-
+        #added 3.9.10
+        #def do_check_conns(but);
+         #   return
+            
         def do_about(but):
             # show the "about window" 
             d = gtk.AboutDialog()
@@ -120,7 +126,6 @@ class MainWindow(MainWindowElement):
 
             d.run()
             d.destroy()
-            
 
         def do_debug(but):
             path = self._config.platform.config_file("debug.log")
@@ -160,7 +165,7 @@ class MainWindow(MainWindowElement):
 
         def do_conninet(but):
             self._config.set("state", "connected_inet", but.get_active())
-            print(("Mainwind : change on connection status to %s" % but.get_active()))
+            printlog("Mainwind : change on connection status to %s" % but.get_active())
 
         def do_showpane(but, pane):
             self._config.set("state", "sidepane_visible", but.get_active())
@@ -201,7 +206,7 @@ class MainWindow(MainWindowElement):
                 args.append("./d-rats_repeater")
             else:
                 args.append("d-rats_repeater")
-            print(("Mainwind   : Running proxy: %s" % str(args)))
+            printlog(("Mainwind   : Running proxy: %s" % str(args)))
             p = subprocess.Popen(args)
 
         quit = self._wtree.get_widget("main_menu_quit")
@@ -325,7 +330,7 @@ class MainWindow(MainWindowElement):
             mbar.hide()
             gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
             gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
-            print("Enabled OSX menubar integration")
+            printlog("Enabled OSX menubar integration")
         except ImportError:
             pass
 
@@ -334,7 +339,7 @@ class MainWindow(MainWindowElement):
         gobject.timeout_add(3000, self.__update_status)
 
     def __update_status(self):
-        #print( "mainwindow: updating status")
+        #printlog( "mainwindow: updating status")
         if (time.time() - self.__last_status) > 30:
             sb = self._wtree.get_widget("statusbar")
             id = sb.get_context_id("default")
@@ -365,7 +370,7 @@ if __name__ == "__main__":
     conf = config.DratsConfig(None)
 
     def test(chat, station, msg):
-        print(("Mainwind   : %s->%s" % (station, msg)))
+        printlog(("Mainwind   : %s->%s" % (station, msg)))
 
     chat = ChatTab(wtree, conf)
     chat.connect("user-sent-message", test)

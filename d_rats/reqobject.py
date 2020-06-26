@@ -17,6 +17,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+#importing printlog() wrapper
+from .debug import printlog
+
 import gtk
 import gobject
 
@@ -54,5 +57,5 @@ class RequestRemoteObjectUI(gtk.Dialog):
         try:
             return self.__list.get_item(self.__list.get_selected())[1]
         except Exception as e:
-            print(("ReqObj    : Unable to get selected item: %s" % e))
+            printlog(("ReqObj    : Unable to get selected item: %s" % e))
             return None

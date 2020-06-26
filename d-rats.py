@@ -25,6 +25,9 @@ from optparse import OptionParser
 import traceback
 import gtk
 
+#importing print() wrapper
+from d_rats.debug import printlog
+
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
 #import module to have spelling correction in chat and email applications
@@ -51,7 +54,7 @@ def handle_exception(exctyp, value, tb):
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
 
-    print(("---- GUI Exception ----\n%s\n---- End ----\n" % trace))
+    printlog("---- GUI Exception ----\n%s\n---- End ----\n" % trace)
 
     msg = """
 <b><big>D-RATS has encountered an error.</big></b>
@@ -120,7 +123,7 @@ if __name__ == "__main__":
     from d_rats import dplatform
 
     if opts.config:
-        print("D-Rats     : re-config option found -- Reconfigure D-rats")
+        printlog("D-Rats    : re-config option found -- Reconfigure D-rats")
         dplatform.get_platform(opts.config)
 
     # import the D-Rats main application
@@ -134,10 +137,12 @@ if __name__ == "__main__":
 
     # create the mainapp with the basic options 
     app = mainapp.MainApp(safe=opts.safe)
-
+    
+    printlog("D-Rats    : reloading app\n\n")
     # finally let's open the default application triggering it differently if we 
     # want to profile it (which is running the app under profile control to see what happens) 
     if opts.profile :
+        printlog("D-Rats     : Executing with cprofile")
         import cProfile
         cProfile.run('app.main()')
     else:

@@ -17,6 +17,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+#importing printlog() wrapper
+from .debug import printlog
+
 import os
 import threading
 import poplib
@@ -76,7 +79,7 @@ def create_form_from_mail(config, mail, tmpfn):
 
     messageid = mail.get("Message-ID", time.strftime("%m%d%Y%H%M%S"))
     if not msgrouting.msg_lock(tmpfn):
-        print("AIEE: Unable to lock incoming email message file!")
+        printlog("AIEE: Unable to lock incoming email message file!")
 
     if xml:
         f = open(tmpfn, "w")
@@ -88,7 +91,7 @@ def create_form_from_mail(config, mail, tmpfn):
             recip, addr = recip.split("%", 1)
             recip = recip.upper()
     else:
-        print("Email from %s: %s" % (sender, subject))
+        printlog("Email from %s: %s" % (sender, subject))
 
         recip, addr = rfc822.parseaddr(mail.get("To", "UNKNOWN"))
 
@@ -138,7 +141,7 @@ class MailThread(threading.Thread, gobject.GObject):
         self._coerce_call = None
 
     def message(self, message):
-        print("[MAIL %s@%s] %s" % (self.username, self.server, message))
+        printlog("[MAIL %s@%s] %s" % (self.username, self.server, message))
 
     def create_form_from_mail(self, mail):
         id = self.config.get("user", "callsign") + \
@@ -151,14 +154,14 @@ class MailThread(threading.Thread, gobject.GObject):
         try:
             form = create_form_from_mail(self.config, mail, ffn)
         except Exception as e:
-            print("Failed to create form from mail: %s" % e)
+            printlog("Failed to create form from mail: %s" % e)
             return    
 
         if self._coerce_call:
-            print("Coercing to %s" % self._coerce_call)
+            printlog("Coercing to %s" % self._coerce_call)
             form.set_path_dst(self._coerce_call)
         else:
-            print("Not coercing")
+            printlog("Not coercing")
     
         form.add_path_element("EMAIL")
         form.add_path_element(self.config.get("user", "callsign"))
@@ -339,7 +342,7 @@ def __validate_access(config, callsign, emailaddr, types):
             #print "%s -> %s does not match %s,%s,%s" % (callsign, emailaddr,
             #                                            call, access, filter)
 
-    print("No match found")
+    printlog("No match found")
 
     return False
 

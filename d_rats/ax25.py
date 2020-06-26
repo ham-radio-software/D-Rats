@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 from __future__ import print_function
+#importing printlog() wrapper
+from .debug import printlog
+
 from six.moves import range
 bstr_pos = lambda n: n>0 and bstr_pos(n>>1)+str(n&1) or ''
 
@@ -21,15 +24,15 @@ class BitStuffContext:
             self.ones += 1
         else:
             self.ones = 0
-        print(("Register: %s" % bstr_pos(self.register)))
+        printlog(("Register: %s" % bstr_pos(self.register)))
         self.bits += 1
         if self.bits == 8:
-            print("Ax25      : Pushing")
+            printlog("Ax25      : Pushing")
             self.push()
 
     def store_bit(self, bit):
         if bit and self.ones == 5:
-            print("Stuffing!")
+            printlog("Stuffing!")
             self._store_bit(0)
         self._store_bit(bit)
 
@@ -53,8 +56,8 @@ if __name__ == "__main__":
 
     data = "\xFF\xFF\xFF"
 
-    print("Start:")
-    hexprint(data)
+    printlog("Start:")
+    hexprintlog(data)
 
-    print("\nStuffed:")
-    hexprint(bitstuff(data))
+    printlog("\nStuffed:")
+    hexprintlog(bitstuff(data))

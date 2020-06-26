@@ -16,6 +16,11 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
+
 import sys
 import threading
 import time
@@ -73,12 +78,12 @@ def msg_lock(fn):
         success = True
     else:
         lf = open(__msg_lockfile(fn), "r")
-        print(("Msgrouting: ------ LOCK OWNED BY -------\n%s------------\n" % lf.read()))
+        printlog(("Msgrouting: ------ LOCK OWNED BY -------\n%s------------\n" % lf.read()))
         lf.close()
         success = False
     MSG_LOCK_LOCK.release()
 
-    #print("Locked %s: %s" % (fn, success))
+    #printlog("Locked %s: %s" % (fn, success))
     return success
 
 def msg_unlock(fn):
@@ -91,7 +96,7 @@ def msg_unlock(fn):
         success = False
     MSG_LOCK_LOCK.release()
 
-    #print("Unlocked %s: %s" % (fn, success))
+    #printlog("Unlocked %s: %s" % (fn, success))
     return success
 
 def gratuitous_next_hop(route, path):
@@ -99,12 +104,12 @@ def gratuitous_next_hop(route, path):
     route_nodes = route.split(";")
 
     if len(path_nodes) >= len(route_nodes):
-        print("Msgrouting: Nothing left in the routes")
+        printlog("Msgrouting: Nothing left in the routes")
         return None
 
     for i in range(0, len(path_nodes)):
         if path_nodes[i] != route_nodes[i]:
-            print(("Msgrouting: Path element %i (%s) does not match route %s" % \
+            printlog(("Msgrouting: Path element %i (%s) does not match route %s" % \
                 (i, path_nodes[i], route_nodes[i])))
             return None
 
@@ -114,35 +119,35 @@ def is_sendable_dest(mycall, string):
     
     # Specifically for me
     if string == mycall:
-        print("Msgrouting: for me")
+        printlog("Msgrouting: for me")
         return False
 
     # Empty string
     if not string.strip():
-        print(("Msgrouting: empty: %s %s" % (string, string.strip())))
+        printlog(("Msgrouting: empty: %s %s" % (string, string.strip())))
         return False
 
     # Is an email address:
     if "@" in string:
-        print("Msgrouting: is an Email")
+        printlog("Msgrouting: is an Email")
         return True
 
     # Contains lowercase characters
     if string != string.upper():
-        print("Msgrouting: lowercase")
+        printlog("Msgrouting: lowercase")
         return False
 
     # Contains spaces
     if string != string.split()[0]:
-        print("Msgrouting: spaces")
+        printlog("Msgrouting: spaces")
         return False
 
     # Contains a gratuitous route and we're the last in line
     if ";" in string and string.split(";")[-1] == mycall:
-        print("Msgrouting: End of grat")
+        printlog("Msgrouting: End of grat")
         return False
 
-    print("Msgrouting: default to call")
+    printlog("Msgrouting: default to call")
 
     # Looks like it's a candidate to be routed
     return True
@@ -221,7 +226,7 @@ class MessageRouter(gobject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
-            print(("Msgrouting: Proxy emit %s: %s" % (signal, args)))
+            printlog(("Msgrouting: Proxy emit %s: %s" % (signal, args)))
             self._emit(signal, *args)
         return handler
 
@@ -259,7 +264,7 @@ class MessageRouter(gobject.GObject):
                 dest, gw, port = line.split()
                 routes[dest] = gw
             except Exception as e:
-                print(("Msgrouting: Error parsing line '%s': %s" % (line, e)))
+                printlog(("Msgrouting: Error parsing line '%s': %s" % (line, e)))
 
         return routes
 
@@ -268,7 +273,7 @@ class MessageRouter(gobject.GObject):
         time.sleep(t)
 
     def _p(self, string):
-        print(("Msgrouting: [MR] %s" % string))
+        printlog(("Msgrouting: [MR] %s" % string))
         import sys
         sys.stdout.flush()
 
@@ -279,7 +284,7 @@ class MessageRouter(gobject.GObject):
         fl = glob(os.path.join(qd, "*.xml"))
         for f in fl:
             if not msg_lock(f):
-                print(("Msgrouting: Message %s is locked, skipping" % f))
+                printlog(("Msgrouting: Message %s is locked, skipping" % f))
                 continue
 
             form = formgui.FormFile(f)
@@ -327,7 +332,7 @@ class MessageRouter(gobject.GObject):
             if ";" in dst:
                 # Gratuitous routing takes precedence
                 route = gratuitous_next_hop(dst, path)
-                print(("Msgrouting: Route for %s: %s (%s)" % (dst, route, path)))
+                printlog(("Msgrouting: Route for %s: %s (%s)" % (dst, route, path)))
                 break
             elif "@" in dst and dst not in invalid and \
                     not ":" in dst and \
@@ -354,15 +359,15 @@ class MessageRouter(gobject.GObject):
             if route.upper().startswith("WL2K:"):
                 break # WL2K is easy
             elif route != dst and route in path:
-                print(("Msgrouting: Route %s in path" % route))
+                printlog(("Msgrouting: Route %s in path" % route))
                 invalid.append(route)
                 route = None # Don't route to the same location twice
             elif self._is_station_failed(route):
-                print(("Msgrouting: Route %s is failed" % route))
+                printlog(("Msgrouting: Route %s is failed" % route))
                 invalid.append(route)
                 route = None # This one is not responding lately
             elif old(route) and self._station_pinged_out(route):
-                print(("Msgrouting: Route %s for %s is pinged out" % (route, dst)))
+                printlog(("Msgrouting: Route %s for %s is pinged out" % (route, dst)))
                 invalid.append(route)
                 route = None # This one has been pinged and isn't responding
             else:
@@ -441,7 +446,7 @@ class MessageRouter(gobject.GObject):
             self._p("Call %s is busy" % route)
             return False
 
-        print(slist)
+        printlog(slist)
         port = slist[route].get_port()
         if not self._port_free(port):
             self._p("I think port %s is busy" % port)
@@ -460,7 +465,7 @@ class MessageRouter(gobject.GObject):
             if status:
                 self._emit("form-sent", -1, msgfn)
             else:
-                print(("Msgrouting: Failed to send via WL2K: %s" % error))
+                printlog(("Msgrouting: Failed to send via WL2K: %s" % error))
         
         from . import mainapp # Hack to force import of mainapp 
         mt = wl2k.wl2k_auto_thread(mainapp.get_mainapp(), src, send_msgs=[msg])
@@ -519,24 +524,24 @@ class MessageRouter(gobject.GObject):
     
                 if not routed:
                     if msg_is_locked(msg):
-                        print(("Msgrouting: unlocking message %s" % msg))
+                        printlog(("Msgrouting: unlocking message %s" % msg))
                         msg_unlock(msg)
     
     def _run(self):
         while self.__enabled:
             if self.__config.getboolean("settings", "msg_forward") or \
                     self.__event.isSet():
-                print("Msgrouting: Running routing loop")
+                printlog("Msgrouting: Running routing loop")
                 queue = self._get_queue()
 
                 try:
                     self._run_one(queue)
                 except Exception as e:
                     utils.log_exception()
-                    print("Msgrouting: Fail-safe unlocking messages in queue:")
+                    printlog("Msgrouting: Fail-safe unlocking messages in queue:")
                     for msgs in queue.values():
                         for msg in msgs:
-                            print(("Msgrouting: Unlocking %s" % msg))
+                            printlog(("Msgrouting: Unlocking %s" % msg))
                             if msg_is_locked(msg):
                                 msg_unlock(msg)
 
@@ -571,7 +576,7 @@ class MessageRouter(gobject.GObject):
 
     def _station_failed(self, call):
         self.__failed_stations[call] = self.__failed_stations.get(call, 0) + 1
-        print(("Msgrouting: Fail count for %s is %i" % (call, self.__failed_stations[call])))
+        printlog(("Msgrouting: Fail count for %s is %i" % (call, self.__failed_stations[call])))
 
     def _is_station_failed(self, call):
         return self.__failed_stations.get(call, 0) >= 3

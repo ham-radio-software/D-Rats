@@ -1,8 +1,11 @@
-#m
-#m
-
+#!/usr/bin/python
+#
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import os
 import subprocess
 
@@ -42,7 +45,7 @@ class Spelling:
         try:
             self.__pipe.stdout.readline()
         except Exception as e:
-            print("Demand-opening aspell...")
+            printlog("Demand-opening aspell...")
             self.__pipe = self.__open_aspell()
             self.__pipe.stdout.readline()
 
@@ -64,14 +67,14 @@ class Spelling:
         try:
             s = self.lookup_word("speling")
             if s[0] != "spelling,":
-                print("Unable to validate first suggestion of `spelling'")
-                print(s[0])
+                printlog("Spell     : Unable to validate first suggestion of `spelling'")
+                printlog(s[0])
                 return False
         except Exception as e:
-            print("Spelling test failed: %s" % e)
+            printlog("Spelling test failed: %s" % e)
             return False
 
-        print("Tested spelling okay: %s" % s)
+        printlog("Tested spelling okay: %s" % s)
         return True
 
 
@@ -86,7 +89,7 @@ def test_word(spell, word):
         items = result.split()
         return items[4:]
     else:
-        print("Unknown response: `%s'" % result)
+        printlog("Unknown response: `%s'" % result)
 
 SPELL = None
 def get_spell():
@@ -141,6 +144,6 @@ def prepare_TextBuffer(buf):
 
 if __name__ == "__main__":
     s = Spelling()
-    print(s.lookup_word("speling"))
-    print(s.lookup_word("teh"))
-    print(s.lookup_word("foo"))
+    printlog(s.lookup_word("speling"))
+    printlog(s.lookup_word("teh"))
+    printlog(s.lookup_word("foo"))

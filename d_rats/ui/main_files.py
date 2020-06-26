@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#importing printlog() wrapper
+from ..debug import printlog
+
 import os
 import time
 from glob import glob
@@ -79,7 +82,7 @@ class LocalFileView(FileView):
         for file in files:
             if os.path.isdir(file):
                 continue
-            print "Adding local file `%s'" % file
+            printlog("Adding local file `%s'" % file)
             try:
                 stat = os.stat(file)
                 ts = stat.st_mtime
@@ -87,12 +90,12 @@ class LocalFileView(FileView):
                 nm = os.path.basename(file)
                 self._store.append((self._file_icon, nm, sz, ts))
             except Exception, e:
-                print "Failed to add local file: %s" % e
+                printlog("Failed to add local file: %s" % e)
 
 class RemoteFileView(FileView):
     def _file_list_cb(self, job, state, result):
         if state != "complete":
-            print "Incomplete job"
+            printlog("Incomplete job")
             return
 
         unit_decoder = { "B" : 0,
@@ -110,7 +113,7 @@ class RemoteFileView(FileView):
                     ts = time.mktime(time.strptime(stamp,
                                                    "(%Y-%m-%d %H:%M:%S)"))
                 except Exception, e:
-                    print "Unable to parse file info: %s" % e
+                    printlog("Unable to parse file info: %s" % e)
                     ts = time.time()
                     size = 0
 

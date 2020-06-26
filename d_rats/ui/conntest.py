@@ -15,13 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#importing printlog() wrapper
+from ..debug import printlog
+
 import gtk
 import gobject
 
 try:
     from gtk import Assistant as baseclass
 except ImportError:
-    print("ConnTest  : No Assistant support")
+    printlog("ConnTest  : No Assistant support")
     from d_rats.geocode_ui import baseclass
 
 if __name__ == "__main__":
@@ -36,7 +39,7 @@ def calc_watchdog(size):
     bytes_per_sec = 950 / 8           # 950 bits per second
     sec = 10 + (size / bytes_per_sec)  # Time to transmit, plus padding
 
-    print("ConnTest  : Waiting %i seconds for send of %i" % (sec, size))
+    printlog("ConnTest  : Waiting %i seconds for send of %i" % (sec, size))
 
     return int(sec * 1000)
 
@@ -244,7 +247,7 @@ class ConnTestAssistant(baseclass):
 
     def set_test_val(self, *pairs):
         if len(pairs) % 2:
-            print("ConnTest  : Ack! need name=value pairs!")
+            printlog("ConnTest  : Ack! need name=value pairs!")
             return
 
         for i in range(0, len(pairs), 2):

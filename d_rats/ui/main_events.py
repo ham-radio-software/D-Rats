@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#importing printlog() wrapper
+from ..debug import printlog
+
 import time
 import os
 from datetime import datetime
@@ -198,7 +201,7 @@ class EventTab(MainWindowTab):
 
     def _type_selected(self, typesel, filtermodel):
         filter = typesel.get_active_text()
-        print("MainEvents: Filter set on %s" % filter)
+        printlog("MainEvents: Filter set on %s" % filter)
         t = None
         if filter == _("All") or filter ==_("Tutto"):
             t = None
@@ -244,7 +247,7 @@ class EventTab(MainWindowTab):
         column.set_sort_order(srt)
 
     def _get_sort_asc(self):
-        #print("mainEvents: sorting events in ascending order")
+        #printlog("mainEvents: sorting events in ascending order")
         srt = self._config.getint("state", "events_sort")
         return srt == gtk.SORT_ASCENDING
 

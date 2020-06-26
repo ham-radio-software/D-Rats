@@ -18,6 +18,10 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import os
 import sys
 
@@ -65,17 +69,17 @@ def set_base_dir(basedir, mapurl, mapkey):
     
     global BASE_DIR
     BASE_DIR = basedir 
-    print(("Mapdisplay: BASE_DIR configured to %s: " % BASE_DIR))
+    printlog(("Mapdisplay: BASE_DIR configured to %s: " % BASE_DIR))
   
     #setup of the url where go to retrieve tiles
     global MAP_URL
     MAP_URL = mapurl 
-    print(("Mapdisplay: MAP_URL configured to: %s" % MAP_URL))
+    printlog(("Mapdisplay: MAP_URL configured to: %s" % MAP_URL))
     
     #setup of the key to append to the url to retrieve tiles
     global MAP_URL_KEY
     MAP_URL_KEY = mapkey 
-    print(("Mapdisplay: MAP_URL_KEY configured to: %s " %MAP_URL_KEY))
+    printlog(("Mapdisplay: MAP_URL_KEY configured to: %s " %MAP_URL_KEY))
     
 CONFIG = None
 
@@ -123,15 +127,15 @@ def fetch_url(url, local):
         if e.code == 404:
             return
         else:
-            print("HTTP error while retrieving tile: "
+            printlog("HTTP error while retrieving tile: "
                     "code: {}, reason: {} - {} [{}]".format( e.code, e.reason, str(e), url)
             )
             return
     except Exception as e:
-            print("Error while retrieving info from {}".format(str(e)))
+            printlog("Error while retrieving info from {}".format(str(e)))
             return
 
-    print('Mapdisplay: all is good so create the jpg file')
+    printlog('Mapdisplay: all is good so create the jpg file')
     d = data.read()
     local_file = open(local, "wb")
     local_file.write(d)
@@ -141,7 +145,7 @@ def fetch_url(url, local):
 
 class MarkerEditDialog(inputdialog.FieldDialog):
     def __init__(self):
-        print("Mapdisplay : markereditdialog")
+        printlog("Mapdisplay : markereditdialog")
         inputdialog.FieldDialog.__init__(self, title=_("Add Marker"))
 
         self.icons = []
@@ -187,7 +191,7 @@ class MarkerEditDialog(inputdialog.FieldDialog):
                 iidx = symlist.index(point.get_aprs_symbol())
                 iconsel.set_active(iidx)
             except ValueError:
-                print(("Mapdisplay: No such symbol `%s'" % point.get_aprs_symbol()))
+                printlog(("Mapdisplay: No such symbol `%s'" % point.get_aprs_symbol()))
         else:
             iconsel.set_sensitive(False)
 
@@ -270,13 +274,13 @@ class MapTile(object):
             for i in range(10):
                 url = self.remote_path()
                 #m
-                #print("Mapdisplay: try opening %s" % url)
+                #printlog("Mapdisplay: try opening %s" % url)
                 try:
                     fetch_url(url, self._local_path())
-                    print(("Mapdisplay: opened %s" % url))
+                    printlog(("Mapdisplay: opened %s" % url))
                     return True
                 except Exception as e:
-                    print("Mapdisplay: [%i] Failed to fetch `%s': %s" % (i, url, e))
+                    printlog("Mapdisplay: [%i] Failed to fetch `%s': %s" % (i, url, e))
 
             return False
         else:
@@ -358,7 +362,7 @@ class MapWidget(gtk.DrawingArea):
         }
 
     def draw_text_marker_at(self, x, y, text, color="yellow"):
-        #print("Mapdisplay: draw_text_marker_at %s at x=%s y=%s" %(text, x, y))
+        #printlog("Mapdisplay: draw_text_marker_at %s at x=%s y=%s" %(text, x, y))
 
         gc = self.get_style().black_gc
         
@@ -378,7 +382,7 @@ class MapWidget(gtk.DrawingArea):
         self.window.draw_layout(gc, int(x), int(y), pl)
 
     def draw_image_at(self, x, y, pb):
-        #print("Mapdisplay: draw_image_at x=%s y=%s" %(x, y))
+        #printlog("Mapdisplay: draw_image_at x=%s y=%s" %(x, y))
         gc = self.get_style().black_gc
 
         self.window.draw_pixbuf(gc,
@@ -389,7 +393,7 @@ class MapWidget(gtk.DrawingArea):
         return pb.get_height()
 
     def draw_cross_marker_at(self, x, y):
-        #print("Mapdisplay: draw_cross_marker_at x=%s y=%s" %(x, y))
+        #printlog("Mapdisplay: draw_cross_marker_at x=%s y=%s" %(x, y))
         width = 2
         cm = self.window.get_colormap()
         color = cm.alloc_color("red")
@@ -427,10 +431,10 @@ class MapWidget(gtk.DrawingArea):
     
 
     def draw_marker(self, label, lat, lon, img=None):
-        #print("Mapdisplay: ----------------- %s" % time.ctime())
-        #print("Mapdisplay: zoom     =%i" % self.zoom)
-        #print("Mapdisplay: draw marker for %s at %s %s" %(label, lat, lon))
-        #print("Mapdisplay: fudge    =%i" % self.lat_fudge)
+        #printlog("Mapdisplay: ----------------- %s" % time.ctime())
+        #printlog("Mapdisplay: zoom     =%i" % self.zoom)
+        #printlog("Mapdisplay: draw marker for %s at %s %s" %(label, lat, lon))
+        #printlog("Mapdisplay: fudge    =%i" % self.lat_fudge)
         
         color = "yellow" #this is the bg color of the stations markers on the map (before it was red)
 
@@ -553,11 +557,11 @@ class MapWidget(gtk.DrawingArea):
                 #utils.log_exception()
                 #removing broken tiles                
                 if os.path.exists(path):
-                    print(("Mapdisplay: Deleting the broken tile to force future download %s" % path))
+                    printlog(("Mapdisplay: Deleting the broken tile to force future download %s" % path))
                     os.remove(path)
                 #else:
                     #usually this happens when a tile file has not been create after fetching from the tile as some error was got
-                    #print(("Mapdisplay: broken tile  not found - skipping deletion of: %s" % path))
+                    #printlog(("Mapdisplay: broken tile  not found - skipping deletion of: %s" % path))
                     
                 pb = self.broken_tile()
         else:
@@ -657,7 +661,7 @@ class MapWidget(gtk.DrawingArea):
         self.height = height
         self.width = width
         
-        #print("Mapdisplay: mapwidget - height %s, width %s" % (height, width))
+        #printlog("Mapdisplay: mapwidget - height %s, width %s" % (height, width))
         self.tilesize = tilesize
         self.status = status
 
@@ -812,7 +816,7 @@ class MapWindow(gtk.Window):
         action = _action.get_name()
 
         if action == "delete":
-            print(("Mapdisplay: Deleting %s/%s" % (group, id)))
+            printlog(("Mapdisplay: Deleting %s/%s" % (group, id)))
             for source in self.map_sources:
                 if source.get_name() == group:
                     if not source.get_mutable():
@@ -1300,7 +1304,7 @@ class MapWindow(gtk.Window):
 
         lat, lon = self.map.xy2latlon(mx, my)
 
-        print(("Mapdisplay: Button %i at %i,%i" % (event.button, mx, my)))
+        printlog(("Mapdisplay: Button %i at %i,%i" % (event.button, mx, my)))
         if event.button == 3:
             vals = { "lat" : lat,
                      "lon" : lon,
@@ -1310,12 +1314,12 @@ class MapWindow(gtk.Window):
             if menu:
                 menu.popup(None, None, None, event.button, event.time)
         elif event.type == gtk.gdk.BUTTON_PRESS:
-            print(("Mapdisplay: Clicked: %.4f,%.4f" % (lat, lon)))
+            printlog(("Mapdisplay: Clicked: %.4f,%.4f" % (lat, lon)))
             # The crosshair marker has been missing since 0.3.0
             #self.set_marker(GPSPosition(station=CROSSHAIR,
             #                            lat=lat, lon=lon))
         elif event.type == gtk.gdk._2BUTTON_PRESS:
-            print(("Mapdisplay: recenter on %.4f, %.4f" % (lat,lon)))
+            printlog(("Mapdisplay: recenter on %.4f, %.4f" % (lat,lon)))
 
             self.recenter(lat, lon)
 
@@ -1438,7 +1442,7 @@ class MapWindow(gtk.Window):
         except Exception as e:
             if str(e) == "Item not found":
                 # this is evil
-                print("Mapdisplay: Adding point instead of updating")
+                printlog("Mapdisplay: Adding point instead of updating")
                 return self.add_point(source, point)
 
         self.add_point_visible(point)
@@ -1495,7 +1499,7 @@ class MapWindow(gtk.Window):
     def maybe_recenter_on_updated_point(self, source, point):
         if point.get_name() == self.center_mark and \
                 self.tracking_enabled:
-            print("Mapdisplay: Center updated")
+            printlog("Mapdisplay: Center updated")
             self.recenter(point.get_latitude(), point.get_longitude())
         self.update_point(source, point)
 
@@ -1657,9 +1661,9 @@ class MapWindow(gtk.Window):
                 return
 
             for source in self.map_sources:
-                print(("Mapdisplay: %s,%s" % (source.get_name(), group)))
+                printlog(("Mapdisplay: %s,%s" % (source.get_name(), group)))
                 if source.get_name() == group:
-                    print(("Mapdisplay: Adding new point %s to %s" % (point.get_name(),source.get_name())))
+                    printlog(("Mapdisplay: Adding new point %s to %s" % (point.get_name(),source.get_name())))
                     source.add_point(point)
                     source.save()
                     return
@@ -1700,7 +1704,7 @@ class MapWindow(gtk.Window):
         self.map.set_center(lat, lon)
 
 if __name__ == "__main__":
-    print("Mapdisplay: __Executing __main__ section")
+    printlog("Mapdisplay: __Executing __main__ section")
     import sys
     from . import gps
 

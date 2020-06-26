@@ -17,6 +17,11 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
+
 import os
 import sys
 import glob
@@ -162,7 +167,7 @@ class Platform(object):
         self._connected = connected
 
     def play_sound(self, soundfile):
-        print("Sound is unsupported on this platform!")
+        printlog("Sound is unsupported on this platform!")
 
 class UnixPlatform(Platform):
     def __init__(self, basepath):
@@ -200,13 +205,13 @@ class UnixPlatform(Platform):
         if pid1 == 0:
             pid2 = os.fork()
             if pid2 == 0:
-                print("Exec'ing %s" % str(args))
+                printlog("Exec'ing %s" % str(args))
                 os.execlp(args[0], *args)
             else:
                 sys.exit(0)
         else:
             os.waitpid(pid1, 0)
-            print("Exec child exited")
+            printlog("Exec child exited")
 
     def open_text_file(self, path):
         self._unix_doublefork_run("gedit", path)
@@ -239,15 +244,15 @@ class UnixPlatform(Platform):
         try:
             (t, r, c, f, b) = sndhdr.what(soundfile)
         except Exception as e:
-            print("Unable to determine sound header of %s: %s" % (soundfile, e))
+            printlog("Unable to determine sound header of %s: %s" % (soundfile, e))
             return
 
         if t != "wav":
-            print("Unable to play non-wav file %s" % soundfile)
+            printlog("Unable to play non-wav file %s" % soundfile)
             return
 
         if b != 16:
-            print("Unable to support strange non-16-bit audio (%i)" % b)
+            printlog("Unable to support strange non-16-bit audio (%i)" % b)
             return
 
         dev = None
@@ -263,7 +268,7 @@ class UnixPlatform(Platform):
 
             dev.close()
         except Exception as e:
-            print("Error playing sound %s: %s" % (soundfile, e))
+            printlog("Error playing sound %s: %s" % (soundfile, e))
         
         if dev:
             dev.close()
@@ -272,7 +277,7 @@ class MacOSXPlatform(UnixPlatform):
     def __init__(self, basepath):
         # We need to make sure DISPLAY is set
         if "DISPLAY" not in os.environ:
-            print("Forcing DISPLAY for MacOS")
+            printlog("Forcing DISPLAY for MacOS")
             os.environ["DISPLAY"] = ":0"
 
         os.environ["PANGO_RC_FILE"] = "../Resources/etc/pango/pangorc"
@@ -368,7 +373,7 @@ class Win32Platform(Platform):
         try:
             fname, _, _ = win32gui.GetOpenFileNameW()
         except Exception as e:
-            print("Failed to get filename: %s" % e)
+            printlog("Failed to get filename: %s" % e)
             return None
 
         return str(fname)
@@ -380,7 +385,7 @@ class Win32Platform(Platform):
         try:
             fname, _, _ = win32gui.GetSaveFileNameW(File=default_name)
         except Exception as e:
-            print("Failed to get filename: %s" % e)
+            printlog("Failed to get filename: %s" % e)
             return None
 
         return str(fname)
@@ -393,7 +398,7 @@ class Win32Platform(Platform):
             pidl, _, _ = shell.SHBrowseForFolder()
             fname = shell.SHGetPathFromIDList(pidl)
         except Exception as e:
-            print("Failed to get directory: %s" % e)
+            printlog("Failed to get directory: %s" % e)
             return None
 
         return str(fname)
@@ -439,11 +444,11 @@ if __name__ == "__main__":
     def do_test():
         __pform = get_platform()
 
-        print("Config dir: %s" % __pform.config_dir())
-        print("Default dir: %s" % __pform.default_dir())
-        print("Log file (foo): %s" % __pform.log_file("foo"))
-        print("Serial ports: %s" % __pform.list_serial_ports())
-        print("OS Version: %s" % __pform.os_version_string())
+        printlog("Config dir: %s" % __pform.config_dir())
+        printlog("Default dir: %s" % __pform.default_dir())
+        printlog("Log file (foo): %s" % __pform.log_file("foo"))
+        printlog("Serial ports: %s" % __pform.list_serial_ports())
+        printlog("OS Version: %s" % __pform.os_version_string())
         #__pform.open_text_file("d-rats.py")
 
         #print "Open file: %s" % __pform.gui_open_file()

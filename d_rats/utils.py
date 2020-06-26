@@ -16,6 +16,10 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import re
 import os
 import tempfile
@@ -28,13 +32,13 @@ def open_icon_map(iconfn):
     import gtk
 
     if not os.path.exists(iconfn):
-        print("Icon file %s not found" % iconfn)
+        printlog("Icon file %s not found" % iconfn)
         return None
     
     try:
         return gtk.gdk.pixbuf_new_from_file(iconfn)
     except Exception as e:
-        print("Error opening icon map %s: %s" % (iconfn, e))
+        printlog("Error opening icon map %s: %s" % (iconfn, e))
         return None
 
 ICON_MAPS = None
@@ -64,7 +68,7 @@ def hexprint(data):
     for i in range(0, (len(data)/line_sz)):
 
 
-        print("%03i: " % (i * line_sz), end=' ')
+        printlog("%03i: " % (i * line_sz), end=' ')
 
         left = len(data) - (i * line_sz)
         if left < line_sz:
@@ -73,21 +77,21 @@ def hexprint(data):
             limit = line_sz
             
         for j in range(0,limit):
-            print("%02x " % ord(data[(i * line_sz) + j]), end=' ')
+            printlog("%02x " % ord(data[(i * line_sz) + j]), end=' ')
             csum += ord(data[(i * line_sz) + j])
             csum = csum & 0xFF
 
-        print("  ", end=' ')
+        printlog("  ", end=' ')
 
         for j in range(0,limit):
             char = data[(i * line_sz) + j]
 
             if ord(char) > 0x20 and ord(char) < 0x7E:
-                print("%s" % char, end=' ')
+                printlog("%s" % char, end=' ')
             else:
-                print(".", end=' ')
+                printlog(".", end=' ')
 
-        print("")
+        printlog("")
 
     return csum
 
@@ -107,7 +111,7 @@ def run_safe(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            print("<<<%s>>> %s" % (f, e))
+            printlog("<<<%s>>> %s" % (f, e))
             return None
 
     return runner
@@ -176,20 +180,20 @@ def get_icon(key):
         elif key[0] == "\\":
             set = "\\"
         else:
-            print("Unknown APRS symbol table: %s" % key[0])
+            printlog("Utils     : Unknown APRS symbol table: %s" % key[0])
             return None
 
         key = key[1]
     elif len(key) == 1:
         set = "/"
     else:
-        print("Unknown APRS symbol: `%s'" % key)
+        printlog("Utils     : Unknown APRS symbol: `%s'" % key)
         return None
 
     try:
         return get_icon_from_map(ICON_MAPS[set], key)
     except Exception as e:
-        print("Error cutting icon %s: %s" % (key, e))
+        printlog("Error cutting icon %s: %s" % (key, e))
         return None
 
 class NetFile(file):
@@ -205,7 +209,7 @@ class NetFile(file):
                 self.__fn = tmpf.name
                 tmpf.close()
 
-                print("Retrieving %s -> %s" % (uri, self.__fn))
+                printlog("Retrieving %s -> %s" % (uri, self.__fn))
                 six.moves.urllib.request.urlretrieve(uri, self.__fn)
                 break
         
@@ -248,9 +252,9 @@ def log_exception():
         import traceback
         import sys
 
-        print("-- Exception: --")
+        printlog("-- Exception: --")
         traceback.print_exc(limit=30, file=sys.stdout)
-        print("------")
+        printlog("------")
 
 def set_entry_hint(entry, hint, default_focused=False):
     import gtk
@@ -311,6 +315,6 @@ def dict_rev(target_dict, key):
     for k,v in target_dict.items():
         reverse[v] = k
 
-    print("Reversed dict: %s" % reverse)
+    printlog("Reversed dict: %s" % reverse)
 
     return reverse[key]

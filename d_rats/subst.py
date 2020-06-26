@@ -4,6 +4,9 @@ from __future__ import absolute_import
 from __future__ import print_function
 import six.moves.configparser
 
+#importing printlog() wrapper
+from .debug import printlog
+
 from . import dplatform
 
 sublist = None
@@ -29,7 +32,7 @@ class SubstitutionList(object):
 
             sub = self.get_sub(key)
 
-            print("Substitution for %s was: %s" % (key, sub))
+            printlog("Substitution for %s was: %s" % (key, sub))
 
             string = first + sub + last
 
@@ -51,10 +54,10 @@ def load_subs():
 
 def subst_string(string):
     if not load_subs():
-        print("Unable to load substitution list")
+        printlog("Unable to load substitution list")
         return string
     else:
         return sublist.subst(string)
 
 if __name__ == "__main__":
-    print(subst_string("Status: /10-14/"))
+    printlog(subst_string("Status: /10-14/"))

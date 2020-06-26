@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 from __future__ import print_function
+#importing printlog() wrapper
+from .debug import printlog
+
 import struct
 from . import utils
 import sys
@@ -155,7 +158,7 @@ class AGWConnection:
             f = self.__recv_frame()
             self.__lock.release()
             if f:
-                print(("Agw       : Got %s frame while waiting for %s" % (chr(f.kind), kind)))
+                printlog(("Agw       : Got %s frame while waiting for %s" % (chr(f.kind), kind)))
                 self._framebuf[f.kind].insert(0, f)
             elif not poll:
                 return None
@@ -186,7 +189,7 @@ class AGW_AX25_Connection:
         self._agw.send_frame(cf)
 
         f = self._agw.recv_frame_type("C", True)
-        print(("Agw       : %s" % f.get_payload()))
+        printlog(("Agw       : %s" % f.get_payload()))
 
     def disconnect(self):
         df = AGWFrame_d()
@@ -194,7 +197,7 @@ class AGW_AX25_Connection:
         self._agw.send_frame(df)
 
         f = self._agw.recv_frame_type("d", True)
-        print(("Agw       : %s" % f.get_payload()))
+        printlog(("Agw       : %s" % f.get_payload()))
 
     def send(self, data):
         df = AGWFrame_D()
@@ -232,10 +235,10 @@ def agw_recv_frame(s):
                 f.unpack(data)
                 data = ""
             except Exception as e:
-                #print("Failed: %s" % e)
+                #printlog("Failed: %s" % e)
                 continue
             prin("Agw       : %s -> %s [%s]" % (f.get_from(), f.get_to(), chr(f.kind)))
-            utils.hexprint(f.get_payload())
+            utils.hexprintlog(f.get_payload())
             return
 
 def test_raw_recv(s):
@@ -264,17 +267,17 @@ def test_class_connect():
     agw = AGWConnection("127.0.0.1", 8000, 0.5)
     axc = AGW_AX25_Connection(agw, "KK7DS")
     axc.connect("N7AAM-11")
-    print(("Agw       : %s" % axc.recv_text()))
+    printlog(("Agw       : %s" % axc.recv_text()))
 
     while True:
-        print("Agw       : packet> ")
+        printlog("Agw       : packet> ")
         l = sys.stdin.readline().strip()
         if len(l) > 0:
             axc.send(l + "\r")
         r = True
         while r:
             r = axc.recv_text()
-            print(("Agw       : %s" % r))
+            printlog(("Agw       : %s" % r))
 
     axc.disconnect()
 
@@ -337,7 +340,7 @@ def transmit_data(conn, dcall, spath, data):
                     0xF0)    # PID: No layer 3
     d += data
 
-    utils.hexprint(d)
+    utils.hexprintlog(d)
 
     f = AGWFrame_K()
     f.set_payload(d)

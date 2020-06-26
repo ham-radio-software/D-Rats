@@ -17,6 +17,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+#importing printlog() wrapper
+from .debug import printlog
+
 import libxml2
 import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
 import tempfile
@@ -25,7 +28,7 @@ import datetime
 try:
     from hashlib import md5
 except ImportError:
-    print("Installing hashlib replacement hack")
+    printlog("Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
 def ev_cmp_exp(ev1, ev2):
@@ -114,7 +117,7 @@ class CAPParser(object):
                         hashes.append(hash.digest())
 
                 except Exception as e:
-                    print(("Unable to parse CAP node: %s (%s)" % (child.name, e)))
+                    printlog(("Unable to parse CAP node: %s (%s)" % (child.name, e)))
 
             child = child.next
 
@@ -156,8 +159,8 @@ if __name__ == "__main__":
 
     c = 0
     for i in cp.events_expiring_after(epoch):
-        print((i.report()))
+        printlog((i.report()))
         c += 1
 
-    print(("%i events" % c))
+    printlog(("%i events" % c))
         

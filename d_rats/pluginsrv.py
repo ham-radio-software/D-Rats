@@ -17,6 +17,10 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import os
 import threading
 from six.moves.xmlrpc_server import SimpleXMLRPCServer
@@ -77,7 +81,7 @@ class DRatsPluginProxy(gobject.GObject):
 
     def send_chat(self, port, message):
         """Send a chat @message on @port"""
-        print(("Pluginsrv : Sending chat on port %s: %s" % (port, message)))
+        printlog("Pluginsrv : Sending chat on port %s: %s" % (port, message))
         self.emit("user-send-chat", "CQCQCQ", port, message, False)
 
         return 0
@@ -97,7 +101,7 @@ class DRatsPluginProxy(gobject.GObject):
 
         sname = os.path.basename(filename)
 
-        print(("Pluginsrv : Sending file %s to %s on port %s" % (filename, station, port)))
+        printlog(("Pluginsrv : Sending file %s to %s on port %s" % (filename, station, port)))
         self.emit("user-send-file", station, port, filename, sname)
 
         return 0
@@ -182,7 +186,7 @@ class DRatsPluginServer(SimpleXMLRPCServer):
         self.__thread = threading.Thread(target=self.serve_forever)
         self.__thread.setDaemon(True)
         self.__thread.start()
-        print("Pluginsrv : Started serve_forever() thread")
+        printlog("Pluginsrv : Started serve_forever() thread")
                                
     def incoming_chat_message(self, *args):
         self.__proxy.incoming_chat_message(*args)

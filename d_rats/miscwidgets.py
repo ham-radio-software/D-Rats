@@ -16,6 +16,10 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+#importing printlog() wrapper
+from .debug import printlog
+
 import gtk
 import gobject
 import pango
@@ -129,7 +133,7 @@ class KeyedListWidget(gtk.HBox):
             (store, iter) = self.__view.get_selection().get_selected()
             return store.get(iter, 0)[0]
         except Exception as e:
-            print("Unable to find selected: %s" % e)
+            printlog("Unable to find selected: %s" % e)
             return None
 
     def select_item(self, key):
@@ -315,7 +319,7 @@ class ListWidget(gtk.HBox):
             (lst, iter) = self._view.get_selection().get_selected()
             lst.remove(iter)
         except Exception as e:
-            print("Unable to remove selected: %s" % e)
+            printlog("Unable to remove selected: %s" % e)
 
     def get_selected(self, take_default=False):
         (lst, iter) = self._view.get_selection().get_selected()
@@ -432,7 +436,7 @@ class TreeWidget(ListWidget):
         elif isinstance(vals, tuple):
             self._add_item(parent, *vals)
         else:
-            print("Unknown type: %s" % vals)
+            printlog("Unknown type: %s" % vals)
 
     def set_values(self, vals):
         self._store.clear()
@@ -627,7 +631,7 @@ class LatLonEntry(gtk.Entry):
                 try:
                     return self.parse_dms(string)
                 except Exception as e:
-                    print("DMS: %s" % e)
+                    printlog("DMS: %s" % e)
 
         raise Exception("Invalid format")
 
@@ -775,9 +779,9 @@ def test():
 
     def print_val(entry):
         if entry.validate():
-            print("Valid: %s" % entry.value())
+            printlog("Valid: %s" % entry.value())
         else:
-            print("Invalid")
+            printlog("Invalid")
     lle.connect("activate", print_val)
 
     lle.set_text("45 13 12")
@@ -787,7 +791,7 @@ def test():
     except KeyboardInterrupt:
         pass
 
-    print(lst.get_values())
+    printlog(lst.get_values())
 
 if __name__ == "__main__":
     test()

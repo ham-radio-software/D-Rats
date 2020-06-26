@@ -1,5 +1,7 @@
 
 from __future__ import print_function
+from datetime import datetime
+
 def global_debug():
   
     #creating a varibale fr each module so to be able to have a selective logging for each module whihc compose D-Rats
@@ -16,9 +18,11 @@ def global_debug():
     if DEBUG_MAPDISPLAY: print("Debug    : Enabled debug log for module: Mapdisplay")
 
 
-from datetime import datetime
-
-def printlog(string):
+def printlog(arg1, *args):
+        
     now = datetime.now()
-    date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    print(date_time, " ", string)
+    date_time = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+        
+    print(date_time, arg1, *args)
+    
+    
