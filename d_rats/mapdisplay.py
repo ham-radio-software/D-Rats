@@ -99,7 +99,7 @@ def set_proxy(proxy):
     global PROXY
     PROXY = proxy
 
-def fetch_url(url, local):
+def fetch_url(url, local):   
     global CONNECTED
     global PROXY
   

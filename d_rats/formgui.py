@@ -634,7 +634,7 @@ class FormFile(object):
 
     def save_to(self, filename):
         f = open(filename, "w")
-        printlog(self.doc.serialize(), file=f)
+        print(self.doc.serialize(), file=f)
         f.close()
 
     def export_to_string(self):

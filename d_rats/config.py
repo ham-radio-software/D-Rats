@@ -1900,7 +1900,7 @@ class DratsConfig(six.moves.configparser.ConfigParser):
         try:
             return six.moves.configparser.ConfigParser.getboolean(self, sec, key)
         except:
-            printlog(("Config    : Failed to get boolean: %s/%s" % (sec, key)))
+            printlog("Config    : Failed to get boolean: %s/%s" % (sec, key))
             return False
 
     def getint(self, sec, key):

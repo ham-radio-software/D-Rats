@@ -293,9 +293,8 @@ class AccountMailThread(MailThread):
         self._emit("event", event)
 
     def run(self):
-        if not self.config.getboolean("state", "connected_inet"):
-            self.message("Not connected")
-        else:
+    #removing the connection check as it was always failing, need to sort the scope of the variable
+ #        if self.config.getboolean("state", "connected_inet"): 
             mails = []
             try:
                 mails = self.fetch_mails()
@@ -306,8 +305,12 @@ class AccountMailThread(MailThread):
             if mails:
                 event = main_events.Event(None,
                                           "Received %i email(s)" % len(mails))
-                self._emit("event", event)
+                self._emit("event", event)  
+                
+      #      else:
+       #         self.message("Not connected")
 
+        
 class PeriodicAccountMailThread(AccountMailThread):
     def run(self):
         self.message("Periodic thread starting")
