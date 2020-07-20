@@ -318,7 +318,7 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     tablist = [_("Serial"), _("Network"), _("TNC"), _("Dongle"), _("AGWPE")]
 
     def chg_type(tsel, tabs, desc):
-        printlog(("Config    : Changed to %s" % tsel.get_active_text()))
+        printlog("Config","    : Changed to %s" % tsel.get_active_text())
         tabs.set_current_page(tsel.get_active())
 
         desc.set_markup("<span fgcolor='blue'>%s</span>" % \
@@ -441,11 +441,11 @@ class DratsConfigWidget(gtk.HBox):
         try:
             self.value = DEFAULTS[self.vsec][self.vname]
         except KeyError:
-            printlog(("Config    : DEFAULTS has no %s/%s" % (self.vsec, self.vname)))
+            printlog("Config","    : DEFAULTS has no %s/%s" % (self.vsec, self.vname))
             self.value = ""
 
         if not self._widget:
-            printlog("Config    : AAACK: No _widget in revert")
+            printlog("Config","    : AAACK: No _widget in revert")
             return
 
         if isinstance(self._widget, gtk.Entry):
@@ -460,7 +460,7 @@ class DratsConfigWidget(gtk.HBox):
             printlog(("Config    : AAACK: I don't know how to do a %s" % self._widget.__class__))
 
     def save(self):
-        #printlog("Config    : "Saving %s/%s: %s" % (self.vsec, self.vname, self.value))
+        #printlog("Config","    : "Saving %s/%s: %s" % (self.vsec, self.vname, self.value))
         self.config.set(self.vsec, self.vname, self.value)
 
     def set_value(self, value):
@@ -693,7 +693,7 @@ class DratsListConfigWidget(DratsConfigWidget):
                     key = vals[0]
                 w.set_item(key, *tuple(vals))
             except Exception as e:
-                printlog(("Config    : Failed to set item '%s': %s" % (str(vals), e)))
+                printlog("Config","    : Failed to set item '%s': %s" % (str(vals), e))
 
         w.connect("item-set", item_set)
         w.show()
@@ -715,7 +715,7 @@ class DratsListConfigWidget(DratsConfigWidget):
             vals = [str(x) for x in vals]
             value = ",".join(vals[1:])
             label = "%s_%i" % (self.vsec, count)
-            printlog(("Config    : Setting %s: %s" % (label, value)))
+            printlog("Config","    : Setting %s: %s" % (label, value))
             self.config.set(self.vsec, label, value)
             count += 1
 
@@ -734,7 +734,7 @@ class DratsPanel(gtk.Table):
     def mv(self, title, *args):
         if self.row+1 == self.rows:
             self.rows += 1
-            printlog(("Config    : Resizing box to %i" % self.rows))
+            printlog("Config","    : Resizing box to %i" % self.rows)
             self.resize(self.rows, 2)
 
         hbox = gtk.HBox(False, 2)
@@ -964,7 +964,7 @@ class DratsGPSPanel(DratsPanel):
             from . import qst
             dprs = qst.do_dprs_calculator(config.get("settings",
                                                      "default_gps_comment"))
-            printlog(("Config    : Setting GPS comment to DPRS: %s " % dprs))
+            printlog("Config","    : Setting GPS comment to DPRS: %s " % dprs)
             if dprs is not None:
                 config.set("settings", "default_gps_comment", dprs)
                 val._widget.set_text(dprs)
@@ -1123,7 +1123,7 @@ class DratsRadioPanel(DratsPanel):
 
     def but_mod(self, button, lw):
         values = lw.get_item(lw.get_selected())
-        printlog(("Config    : Values: %s" % str(values)))
+        printlog("Config","    : Values: %s" % str(values))
         name, port, info = prompt_for_port(values[2], values[3], values[6])
         if name:
             lw.set_item(values[6], values[1], port, info, values[4], values[5], values[6])
@@ -1564,11 +1564,11 @@ class DratsInEmailPanel(DratsPanel):
             if len(val.split(",")) < 7:
                 val += ",Form"
                 config.set(section, opt, val)
-                printlog(("Config    : 7-8 Converted %s/%s" % (section, opt)))
+                printlog("Config","    : 7-8 Converted %s/%s" % (section, opt))
             if len(val.split(",")) < 8:
                 val += ",True"
                 config.set(section, opt, val)
-                printlog(("Config    : 8-9 Converted %s/%s" % (section, opt)))
+                printlog("Config","    : 8-9 Converted %s/%s" % (section, opt))
 
     def __init__(self, config):
         DratsPanel.__init__(self, config)
@@ -1742,7 +1742,7 @@ class DratsConfigUI(gtk.Dialog):
             (store, iter) = view.get_selection().get_selected()
             selected, = store.get(iter, 0)
         except Exception as e:
-            printlog(("Config    : Unable to find selected: %s" % e))
+            printlog("Config","    : Unable to find selected: %s" % e)
             return None
 
         for v in self.panels.values():
@@ -1754,7 +1754,7 @@ class DratsConfigUI(gtk.Dialog):
             (store, iter) = view.get_selection().get_selected()
             selected, = store.get(iter, 0)
         except Exception as e:
-            printlog(("Config    : Unable to find selected: %s" % e))
+            printlog("Config","    : Unable to find selected: %s" % e)
             return None
 
         for v in self.panels.values():
@@ -1852,7 +1852,7 @@ class DratsConfig(six.moves.configparser.ConfigParser):
 
         self.platform = dplatform.get_platform()
         self.filename = self.platform.config_file("d-rats.config")
-        printlog(("Config    : FILE: %s" % self.filename))
+        printlog("Config","    : FILE: %s" % self.filename)
         self.read(self.filename)
         self.widgets = []
 
@@ -1860,17 +1860,17 @@ class DratsConfig(six.moves.configparser.ConfigParser):
         
         #create "D-RATS Shared" folder for file transfers
         if self.get("prefs", "download_dir") == ".":
-            printlog(("Config    : ", os.path.join(dplatform.get_platform().default_dir(), "D-RATS Shared")))
+            printlog("Config","    : ", os.path.join(dplatform.get_platform().default_dir(), "D-RATS Shared"))
             default_dir = os.path.join(dplatform.get_platform().default_dir(),"D-RATS Shared")
             if not os.path.exists(default_dir):
-                printlog(("Config    : Creating directory for downloads: %s" % default_dir))
+                printlog("Config","    : Creating directory for downloads: %s" % default_dir)
                 os.mkdir(default_dir)
                 self.set("prefs", "download_dir", default_dir)
 
         #create the folder structure for storing the map tiles
         map_dir = self.get("settings", "mapdir")
         if not os.path.exists(map_dir):
-            printlog(("Config    :  Creating directory for maps: %s" % map_dir))
+            printlog("Config","    :  Creating directory for maps: %s" % map_dir)
             os.mkdir(map_dir)
         if not os.path.exists(os.path.join(map_dir, "base")):
             os.mkdir(os.path.join(map_dir, "base"))
@@ -1900,7 +1900,7 @@ class DratsConfig(six.moves.configparser.ConfigParser):
         try:
             return six.moves.configparser.ConfigParser.getboolean(self, sec, key)
         except:
-            printlog("Config    : Failed to get boolean: %s/%s" % (sec, key))
+            printlog("Config","    : Failed to get boolean: %s/%s" % (sec, key))
             return False
 
     def getint(self, sec, key):

@@ -69,17 +69,17 @@ def set_base_dir(basedir, mapurl, mapkey):
     
     global BASE_DIR
     BASE_DIR = basedir 
-    printlog(("Mapdisplay: BASE_DIR configured to %s: " % BASE_DIR))
+    printlog("Mapdisplay",": BASE_DIR configured to %s: " % BASE_DIR)
   
     #setup of the url where go to retrieve tiles
     global MAP_URL
     MAP_URL = mapurl 
-    printlog(("Mapdisplay: MAP_URL configured to: %s" % MAP_URL))
+    printlog("Mapdisplay",": MAP_URL configured to: %s" % MAP_URL)
     
     #setup of the key to append to the url to retrieve tiles
     global MAP_URL_KEY
     MAP_URL_KEY = mapkey 
-    printlog(("Mapdisplay: MAP_URL_KEY configured to: %s " %MAP_URL_KEY))
+    printlog("Mapdisplay",": MAP_URL_KEY configured to: %s " %MAP_URL_KEY)
     
 CONFIG = None
 
@@ -132,10 +132,9 @@ def fetch_url(url, local):
             )
             return
     except Exception as e:
-            printlog("Error while retrieving info from {}".format(str(e)))
+            printlog("Mapdisplay","Error while retrieving info from {}".format(str(e)))
             return
 
-    printlog('Mapdisplay: all is good so create the jpg file')
     d = data.read()
     local_file = open(local, "wb")
     local_file.write(d)
@@ -145,7 +144,7 @@ def fetch_url(url, local):
 
 class MarkerEditDialog(inputdialog.FieldDialog):
     def __init__(self):
-        printlog("Mapdisplay : markereditdialog")
+        printlog("Mapdisplay"," : markereditdialog")
         inputdialog.FieldDialog.__init__(self, title=_("Add Marker"))
 
         self.icons = []
@@ -273,14 +272,12 @@ class MapTile(object):
         if not self.is_local():
             for i in range(10):
                 url = self.remote_path()
-                #m
-                #printlog("Mapdisplay: try opening %s" % url)
                 try:
                     fetch_url(url, self._local_path())
-                    printlog(("Mapdisplay: opened %s" % url))
+                    printlog("Mapdisplay",": opened %s" % url)
                     return True
                 except Exception as e:
-                    printlog("Mapdisplay: [%i] Failed to fetch `%s': %s" % (i, url, e))
+                    printlog("Mapdisplay",": [%i] Failed to fetch `%s': %s" % (i, url, e))
 
             return False
         else:
@@ -362,7 +359,7 @@ class MapWidget(gtk.DrawingArea):
         }
 
     def draw_text_marker_at(self, x, y, text, color="yellow"):
-        #printlog("Mapdisplay: draw_text_marker_at %s at x=%s y=%s" %(text, x, y))
+        #printlog("Mapdisplay",": draw_text_marker_at %s at x=%s y=%s" %(text, x, y))
 
         gc = self.get_style().black_gc
         
@@ -382,7 +379,7 @@ class MapWidget(gtk.DrawingArea):
         self.window.draw_layout(gc, int(x), int(y), pl)
 
     def draw_image_at(self, x, y, pb):
-        #printlog("Mapdisplay: draw_image_at x=%s y=%s" %(x, y))
+        #printlog("Mapdisplay",": draw_image_at x=%s y=%s" %(x, y))
         gc = self.get_style().black_gc
 
         self.window.draw_pixbuf(gc,
@@ -393,7 +390,7 @@ class MapWidget(gtk.DrawingArea):
         return pb.get_height()
 
     def draw_cross_marker_at(self, x, y):
-        #printlog("Mapdisplay: draw_cross_marker_at x=%s y=%s" %(x, y))
+        #printlog("Mapdisplay",": draw_cross_marker_at x=%s y=%s" %(x, y))
         width = 2
         cm = self.window.get_colormap()
         color = cm.alloc_color("red")
@@ -431,10 +428,10 @@ class MapWidget(gtk.DrawingArea):
     
 
     def draw_marker(self, label, lat, lon, img=None):
-        #printlog("Mapdisplay: ----------------- %s" % time.ctime())
-        #printlog("Mapdisplay: zoom     =%i" % self.zoom)
-        #printlog("Mapdisplay: draw marker for %s at %s %s" %(label, lat, lon))
-        #printlog("Mapdisplay: fudge    =%i" % self.lat_fudge)
+        #printlog("Mapdisplay",": ----------------- %s" % time.ctime())
+        #printlog("Mapdisplay",": zoom     =%i" % self.zoom)
+        #printlog("Mapdisplay",": draw marker for %s at %s %s" %(label, lat, lon))
+        #printlog("Mapdisplay",": fudge    =%i" % self.lat_fudge)
         
         color = "yellow" #this is the bg color of the stations markers on the map (before it was red)
 
@@ -661,7 +658,7 @@ class MapWidget(gtk.DrawingArea):
         self.height = height
         self.width = width
         
-        #printlog("Mapdisplay: mapwidget - height %s, width %s" % (height, width))
+        #printlog("Mapdisplay",": mapwidget - height %s, width %s" % (height, width))
         self.tilesize = tilesize
         self.status = status
 
@@ -1314,7 +1311,7 @@ class MapWindow(gtk.Window):
             if menu:
                 menu.popup(None, None, None, event.button, event.time)
         elif event.type == gtk.gdk.BUTTON_PRESS:
-            printlog(("Mapdisplay: Clicked: %.4f,%.4f" % (lat, lon)))
+            printlog("Mapdisplay",": Clicked: %.4f,%.4f" % (lat, lon))
             # The crosshair marker has been missing since 0.3.0
             #self.set_marker(GPSPosition(station=CROSSHAIR,
             #                            lat=lat, lon=lon))
@@ -1442,7 +1439,7 @@ class MapWindow(gtk.Window):
         except Exception as e:
             if str(e) == "Item not found":
                 # this is evil
-                printlog("Mapdisplay: Adding point instead of updating")
+                printlog("Mapdisplay",": Adding point instead of updating")
                 return self.add_point(source, point)
 
         self.add_point_visible(point)
@@ -1499,7 +1496,7 @@ class MapWindow(gtk.Window):
     def maybe_recenter_on_updated_point(self, source, point):
         if point.get_name() == self.center_mark and \
                 self.tracking_enabled:
-            printlog("Mapdisplay: Center updated")
+            printlog("Mapdisplay",": Center updated")
             self.recenter(point.get_latitude(), point.get_longitude())
         self.update_point(source, point)
 
@@ -1704,7 +1701,7 @@ class MapWindow(gtk.Window):
         self.map.set_center(lat, lon)
 
 if __name__ == "__main__":
-    printlog("Mapdisplay: __Executing __main__ section")
+    printlog("Mapdisplay",": __Executing __main__ section")
     import sys
     from . import gps
 

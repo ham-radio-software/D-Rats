@@ -117,7 +117,7 @@ class StationsList(MainWindowTab):
         while iter:
             station, stamp = store.get(iter, 0, 1)
             if (now - stamp) > (ttl * 60):
-                printlog("Mainsts : Expired station %s (%i minutes since heard)" % \
+                printlog("MainStation",": Expired station %s (%i minutes since heard)" % \
                     (station, (now - stamp) / 60))
                 self.__calls.remove(station)
                 self._update_station_count()
@@ -145,8 +145,7 @@ class StationsList(MainWindowTab):
             iter = model.iter_next(iter)
 
         if action == "ping":
-            printlog("-------------------")
-            printlog("MainStation: executing ping")
+            printlog("MainStation",": executing ping")
             # FIXME: Use the port we saw the user on
             self.emit("ping-station", station, port)
         elif action == "conntest":
@@ -163,8 +162,7 @@ class StationsList(MainWindowTab):
             
         #asking positions to remote stations
         elif action == "reqpos":
-            printlog("-------------------")
-            printlog("MainStation: executing position request to: %s" % station)
+            printlog("MainStation",": executing position request to: %s" % station)
             job = rpc.RPCPositionReport(station, "Position Request")
            
             def log_result(job, state, result):
@@ -179,8 +177,8 @@ class StationsList(MainWindowTab):
                 else:
                       # rc == "OK": 
                     event = main_events.Event(None, result)             
-                    printlog("MainStation: result returned: %s" % str(result))
-                    printlog("MainStation: event returned: %s" % event)
+                    printlog("MainStation",": result returned: %s" % str(result))
+                    printlog("MainStation",": event returned: %s" % event)
             job.set_station(station)
             job.connect("state-change", log_result)
 
@@ -192,15 +190,13 @@ class StationsList(MainWindowTab):
             self.__calls = []
             self._update_station_count()
         elif action == "pingall":
-            printlog("-------------------")
-            printlog("MainStation: executing ping all")
+            printlog("MainStation:"," executing ping all")
             stationlist = self.emit("get-station-list")
             for port in stationlist.keys():
-                printlog("MainStation: Doing CQCQCQ ping on port %s" % port)
+                printlog("MainStation"," Doing CQCQCQ ping on port %s" % port)
                 self.emit("ping-station", "CQCQCQ", port)
         elif action == "reqposall":
-            printlog("-------------------")
-            printlog("MainStation: requesting position to all known stations")
+            printlog("MainStation",": requesting position to all known stations")
             job = rpc.RPCPositionReport("CQCQCQ", "Position Request")
             job.set_station(".")
             stationlist = self.emit("get-station-list")
@@ -227,7 +223,7 @@ class StationsList(MainWindowTab):
                         job.get_dest(),
                         result.get("version", "Unknown"),
                         result.get("os", "Unknown"))
-                    printlog("MainStation: Station %s reports version info: %s" % (job.get_dest(), result))
+                    printlog("MainStation",": Station %s reports version info: %s" % (job.get_dest(), result))
 
                 else:
                     msg = "No version response from %s" % job.get_dest()
@@ -256,7 +252,7 @@ class StationsList(MainWindowTab):
         elif action == "qrz":
             import webbrowser
             callsign = station.split("-")
-            printlog("mainstat  : looking on QRZ.com for %s " % callsign[0])
+            printlog("MainStation",": looking on QRZ.com for %s " % callsign[0])
             webbrowser.open('https://www.qrz.com/lookup?callsign=%s' % callsign[0], new=2)
 
 
@@ -347,7 +343,7 @@ class StationsList(MainWindowTab):
         try:
             self.__view.set_tooltip_column(2)
         except AttributeError:
-            printlog("MainStation: This version of GTK is old; disabling station tooltips")
+            printlog("MainStation",": This version of GTK is old; disabling station tooltips")
 
         self.__view.connect("button_press_event", self._mouse_cb)
 

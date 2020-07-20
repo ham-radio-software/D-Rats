@@ -32,7 +32,7 @@ YID = "eHRO5K_V34FXWnljF5BJYvTc.lXh.kQ0MaJpnq3BhgaX.IJrvtd6cvGgtWEPNAb7"
 try:
     from gtk import Assistant as baseclass
 except ImportError:
-    printlog("No gtk.Assistant support")
+    printlog("Geocode","No gtk.Assistant support")
     class baseclass(gtk.MessageDialog):
         __gsignals__ = {
             "prepare" : (gobject.SIGNAL_RUN_LAST,
@@ -162,7 +162,7 @@ class AddressAssistant(baseclass):
 
     def prepare_page(self, assistant, page):
         if page == self.sel_page:
-            printlog("Sel")
+            printlog("Geocode","Sel")
             return self.prepare_sel(assistant, page)
         elif page == self.conf_page:
             printlog("Conf")

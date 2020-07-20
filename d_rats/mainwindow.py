@@ -33,7 +33,7 @@ if __name__ == "__main__":
     lang = gettext.translation("D-RATS", localedir="./locale", languages=["en"])
     lang.install()
     
-    printlog(("Mainwind : sys.path=", sys.path))
+    printlog("Mainwin","  : sys.path=", sys.path)
 
 from . import version
 import os
@@ -165,7 +165,7 @@ class MainWindow(MainWindowElement):
 
         def do_conninet(but):
             self._config.set("state", "connected_inet", but.get_active())
-            printlog("Mainwind : change on connection status to %s" % but.get_active())
+            printlog("Mainwin","  : change on connection status to %s" % but.get_active())
 
         def do_showpane(but, pane):
             self._config.set("state", "sidepane_visible", but.get_active())
@@ -206,7 +206,7 @@ class MainWindow(MainWindowElement):
                 args.append("./d-rats_repeater")
             else:
                 args.append("d-rats_repeater")
-            printlog(("Mainwind   : Running proxy: %s" % str(args)))
+            printlog("Mainwin","  : Running proxy: %s" % str(args))
             p = subprocess.Popen(args)
 
         quit = self._wtree.get_widget("main_menu_quit")
@@ -330,7 +330,7 @@ class MainWindow(MainWindowElement):
             mbar.hide()
             gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
             gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
-            printlog("Enabled OSX menubar integration")
+            printlog("Mainwin","  : Enabled OSX menubar integration")
         except ImportError:
             pass
 
@@ -339,7 +339,7 @@ class MainWindow(MainWindowElement):
         gobject.timeout_add(3000, self.__update_status)
 
     def __update_status(self):
-        #printlog( "mainwindow: updating status")
+        #printlog("Mainwin","  : updating status")
         if (time.time() - self.__last_status) > 30:
             sb = self._wtree.get_widget("statusbar")
             id = sb.get_context_id("default")
@@ -370,7 +370,7 @@ if __name__ == "__main__":
     conf = config.DratsConfig(None)
 
     def test(chat, station, msg):
-        printlog(("Mainwind   : %s->%s" % (station, msg)))
+        printlog("Mainwin","  : %s->%s" % (station, msg))
 
     chat = ChatTab(wtree, conf)
     chat.connect("user-sent-message", test)

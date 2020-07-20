@@ -33,6 +33,8 @@ from d_rats.ui import main_events
 from d_rats.sessions import base, stateless
 from d_rats.version import DRATS_VERSION
 from d_rats.utils import log_exception
+#importing printlog() wrapper
+from d_rats.debug import printlog
 
 ASCII_FS = "\x1C"
 ASCII_GS = "\x1D"
@@ -261,7 +263,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
         return frame
 
     def __job_state(self, job, state, _result, id):
-        print(("RPC       : Job state: %s for %i: %s" % (state, id, _result)))
+        printlog("RPC","       : Job state: %s for %i: %s" % (state, id, _result))
 
         if state == "running":
             return
@@ -275,7 +277,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
             try:
                 job = self.__decode_rpccall(frame)
             except UnknownRPCCall as e:
-                print(("RPC       : incoming data : unable to execute RPC from %s: %s" % (frame.s_station, e)))
+                printlog("RPC","       : incoming data : unable to execute RPC from %s: %s" % (frame.s_station, e))
                 return
 
             job.connect("state-change", self.__job_state, frame.seq)
@@ -289,17 +291,17 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
                 del self.__jobs[frame.seq]
                 job.set_state("complete", decode_dict(frame.data))
             else:
-                print(("RPC       : incoming data : Unknown job %i" % frame.seq))
+                printlog("RPC","       : incoming data : Unknown job %i" % frame.seq)
 
         else:
-            print(("RPC       : incoming data : Unknown RPC frame type %i" % frame.type))
+            printlog("RPC","       : incoming data : Unknown RPC frame type %i" % frame.type)
 
     def __send_job(self, job, id):
-        print(("RPC       : Sending job `%s' to %s" % (job.get_desc(), job.get_dest())))
+        printlog("RPC","       : Sending job `%s' to %s" % (job.get_desc(), job.get_dest()))
         frame = self.__job_to_frame(job, id)
         job.frame = frame
         self._sm.outgoing(self, frame)
-        print("RPC       : Job sent")
+        printlog("RPC","       : Job sent")
 
     def __worker(self):
         for id, (ts, att, job) in self.__jobs.items():
@@ -307,7 +309,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
                 # Reset timer until the block is sent
                 self.__jobs[id] = (time.time(), att, job)
             elif (time.time() - ts) > self.__t_retry:
-                print(("RPC       : Cancelling job %i due to timeout" % id))
+                printlog("RPC","       : Cancelling job %i due to timeout" % id)
                 del self.__jobs[id]
                 job.set_state("timeout")
 
@@ -344,7 +346,7 @@ class RPCActionSet(gobject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
-            print(("RPC       : Proxy emit %s: %s" % (signal, args)))
+            printlog("RPC","       : Proxy emit %s: %s" % (signal, args))
             gobject.idle_add(self.emit, signal, *args)
 
         return handler
@@ -354,9 +356,8 @@ class RPCActionSet(gobject.GObject):
         mycall = self.__config.get("user", "callsign")
         rqcall = job.get_station()
         
-        print("-----------------------")
-        print(("RPC       : Position request for `%s'" % rqcall))
-        print(("RPC       : Self=%s" % format(self)))
+        printlog("RPC","       : Position request for `%s'" % rqcall)
+        printlog("RPC","      : Self=%s" % format(self))
 
         if rqcall == mycall or rqcall == ".":
             rqcall = None
@@ -369,7 +370,7 @@ class RPCActionSet(gobject.GObject):
                                symbol=self.__config.get("settings", "aprssymbol"))
             
         except Exception as e:
-            print(("RPC       : Case KO : Exception while getting position of %s: " % rqcall))
+            printlog("RPC","       : Case KO : Exception while getting position of %s: " % rqcall)
             log_exception()
             fix = None
             result["rc"] = "False"
@@ -377,10 +378,10 @@ class RPCActionSet(gobject.GObject):
 
         if fix:
             #sending the position to transport // but this is broken!!
-            print(("RPC       : port is           : %s" % self.__port))
-            print(("RPC       : fix is            : %s" % fix))
-            print(("RPC       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA()))
-            print(("RPC       : fix in APRS is: %s" % result))
+            printlog("RPC","       : port is           : %s" % self.__port)
+            printlog("RPC","       : fix is            : %s" % fix)
+            printlog("RPC","       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA())
+            printlog("RPC","       : fix in APRS is: %s" % result)
             
             #self.emit("user-send-chat","CQCQCQ", self.__port, fix.to_NMEA_GGA(), True)            
             self.emit("user-send-chat",
@@ -388,9 +389,6 @@ class RPCActionSet(gobject.GObject):
                       self.__port, 
                       result["msg"],
                       True)
-
-        print("--------------------------------------------------------------------------------------------")
-        
         return None
             
     def RPC_file_list(self, job):
@@ -445,7 +443,7 @@ class RPCActionSet(gobject.GObject):
 
         dir = self.__config.get("prefs", "download_dir")
         path = os.path.join(dir, job.get_file())
-        print(("RPC       : Remote requested %s" % path))
+        printlog("RPC","      : Remote requested %s" % path)
         if os.path.exists(path):
             result["rc"] = "OK"
             self.emit("rpc-send-file",
@@ -528,7 +526,7 @@ class RPCActionSet(gobject.GObject):
             result["gtkver"] = ".".join([str(x) for x in gtk.gtk_version])
         except ImportError:
             result["pygtkver"] = result["gtkver"] = "Unknown"
-            print(("RPC       : RPC_get_version: %s" % result))
+            printlog("RPC","       : RPC_get_version: %s" % result)
             
         return result
 

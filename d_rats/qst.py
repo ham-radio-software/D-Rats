@@ -50,13 +50,13 @@ try:
     import feedparser
     HAVE_FEEDPARSER = True
 except ImportError as e:
-    printlog("Qst       : FeedParser not available")
+    printlog("Qst","       : FeedParser not available")
     HAVE_FEEDPARSER = False
 
 try:
     from hashlib import md5
 except ImportError:
-    printlog("Qst       : Installing hashlib replacement hack")
+    printlog("Qst","       : Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
 def do_dprs_calculator(initial=""):
@@ -216,7 +216,7 @@ class QSTThreadedText(QSTText):
         self.thread = None
 
         if not msg:
-            printlog("Qst       : Skipping QST because no data was returned")
+            printlog("Qst","       : Skipping QST because no data was returned")
             return
 
         gobject.idle_add(self.emit, "qst-fired",
@@ -224,14 +224,14 @@ class QSTThreadedText(QSTText):
 
     def fire(self):
         if self.thread:
-            printlog("Qst       : QST thread still running, not starting another")
+            printlog("Qst","       : QST thread still running, not starting another")
             return
 
         # This is a race, but probably pretty safe :)
         self.thread = threading.Thread(target=self.threaded_fire)
         self.thread.setDaemon(True)
         self.thread.start()
-        printlog("Qst       : Started a thread for QST data...")
+        printlog("Qst","       : Started a thread for QST data...")
 
 class QSTRSS(QSTThreadedText):
     def __init__(self, *args, **kw):
@@ -245,7 +245,7 @@ class QSTRSS(QSTThreadedText):
         try:
             entry = rss.entries[-1]
         except IndexError:
-            printlog("Qst       : RSS feed had no entries")
+            printlog("Qst","       : RSS feed had no entries")
             return None
 
         try:
@@ -294,7 +294,7 @@ class QSTCAP(QSTThreadedText):
         try:
             self.last_date = newev[-1].effective
         except IndexError:
-            printlog("Qst       : CAP feed had no entries")
+            printlog("Qst","       : CAP feed had no entries")
             return None
 
         str = ""
@@ -306,7 +306,7 @@ class QSTCAP(QSTThreadedText):
         return str        
 
 class QSTWeatherWU(QSTThreadedText):
-    printlog("Qst       : QSTWeatherWU class retired")
+    printlog("Qst","       : QSTWeatherWU class retired")
 
 class QSTOpenWeather(QSTThreadedText): 
     def do_qst(self):
@@ -327,7 +327,7 @@ class QSTOpenWeather(QSTThreadedText):
      #   try:
         if t == _("Current"):
             url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
-            printlog("Qst       : %s " % url)
+            printlog("Qst","       : %s " % url)
             urlRead = urllib.urlopen(url).read()
             dataJSON = json.loads(urlRead)
             printlog(dataJSON)
@@ -357,16 +357,16 @@ class QSTOpenWeather(QSTThreadedText):
                    #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
                 weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
                 
-                printlog("Qst       : %s" % weath)
+                printlog("Qst","       : %s" % weath)
                 
                 return weath
             else: 
-                printlog("Qst       : weather forecast: %s city not found" % s)
+                printlog("Qst","       : weather forecast: %s city not found" % s)
                 return None
             
         elif t == _("Forecast"): 
             url = owuri + "forecast?" + urllib.urlencode({'q': s, 'appid': owappid, 'mode': "json"})
-            printlog("Qst       : %s " % url)
+            printlog("Qst","       : %s " % url)
             urlRead = urllib.urlopen(url).read()
             dataJSON = json.loads(urlRead)
             printlog(dataJSON)
@@ -435,14 +435,14 @@ class QSTOpenWeather(QSTThreadedText):
                        #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
                     weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
                 
-                printlog("Qst       : %s" % weath) 
+                printlog("Qst","       : %s" % weath) 
                 return  weath
             else: 
-                printlog("Qst       : weather forecast: %s city not found" % s)
+                printlog("Qst","       : weather forecast: %s city not found" % s)
                 return None
             
         else:
-            printlog("Qst       : Unknown Weather type %s" % t)
+            printlog("Qst","       : Unknown Weather type %s" % t)
             return None
 
 #---to be restore when forecats are done           
@@ -828,7 +828,7 @@ class QSTEditDialog(gtk.Dialog):
         return hbox
 
     def __init__(self, config, ident, parent=None):
-        printlog("qst      : defining qst types")
+        printlog("Qst","      : defining qst types")
         self._types = {
             _("Text") : QSTTextEditWidget(),
             _("File") : QSTFileEditWidget(),

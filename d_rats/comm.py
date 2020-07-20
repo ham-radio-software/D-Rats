@@ -53,7 +53,7 @@ def kiss_send_frame(frame, port=0):
     buf = struct.pack("BB", FEND, cmd) + frame + struct.pack("B", FEND)
 
     if TNC_DEBUG:
-        printlog("Comm      : [TNC] Sending:")
+        printlog("Comm","      : [TNC] Sending:")
         utils.hexprintlog(buf)
 
     return buf
@@ -86,21 +86,21 @@ def kiss_recv_frame(buf):
             elif ord(char) == TFESC:
                 _buf += chr(FESC)
             else:
-                printlog(("Comm      : [TNC] Bad escape of 0x%x" % ord(char)))
+                printlog("Comm","      : [TNC] Bad escape of 0x%x" % ord(char))
                 break
         elif inframe:
             _buf += char
         else:
-            printlog(("Comm      : [TNC] Out-of-frame garbage: 0x%x" % ord(char)))
+            printlog("Comm","      : [TNC] Out-of-frame garbage: 0x%x" % ord(char))
         _lst = char
 
     if TNC_DEBUG:
-        printlog("Comm      : [TNC] Data:")
+        printlog("Comm","      : [TNC] Data:")
         utils.hexprintlog(data)
 
     if not inframe and _buf:
         # There was not a partial frame started at the end of the data
-        printlog("Comm      : [TNC] Dumping non-frame data trailer")
+        printlog("Comm","      : [TNC] Dumping non-frame data trailer")
         utils.hexprintlog(_buf)
         _buf = ""
 
@@ -126,14 +126,14 @@ class TNCSerial(serial.Serial):
 
     def read(self, size):
         if self.__buffer:
-            printlog(("Comm      : Buffer is %i before read" % len(self.__buffer)))
+            printlog("Comm","      : Buffer is %i before read" % len(self.__buffer))
         self.__buffer += serial.Serial.read(self, 1024)
 
         framedata = ""
         if kiss_buf_has_frame(self.__buffer):
             framedata, self.__buffer = kiss_recv_frame(self.__buffer)
         elif len(self.__buffer) > 0:
-            printlog(("Comm      : [TNC] Buffer partially-filled (%i b)" % len(self.__buffer)))
+            printlog("Comm","     : [TNC] Buffer partially-filled (%i b)" % len(self.__buffer))
 
         return framedata
 
@@ -511,11 +511,11 @@ class SocketDataPath(DataPath):
         try:
             c, l = getline(self._socket)
         except DataPathNotConnectedError:
-            printlog("Comm      : Assuming an old-school ratflector for now")
+            printlog("Comm","      : Assuming an old-school ratflector for now")
             return
 
         if c == 100:
-            printlog("Comm      : Host does not require authentication")
+            printlog("Comm","     : Host does not require authentication")
             return
         elif c != 101:
             raise DataPathNotConnectedError("Unknown response code %i" % c)
@@ -544,7 +544,7 @@ class SocketDataPath(DataPath):
             self._socket.connect((self.host, self.port))
             self._socket.settimeout(self.timeout)
         except Exception as e:
-            printlog("Comm      : Socket connect failed: %s" % e)
+            printlog("Comm","      : Socket connect failed: %s" % e)
             self._socket = None
             raise DataPathNotConnectedError("Unable to connect (%s)" % e)
 
@@ -614,7 +614,7 @@ class SocketDataPath(DataPath):
         try:
             self._socket.sendall(buf)
         except Exception as e:
-            printlog("Comm      : Socket write failed: %s" % e)
+            printlog("Comm","     : Socket write failed: %s" % e)
             raise DataPathIOError("Socket write failed")
 
         return
