@@ -85,7 +85,7 @@ class FormElementEditor(gtk.Dialog):
     def type_changed(self, box, data=None):
         sel = box.get_active_text()
 
-        printlog("Selected: %s" % sel)
+        printlog("Formbuilder"," : Selected: %s" % sel)
 
         for t,w in self.vals.items():
             if t == sel:
@@ -228,9 +228,9 @@ class FormBuilderGUI(gtk.Dialog):
 
         iv = d.get_initial_value()
 
-        printlog("Type: %s" % d.get_type())
-        printlog("Initial: %s" % iv)
-        printlog("Opts: %s" % d.get_options())
+        printlog("Formbuilder"," : Type: %s" % d.get_type())
+        printlog("Formbuilder"," : Initial: %s" % iv)
+        printlog("Formbuilder"," : Opts: %s" % d.get_options())
 
         iter = self.store.append()
         self.store.set(iter,
@@ -334,13 +334,13 @@ class FormBuilderGUI(gtk.Dialog):
 
         if val:
             val = xml_escape(val)
-        printlog("\n\nField type: %s" % type)
+        printlog("Formbuilder"," : Field type: %s" % type)
         cap_xml = "<caption>%s</caption>" % cap
         if type not in ["choice", "multiselect"] and val:
             ent_xml = "<entry type='%s'>%s</entry>" % (type, val)
         elif type == "choice":
             try:
-                printlog("Opts: %s" % opts)
+                printlog("Formbuilder"," : Opts: %s" % opts)
                 l = eval(opts)
 
                 ent_xml = "<entry type='%s'>" % type
@@ -354,7 +354,7 @@ class FormBuilderGUI(gtk.Dialog):
 
                 ent_xml += "</entry>"
             except Exception as e:
-                printlog("Exception parsing choice list: %s" % e)
+                printlog("Formbuilder"," : Exception parsing choice list: %s" % e)
                 ent_xml = "<!-- Invalid list: %s -->" % opts
 
         elif type == "multiselect":
@@ -367,7 +367,7 @@ class FormBuilderGUI(gtk.Dialog):
                     ent_xml += "<choice set='%s'>%s</choice>" % (setval, c)
                 ent_xml += "</entry>"
             except Exception as e:
-                printlog("Exception parsing choice list: %s" % e)
+                printlog("Formbuilder"," : Exception parsing choice list: %s" % e)
                 ent_xml = "<!-- Invalid list: %s -->" % opts
         else:
             ent_xml = "<entry type='%s'/>" % type
@@ -376,7 +376,7 @@ class FormBuilderGUI(gtk.Dialog):
                                                              cap_xml,
                                                              ent_xml)
         
-        printlog("Field XML: %s\n\n" % field_xml)
+        printlog("Formbuilder"," : Field XML: %s\n\n" % field_xml)
 
         self.xml += field_xml
 
@@ -495,7 +495,7 @@ class FormBuilderGUI(gtk.Dialog):
 
     def load_field(self, widget):
         iter = self.store.append()
-        printlog("Type: %s" % widget.type)
+        printlog("Formbuilder"," : Type: %s" % widget.type)
         if widget.type in ["choice", "multiselect"]:
             opts = widget.choices
             printlog("Opts for %s: %s" % (widget.type, opts))
@@ -553,7 +553,7 @@ class FormManagerGUI(object):
         iter = self.store.get_iter_first()
         while iter:
             form_id, = self.store.get(iter, self.col_id)
-            printlog("Checking %s against %s" % (form_id, id))
+            printlog("Formbuilder"," : Checking %s against %s" % (form_id, id))
             if form_id == id:
                 raise Exception("Cannot add duplicate form `%s'" % form_id)
             iter = self.store.iter_next(iter)

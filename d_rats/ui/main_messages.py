@@ -184,7 +184,7 @@ class MessageFolderInfo(object):
 
     def rename(self, new_name):
         newpath = os.path.join(os.path.dirname(self._path), new_name)
-        printlog("mainmsg : Renaming %s -> %s" % (self._path, newpath))
+        printlog("MainMsgs"," : Renaming %s -> %s" % (self._path, newpath))
         os.rename(self._path, newpath)
         self._path = newpath
 
@@ -321,7 +321,7 @@ class MessageFolders(MainWindowElement):
         try:
             (store, iter) = view.get_selection().get_selected()
         except Exception, e:
-            printlog("mainmsg : Unable to find selected: %s" % e)
+            printlog("MainMsgs"," : Unable to find selected: %s" % e)
             return
 
         self.emit("user-selected-folder", self._get_folder_by_iter(store, iter))
@@ -391,8 +391,8 @@ class MessageFolders(MainWindowElement):
                                 
         for record in msgs:
             fn, subj, type, read, send, recp = record.split("\0")
-            printlog("mainmsg : Dragged %s from %s into %s" % (fn, src_folder, dst_folder))
-            printlog("mainmsg :   %s %s %s %s->%s" % (subj, type, read, send, recp))
+            printlog("MainMsgs"," : Dragged %s from %s into %s" % (fn, src_folder, dst_folder))
+            printlog("MainMsgs"," :   %s %s %s %s->%s" % (subj, type, read, send, recp))
 
             try:
                 dst.delete(os.path.basename(fn))
@@ -503,10 +503,10 @@ class MessageList(MainWindowElement):
             if msgrouting.msg_is_locked(filename):
                 msgrouting.msg_unlock(filename)
             if response in saveable_actions:
-                printlog("mainmsg : Saving to %s" % filename)
+                printlog("MainMsgs"," : Saving to %s" % filename)
                 dlg.save_to(filename)
             else:
-                printlog("mainmsg : Not saving")
+                printlog("MainMsgs"," : Not saving")
             dlg.destroy()
             self.refresh(filename)
             if cb:
@@ -533,17 +533,17 @@ class MessageList(MainWindowElement):
         def close_msg_cb(response, info):
             if self.current_info == info:
                 iter = self.iter_from_fn(path)
-                printlog("mainmsg : Updating iter %s" % iter)
+                printlog("MainMsgs"," : Updating iter %s" % iter)
                 if iter:
                     self._update_message_info(iter)
             else:
-                printlog("mainmsg : Not current, not updating")
+                printlog("MainMsgs"," : Not current, not updating")
 
         editable = "Outbox" in path or "Drafts" in path # Dirty hack
         self.open_msg(path, editable, close_msg_cb, self.current_info)
         self.current_info.set_msg_read(path, True)
         iter = self.iter_from_fn(path)
-        printlog("mainmsg : Updating iter %s" % iter)
+        printlog("MainMsgs"," : Updating iter %s" % iter)
         if iter:
             self._update_message_info(iter)
 
@@ -740,7 +740,7 @@ class MessageList(MainWindowElement):
             # Same folder, or duplicate message id
             return path
 
-        printlog("mainmsg : Moving %s -> %s" % (path, newfn))
+        printlog("MainMsgs"," : Moving %s -> %s" % (path, newfn))
         shutil.copy(path, newfn)
         info.delete(path)
 
@@ -844,7 +844,7 @@ class MessagesTab(MainWindowTab):
                 return
     
             if len(sel) > 1:
-                printlog("mainmsg : FIXME: Warn about multiple reply")
+                printlog("MainMsgs"," : FIXME: Warn about multiple reply")
                 return
     
             fn = sel[0]
@@ -870,12 +870,12 @@ class MessagesTab(MainWindowTab):
                     nform.set_field_value(df, oldval)
         except Exception, e:
             log_exception()
-            printlog("mainmsg : Failed to do reply: %s" % e)
+            printlog("MainMsgs"," : Failed to do reply: %s" % e)
             return
 
         if ";" in oform.get_path_dst():
             rpath = ";".join(reversed(oform.get_path()[:-1]))
-            printlog("mainmsg : mainmsg : rpath: %s (%s)" % (rpath, oform.get_path()))
+            printlog("MainMsgs"," : mainmsg : rpath: %s (%s)" % (rpath, oform.get_path()))
             nform.set_path_dst(rpath)
         else:
             nform.set_path_dst(oform.get_path_src())
@@ -890,7 +890,7 @@ class MessagesTab(MainWindowTab):
 
         def close_msg_cb(response, info):
             if self._messages.current_info == info:
-                printlog("mainmsg : Respone was %i (%i)" % (response, gtk.RESPONSE_CANCEL))
+                printlog("MainMsgs"," : Respone was %i (%i)" % (response, gtk.RESPONSE_CANCEL))
                 if response in [gtk.RESPONSE_CANCEL, gtk.RESPONSE_CLOSE]:
                     info.delete(newfn)
                     self._folders.select_folder(current)
@@ -905,7 +905,7 @@ class MessagesTab(MainWindowTab):
             try:
                 os.remove(fn)
             except Exception, e:
-                printlog("mainmsg : Unable to delete %s: %s" % (fn, e))
+                printlog("MainMsgs"," : Unable to delete %s: %s" % (fn, e))
             self._messages.refresh()
         else:
             if self._messages.current_info.name() == _("Trash"):
@@ -921,7 +921,7 @@ class MessagesTab(MainWindowTab):
                 return
     
             if len(sel) > 1:
-                printlog("mainmsg : FIXME: Warn about multiple send")
+                printlog("MainMsgs"," : FIXME: Warn about multiple send")
                 return
     
             fn = sel[0]
@@ -982,7 +982,7 @@ class MessagesTab(MainWindowTab):
             return
 
         if len(sel) > 1:
-            printlog("mainmsg : FIXME: Warn about multiple send")
+            printlog("MainMsgs"," : FIXME: Warn about multiple send")
             return
         elif len(sel) == 0:
             return
@@ -1141,13 +1141,13 @@ class MessagesTab(MainWindowTab):
         if fn in files:
             sent = self._folders.get_folder(_("Sent"))
             newfn = sent.create_msg(os.path.basename(fn))
-            printlog("mainmsg : Moving %s -> %s" % (fn, newfn))
+            printlog("MainMsgs"," : Moving %s -> %s" % (fn, newfn))
             shutil.copy(fn, newfn)
             outbox.delete(fn)
             self.refresh_if_folder(_("Outbox"))
             self.refresh_if_folder(_("Sent"))
         else:
-            printlog("mainmsg : Form %s sent but not in outbox" % os.path.basename(fn))
+            printlog("MainMsgs"," : Form %s sent but not in outbox" % os.path.basename(fn))
 
     def get_shared_messages(self, for_station):
         """Return a list of (title, stamp, filename) forms destined

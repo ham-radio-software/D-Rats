@@ -78,7 +78,7 @@ def msg_lock(fn):
         success = True
     else:
         lf = open(__msg_lockfile(fn), "r")
-        printlog("Msgrouting:"," ------ LOCK OWNED BY -------\n%s------------\n" % lf.read())
+        printlog("Msgrouting",": ------ LOCK OWNED BY -------\n%s------------\n" % lf.read())
         lf.close()
         success = False
     MSG_LOCK_LOCK.release()
@@ -104,12 +104,12 @@ def gratuitous_next_hop(route, path):
     route_nodes = route.split(";")
 
     if len(path_nodes) >= len(route_nodes):
-        printlog("Msgrouting:"," Nothing left in the routes")
+        printlog("Msgrouting",": Nothing left in the routes")
         return None
 
     for i in range(0, len(path_nodes)):
         if path_nodes[i] != route_nodes[i]:
-            printlog("Msgrouting:"," Path element %i (%s) does not match route %s" % \
+            printlog("Msgrouting",": Path element %i (%s) does not match route %s" % \
                 (i, path_nodes[i], route_nodes[i]))
             return None
 
@@ -119,35 +119,35 @@ def is_sendable_dest(mycall, string):
     
     # Specifically for me
     if string == mycall:
-        printlog("Msgrouting:"," msg for me")
+        printlog("Msgrouting",": msg for me")
         return False
 
     # Empty string
     if not string.strip():
-        printlog("Msgrouting:"," empty: %s %s" % (string, string.strip()))
+        printlog("Msgrouting",": empty: %s %s" % (string, string.strip()))
         return False
 
     # Is an email address:
     if "@" in string:
-        printlog("Msgrouting:"," is an Email")
+        printlog("Msgrouting",": is an Email")
         return True
 
     # Contains lowercase characters
     if string != string.upper():
-        printlog("Msgrouting:"," lowercase")
+        printlog("Msgrouting",": lowercase")
         return False
 
     # Contains spaces
     if string != string.split()[0]:
-        printlog("Msgrouting:"," spaces")
+        printlog("Msgrouting",": spaces")
         return False
 
     # Contains a gratuitous route and we're the last in line
     if ";" in string and string.split(";")[-1] == mycall:
-        printlog("Msgrouting:"," End of grat")
+        printlog("Msgrouting",": End of grat")
         return False
 
-    printlog("Msgrouting:"," default to call")
+    printlog("Msgrouting",": default to call")
 
     # Looks like it's a candidate to be routed
     return True
@@ -226,7 +226,7 @@ class MessageRouter(gobject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
-            printlog("Msgrouting:"," Proxy emit %s: %s" % (signal, args))
+            printlog("Msgrouting",": Proxy emit %s: %s" % (signal, args))
             self._emit(signal, *args)
         return handler
 
@@ -264,7 +264,7 @@ class MessageRouter(gobject.GObject):
                 dest, gw, port = line.split()
                 routes[dest] = gw
             except Exception as e:
-                printlog("Msgrouting:"," Error parsing line '%s': %s" % (line, e))
+                printlog("Msgrouting",": Error parsing line '%s': %s" % (line, e))
 
         return routes
 
@@ -273,7 +273,7 @@ class MessageRouter(gobject.GObject):
         time.sleep(t)
 
     def _p(self, string):
-        printlog("Msgrouting:"," [MR] %s" % string)
+        printlog("Msgrouting",": [MR] %s" % string)
         import sys
         sys.stdout.flush()
 
@@ -284,7 +284,7 @@ class MessageRouter(gobject.GObject):
         fl = glob(os.path.join(qd, "*.xml"))
         for f in fl:
             if not msg_lock(f):
-                printlog("Msgrouting:"," Message %s is locked, skipping" % f)
+                printlog("Msgrouting",": Message %s is locked, skipping" % f)
                 continue
 
             form = formgui.FormFile(f)

@@ -133,7 +133,7 @@ class KeyedListWidget(gtk.HBox):
             (store, iter) = self.__view.get_selection().get_selected()
             return store.get(iter, 0)[0]
         except Exception as e:
-            printlog("Unable to find selected: %s" % e)
+            printlog("MscWidget",": Unable to find selected: %s" % e)
             return None
 
     def select_item(self, key):
@@ -319,7 +319,7 @@ class ListWidget(gtk.HBox):
             (lst, iter) = self._view.get_selection().get_selected()
             lst.remove(iter)
         except Exception as e:
-            printlog("Unable to remove selected: %s" % e)
+            printlog("MscWidget",": Unable to remove selected: %s" % e)
 
     def get_selected(self, take_default=False):
         (lst, iter) = self._view.get_selection().get_selected()
@@ -436,7 +436,7 @@ class TreeWidget(ListWidget):
         elif isinstance(vals, tuple):
             self._add_item(parent, *vals)
         else:
-            printlog("Unknown type: %s" % vals)
+            printlog("MscWidget",": Unknown type: %s" % vals)
 
     def set_values(self, vals):
         self._store.clear()
@@ -631,7 +631,7 @@ class LatLonEntry(gtk.Entry):
                 try:
                     return self.parse_dms(string)
                 except Exception as e:
-                    printlog("DMS: %s" % e)
+                    printlog("MscWidget",": DMS: %s" % e)
 
         raise Exception("Invalid format")
 
@@ -779,9 +779,9 @@ def test():
 
     def print_val(entry):
         if entry.validate():
-            printlog("Valid: %s" % entry.value())
+            printlog("MscWidget",": Valid: %s" % entry.value())
         else:
-            printlog("Invalid")
+            printlog("MscWidget",": Invalid")
     lle.connect("activate", print_val)
 
     lle.set_text("45 13 12")

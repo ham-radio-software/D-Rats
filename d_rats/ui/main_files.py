@@ -82,7 +82,7 @@ class LocalFileView(FileView):
         for file in files:
             if os.path.isdir(file):
                 continue
-            printlog("Mainfiles",": Adding local file `%s'" % file)
+            printlog("Mainfiles"," : Adding local file `%s'" % file)
             try:
                 stat = os.stat(file)
                 ts = stat.st_mtime
@@ -90,12 +90,12 @@ class LocalFileView(FileView):
                 nm = os.path.basename(file)
                 self._store.append((self._file_icon, nm, sz, ts))
             except Exception, e:
-                printlog("Mainfiles",": Failed to add local file: %s" % e)
+                printlog("Mainfiles","  : Failed to add local file: %s" % e)
 
 class RemoteFileView(FileView):
     def _file_list_cb(self, job, state, result):
         if state != "complete":
-            printlog("Mainfiles",": Incomplete job")
+            printlog("Mainfiles","  : Incomplete job")
             return
 
         unit_decoder = { "B" : 0,
@@ -113,7 +113,7 @@ class RemoteFileView(FileView):
                     ts = time.mktime(time.strptime(stamp,
                                                    "(%Y-%m-%d %H:%M:%S)"))
                 except Exception, e:
-                    printlog("Mainfiles",": Unable to parse file info: %s" % e)
+                    printlog("Mainfiles","  : Unable to parse file info: %s" % e)
                     ts = time.time()
                     size = 0
 

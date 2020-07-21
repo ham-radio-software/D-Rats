@@ -119,7 +119,7 @@ class MapSourcesEditor(object):
                                          sed))
                 except Exception as e:
                     utils.log_exception()
-                    printlog("Failed to open source %s:%s" % (stype, key))
+                    printlog("Mapsrcedit",": Failed to open source %s:%s" % (stype, key))
 
     def run(self):
         return self.__dialog.run()
@@ -232,7 +232,7 @@ class RiverMapSourceEditor(MapSourceEditor):
             self._config.remove_option("rivers", "%s.label" % id)
         except Exception as e:
             log_exception()
-            printlog("Error deleting rivers/%s: %s" % (id, e))
+            printlog("Mapsrcedit",": Error deleting rivers/%s: %s" % (id, e))
 
     def save(self):
         if not self._config.has_section("rivers"):
@@ -279,7 +279,7 @@ class BuoyMapSourceEditor(MapSourceEditor):
             self._config.remove_option("buoys", "%s.label" % id)
         except Exception as e:
             log_exception()
-            printlog("Error deleting buoys/%s: %s" % (id, e))
+            printlog("Mapsrcedit",": Error deleting buoys/%s: %s" % (id, e))
 
 
     def save(self):

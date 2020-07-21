@@ -158,7 +158,7 @@ class AGWConnection:
             f = self.__recv_frame()
             self.__lock.release()
             if f:
-                printlog(("Agw       : Got %s frame while waiting for %s" % (chr(f.kind), kind)))
+                printlog("Agw","       : Got %s frame while waiting for %s" % (chr(f.kind), kind))
                 self._framebuf[f.kind].insert(0, f)
             elif not poll:
                 return None
@@ -189,7 +189,7 @@ class AGW_AX25_Connection:
         self._agw.send_frame(cf)
 
         f = self._agw.recv_frame_type("C", True)
-        printlog(("Agw       : %s" % f.get_payload()))
+        printlog("Agw","       : %s" % f.get_payload())
 
     def disconnect(self):
         df = AGWFrame_d()
@@ -197,7 +197,7 @@ class AGW_AX25_Connection:
         self._agw.send_frame(df)
 
         f = self._agw.recv_frame_type("d", True)
-        printlog(("Agw       : %s" % f.get_payload()))
+        printlog("Agw","       : %s" % f.get_payload())
 
     def send(self, data):
         df = AGWFrame_D()
@@ -237,7 +237,7 @@ def agw_recv_frame(s):
             except Exception as e:
                 #printlog("Failed: %s" % e)
                 continue
-            prin("Agw       : %s -> %s [%s]" % (f.get_from(), f.get_to(), chr(f.kind)))
+            printlog("Agw","      : %s -> %s [%s]" % (f.get_from(), f.get_to(), chr(f.kind)))
             utils.hexprintlog(f.get_payload())
             return
 
@@ -267,17 +267,17 @@ def test_class_connect():
     agw = AGWConnection("127.0.0.1", 8000, 0.5)
     axc = AGW_AX25_Connection(agw, "KK7DS")
     axc.connect("N7AAM-11")
-    printlog(("Agw       : %s" % axc.recv_text()))
+    printlog("Agw","      : %s" % axc.recv_text())
 
     while True:
-        printlog("Agw       : packet> ")
+        printlog("Agw","       : packet> ")
         l = sys.stdin.readline().strip()
         if len(l) > 0:
             axc.send(l + "\r")
         r = True
         while r:
             r = axc.recv_text()
-            printlog(("Agw       : %s" % r))
+            printlog("Agw","      : %s" % r)
 
     axc.disconnect()
 

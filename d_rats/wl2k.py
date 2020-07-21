@@ -194,7 +194,7 @@ class WinLinkMessage:
             for att in files:
                 length, name = att.split(" ", 1)
                 filedata = rest[2:int(length)+2] # Length includes leading CRLF
-                printlog("File %s %i (%i)" % (name, len(filedata), int(length)))
+                printlog("WL2k","      : File %s %i (%i)" % (name, len(filedata), int(length)))
                 rest = rest[int(length)+2:]
                 form.add_attachment(name, filedata)
 
@@ -375,7 +375,7 @@ class WinLinkCMS:
             self._send("FS %s" % ("Y" * len(self.__messages)))
 
             for msg in self.__messages:
-                printlog("wl2k       : Getting message...")
+                printlog("WL2k","      : Getting message...")
                 try:
                     msg.read_from_socket(self._conn)
                 except Exception as e:

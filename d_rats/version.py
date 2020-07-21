@@ -29,16 +29,16 @@ WEBSITE =""
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
 
 HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION }
-printlog("Version : headers=%s" % HTTP_CLIENT_HEADERS)
+printlog("Version","   : HTTP_CLIENT_HEADERS=%s" % HTTP_CLIENT_HEADERS)
 		
 if __name__ == "__main__":
-	printlog("Version", "DRATS_VERSION:         ", DRATS_VERSION)
-	printlog("Version", "DRATS_NAME:            ", DRATS_NAME)
-	printlog("Version", "DRATS_DESCRIPTION:     ", DRATS_DESCRIPTION)
-	printlog("Version", "DRATS_LONG_DESCRIPTION:", DRATS_LONG_DESCRIPTION)
-	printlog("Version", "AUTHORS:               ", AUTHORS)
-	printlog("Version", "AUTHORS_EMAIL:         ", AUTHORS_EMAIL)
-	printlog("Version", "COPYRIGHT:             ", COPYRIGHT)
-	printlog("Version", "LICENCE:               ", LICENCE)
-	printlog("Version", "WEBSITE:               ", WEBSITE)
-	printlog("Version", "TRANSLATIONS:          ", TRANSLATIONS)
+	printlog("Version", "   : DRATS_VERSION:         ", DRATS_VERSION)
+	printlog("Version", "   : DRATS_NAME:            ", DRATS_NAME)
+	printlog("Version", "   : DRATS_DESCRIPTION:     ", DRATS_DESCRIPTION)
+	printlog("Version", "   : DRATS_LONG_DESCRIPTION:", DRATS_LONG_DESCRIPTION)
+	printlog("Version", "   : AUTHORS:               ", AUTHORS)
+	printlog("Version", "   : AUTHORS_EMAIL:         ", AUTHORS_EMAIL)
+	printlog("Version", "   : COPYRIGHT:             ", COPYRIGHT)
+	printlog("Version", "   : LICENCE:               ", LICENCE)
+	printlog("Version", "   : WEBSITE:               ", WEBSITE)
+	printlog("Version", "   : TRANSLATIONS:          ", TRANSLATIONS)

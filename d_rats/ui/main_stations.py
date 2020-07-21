@@ -190,10 +190,10 @@ class StationsList(MainWindowTab):
             self.__calls = []
             self._update_station_count()
         elif action == "pingall":
-            printlog("MainStation:"," executing ping all")
+            printlog("MainStation",": executing ping all")
             stationlist = self.emit("get-station-list")
             for port in stationlist.keys():
-                printlog("MainStation"," Doing CQCQCQ ping on port %s" % port)
+                printlog("MainStation",": Doing CQCQCQ ping on port %s" % port)
                 self.emit("ping-station", "CQCQCQ", port)
         elif action == "reqposall":
             printlog("MainStation",": requesting position to all known stations")

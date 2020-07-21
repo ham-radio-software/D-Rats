@@ -190,7 +190,7 @@ class MarkerEditDialog(inputdialog.FieldDialog):
                 iidx = symlist.index(point.get_aprs_symbol())
                 iconsel.set_active(iidx)
             except ValueError:
-                printlog(("Mapdisplay: No such symbol `%s'" % point.get_aprs_symbol()))
+                printlog("Mapdisplay",": No such symbol `%s'" % point.get_aprs_symbol())
         else:
             iconsel.set_sensitive(False)
 
@@ -554,7 +554,7 @@ class MapWidget(gtk.DrawingArea):
                 #utils.log_exception()
                 #removing broken tiles                
                 if os.path.exists(path):
-                    printlog(("Mapdisplay: Deleting the broken tile to force future download %s" % path))
+                    printlog("Mapdisplay",": Deleting the broken tile to force future download %s" % path)
                     os.remove(path)
                 #else:
                     #usually this happens when a tile file has not been create after fetching from the tile as some error was got

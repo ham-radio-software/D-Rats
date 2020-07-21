@@ -28,7 +28,7 @@ import datetime
 try:
     from hashlib import md5
 except ImportError:
-    printlog("Installing hashlib replacement hack")
+    printlog("Cap","       : Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
 def ev_cmp_exp(ev1, ev2):

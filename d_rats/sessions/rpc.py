@@ -357,7 +357,7 @@ class RPCActionSet(gobject.GObject):
         rqcall = job.get_station()
         
         printlog("RPC","       : Position request for `%s'" % rqcall)
-        printlog("RPC","      : Self=%s" % format(self))
+        printlog("RPC","       : Self=%s" % format(self))
 
         if rqcall == mycall or rqcall == ".":
             rqcall = None
@@ -443,7 +443,7 @@ class RPCActionSet(gobject.GObject):
 
         dir = self.__config.get("prefs", "download_dir")
         path = os.path.join(dir, job.get_file())
-        printlog("RPC","      : Remote requested %s" % path)
+        printlog("RPC","       : Remote requested %s" % path)
         if os.path.exists(path):
             result["rc"] = "OK"
             self.emit("rpc-send-file",

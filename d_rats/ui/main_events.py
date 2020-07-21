@@ -201,7 +201,7 @@ class EventTab(MainWindowTab):
 
     def _type_selected(self, typesel, filtermodel):
         filter = typesel.get_active_text()
-        printlog("MainEvents: Filter set on %s" % filter)
+        printlog("MainEvents",": Filter set on %s" % filter)
         t = None
         if filter == _("All") or filter ==_("Tutto"):
             t = None
@@ -247,7 +247,7 @@ class EventTab(MainWindowTab):
         column.set_sort_order(srt)
 
     def _get_sort_asc(self):
-        #printlog("mainEvents: sorting events in ascending order")
+        #printlog("MainEvents",": sorting events in ascending order")
         srt = self._config.getint("state", "events_sort")
         return srt == gtk.SORT_ASCENDING
 

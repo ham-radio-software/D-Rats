@@ -32,7 +32,7 @@ class SubstitutionList(object):
 
             sub = self.get_sub(key)
 
-            printlog("Substitution for %s was: %s" % (key, sub))
+            printlog("Subst","     : Substitution for %s was: %s" % (key, sub))
 
             string = first + sub + last
 
@@ -54,7 +54,7 @@ def load_subs():
 
 def subst_string(string):
     if not load_subs():
-        printlog("Unable to load substitution list")
+        printlog("Subst","     : Unable to load substitution list")
         return string
     else:
         return sublist.subst(string)

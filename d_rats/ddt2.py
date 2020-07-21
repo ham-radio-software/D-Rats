@@ -95,7 +95,7 @@ class DDT2Frame(object):
 
     def get_xmit_bps(self):
         if not self._xmit_e:
-            printlog("Ddt2      : Block not sent, can't determine BPS!")
+            printlog("Ddt2","      : Block not sent, can't determine BPS!")
             return 0
 
         if self._xmit_s == self._xmit_e:
@@ -281,11 +281,11 @@ def test_crap():
     f = DDT2EncodedFrame()
     try:
         if f.unpack("[SOB]foobar[EOB]"):
-            printlog("Ddt2      : FAIL")
+            printlog("Ddt2","      : FAIL")
         else:
-            printlog("Ddt2      : PASS")
+            printlog("Ddt2","      : PASS")
     except Exception as e:
-        printlog("Ddt2      : PASS")
+        printlog("Ddt2","      : PASS")
 
 if __name__ == "__main__":
     test_symmetric()

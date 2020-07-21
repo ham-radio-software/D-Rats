@@ -27,12 +27,12 @@ class BitStuffContext:
         printlog(("Register: %s" % bstr_pos(self.register)))
         self.bits += 1
         if self.bits == 8:
-            printlog("Ax25      : Pushing")
+            printlog("Ax25","      : Pushing")
             self.push()
 
     def store_bit(self, bit):
         if bit and self.ones == 5:
-            printlog("Stuffing!")
+            printlog("Ax25","      : Stuffing!")
             self._store_bit(0)
         self._store_bit(bit)
 
@@ -56,8 +56,8 @@ if __name__ == "__main__":
 
     data = "\xFF\xFF\xFF"
 
-    printlog("Start:")
+    printlog("Ax25","      : Start:")
     hexprintlog(data)
 
-    printlog("\nStuffed:")
+    printlog("Ax25","      \nStuffed:")
     hexprintlog(bitstuff(data))
