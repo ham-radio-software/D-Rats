@@ -372,12 +372,6 @@ class RepeaterUI:
 
         return config
 
-    def save_config(self, config):
-        self.sync_config()
-        f = open(self.config_fn, "w")
-        config.write(f)
-        f.close()
-
     def add_outgoing_paths(self, id, paths):
         reqauth = self.config.get("settings", "require_auth") == "True"
         trustlocal = self.config.get("settings", "trust_local") == "True"
@@ -427,6 +421,12 @@ class RepeaterGUI(RepeaterUI):
             return
 
         self.dev_list.add_item(portspec, param)
+
+    def save_config(self, config):
+        self.sync_config()
+        f = open(self.config_fn, "w")
+        config.write(f)
+        f.close()
 
     def sig_destroy(self, widget, data=None):
         self.button_off(None, False)
