@@ -25,7 +25,7 @@ COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
           "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &" +chr(13)+ \
           "Marius Petrescu (YO2LOJ)"
 LICENCE ="You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>."
-WEBSITE =""
+WEBSITE = "https://groups.io/g/d-rats"
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
 
 HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION }

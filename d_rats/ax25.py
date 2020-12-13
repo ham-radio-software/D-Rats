@@ -52,7 +52,7 @@ def bitstuff(data):
     return ctx.get_output()
 
 if __name__ == "__main__":
-    from d_rats.utils import hexprint
+    from d_rats.utils import hexprintlog
 
     data = "\xFF\xFF\xFF"
 

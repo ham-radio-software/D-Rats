@@ -3,8 +3,6 @@ from __future__ import print_function
 from datetime import datetime
 
 
-
-
 def printlog(arg1, *args):
 #List of modules
     modules2print = ['D-Rats',           # main program
@@ -70,31 +68,26 @@ def printlog(arg1, *args):
                      'wu',                   #d_rats\wu.py
                      'yencode',              #d_rats\yencode.py
                     
-                     'geopy\distance',       #d_rats\geopy\distance.py
-                     'geopy\geocoders',      #d_rats\geopy\geocoders.py
-                     'geopy\util',           #d_rats\geopy\util.py
+                     'geopy\\distance',       #d_rats\geopy\distance.py
+                     'geopy\\geocoders',      #d_rats\geopy\geocoders.py
+                     'geopy\\util',           #d_rats\geopy\util.py
 
-                     'sessions\base',        #d_rats\sessions\base.py
-                     'sessions\chat',        #d_rats\sessions\chat.py
-                     'sessions\control',     #d_rats\sessions\control.py
-                     'sessions\file',        #d_rats\sessions\file.py
-                     'sessions\form',        #d_rats\sessions\form.py
+                     'sessions\\base',        #d_rats\sessions\base.py
+                     'sessions\\chat',        #d_rats\sessions\chat.py
+                     'sessions\\control',     #d_rats\sessions\control.py
+                     'sessions\\file',        #d_rats\sessions\file.py
+                     'sessions\\form',        #d_rats\sessions\form.py
 
-                     'sessions\sniff',       #d_rats\sessions\sniff.py
-                     'sessions\sock',        #d_rats\sessions\sock.py
-                     'sessions\stateful',    #d_rats\sessions\stateful.py
-                     'sessions\stateless',   #d_rats\sessions\stateless.py
+                     'sessions\\sniff',       #d_rats\sessions\sniff.py
+                     'sessions\\sock',        #d_rats\sessions\sock.py
+                     'sessions\\stateful',    #d_rats\sessions\stateful.py
+                     'sessions\\stateless',   #d_rats\sessions\stateless.py
 
-                     'ui\main_common',       #d_rats\ui\main_common.py
+                     'ui\\main_common',       #d_rats\ui\main_common.py
+                     ]
 
-
-                     
-                      ]
-    now = datetime.now()
     date_time = datetime.now().strftime("%m/%d/%Y %H:%M:%S")  
     if (arg1 in modules2print):   
         print(date_time, arg1, *args)
     else:
         print(date_time, "x", arg1, *args)
-        
-    

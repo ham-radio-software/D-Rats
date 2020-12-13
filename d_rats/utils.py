@@ -20,6 +20,7 @@ from __future__ import print_function
 #importing printlog() wrapper
 from .debug import printlog
 
+from io import FileIO
 import re
 import os
 import tempfile
@@ -53,22 +54,26 @@ def init_icon_maps():
                                          "images", "aprs_sec.png")),
         }
 
-def hexprint(data):
-    col = 0
+def byte_ord(raw_data):
+    # python2 compatibility hack
+    if isinstance(raw_data, str):
+        return ord(raw_data)
+    return raw_data
 
+def hexprintlog(raw_data):
     line_sz = 8
     csum = 0
+    data = raw_data
+    if isinstance(raw_data, bytes):
+        data = bytearray(raw_data)
 
-    lines = len(data) / line_sz
+    lines = len(data) // line_sz
     
     if (len(data) % line_sz) != 0:
         lines += 1
-        data += "\x00" * ((lines * line_sz) - len(data))
         
-    for i in range(0, (len(data)/line_sz)):
-
-
-        printlog("Utils","     :%03i: " % (i * line_sz), end=' ')
+    for i in range(0, lines):
+        print("Utils","     :%03i: " % (i * line_sz), end=' ')
 
         left = len(data) - (i * line_sz)
         if left < line_sz:
@@ -76,22 +81,26 @@ def hexprint(data):
         else:
             limit = line_sz
             
-        for j in range(0,limit):
-            printlog("Utils","     :%02x " % ord(data[(i * line_sz) + j]), end=' ')
-            csum += ord(data[(i * line_sz) + j])
+        for j in range(0, limit):
+            print("%02x" % byte_ord(data[(i * line_sz) + j]), end=' ')
+            csum += byte_ord(data[(i * line_sz) + j])
             csum = csum & 0xFF
 
-        printlog("Utils","     :  ", end=' ')
+        if limit < line_sz:
+            for j in range(0, line_sz - limit):
+                print("  ", end = ' ')
 
-        for j in range(0,limit):
+        print(" :", end=' ')
+
+        for j in range(0, limit):
             char = data[(i * line_sz) + j]
 
-            if ord(char) > 0x20 and ord(char) < 0x7E:
-                printlog("Utils","     :%s" % char, end=' ')
+            if byte_ord(char) > 0x20 and byte_ord(char) < 0x7E:
+                print("%s" % chr(char), end='')
             else:
-                printlog("Utils","     :.", end=' ')
+                print(".", end='')
 
-        printlog("Utils","     :")
+        print()
 
     return csum
 
@@ -196,7 +205,7 @@ def get_icon(key):
         printlog("Utils","     :Error cutting icon %s: %s" % (key, e))
         return None
 
-class NetFile(file):
+class NetFile(FileIO):
     def __init__(self, uri, mode="r", buffering=1):
         self.__fn = uri
         self.is_temp = False
@@ -213,10 +222,10 @@ class NetFile(file):
                 six.moves.urllib.request.urlretrieve(uri, self.__fn)
                 break
         
-        file.__init__(self, self.__fn, mode, buffering)
+        super(Netfile, self).__init__(self, self.__fn, mode, buffering)
 
     def close(self):
-        file.close(self)
+        super(NetFile, self).close(self)
 
         if self.is_temp:
             os.remove(self.__fn)
