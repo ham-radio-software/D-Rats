@@ -903,7 +903,13 @@ class MainApp(object):
     
     def __station_status(self, object, sta, stat, msg, port):
         self.mainwindow.tabs["stations"].saw_station(sta, port, stat, msg)
-        status = station_status.get_status_msgs()[stat]
+        try:
+            status = station_status.get_status_msgs()[stat]
+        except KeyError:
+            printlog("Mainapp","    : Invalid station_status of %d." %
+                     stat)
+            status="code %d" % stat
+
         event = main_events.Event(None,
                                   "%s %s %s %s: %s" % (_("Station"),
                                                        sta,
