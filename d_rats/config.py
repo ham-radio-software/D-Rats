@@ -30,6 +30,15 @@ import six.moves.configparser
 import os
 import random
 
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
 from . import utils
 from . import miscwidgets
 from . import inputdialog
@@ -417,6 +426,7 @@ class DratsConfigWidget(gtk.HBox):
         self.vsec = sec
         self.vname = name
         self._widget = None
+        self._in_init = True
 
         self.config.widgets.append(self)
 
@@ -436,6 +446,7 @@ class DratsConfigWidget(gtk.HBox):
             rb.connect("clicked", self._revert)
             rb.show()
             self.pack_end(rb, 0, 0, 0)
+        self.in_init = False
 
     def _revert(self, button=None):
         try:
@@ -444,8 +455,14 @@ class DratsConfigWidget(gtk.HBox):
             printlog("Config","    : DEFAULTS has no %s/%s" % (self.vsec, self.vname))
             self.value = ""
 
+        # Nothing else to do if called from __init_()
+        if self._in_init:
+            return
+
         if not self._widget:
-            printlog("Config","    : AAACK: No _widget in revert")
+            printlog("Config",
+                     "    : AAACK: No _widget in revert for %s/%s" %
+                     (self.vsec, self.vname))
             return
 
         if isinstance(self._widget, gtk.Entry):
@@ -457,7 +474,9 @@ class DratsConfigWidget(gtk.HBox):
         elif isinstance(self._widget, miscwidgets.FilenameBox):
             self._widget.set_filename(self.value)
         else:
-            printlog(("Config    : AAACK: I don't know how to do a %s" % self._widget.__class__))
+            printlog("Config",
+                     "    : AAACK: I don't know how to do a %s" %
+                     (self._widget.__class__))
 
     def save(self):
         #printlog("Config","    : "Saving %s/%s: %s" % (self.vsec, self.vname, self.value))
@@ -1256,10 +1275,11 @@ class DratsMessagePanel(DratsPanel):
         lab = gtk.Label(_(" on port "))
 
         ports = []
-        for port in self.config.options("ports"):
-            spec = self.config.get("ports", port).split(",")
-            if "agwpe" in spec[1]:
-                ports.append(spec[-1])
+        if self.config.has_section("ports"):
+            for port in self.config.options("ports"):
+                spec = self.config.get("ports", port).split(",")
+                if "agwpe" in spec[1]:
+                    ports.append(spec[-1])
 
         rpt = DratsConfigWidget(config, "prefs", "msg_wl2k_rmsport")
         rpt.add_combo(ports, False)
@@ -1558,6 +1578,9 @@ class DratsInEmailPanel(DratsPanel):
                         ret[_("Enabled")])
 
     def convert_018_values(self, config, section):
+        '''Conver 0.18 values'''
+        if not config.has_section(section):
+            return
         options = config.options(section)
         for opt in options:
             val = config.get(section, opt)
@@ -1927,14 +1950,26 @@ class DratsConfig(six.moves.configparser.ConfigParser):
         path = self.ship_obj_fn(os.path.join("images", name))
         return gtk.gdk.pixbuf_new_from_file(path)
 
+
+def main():
+    '''Main package for testing'''
+    import sys
+    sys.path.insert(0, ".")
+
+    printlog("config", "  : sys.path=", sys.path)
+    # mm: fn = "/home/dan/.d-rats/d-rats.config"
+    filename = "d-rats.config"
+
+    parser = six.moves.configparser.ConfigParser()
+    parser.read(filename)
+    parser.widgets = []
+
+    config = DratsConfigUI(parser)
+    if config.run() == gtk.RESPONSE_OK:
+        config.save()
+
 if __name__ == "__main__":
-    #mm: fn = "/home/dan/.d-rats/d-rats.config"
-    fn = "d-rats.config"
-
-    cf = six.moves.configparser.ConfigParser()
-    cf.read(fn)
-    cf.widgets = []
-
-    c = DratsConfigUI(cf)
-    if c.run() == gtk.RESPONSE_OK:
-        c.save(fn)
+    if not __package__:
+        # pylint: disable=redefined-builtin
+        __package__ = '__main__'
+    main()
