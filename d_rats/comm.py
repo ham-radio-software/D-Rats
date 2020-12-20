@@ -145,7 +145,7 @@ class SWFSerial(serial.Serial):
         printlog("Comm","        : Software XON/XOFF control initialized")
         try:
             serial.Serial.__init__(self, **kwargs)
-        except TypeError:
+        except TypeError as e:
             if "writeTimeout" in kwargs:
                 del kwargs["writeTimeout"]
                 serial.Serial.__init__(self, **kwargs)

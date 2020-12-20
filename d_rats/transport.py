@@ -96,7 +96,7 @@ class Transporter(object):
         self.inq = BlockQueue()
         self.outq = BlockQueue()
         self.pipe = pipe
-        self.inbuf = ""
+        self.inbuf = b""
         self.enabled = True
         self.inhandler = inhandler
         self.compat = kwargs.get("compat", False)
@@ -133,7 +133,7 @@ class Transporter(object):
         raise comm.DataPathIOError("Unable to reconnect")
 
     def __recv(self):
-        data = ""
+        data = b""
         for i in range(0, 10):
             try:
                 return self.pipe.read_all_waiting()
@@ -196,16 +196,19 @@ class Transporter(object):
 
     def _match_gps(self):
         # NMEA-style
-        m = re.search("((?:\$GP[^\*]+\*[A-f0-9]{2}\r?\n?){1,2}.{8},.{20})",
-                      self.inbuf)
+        # Starts with $GP**[a-f0-9]{2}\r?\n?
+        m = re.search(
+            b"((?:\x24GP[^\x42]+\x42[A-f0-9]{2}\x0d?\x0a?){1,2}.{8},.{20})",
+                       self.inbuf)
         if m:
             return m.group(1)
 
         # GPS-A style
-        m = re.search("(\$\$CRC[A-z0-9]{4},[^\r]*\r)", self.inbuf)
+        # Starts with $$CRC[A-Z0-9]{4},\r
+        m = re.search(b"(\x24\x24CRC[A-z0-9]{4},[^\x0d]*\x0d)", self.inbuf)
         if m:
             return m.group(1)
-        if "$$CRC" in self.inbuf:
+        if b"$$CRC" in self.inbuf:
             printlog("Transport"," : Didn't match:\n%s" % repr(self.inbuf))
         return None
 
@@ -222,7 +225,7 @@ class Transporter(object):
     def _parse_gps(self):
         result = self._match_gps()
         if result:
-            self.inbuf = self.inbuf.replace(result, "")
+            self.inbuf = self.inbuf.replace(result, b"")
             printlog("Transport"," : Found GPS string: %s" % repr(result))
             self._send_text_block(result)
         else:
@@ -314,7 +317,7 @@ class Transporter(object):
                     self._send_text_block(self.inbuf)
                 else:
                     printlog("Transport"," : ### Unconverted data: %s" % self.inbuf)
-                self.inbuf = ""
+                self.inbuf = b""
 
             try:
                 self.send_frames()
@@ -355,7 +358,7 @@ class Transporter(object):
 
 class TestPipe(object):
     def make_fake_data(self, src, dst):
-        self.buf = ""
+        self.buf = b""
 
         for i in range(10):
             f = ddt2.DDT2EncodedFrame()
@@ -366,18 +369,18 @@ class TestPipe(object):
             f.session = 0
             f.data = "This is a test frame to parse"
 
-            self.buf += "asg;sajd;jsadnkbasdl;b  as;jhd[SOB]laskjhd" + \
-                "asdkjh[EOB]a;klsd" + f.get_packed() + "asdljhasd[EOB]" + \
-                "asdljb  alsjdljn[asdl;jhas"
+            self.buf += b"asg;sajd;jsadnkbasdl;b  as;jhd[SOB]laskjhd" + \
+                b"asdkjh[EOB]a;klsd" + f.get_packed() + b"asdljhasd[EOB]" + \
+                b"asdljb  alsjdljn[asdl;jhas"
             
             if i == 5:
-                self.buf += "$GPGGA,075519,4531.254,N,12259.400,W,1,3,0,0.0,M,0,M,,*55\r\nK7HIO   ,GPS Info\r"
+                self.buf += b"$GPGGA,075519,4531.254,N,12259.400,W,1,3,0,0.0,M,0,M,,*55\r\nK7HIO   ,GPS Info\r"
             elif i == 7:
-                self.buf += "$$CRC6CD1,Hills-Water-Treat-Plt>APRATS,DSTAR*:@233208h4529.05N/12305.91W>Washington County ARES;Hills Water Treat Pl\r\n"
+                self.buf += b"$$CRC6CD1,Hills-Water-Treat-Plt>APRATS,DSTAR*:@233208h4529.05N/12305.91W>Washington County ARES;Hills Water Treat Pl\r\n"
 
             elif i == 2:
                 self.buf += \
-"""$GPGGA,023531.36,4531.4940,N,12254.9766,W,1,07,1.3,63.7,M,-21.4,M,,*64\r\n$GPRMC,023531.36,A,4531.4940,N,12254.9766,W,0.00,113.7,010808,17.4,E,A*27\rK7TAY M ,/10-13/\r"""
+b"""$GPGGA,023531.36,4531.4940,N,12254.9766,W,1,07,1.3,63.7,M,-21.4,M,,*64\r\n$GPRMC,023531.36,A,4531.4940,N,12254.9766,W,0.00,113.7,010808,17.4,E,A*27\rK7TAY M ,/10-13/\r"""
                 
 
         printlog(("Transport :  Made some data: %s" % self.buf))
@@ -386,11 +389,14 @@ class TestPipe(object):
     def __init__(self, src="Sender", dst="Recvr"):
         self.make_fake_data(src, dst)
 
-    def read(self, count):
+    def is_connected(self):
+        return True
+
+    def read_all_waiting(self):
         if not self.buf:
             return ""
 
-        num = random.randint(1,count)
+        num = random.randint(1, 200)
 
         b = self.buf[:num]
         self.buf = self.buf[num:]

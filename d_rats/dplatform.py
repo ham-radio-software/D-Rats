@@ -26,7 +26,11 @@ from .debug import printlog
 import os
 import sys
 import glob
-import commands
+try:
+    # pylint: disable=import-error
+    import commands
+except ModuleNotFoundError:
+    pass
 import subprocess
 import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
 from six.moves import range

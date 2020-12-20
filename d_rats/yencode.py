@@ -18,52 +18,125 @@
 from __future__ import absolute_import
 import sys
 
-DEFAULT_BANNED = "\x11\x13\x1A\00\xFD\xFE\xFF"
+DEFAULT_BANNED = b"\x11\x13\x1A\00\xFD\xFE\xFF"
 OFFSET = 64
 
 def yencode_buffer(buf, banned=None):
     if not banned:
         banned = DEFAULT_BANNED
 
-    banned += "="
-    out = ""
-        
+    # python2 compatibility hack
+    if isinstance(banned, str):
+        banned = bytearray(banned)
+
+    banned += b"="
+    out = b""
+    yesc = b"="
+
+    if isinstance(out, str):
+        out = bytearray(out)
+    if isinstance(yesc, str):
+        yesc = bytearray(yesc)
+
     for char in buf:
         if char in banned:
-            out += "=" + chr((ord(char) + OFFSET) % 256)
+            if isinstance(char, str):
+                char = ord(char)
+            out += yesc + int_to_byte((char + OFFSET) % 256)
         else:
-            out += char
+            out += int_to_byte(char)
 
     return out
 
 def ydecode_buffer(buf):
-    out = ""
+    out = b""
     
+    # Needed for python2 compatibility
+    if isinstance(out, str):
+        out = bytearray(out)
+    if isinstance(buf, str):
+        buf = bytearray(buf)
+
     i = 0
+    yesc = ord("=")
     while i < len(buf):
         char = buf[i]
-        if char == "=":
+        if char == yesc:
             i += 1
-            v = ord(buf[i]) - OFFSET
+            v = buf[i] - OFFSET
             if v < 0:
                 v += 256
-            out += chr(v)
+            out += int_to_byte(v)
         else:
-            out += char
+            out += int_to_byte(char)
 
         i += 1
 
     return out
 
+def int_to_byte(data):
+    # python2 compatibility hack
+    if isinstance(data, str):
+        data = ord(data)
+    if sys.version_info[0] > 2:
+        result = chr(data).encode('ISO-8859-1')
+    else:
+        result = chr(data)
+    return result
+
 if __name__=="__main__":
     import sys
 
-    f = open(sys.argv[2])
-    inbuf = f.read()
+    action = '-t'
+    argc = len(sys.argv) - 1
+    if argc > 0:
+        action = sys.argv[1]
 
-    if sys.argv[1] == "-e":
-        sys.stdout.write(yencode_buffer(inbuf))
+    infile = None
+    outfile = None
+    if argc > 1:
+        infile = sys.argv[2]
+    elif action != '-t':
+        print('No input file specified.')
+        print('python(2|3) -m d_rats.yencode [-t] [encoded_file]')
+        print('python(2|3) -m d_rats.yencode [-d encoded_file [decoded_file]')
+        print('python(2|3) -m d_rats.yencode [-e infile encoded_file ]')
+        sys.exit(1)
+
+    if action == '-t':
+        inbuf = DEFAULT_BANNED + b'foobar'
+        for i in range(0, 255):
+            inbuf += int_to_byte(i)
+        if argc > 2:
+            outfile = sys.argv[2]
     else:
-        sys.stdout.write(ydecode_buffer(inbuf))
+        f = open(sys.argv[2], mode='rb')
+        inbuf = f.read()
+        f.close()
+        if argc > 3:
+            outfile = sys.argv[3]
 
-    f.close()
+    if isinstance(inbuf, str):
+        inbuf = bytearray(inbuf)
+
+    if action == "-e":
+        outbuf = yencode_buffer(inbuf)
+    elif action == '-d':
+        outbuf = ydecode_buffer(inbuf)
+    else:
+        fail = 0
+        outbuf = yencode_buffer(inbuf)
+        buffer = ydecode_buffer(outbuf)
+        for i in range(0, len(buffer)):
+            if buffer[i] != inbuf[i]:
+                fail += 1
+        if fail > 0:
+            print('[FAILED] %s bytes different' % fail)
+        else:
+            print('[PASSED]')
+
+    if outfile:
+        f = open(outfile, 'wb')
+        f.write(outbuf)
+        f.close
+

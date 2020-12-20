@@ -23,6 +23,7 @@ from .debug import printlog
 import struct
 import zlib
 import base64
+import sys
 from . import yencode
 
 import threading
@@ -30,12 +31,14 @@ import threading
 from . import utils
 from six.moves import range
 
-ENCODED_HEADER = "[SOB]"
-ENCODED_TRAILER = "[EOB]"
+ENCODED_HEADER = b"[SOB]"
+ENCODED_TRAILER = b"[EOB]"
 
-   
-    
+
 def update_crc(c, crc):
+    # python 2 compatibility hack
+    if isinstance(c, str):
+        c = ord(c)
     for _ in range(0,8):
         c <<= 1
 
@@ -57,11 +60,10 @@ def update_crc(c, crc):
 def calc_checksum(data):
     checksum = 0
     for i in data:
-        checksum = update_crc(ord(i), checksum)
+        checksum = update_crc(i, checksum)
 
     checksum = update_crc(0, checksum)
     checksum = update_crc(0, checksum)
-
     return checksum
 
 def encode(data):
@@ -107,16 +109,28 @@ class DDT2Frame(object):
         self.compress = compress
 
     def get_packed(self):
+        data = self.data
+        if (sys.version_info[0] > 2) and isinstance(data, str):
+            data = self.data.encode('ISO-8859-1')
         if self.compress:
-            data = zlib.compress(self.data, 9)
+            data = zlib.compress(data, 9)
         else:
-            data = self.data
             self.magic = (~self.magic) & 0xFF
 
         length = len(data)
         
-        s_station = self.s_station.ljust(8, "~")
-        d_station = self.d_station.ljust(8, "~")
+        if sys.version_info[0] > 2:
+            s_sta = self.s_station
+            d_sta = self.d_station
+            if isinstance(self.s_station, str):
+                s_sta = self.s_station.encode('ISO-8859-1')
+            if isinstance(self.d_station, str):
+                d_sta = self.d_station.encode('ISO-8859-1')
+            s_station = bytearray(s_sta.ljust(8, b"~"))
+            d_station = bytearray(d_sta.ljust(8, b"~"))
+        else:
+            s_station = self.s_station.ljust(8, "~")
+            d_station = self.d_station.ljust(8, "~")
 
         val = struct.pack(self.format,
                           self.magic,
@@ -145,7 +159,10 @@ class DDT2Frame(object):
         return val + data
 
     def unpack(self, val):
-        magic = ord(val[0])
+        magic = val[0]
+        # python2 compatibility hack
+        if isinstance(magic, str):
+            magic = ord(val[0])
         if magic == 0xDD:
             self.compress = True
         elif magic == 0x22:
@@ -173,15 +190,19 @@ class DDT2Frame(object):
 
         _checksum = calc_checksum(_header + data)
 
-        self.s_station = self.s_station.replace("~", "")
-        self.d_station = self.d_station.replace("~", "")
+        self.s_station = self.s_station.replace(b"~", b"")
+        self.d_station = self.d_station.replace(b"~", b"")
 
         if _checksum != checksum:
             printlog(("Ddt2      : Checksum failed: %s != %s" % (checksum, _checksum)))
             return False
 
         if self.compress:
-            self.data = zlib.decompress(data)
+            if sys.version_info[0] > 2:
+               self.data = zlib.decompress(data)
+            else:
+                comp_data = zlib.decompress(str(data))
+                self.data = bytearray(comp_data)
         else:
             self.data = data
 
@@ -193,7 +214,7 @@ class DDT2Frame(object):
         else:
             c = "-"
 
-        #data = utils.filter_to_ascii(self.data[:20]) #tolto il limite dei 20 caratteri 
+        #data = utils.filter_to_ascii(self.data[:20]) #tolto il limite dei 20 caratteri
         data = utils.filter_to_ascii(self.data)
         #printlog("-----------" #)
         #printlog("Ddt2      : DDT2%s: %i:%i:%i %s->%s (%s...[%i])" % (c,
@@ -236,6 +257,9 @@ class DDT2EncodedFrame(DDT2Frame):
 
     def unpack(self, val):
         try:
+            if (sys.version_info[0] > 2) and isinstance(val, str):
+                val = val.encode('ISO-8859-1')
+           
             h = val.index(ENCODED_HEADER) + len(ENCODED_TRAILER)
             t = val.rindex(ENCODED_TRAILER)
             payload = val[h:t]
@@ -265,7 +289,7 @@ def test_symmetric(compress=True):
     fin.seq = 3
     fin.s_station = "FOO"
     fin.d_station = "BAR"
-    fin.data = "This is a test"
+    fin.data = b"This is a test"
     fin.set_compress(compress)
     p = fin.get_packed()
 
