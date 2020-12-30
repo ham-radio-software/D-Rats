@@ -17,9 +17,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
 import sys
 import time
 import os
@@ -33,6 +30,11 @@ import libxslt
 import gtk
 import gobject
 import pango
+
+from ConfigParser import NoOptionError
+
+#importing printlog() wrapper
+from .debug import printlog
 
 from .miscwidgets import make_choice, KeyedListWidget
 from .utils import run_or_error
@@ -257,10 +259,15 @@ class MultilineWidget(FieldWidget):
         self.widget.set_size_request(175, 200)
         self.widget.set_wrap_mode(gtk.WRAP_WORD)
 
-        from . import mainapp
-        config = mainapp.get_mainapp().config
-        if config.getboolean("prefs", "check_spelling"):
-            spell.prepare_TextBuffer(self.buffer)
+        try:
+            # The mainapp class is not initialized when the unit tests are
+            # run so the config information is not available.
+            from . import mainapp
+            config = mainapp.get_mainapp().config
+            if config.getboolean("prefs", "check_spelling"):
+                spell.prepare_TextBuffer(self.buffer)
+        except AttributeError:
+            pass
 
     def make_container(self):
 
@@ -1219,17 +1226,26 @@ class FormDialog(FormFile, gtk.Dialog):
         gtk.Dialog.__init__(self, buttons=(), parent=parent)
         FormFile.__init__(self, filename)
 
-        from . import mainapp
-        self._config = mainapp.get_mainapp().config
-
         self.process_fields(self.doc)
         self.set_title(self.title_text)
 
+        # If this is invoked by the unit test, the mainapp class has
+        # not been initialized, so does not have a config member.
+        from . import mainapp
+        try:
+            self._config = mainapp.get_mainapp().config
+        except AttributeError:
+            from . import config
+            self._config = config.DratsConfig(self)
+            # WB8TYW: This duplication needs to be removed later.
+            self.configure(self._config)
         try:
             x = self._config.getint("state", "form_%s_x" % self.id)
             y = self._config.getint("state", "form_%s_y" % self.id)
-        except Exception as e:
-            printlog("Formgui","   : Unable to get form_%s_*: %s" % (self.id, e))
+        except NoOptionError as err:
+            printlog("Formgui",
+                     "   : Unable to get form_%s_* from config (%s)" %
+                     (self.id, err))
             x = 300
             y = 500
 
@@ -1257,15 +1273,37 @@ class FormDialog(FormFile, gtk.Dialog):
         for field in self.fields:
             field.set_editable(editable)
         
-if __name__ == "__main__":
-    f = open(sys.argv[1])
-    xml = f.read()
-    form = Form("Form", xml)
+def main():
+    '''Main program for unit testing'''
+
+    import gettext
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
+    current_info = None
+
+    def form_done(dlg, response, info):
+        act = "unknown"
+        if response == RESPONSE_SEND:
+            act = "Send"
+        elif response == RESPONSE_SAVE:
+            act = "Save"
+        elif response == RESPONSE_REPLY:
+            act = "Reply"
+        elif response == RESPONSE_DELETE:
+            act = "Delete"
+        elif response == RESPONSE_SEND_VIA:
+            act = "Send-Via"
+        printlog("response: %d = %s" % (response, act))
+        printlog("info: %s" % info)
+
+    form = FormDialog("Form", sys.argv[1])
+    form.connect("response", form_done, current_info)
     form.run()
     form.destroy()
-    try:
-        gtk.main()
-    except:
-        pass
 
-    printlog(form.get_text())
+if __name__ == "__main__":
+    main()
