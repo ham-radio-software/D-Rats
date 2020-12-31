@@ -8,7 +8,7 @@ from . import inputdialog
 from . import miscwidgets
 from . import dplatform #imported by kater apparently not used...
 
-sizes = [
+SIZES = [
     "160x120",
     "320x240",
     "640x480",
@@ -25,18 +25,25 @@ sizes = [
     "90%",
     ]
 
+
 def has_image_support():
+    '''Has Image Support'''
     global IMAGE
     try:
-        import Image
+        from PIL import Image
     except ImportError:
-        return False
+        try:
+            import Image
+        except ImportError:
+            return False
 
     IMAGE = Image
 
     return True
 
+
 def update_image(filename, dlg):
+    '''Update Image'''
     reqsize = dlg.size.get_active_text()
     if "x" in reqsize:
         _h, _w = reqsize.split("x")
@@ -54,7 +61,7 @@ def update_image(filename, dlg):
 
     resized = dlg.image.resize((h, w))
 
-    (base, ext) = os.path.splitext(os.path.basename(filename))
+    (base, _ext) = os.path.splitext(os.path.basename(filename))
     dlg.resized = os.path.join(tempfile.gettempdir(),
                                "resized_" + base + ".jpg")
     resized.save(dlg.resized, quality=dlg.quality)
@@ -69,11 +76,15 @@ def update_image(filename, dlg):
     dlg.sizelabel.set_text("%i KB" % (size >> 10))        
     dlg.preview.set_from_file(dlg.resized)
 
+
 def set_quality(scale, event, value, dlg):
+    '''Set Quality'''
     dlg.quality = int(value)
     dlg.update()
 
+
 def build_image_dialog(filename, image, dlgParent=None):
+    '''Build Image Dialog'''
     d = inputdialog.FieldDialog(title="Send Image",
                                 parent=dlgParent)
 
@@ -85,7 +96,7 @@ def build_image_dialog(filename, image, dlgParent=None):
     d.sizelabel = gtk.Label("--")
     d.add_field(_("Size"), d.sizelabel)
 
-    d.size = miscwidgets.make_choice(sizes, False, sizes[1])
+    d.size = miscwidgets.make_choice(SIZES, False, SIZES[1])
     d.size.connect("changed", lambda x: update())
     d.add_field(_("Resize to"), d.size)
 
@@ -113,36 +124,65 @@ def build_image_dialog(filename, image, dlgParent=None):
 
     return d
 
-def send_image(fn, dlgParent=None):
+
+def send_image(filename, dlgParent=None):
+    '''Send Image'''
     if not has_image_support():
         msg = _("No support for resizing images.  Send unaltered?")
         from .ui import main_common
         if main_common.ask_for_confirmation(msg, dlgParent):
-            return fn
+            return filename
         else:
             return None
 
     try:
-        img = IMAGE.open(fn)
-    except IOError as e:
-        print("%s: %s" % (fn, e))
-        d = gtk.MessageDialog(buttons=gtk.BUTTONS_OK, parent=dlgParent)
-        d.set_property("text", _("Unknown image type"))
-        d.run()
-        d.destroy()
-        return
+        img = IMAGE.open(filename)
+    except IOError as err:
+        print("%s: %s" % (filename, err))
+        dialog = gtk.MessageDialog(buttons=gtk.BUTTONS_OK, parent=dlgParent)
+        dialog.set_property("text", _("Unknown image type"))
+        dialog.run()
+        dialog.destroy()
+        return None
 
-    d = build_image_dialog(fn, img, dlgParent)
-    r = d.run()
-    f = d.resized
-    d.destroy()
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    dialog = build_image_dialog(filename, img, dlgParent)
+    run_status = dialog.run()
+    temp_file = dialog.resized
+    dialog.destroy()
 
-    if r == gtk.RESPONSE_OK:
-        return f
+    if run_status == gtk.RESPONSE_OK:
+        return temp_file
     else:
         return None
 
+
+def main():
+    '''Main for Unit testing'''
+    import sys
+
+    import gettext
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
+    supported = has_image_support()
+
+    if supported:
+        try:
+            temp_file = send_image(sys.argv[1])
+            if temp_file:
+                print("sent_image_name %s" % temp_file)
+            else:
+                print('send_image returned None!')
+        except IndexError:
+            print("Image filename required!")
+    else:
+        print('No image Support found!')
+
+
 if __name__ == "__main__":
-    has_image_support()
-    print(send_image())
-    gtk.main()
+    main()
