@@ -29,6 +29,15 @@ import random
 import time
 import re
 
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
 from d_rats import utils
 from d_rats import msgrouting
 from d_rats import emailgw
@@ -322,7 +331,12 @@ class DRATS_SMTPServerThread(threading.Thread):
         self.join()
         
 
+def main():
+    '''Main program for unit testing'''
+
+    pop3s = DRATS_POP3Server(("localhost", 9090), DRATS_POP3Handler)
+    pop3s.set_config(None)
+    pop3s.serve_forever()
+
 if __name__ == "__main__":
-    s = DRATS_POP3Server(("localhost", 9090), DRATS_POP3Handler)
-    s.set_config(None)
-    s.serve_forever()
+    main()
