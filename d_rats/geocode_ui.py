@@ -18,16 +18,24 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
 import gtk
 import gobject
+from urllib2 import URLError
+try:
+    # pylint: disable=import-error
+    from geopy import geocoders
+except ImportError:
+    # WB8TYW: This will probably go away in the future.
+    # pylint: disable=import-error
+    from .geopy import geocoders
+    print("Falling back to built-in geocoders.")
 
+#importing printlog() wrapper
+from .debug import printlog
 from . import miscwidgets
-from .geopy import geocoders
 
-YID = "eHRO5K_V34FXWnljF5BJYvTc.lXh.kQ0MaJpnq3BhgaX.IJrvtd6cvGgtWEPNAb7"
+#setup of d-rats user_agent
+from . import version
 
 try:
     from gtk import Assistant as baseclass
@@ -132,11 +140,12 @@ class AddressAssistant(baseclass):
             return
 
         try:
-            g = geocoders.Yahoo(YID)
-            places = g.geocode(address, exactly_one=False)
+            agent = version.DRATS_NAME + '/' + version.DRATS_VERSION
+            service = geocoders.Nominatim(user_agent = agent)
+            places = service.geocode(address, exactly_one=False)
             self.set_page_complete(page, True)
-        except Exception as e:
-            printlog("Geocode","   : Did not find `%s': %s" % (address, e))
+        except URLError as err:
+            printlog("Geocode","   : Did not find `%s': %s" % (address, err))
             places = []
             lat = lon = 0
             self.set_page_complete(page, False)
@@ -216,7 +225,22 @@ class AddressAssistant(baseclass):
         self.connect("cancel", self.exit, gtk.RESPONSE_CANCEL)
         self.connect("apply", self.exit, gtk.RESPONSE_OK)
 
-if __name__ == "__main__":
-    a = AddressAssistant()
-    a.show()
+
+def main():
+    '''Main program for unit testing'''
+
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
+    assist = AddressAssistant()
+    assist.show()
     gtk.main()
+
+
+if __name__ == "__main__":
+    main()

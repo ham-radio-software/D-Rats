@@ -19,9 +19,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
 import os
 import sys
 
@@ -37,8 +34,21 @@ import copy
 
 import gtk
 import gobject
+from math import *
+
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
 
 #py3 from . import mainapp
+#importing printlog() wrapper
+from .debug import printlog
 from . import dplatform
 from . import miscwidgets
 from . import inputdialog
@@ -50,7 +60,6 @@ from . import signals
 from . import debug
 
 ##############
-from math import *
 from .ui.main_common import ask_for_confirmation
 from .gps import GPSPosition, distance, value_with_units, DPRS_TO_APRS
 from six.moves import range
@@ -105,7 +114,7 @@ def fetch_url(url, local):
   
     #setup of d-rats user_agent
     from . import version  
-    
+
     if not CONNECTED:
         raise Exception("Not connected")
 
@@ -668,6 +677,8 @@ class MapWidget(gtk.DrawingArea):
 
         self.lat_max = self.lat_min = 0
         self.lon_max = self.lon_min = 0
+        self.lng_fudge = 0
+        self.lat_fudge = 0
 
         self.map_tiles = []
 
@@ -1700,27 +1711,46 @@ class MapWindow(gtk.Window):
     def set_center(self, lat, lon):
         self.map.set_center(lat, lon)
 
-if __name__ == "__main__":
+
+def main():
+    '''Main program for unit testing'''
+
     printlog("Mapdisplay",": __Executing __main__ section")
     import sys
     from . import gps
+    from . import config
+
+    # WB8TYW: DratsConfig takes an unused argument.
+    conf = config.DratsConfig(None)
+
+    mapurl = conf.get("settings", "mapurlbase")
+    mapkey = ""
+
+    set_connected(True)
+    set_tile_lifetime(conf.getint("settings","map_tile_ttl") * 3600)
+
+
+    set_base_dir(os.path.join(conf.get("settings", "mapdir"),
+                 conf.get("settings", "maptype")), mapurl, mapkey)
+    proxy = conf.get("settings", "http_proxy") or None
+    set_proxy(proxy)
 
     if len(sys.argv) == 3:
-        m = MapWindow()
+        m = MapWindow(conf)
         m.set_center(gps.parse_dms(sys.argv[1]),
                      gps.parse_dms(sys.argv[2]))
         m.set_zoom(15)
     else:
-        m = MapWindow()
+        m = MapWindow(config)
         m.set_center(45.525012, -122.916434)
         m.set_zoom(14)
 
-        m.set_marker(GPSPosition(station="KI4IFW_H", lat=45.520, lon=-122.916434))
-        m.set_marker(GPSPosition(station="KE7FTE", lat=45.5363, lon=-122.9105))
-        m.set_marker(GPSPosition(station="KA7VQH", lat=45.4846, lon=-122.8278))
-        m.set_marker(GPSPosition(station="N7QQU", lat=45.5625, lon=-122.8645))
-        m.del_marker("N7QQU")
-        
+        # m.set_marker(GPSPosition(station="KI4IFW_H", lat=45.520, lon=-122.916434))
+        # m.set_marker(GPSPosition(station="KE7FTE", lat=45.5363, lon=-122.9105))
+        # m.set_marker(GPSPosition(station="KA7VQH", lat=45.4846, lon=-122.8278))
+        # m.set_marker(GPSPosition(station="N7QQU", lat=45.5625, lon=-122.8645))
+        # m.del_marker("N7QQU")
+
     m.show()
 
     try:   
@@ -1728,3 +1758,5 @@ if __name__ == "__main__":
     except:
         pass
 
+if __name__ == "__main__":
+    main()
