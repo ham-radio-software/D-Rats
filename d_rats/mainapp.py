@@ -1,6 +1,8 @@
 #!/usr/bin/python
+'''mainapp'''
+# pylint: disable=too-many-lines
 #
-# Copyright 2008 Dan Smith <dsmith@danplanet.com> 
+# Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,49 +21,57 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+
+import os
+import sys
+
+# this to generate timestamps associated to GPS fixes
+from time import gmtime, strftime
+# import various libraries of support functions
+import time
+# import re
+# from threading import Thread, Lock
+# from select import select
+import socket
+try:
+    # pylint: disable=import-error
+    from commands import getstatusoutput
+except ModuleNotFoundError:
+    pass
+
+import glob
+import shutil
+# import datetime
+# gettext module provides message translation and catalog management
+import gettext
+
+# import serial
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk          # to manage windows objects
+from gi.repository import GObject      # to manage multitasking
+
 #importing printlog() wrapper
 from .debug import printlog
-
-import sys
 from . import dplatform
-import os
 
-
-# this to generate timestamps associated to GPS fixes  
-from time import gmtime, strftime
-
+# pylint disable=invalid-name
 debug_path = dplatform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
     sys.stdout = open(debug_path, "w", 0)
     sys.stderr = sys.stdout
-    printlog("Mainapp","  : Enabled debug log for Win32 systems")
+    printlog("Mainapp", "  : Enabled debug log for Win32 systems")
 else:
     try:
         os.unlink(debug_path)
     except OSError:
         pass
 
-# gettext module provides message translation and catalog management
-import gettext
 # load the basic d-rats labels - it will load the localized translation later
 gettext.install("D-RATS")
 
-#import various libraries of support functions
-import time
-import re
-from threading import Thread, Lock
-from select import select
-import socket
-from commands import getstatusoutput
-import glob
-import shutil
-import datetime
-
-import serial
-import gtk     #to manage windows objects
-import gobject #to manage multitasking
-
-#these modules are imported from the d_rats folder
+# these modules are imported from the d_rats folder
 from . import mainwindow
 from . import config
 from . import gps
@@ -76,15 +86,15 @@ from . import station_status
 from . import pluginsrv
 from . import msgrouting
 from . import wl2k
-from . import inputdialog
+# from . import inputdialog
 from . import version
-from . import agw
+# from . import agw
 from . import mailsrv
 
 
 from .ui import main_events
 
-from .utils import filter_to_ascii,NetFile,log_exception,run_gtk_locked
+from .utils import NetFile, log_exception, run_gtk_locked
 from .utils import init_icon_maps
 from .sessions import rpc, chat, sniff
 
@@ -94,78 +104,100 @@ init_icon_maps()
 LOGTF = "%m-%d-%Y_%H:%M:%S"
 MAINAPP = None
 
-# inizialize the multitasking for gtk (required to manage events in gtk windows and background activities)
-gobject.threads_init()
+# initialize the multitasking for gtk (required to manage events in gtk
+# windows and background activities)
+GObject.threads_init()
 
 
 def ping_file(filename):
-# checks if the file passed as parameter can be opened
-    try:
-        f = NetFile(filename, "r")
-    except IOError as e:
-        raise Exception("Unable to open file %s: %s" % (filename, e))
-        return None
+    '''ping file
 
-    data = f.read()
-    f.close()
+       checks if the file passed as parameter can be opened
+    '''
+    try:
+        fhandle = NetFile(filename, "r")
+    except IOError as err:
+        raise Exception("Unable to open file %s: %s" % (filename, err))
+
+    data = fhandle.read()
+    fhandle.close()
 
     return data
 
-def ping_exec(command):
-# checks if the command passed as parameter can be opened
-    s, o = getstatusoutput(command)
-    if s:
-        raise Exception("Failed to run command: %s" % command)
-        return None
-    return o
 
-class CallList(object):
+def ping_exec(command):
+    '''ping exec
+
+       Checks if the command passed as parameter can be opened
+    '''
+    scmd, ocmd = getstatusoutput(command)
+    if scmd:
+        raise Exception("Failed to run command: %s" % command)
+    return ocmd
+
+
+class CallList():
+    '''Call List'''
+
     def __init__(self):
         self.clear()
 
     def clear(self):
+        '''Clear call list data'''
         self.data = {}
 
     def set_call_pos(self, call, pos):
-        (t, _) = self.data.get(call, (0, None))
+        '''Set call position'''
+        (call_time, _) = self.data.get(call, (0, None))
 
-        self.data[call] = (t, pos)
+        self.data[call] = (call_time, pos)
 
-    def set_call_time(self, call, ts=None):
-        if ts is None:
-            ts = time.time()
+    def set_call_time(self, call, tset=None):
+        '''Set call time'''
+        if tset is None:
+            tset = time.time()
 
-        (foo, p) = self.data.get(call, (0, None))
+        (_, pos) = self.data.get(call, (0, None))
 
-        self.data[call] = (ts, p)
+        self.data[call] = (tset, pos)
 
     def get_call_pos(self, call):
-        (foo, p) = self.data.get(call, (0, None))
-        return p
+        '''Get call position'''
+        (_, pos) = self.data.get(call, (0, None))
+        return pos
 
     def get_call_time(self, call):
-        (t, foo) = self.data.get(call, (0, None))
-        return t
+        '''Get call time'''
+        (call_time, _) = self.data.get(call, (0, None))
+        return call_time
 
     def list(self):
+        '''List Calls'''
         return list(self.data.keys())
 
     def is_known(self, call):
+        '''Is known call'''
         return call in self.data
 
     def remove(self, call):
+        '''Remove call'''
         try:
             del self.data[call]
+        # pylint: disable=bare-except
         except:
             pass
 
-class MainApp(object):
 
-  
+# pylint: disable=too-many-instance-attributes
+class MainApp():
+    '''Main App'''
+
     def callback_gps(self, lat, lng, station="", comments=""):
+        '''callback gps
 
-        # this is to communicate the gps fixes to the D-Rats Web Map standalone program
-        #load server ip and port
+           This is to communicate the gps fixes to the D-Rats Web Map
+           standalone program load server ip and port
+        '''
         mapserver_ip = self.config.get("settings", "mapserver_ip")
         mapserver_port = int(self.config.get("settings", "mapserver_port"))
 
@@ -174,51 +206,61 @@ class MainApp(object):
         flng = float(lng)
 
         # Prepare string to broadcast to internet browsers clients
-        message = '{ "lat": "%f", "lng": "%f", "station": "%s", "comments": "%s","timestamp": "%s"  }' % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-        printlog("Mainapp","   : preparing our gpsfix in JSON :", message)
-        
-      
-        try:
-            #create an AF_INET, STREAM socket (TCP)
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except socket.error as msg:
-            printlog("Mainapp","   :  Failed to create socket. Error code: " + str(msg[0]) + " , Error message : " + msg[1])
-            raise
-        printlog("Mainapp","  :  Socket Created")
+        message = '{ "lat": "%f", "lng": "%f", "station": "%s", ' \
+                  '"comments": "%s","timestamp": "%s"  }' \
+                  % (flat, flng, station, comments, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        printlog("Mainapp", "   : preparing our gpsfix in JSON :", message)
 
-        #Connect to remote server
-        printlog("Mainapp","   :  Connecting to: ", mapserver_ip, ":", mapserver_port)
         try:
-            #create an AF_INET, STREAM socket (TCP)
-            s.connect((mapserver_ip , mapserver_port))
-            
-            printlog("Mainapp","   : message to send:", message)
-            try :
-               #Set the whole string
-                s.sendall(message)
-                s.close
-            except socket.error as msg:
-                #Send failed
-                printlog("Mainapp","   :  Send failed of:", message)
+            # create an AF_INET, STREAM socket (TCP)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as err:
+            printlog("Mainapp",
+                     "   :  Failed to create socket. Error code: %s " % err)
+            raise
+        printlog("Mainapp", "  :  Socket Created")
+
+        # Connect to remote server
+        printlog("Mainapp", "   :  Connecting to: ",
+                 mapserver_ip, ":", mapserver_port)
+        try:
+            # create an AF_INET, STREAM socket (TCP)
+            sock.connect((mapserver_ip, mapserver_port))
+
+            printlog("Mainapp", "   : message to send:", message)
+            try:
+                # Set the whole string
+                sock.sendall(message)
+                sock.close()
+            except socket.error as err:
+                # Send failed
+                printlog("Mainapp",
+                         "   :  Send failed of:", message, "(%s)" % err)
                 sys.exit()
 
-            printlog("Mainapp","    :  Message sent successfully")  
-            
-        except socket.error as msg:
-            printlog("Mainapp","    :  Failed to create socket. Error code: " + str(msg[0]) + " , Error message : " + msg[1])
-            s.close()
-            s = None
-        printlog("Mainapp","   :  Socket Created")
+            printlog("Mainapp", "    :  Message sent successfully")
 
+        except socket.error as err:
+            printlog("Mainapp",
+                     "    :  Failed to create socket. Error code: %s" % err)
+            sock.close()
+            sock = None
+        printlog("Mainapp", "   :  Socket Created")
+
+    # pylint: disable=no-self-use
     def setup_autoid(self):
+        '''setup autoid'''
+        # WB8TYW: This appears to do nothing
+        # plyint: disable=unused-variable
         idtext = "(ID)"
 
     def stop_comms(self, portid):
-        if portid in self.sm:
-            sm, sc = self.sm[portid]
-            sm.shutdown(True)
-            sc.shutdown()
-            del self.sm[portid]
+        '''Stop communications'''
+        if portid in self.smgr:
+            smgr, scomm = self.smgr[portid]
+            smgr.shutdown(True)
+            scomm.shutdown()
+            del self.smgr[portid]
 
             portspec, pipe = self.__pipes[portid]
             del self.__pipes[portid]
@@ -228,7 +270,8 @@ class MainApp(object):
         else:
             return False
 
-    def _make_socket_listeners(self, sc):
+    def _make_socket_listeners(self, sconn):
+        '''Make socket listeners'''
         forwards = self.config.options("tcp_out")
         for forward in forwards:
             try:
@@ -236,50 +279,60 @@ class MainApp(object):
                     self.config.get("tcp_out", forward).split(",")
                 sport = int(sport)
                 dport = int(dport)
-            except Exception as e:
-                printlog("Mainapp","   : Failed to parse TCP forward config %s: %s" % (forward, e))
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("Mainapp",
+                         "   : Failed to parse TCP forward config %s: %s" %
+                         (forward, err))
                 return
 
             try:
-                sc.create_socket_listener(sport, dport, station)
-                printlog("Mainapp","   : Started socket listener %i:%i@%s" % \
-                    (sport, dport, station))
-            except Exception as e:
-                printlog("Mainapp","   : Failed to start socket listener %i:%i@%s: %s" % \
-                    (sport, dport, station, e))
+                sconn.create_socket_listener(sport, dport, station)
+                printlog("Mainapp",
+                         "   : Started socket listener %i:%i@%s" %
+                         (sport, dport, station))
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("Mainapp",
+                         "   : Failed to start socket listener %i:%i@%s: %s" %
+                         (sport, dport, station, err))
 
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     def start_comms(self, portid):
-        printlog("Mainapp","   : Starting Comms")
-        #load from the "ports" config the line related to portid
+        '''Start Communications'''
+        printlog("Mainapp", "   : Starting Comms")
+        # load from the "ports" config the line related to portid
         spec = self.config.get("ports", portid)
         try:
-            #try getting the config params from splitting the config line
+            # try getting the config params from splitting the config line
             enb, port, rate, dosniff, raw, name = spec.split(",")
-            enb = (enb == "True")           #means port is enabled
-            dosniff = (dosniff == "True")   #means traffic sniffing to be active
-            raw = (raw == "True")           #means raw to be active
-        except Exception as e:
-            printlog("Mainapp","   : Failed to parse portspec %s:" % spec)
+            enb = (enb == "True")          # means port is enabled
+            dosniff = (dosniff == "True")  # means traffic sniffing to be active
+            raw = (raw == "True")          # means raw to be active
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Failed to parse portspec %s: (%s)" %
+                     (spec, err))
             log_exception()
             return
 
         if not enb:
-            #if port not enabled, and was already active, let's cancel it
-            if name in self.sm:
-                del self.sm[name]
+            # if port not enabled, and was already active, let's cancel it
+            if name in self.smgr:
+                del self.smgr[name]
             return
 
-        printlog("Mainapp","   : Starting port %s (%s)" % (portid, name))
+        printlog("Mainapp", "   : Starting port %s (%s)" % (portid, name))
 
         call = self.config.get("user", "callsign")
 
         if port in self.__unused_pipes:
             path = self.__unused_pipes[port]
             del self.__unused_pipes[port]
-            printlog("Mainapp","   : Re-using path %s for port %s" % (path, port))
+            printlog("Mainapp", "   : Re-using path %s for port %s" % (path, port))
         elif port.startswith("tnc-ax25:"):
-            printlog("Mainapp","   : Port %s as tnc-ax25" %  port)
-            tnc, _port, tncport, path = port.split(":")
+            printlog("Mainapp", "   : Port %s as tnc-ax25" %  port)
+            _tnc, _port, tncport, path = port.split(":")
             path = path.replace(";", ",")
             _port = "%s:%s" % (_port, tncport)
             path = comm.TNCAX25DataPath((_port, int(rate), call, path))
@@ -290,17 +343,17 @@ class MainApp(object):
             path = comm.SocketDataPath(("127.0.0.1", 20003, call, None))
         elif port.startswith("agwpe:"):
             path = comm.AGWDataPath(port, 0.5)
-            printlog("Mainapp","   : Opening AGW: %s" % path)
+            printlog("Mainapp", "   : Opening AGW: %s" % path)
         elif ":" in port:
             try:
-                (mode, host, sport) = port.split(":")
+                (_mode, host, sport) = port.split(":")
             except ValueError:
                 event = main_events.Event(None,
                                           _("Failed to connect to") + \
                                               " %s: " % port + \
                                               _("Invalid port string"))
                 self.mainwindow.tabs["event"].event(event)
-                return False
+                return
 
             path = comm.SocketDataPath((host, int(sport), call, rate))
         else:
@@ -313,7 +366,7 @@ class MainApp(object):
         def transport_msg(msg):
             _port = name
             event = main_events.Event(None, "%s: %s" % (_port, msg))
-            gobject.idle_add(self.mainwindow.tabs["event"].event, event)
+            GObject.idle_add(self.mainwindow.tabs["event"].event, event)
 
         transport_args = {
             "compat" : raw,
@@ -323,46 +376,46 @@ class MainApp(object):
             "msg_fn" : transport_msg,
             }
 
-        if name not in self.sm:
-            #if we are not chatting 1-to-1 let's do CQ 
-            sm = sessionmgr.SessionManager(path, call, **transport_args)
+        if name not in self.smgr:
+            # if we are not chatting 1-to-1 let's do CQ
+            smgr = sessionmgr.SessionManager(path, call, **transport_args)
 
-            chat_session = sm.start_session("chat",
-                                            dest="CQCQCQ",
-                                            cls=chat.ChatSession)
+            chat_session = smgr.start_session("chat",
+                                              dest="CQCQCQ",
+                                              cls=chat.ChatSession)
             self.__connect_object(chat_session, name)
 
             rpcactions = rpc.RPCActionSet(self.config, name)
             self.__connect_object(rpcactions)
 
-            rpc_session = sm.start_session("rpc",
-                                           dest="CQCQCQ",
-                                           cls=rpc.RPCSession,
-                                           rpcactions=rpcactions)
+            _rpc_session = smgr.start_session("rpc",
+                                              dest="CQCQCQ",
+                                              cls=rpc.RPCSession,
+                                              rpcactions=rpcactions)
 
-            def sniff_event(ss, src, dst, msg, port):
+            def sniff_event(_sstart, src, _dst, msg, port):
                 #here print the sniffed traffic into the event tab
                 if dosniff:
                     event = main_events.Event(None, "Sniffer: %s" % msg)
                     self.mainwindow.tabs["event"].event(event)
 
-                #in any case let's print the station heard into stations tab 
+                #in any case let's print the station heard into stations tab
                 self.mainwindow.tabs["stations"].saw_station(src, port)
 
-            ss = sm.start_session("Sniffer",
-                                  dest="CQCQCQ",
-                                  cls=sniff.SniffSession)
-            sm.set_sniffer_session(ss._id)
-            ss.connect("incoming_frame", sniff_event, name)
+            sses = smgr.start_session("Sniffer",
+                                      dest="CQCQCQ",
+                                      cls=sniff.SniffSession)
+            smgr.set_sniffer_session(sses._id)
+            sses.connect("incoming_frame", sniff_event, name)
 
-            sc = session_coordinator.SessionCoordinator(self.config, sm)
-            self.__connect_object(sc, name)
+            scoord = session_coordinator.SessionCoordinator(self.config, smgr)
+            self.__connect_object(scoord, name)
 
-            sm.register_session_cb(sc.session_cb, None)
+            smgr.register_session_cb(scoord.session_cb, None)
 
-            self._make_socket_listeners(sc)
+            self._make_socket_listeners(scoord)
 
-            self.sm[name] = sm, sc
+            self.smgr[name] = smgr, scoord
 
             pingdata = self.config.get("settings", "ping_info")
             if pingdata.startswith("!"):
@@ -379,69 +432,79 @@ class MainApp(object):
             chat_session.set_ping_function(pingfn)
 
         else:
-            sm, sc = self.sm[name]
+            smgr, _sc = self.smgr[name]
 
-            sm.set_comm(path, **transport_args)
-            sm.set_call(call)
+            smgr.set_comm(path, **transport_args)
+            smgr.set_call(call)
 
-        return True
+        return
 
     def chat_session(self, portname):
-        return self.sm[portname][0].get_session(lid=1)
+        '''Chat Session'''
+        print(portname)
+        return self.smgr[portname][0].get_session(lid=1)
 
     def rpc_session(self, portname):
-        return self.sm[portname][0].get_session(lid=2)
+        '''RPC Session'''
+        return self.smgr[portname][0].get_session(lid=2)
 
     def sc(self, portname):
-        return self.sm[portname][1]
+        '''sc'''
+        return self.smgr[portname][1]
 
     def check_comms_status(self):
-        #added in 0.3.10
-        printlog("Mainapp","   : Check ports status ")
-        printlog("Mainapp","   : Ports expected to be already started:")
-        for portid in self.sm.keys():
-            printlog("Mainapp","   : %s" % portid)
-        
-        printlog("Mainapp","   : Checking all Ports from config:")          
+        '''Check communication Status'''
+        # added in 0.3.10
+        printlog("Mainapp", "   : Check ports status ")
+        printlog("Mainapp", "   : Ports expected to be already started:")
+        for portid in self.smgr.keys():
+            printlog("Mainapp", "   : %s" % portid)
+
+        printlog("Mainapp", "   : Checking all Ports from config:")
         for portid in self.config.options("ports"):
-            printlog("Mainapp","   : portid %s" % portid)
-                               
-            #load from the "ports" config the line related to portid
+            printlog("Mainapp", "   : portid %s" % portid)
+
+            # load from the "ports" config the line related to portid
             spec = self.config.get("ports", portid)
             try:
-                #try getting the config params from splitting the config line
-                enb, port, rate, dosniff, raw, name = spec.split(",")
-                enb = (enb == "True")           #means port is enabled
-                dosniff = (dosniff == "True")   #means traffic sniffing to be active
-                raw = (raw == "True")           #means raw to be active
-            except Exception as e:
-                printlog("Mainapp","   : Failed to parse portspec %s:" % spec)
+                # try getting the config params from splitting the config line
+                enb, _port, _rate, dosniff, raw, name = spec.split(",")
+                enb = (enb == "True")           # means port is enabled
+                dosniff = (dosniff == "True")   # means traffic sniffing to be
+                                                # active
+                raw = (raw == "True")           # means raw to be active
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("Mainapp",
+                         "   : Failed to parse portspec %s: (%s)" %
+                         (spec, err))
                 log_exception()
                 return
-            
+
             if name in self.__pipes:
-                printlog("Mainapp","   : Port %s already started!" % name)
+                printlog("Mainapp", "   : Port %s already started!" % name)
             else:
-                printlog("Mainapp","   : Port %s not started" % name)
-            
-            
-    
+                printlog("Mainapp", "   : Port %s not started" % name)
+
     def check_stations_status(self):
-    #added in 0.3.10        
+        '''Check stations status'''
+        # added in 0.3.10
         printlog("Mainapp","   : Check stations")
         station_list = self.emit("get-station-list")
         stations = []
         for portlist in station_list.values():
             stations += [str(x) for x in portlist]
             station, port = prompt_for_station(stations, self._config)
-            printlog("Mainapp","   : Stations %s resulting on port %s" % station, port)
-           
+            printlog("Mainapp",
+                     "   : Stations %s resulting on port %s" % station, port)
+
     def _refresh_comms(self):
+        '''Refresh communications'''
         delay = False
-        printlog("Mainapp","   : refreshing comms")
-        
-        for portid in self.sm.keys():
-            printlog("Mainapp","   : Stopping %s" % portid)
+        printlog("Mainapp", "   : refreshing comms")
+
+        for portid in self.smgr.keys():
+            printlog("Mainapp", "   : Stopping %s" % portid)
             if self.stop_comms(portid):
                 if sys.platform == "win32":
                     # Wait for windows to let go the serial port
@@ -451,51 +514,61 @@ class MainApp(object):
             time.sleep(0.25)
 
         for portid in self.config.options("ports"):
-            printlog("Mainapp","   : Re-Starting %s" % portid)
+            printlog("Mainapp", "   : Re-Starting %s" % portid)
             self.start_comms(portid)
 
         for spec, path in self.__unused_pipes.items():
-            printlog("Mainapp","   : Path %s for port %s no longer needed" % (path, spec))
+            printlog("Mainapp",
+                     "   : Path %s for port %s no longer needed" % (path, spec))
             path.disconnect()
 
         self.__unused_pipes = {}
 
-        #added in 0.3.10
-        #checking status
+        # added in 0.3.10
+        # checking status
         self.check_comms_status()
-        #self.check_stations_status()
- 
+        # self.check_stations_status()
+
     def _static_gps(self):
-        #inizialize the variables to store our local position data fetched from configuration
+        '''Static GPS Coordinates'''
+        # initialize the variables to store our local position data fetched
+        # from configuration
         lat = 0.0
         lon = 0.0
         alt = 0.0
         call = ""
 
         try:
-            #load static data from configuration 
+            # load static data from configuration
             lat = self.config.get("user", "latitude")
             lon = self.config.get("user", "longitude")
             alt = self.config.get("user", "altitude")
             call = self.config.get("user", "callsign")
             mapserver_active = self.config.get("settings", "mapserver_active")
 
-        except Exception as e:
+        # pylint: disable=broad-except
+        except Exception as err:
             import traceback
             traceback.print_exc(file=sys.stdout)
-            printlog("Mainapp","   : Invalid static position: %s" % e)
+            printlog("Mainapp", "   : Invalid static position: %s" % err)
 
-        printlog("Mainapp","   : Configuring the Static position: %s,%s" % (lat,lon))
+        printlog("Mainapp",
+                 "   : Configuring the Static position: %s,%s" % (lat, lon))
 
-        # Call the mapserver to update our position sweeper  
+        # Call the mapserver to update our position sweeper
         if mapserver_active == "True":
-            printlog("Mainapp","   : Mapserver active:", mapserver_active, "call: ", call)
+            printlog("Mainapp",
+                     "   : Mapserver active:", mapserver_active,
+                     "call: ", call)
             self.callback_gps(lat, lon, call, "altitude: "+alt)
         else:
-            printlog("Mainapp","   : Mapserver not active: %s, call:; %s" % (mapserver_active, call))
+            printlog("Mainapp",
+                     "   : Mapserver not active: %s, call:; %s" %
+                     (mapserver_active, call))
         return gps.StaticGPSSource(lat, lon, alt)
 
     def _refresh_gps(self):
+        '''Refresh gps'''
         port = self.config.get("settings", "gpsport")
         rate = self.config.getint("settings", "gpsportspeed")
         enab = self.config.getboolean("settings", "gpsenabled")
@@ -518,9 +591,10 @@ class MainApp(object):
             self.gps = self._static_gps()
 
     def _refresh_mail_threads(self):
-        for k, v in self.mail_threads.items():
-            v.stop()
-            del self.mail_threads[k]
+        '''Refresh mail threads'''
+        for key, value in self.mail_threads.items():
+            value.stop()
+            del self.mail_threads[key]
 
         accts = self.config.options("incoming_email")
         for acct in accts:
@@ -528,21 +602,24 @@ class MainApp(object):
             if data.split(",")[-1] != "True":
                 continue
             try:
-                t = emailgw.PeriodicAccountMailThread(self.config, acct)
-            except Exception:
+                mthread = emailgw.PeriodicAccountMailThread(self.config, acct)
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("Mainapp", "   : Refresh mail threads: %s" % err)
                 log_exception()
                 continue
-            self.__connect_object(t)
-            t.start()
-            self.mail_threads[acct] = t
+            self.__connect_object(mthread)
+            mthread.start()
+            self.mail_threads[acct] = mthread
 
         try:
             if self.config.getboolean("settings", "msg_smtp_server"):
                 smtpsrv = mailsrv.DRATS_SMTPServerThread(self.config)
                 smtpsrv.start()
                 self.mail_threads["SMTPSRV"] = smtpsrv
-        except Exception as e:
-            printlog("Mainapp","   : Unable to start SMTP server: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Unable to start SMTP server: %s" % err)
             log_exception()
 
         try:
@@ -550,23 +627,25 @@ class MainApp(object):
                 pop3srv = mailsrv.DRATS_POP3ServerThread(self.config)
                 pop3srv.start()
                 self.mail_threads["POP3SRV"] = pop3srv
-        except Exception as e:
-            printlog("Mainapp","   : Unable to start POP3 server: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Unable to start POP3 server: %s" % err)
             log_exception()
 
     def _refresh_lang(self):
-        #load the localized labels
-        locales = { "English" : "en",
-                    "German" : "de",
-                    "Italiano" : "it",
-                    "Dutch" : "nl",
-                    }
+        '''Refresh Language'''
+        # load the localized labels
+        locales = {"English" : "en",
+                   "German" : "de",
+                   "Italiano" : "it",
+                   "Dutch" : "nl",
+                   }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        printlog("Mainapp","   : Loading locale `%s'" % locale)
+        printlog("Mainapp", "   : Loading locale `%s'" % locale)
 
         localedir = os.path.join(dplatform.get_platform().source_dir(),
                                  "locale")
-        printlog("Mainapp","   : Locale dir is: %s" % localedir)
+        printlog("Mainapp", "   : Locale dir is: %s" % localedir)
 
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
@@ -576,16 +655,20 @@ class MainApp(object):
                                        localedir=localedir,
                                        languages=[locale])
             lang.install()
-            gtk.glade.bindtextdomain("D-RATS", localedir)
-            gtk.glade.textdomain("D-RATS")
-        except LookupError:
-            printlog("Mainapp","   : Unable to load language `%s'" % locale)
+            Gtk.glade.bindtextdomain("D-RATS", localedir)
+            Gtk.glade.textdomain("D-RATS")
+        except LookupError as err:
+            printlog("Mainapp", "   : Unable to load language `%s' (%s)" %
+                     (locale, err))
             gettext.install("D-RATS")
-        except IOError as e:
-            printlog("Mainapp","   : Unable to load translation for %s: %s" % (locale, e))
+        except IOError as err:
+            printlog("Mainapp",
+                     "   : Unable to load translation for %s: (%s)" %
+                     (locale, err))
             gettext.install("D-RATS")
 
     def _load_map_overlays(self):
+        '''Load Map Overlays'''
         self.stations_overlay = None
 
         self.map.clear_map_sources()
@@ -597,78 +680,95 @@ class MainApp(object):
         for stype in source_types:
             try:
                 sources = stype.enumerate(self.config)
-            except Exception as e:
+            # pylint: disable=broad-except
+            except Exception as err:
                 from . import utils
                 utils.log_exception()
-                printlog("Mainapp","   : Failed to load source type %s" % stype)
+                printlog("Mainapp",
+                         "   : Failed to load source type %s (%s)" %
+                         (stype, err))
                 continue
 
             for sname in sources:
                 try:
                     source = stype.open_source_by_name(self.config, sname)
                     self.map.add_map_source(source)
-                except Exception as e:
+                # pylint: disable=broad-except
+                except Exception as err:
                     log_exception()
-                    printlog("Mainapp","   : Failed to load map source %s: %s" % \
-                        (source.get_name(), e))
+                    printlog("Mainapp",
+                             "   : Failed to load map source %s: %s" %
+                             (source.get_name(), err))
                 if sname == _("Stations"):
                     self.stations_overlay = source
 
         if not self.stations_overlay:
-            fn = os.path.join(self.config.platform.config_dir(),
-                              "static_locations",
-                              _("Stations") + ".csv")
+            fname = os.path.join(self.config.platform.config_dir(),
+                                 "static_locations",
+                                 _("Stations") + ".csv")
             try:
-                os.makedirs(os.path.dirname(fn))
+                os.makedirs(os.path.dirname(fname))
+            # pylint: disable=bare-except
             except:
                 pass
-            open(fn, "w").close()
+            open(fname, "w").close()
             self.stations_overlay = map_sources.MapFileSource(_("Stations"),
                                                               "Static Overlay",
-                                                              fn)
+                                                              fname)
 
     def refresh_config(self):
-        printlog("Mainapp","   : Refreshing config...")
-  
-        call = self.config.get("user", "callsign")
+        '''Refresh Config'''
+        printlog("Mainapp", "   : Refreshing config...")
+
+        _call = self.config.get("user", "callsign")
         gps.set_units(self.config.get("user", "units"))
 
         self._refresh_comms()
         self._refresh_gps()
-        self._refresh_mail_threads() 
+        self._refresh_mail_threads()
         self._refresh_map()
-    
+
     def _refresh_map(self):
-	printlog("Mainapp","   : reconfigure Mapwindow with new map")
-    
-	#setup of the url for retrieving the map tiles depending on the preference
-	if self.config.get("settings", "maptype") == "cycle":
-	    mapurl = self.config.get("settings", "mapurlcycle")
-	    mapkey = self.config.get("settings", "keyformapurlcycle")
-	elif self.config.get("settings", "maptype") == "landscape":
-	    mapurl = self.config.get("settings", "mapurllandscape")
-	    mapkey = self.config.get("settings", "keyformapurllandscape")
-	elif self.config.get("settings", "maptype") == "outdoors":
-	    mapurl = self.config.get("settings", "mapurloutdoors")
-	    mapkey = self.config.get("settings", "keyformapurloutdoors")
-	else:
-	    mapurl = self.config.get("settings", "mapurlbase")
-	    mapkey = ""
-    
-	mapdisplay.set_base_dir(os.path.join(self.config.get("settings", "mapdir"), self.config.get("settings", "maptype")), mapurl, mapkey)
+        '''Refresh Map'''
+        printlog("Mainapp", "   : reconfigure Mapwindow with new map")
 
-	mapdisplay.set_connected(self.config.getboolean("state","connected_inet"))
-	mapdisplay.set_tile_lifetime(self.config.getint("settings","map_tile_ttl") * 3600)
-	proxy = self.config.get("settings", "http_proxy") or None
-	mapdisplay.set_proxy(proxy)
+        # setup of the url for retrieving the map tiles depending
+        # on the preference
+        if self.config.get("settings", "maptype") == "cycle":
+            mapurl = self.config.get("settings", "mapurlcycle")
+            mapkey = self.config.get("settings", "keyformapurlcycle")
+        elif self.config.get("settings", "maptype") == "landscape":
+            mapurl = self.config.get("settings", "mapurllandscape")
+            mapkey = self.config.get("settings", "keyformapurllandscape")
+        elif self.config.get("settings", "maptype") == "outdoors":
+            mapurl = self.config.get("settings", "mapurloutdoors")
+            mapkey = self.config.get("settings", "keyformapurloutdoors")
+        else:
+            mapurl = self.config.get("settings", "mapurlbase")
+            mapkey = ""
 
-	self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
-#	self.map.connect("reload-sources", lambda m: self._load_map_overlays())
-	self.map.set_zoom(14)
-	self.map.queue_draw()
+        mapdisplay.set_base_dir(os.path.join(
+            self.config.get("settings", "mapdir"),
+            self.config.get("settings", "maptype")), mapurl, mapkey)
+
+        mapdisplay.set_connected(
+            self.config.getboolean("state", "connected_inet"))
+        mapdisplay.set_tile_lifetime(
+            self.config.getint("settings", "map_tile_ttl") * 3600)
+        proxy = self.config.get("settings", "http_proxy") or None
+        mapdisplay.set_proxy(proxy)
+
+        self.map.set_title(
+            "D-RATS Map Window - map in use: %s" %
+            self.config.get("settings", "maptype"))
+        # self.map.connect("reload-sources",
+        #                  lambda m: self._load_map_overlays())
+        self.map.set_zoom(14)
+        self.map.queue_draw()
         return True
-    
+
     def _refresh_location(self):
+        '''Refresh Position'''
         fix = self.get_position()
 
         if not self.__map_point:
@@ -686,10 +786,12 @@ class MainApp(object):
 
         try:
             comment = self.config.get("settings", "default_gps_comment")
-            fix.APRSIcon = gps.dprs_to_aprs(comment);
-        except Exception as e:
+            fix.APRSIcon = gps.dprs_to_aprs(comment)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   :  refresh position error %s" % err)
             log_exception()
-            fix.APRSIcon = "\?"
+            fix.APRSIcon = "\\?"
         self.__map_point.set_icon_from_aprs_sym(fix.APRSIcon)
 
         self.stations_overlay.add_point(self.__map_point)
@@ -697,8 +799,12 @@ class MainApp(object):
 
         return True
 
+    # pylint: disable=too-many-arguments
     def __chat(self, src, dst, data, incoming, port):
-        # here we manage the chat messages both incoming and outgoing
+        ''' Chat internal
+
+            Here we manage the chat messages both incoming and outgoing
+        '''
         if self.plugsrv:
             self.plugsrv.incoming_chat_message(src, dst, data)
 
@@ -709,10 +815,10 @@ class MainApp(object):
 
         if dst != "CQCQCQ":
             #so we are messaging into a private channel
-            to = " -> %s:" % dst
+            msg_to = " -> %s:" % dst
             kwargs["priv_src"] = src
         else:
-            to = ":"
+            msg_to = ":"
 
         if src == "CQCQCQ":
             color = "brokencolor"
@@ -726,98 +832,121 @@ class MainApp(object):
         else:
             portstr = ""
 
-        line = "%s%s%s %s" % (portstr, src, to, data)
+        line = "%s%s%s %s" % (portstr, src, msg_to, data)
 
         @run_gtk_locked
         def do_incoming():
             self.mainwindow.tabs["chat"].display_line(line, incoming, color,
                                                       **kwargs)
 
-        gobject.idle_add(do_incoming)
+        GObject.idle_add(do_incoming)
 
 # ---------- STANDARD SIGNAL HANDLERS --------------------
 
-    def __status(self, object, status):
-        self.mainwindow.set_status(status)       
+    def __status(self, _obj, status):
+        '''status internal'''
+        self.mainwindow.set_status(status)
 
-    def __user_stop_session(self, object, sid, port, force=False):
-        printlog("Mainapp","   : User did stop session %i (force=%s)" % (sid, force))
+    def __user_stop_session(self, _obj, sid, port, force=False):
+        '''User Stop Session'''
+        printlog("Mainapp",
+                 "   : User did stop session %i (force=%s)" % (sid, force))
         try:
-            sm, sc = self.sm[port]
-            session = sm.sessions[sid]
+            smgr, _sc = self.smgr[port]
+            session = smgr.sessions[sid]
             session.close(force)
-        except Exception as e:
-            printlog("Mainapp","   : Session `%i' not found: %s" % (sid, e))
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Session `%i' not found: %s" % (sid, err))
 
-    def __user_cancel_session(self, object, sid, port):
-        self.__user_stop_session(object, sid, port, True)
+    def __user_cancel_session(self, obj, sid, port):
+        '''User Cancel Session'''
+        self.__user_stop_session(obj, sid, port, True)
 
-    def __user_send_form(self, object, station, port, fname, sname):
+    # pylint: disable=too-many-arguments
+    def __user_send_form(self, _obj, station, port, fname, sname):
+        '''User Send Form'''
         self.sc(port).send_form(station, fname, sname)
 
-    def __user_send_file(self, object, station, port, fname, sname):
-	self.sc(port).send_file(station, fname, sname)
+    # pylint: disable=too-many-arguments
+    def __user_send_file(self, _obj, station, port, fname, sname):
+        '''User Send File'''
+        self.sc(port).send_file(station, fname, sname)
 
-    def __user_send_chat(self, object, station, port, msg, raw):
-	# this event is generated by pluginsrv/send_chat function while 
-	# listening from the arriving messages
-	if raw:
+    # pylint: disable=too-many-arguments
+    def __user_send_chat(self, _obj, station, port, msg, raw):
+        '''User send Chat
+
+           This event is generated by pluginsrv/send_chat function while
+           listening from the arriving messages
+        '''
+        if raw:
             self.chat_session(port).write_raw(msg)
         else:
             self.chat_session(port).write(msg, station)
 
-    def __incoming_chat_message(self, object, src, dst, data, port=None):
+    # pylint: disable=too-many-arguments
+    def __incoming_chat_message(self, _obj, src, dst, data, port=None):
+        '''Incoming Chat Message'''
         if dst not in ["CQCQCQ", self.config.get("user", "callsign")]:
             # This is not destined for us
             return
         self.__chat(src, dst, data, True, port)
 
-    def __outgoing_chat_message(self, object, src, dst, data, port=None):
+    # pylint: disable=too-many-arguments
+    def __outgoing_chat_message(self, _obj, src, dst, data, port=None):
+        '''Outgoing Chat Message'''
         self.__chat(src, dst, data, False, port)
 
-    def __get_station_list(self, object):
+    def __get_station_list(self, _obj):
+        '''Get Station List'''
         stations = {}
-        for port, (sm, sc) in self.sm.items():
+        for port, (_sm, _sc) in self.smgr.items():
             stations[port] = []
 
         station_list = self.mainwindow.tabs["stations"].get_stations()
 
         for station in station_list:
             if station.get_port() not in list(stations.keys()):
-                printlog(("Mainapp   : Station %s has unknown port %s" % (station,
-                                                          station.get_port())))
+                printlog("Mainapp   : Station %s has unknown port %s" %
+                         (station, station.get_port()))
             else:
-                stations[station.get_port()].append(station)    
-        
+                stations[station.get_port()].append(station)
         return stations
 
-    def __get_message_list(self, object, station):
+    def __get_message_list(self, _obj, station):
+        '''Get Message List'''
         return self.mainwindow.tabs["messages"].get_shared_messages(station)
 
-    def __submit_rpc_job(self, object, job, port):
+    def __submit_rpc_job(self, _obj, job, port):
+        '''Submit RPC Job'''
         self.rpc_session(port).submit(job)
 
-    def __event(self, object, event):
+    def __event(self, _obj, event):
+        '''Event'''
         self.mainwindow.tabs["event"].event(event)
 
-    def __config_changed(self, object):
+    def __config_changed(self, _obj):
+        '''Config Changed'''
         self.refresh_config()
-        
 
-    def __show_map_station(self, object, station):      
-        printlog("Mainapp","   : Showing Map Window")
+    def __show_map_station(self, _obj, _station):
+        '''Show Map of Stations'''
+        printlog("Mainapp", "   : Showing Map Window")
         self.map.show()
 
-
-    def __ping_station(self, object, station, port):
+    def __ping_station(self, _obj, station, port):
+        '''Ping Station'''
         self.chat_session(port).ping_station(station)
 
-    def __ping_station_echo(self, object, station, port,
+    def __ping_station_echo(self, _obj, station, port,
                             data, callback, cb_data):
+        '''Ping Station Echo'''
         self.chat_session(port).ping_echo_station(station, data,
                                                   callback, cb_data)
 
-    def __ping_request(self, object, src, dst, data, port):
+    def __ping_request(self, _obj, src, dst, data, port):
+        '''Ping Request'''
         msg = "%s pinged %s [%s]" % (src, dst, port)
         if data:
             msg += " (%s)" % data
@@ -825,15 +954,17 @@ class MainApp(object):
         event = main_events.PingEvent(None, msg)
         self.mainwindow.tabs["event"].event(event)
 
-    def __ping_response(self, object, src, dst, data, port):
+    def __ping_response(self, _obj, src, dst, data, port):
+        '''Ping Response'''
         msg = "%s replied to ping from %s with: %s [%s]" % (src, dst,
                                                             data, port)
         event = main_events.PingEvent(None, msg)
         self.mainwindow.tabs["event"].event(event)
 
-    def __incoming_gps_fix(self, object, fix, port):
-        ts = self.mainwindow.tabs["event"].last_event_time(fix.station)
-        if (time.time() - ts) > 300:
+    def __incoming_gps_fix(self, _obj, fix, port):
+        '''Incoming GPS Fix'''
+        tstation = self.mainwindow.tabs["event"].last_event_time(fix.station)
+        if (time.time() - tstation) > 300:
             self.mainwindow.tabs["event"].finalize_last(fix.station)
 
         fix.set_relative_to_current(self.get_position())
@@ -843,22 +974,23 @@ class MainApp(object):
         self.mainwindow.tabs["stations"].saw_station(fix.station, port)
 
         def source_for_station(station):
-            s = self.map.get_map_source(station)
-            if s:
-                return s
+            maps = self.map.get_map_source(station)
+            if maps:
+                return maps
 
             try:
                 printlog(("Mainapp   :  Creating a map source for %s" % station))
-                s = map_sources.MapFileSource.open_source_by_name(self.config,
-                                                                  station,
-                                                                  True)
-            except Exception as e:
+                maps = map_sources.MapFileSource.open_source_by_name(
+                    self.config, station, True)
+            # pylint: disable=broad-except
+            except Exception as err:
                 # Unable to create or add so use "Stations" overlay
+                printlog("Mainapp", "   : source for station %s" % err)
                 return self.stations_overlay
 
-            self.map.add_map_source(s)
+            self.map.add_map_source(maps)
 
-            return s
+            return maps
 
         if self.config.getboolean("settings", "timestamp_positions"):
             source = source_for_station(fix.station)
@@ -871,37 +1003,43 @@ class MainApp(object):
                                        fix.latitude,
                                        fix.longitude,
                                        fix.altitude,
-                                       fix.comment)        
-        if fix.APRSIcon == None:
-            point.set_icon_from_aprs_sym('\?')
-            printlog("Mainapp","   : APRSIcon missing - forced to: \? ")
+                                       fix.comment)
+        if fix.APRSIcon is None:
+            point.set_icon_from_aprs_sym('\\?')
+            printlog("Mainapp", "   : APRSIcon missing - forced to: \\? ")
         else:
             point.set_icon_from_aprs_sym(fix.APRSIcon)
-            
+
         source.add_point(point)
         source.save()
-        
+
         #
         try:
-            #load static data from configuration 
+            # load static data from configuration
             mapserver_active = self.config.get("settings", "mapserver_active")
 
-        except Exception as e:
+        # pylint: disable=broad-except
+        except Exception as err:
             import traceback
             traceback.print_exc(file=sys.stdout)
-            printlog("Mainapp","   : Invalid static position: %s" % e)
+            printlog("Mainapp", "   : Invalid static position: %s" % err)
 
-        #Send captured position to the mapserver to update our position sweeper  
+        # Send captured position to the mapserver to update our position sweeper
         if mapserver_active == "True":
-            printlog(("Mainapp   : Export to external mapserver active: %s -- sending gps fix" % mapserver_active))
-            #self.callback_gps(lat, lon, call, "altitude: "+alt)
-            self.callback_gps(fix.latitude, fix.longitude, station=fix.station, comments="altitude: " + str(fix.altitude))
+            printlog("Mainapp",
+                     "   : Export to external mapserver active: %s"
+                     " -- sending gps fix" % mapserver_active)
+            # self.callback_gps(lat, lon, call, "altitude: "+alt)
+            self.callback_gps(fix.latitude, fix.longitude, station=fix.station,
+                              comments="altitude: " + str(fix.altitude))
         else:
-            printlog(("Mainapp   : Export to external mapserver not active: %s" % mapserver_active))
-        return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)	
+            printlog("Mainapp",
+                     "   : Export to external mapserver not active: %s" %
+                     mapserver_active)
+        return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)
 
-    
-    def __station_status(self, object, sta, stat, msg, port):
+    def __station_status(self, _obj, sta, stat, msg, port):
+        '''Station Status'''
         self.mainwindow.tabs["stations"].saw_station(sta, port, stat, msg)
         try:
             status = station_status.get_status_msgs()[stat]
@@ -918,79 +1056,87 @@ class MainApp(object):
                                                        msg))
         self.mainwindow.tabs["event"].event(event)
 
-    def __get_current_status(self, object, port):
+    def __get_current_status(self, _obj, _port):
+        '''Get Current Status'''
         return self.mainwindow.tabs["stations"].get_status()
 
-    def __get_current_position(self, object, station):
+    def __get_current_position(self, _obj, station):
+        '''Get Current Position'''
         if station is None:
             return self.get_position()
-        else:
-            sources = self.map.get_map_sources()
-            for source in sources:
-                if source.get_name() == _("stations"):
-                    for point in source.get_points():
-                        if point.get_name() == station:
-                            fix = gps.GPSPosition(point.get_latitude(),
-                                                  point.get_longitude())
-                            return fix
-                    break
-            raise Exception("Station not found")
+        sources = self.map.get_map_sources()
+        for source in sources:
+            if source.get_name() == _("stations"):
+                for point in source.get_points():
+                    if point.get_name() == station:
+                        fix = gps.GPSPosition(point.get_latitude(),
+                                               point.get_longitude())
+                        return fix
+                break
+        raise Exception("Station not found")
 
-    def __session_started(self, object, id, msg, port):
-        # Don't register Chat, RPC, Sniff
-        if id and id <= 3:
+    def __session_started(self, _obj, id_name, msg, port):
+        '''Session Started Internal
+
+           Don't register Chat, RPC, Sniff
+        '''
+        if id_name and id_name <= 3:
             return
-        elif id == 0:
+        if id_name == 0:
             msg = "Port connected"
 
-        printlog("Mainapp","   : [SESSION %i]: %s" % (id, msg))
+        printlog("Mainapp", "   : [SESSION %i]: %s" % (id_name, msg))
 
-        event = main_events.SessionEvent(id, port, msg)
+        event = main_events.SessionEvent(id_name, port, msg)
         self.mainwindow.tabs["event"].event(event)
         return event
 
-    def __session_status_update(self, object, id, msg, port):
-        self.__session_started(object, id, msg, port)
+    def __session_status_update(self, obj, id_name, msg, port):
+        '''Session Status Update'''
+        self.__session_started(obj, id_name, msg, port)
 
-    def __session_ended(self, object, id, msg, restart_info, port):
+    def __session_ended(self, obj, id_name, msg, restart_info, port):
+        '''Session Ended'''
         # Don't register Control, Chat, RPC, Sniff
-        if id <= 4:
+        if id_name <= 4:
             return
 
-        event = self.__session_started(object, id, msg, port)
+        event = self.__session_started(obj, id_name, msg, port)
         event.set_restart_info(restart_info)
         event.set_as_final()
 
-        fn = None
+        fname = None
         if restart_info:
-            fn = restart_info[1]
+            fname = restart_info[1]
 
-        self.msgrouter.form_xfer_done(fn, port, True)
+        self.msgrouter.form_xfer_done(fname, port, True)
 
-    def __form_received(self, object, id, fn, port=None):
+    # pylint: disable=too-many-locals
+    def __form_received(self, _obj, id_name, fname, port=None):
+        '''Form Received'''
         if port:
-            id = "%s_%s" % (id, port)
+            id_name = "%s_%s" % (id_name, port)
 
-        printlog("Mainapp","   : [NEWFORM %s]: %s" % (id, fn))
-        f = formgui.FormFile(fn)
+        printlog("Mainapp", "   : [NEWFORM %s]: %s" % (id_name, fname))
+        ffile = formgui.FormFile(fname)
 
         msg = '%s "%s" %s %s' % (_("Message"),
-                                 f.get_subject_string(),
+                                 ffile.get_subject_string(),
                                  _("received from"),
-                                 f.get_sender_string())
+                                 ffile.get_sender_string())
 
         myc = self.config.get("user", "callsign")
-        dst = f.get_path_dst()
-        src = f.get_path_src()
-        pth = f.get_path()
+        dst = ffile.get_path_dst()
+        src = ffile.get_path_src()
+        pth = ffile.get_path()
 
-        fwd_on = self.config.getboolean("settings", "msg_forward");
+        fwd_on = self.config.getboolean("settings", "msg_forward")
         is_dst = msgrouting.is_sendable_dest(myc, dst)
         nextst = msgrouting.gratuitous_next_hop(dst, pth) or dst
         bounce = "@" in src and "@" in dst
-        isseen = myc in f.get_path()[:-1]
+        isseen = myc in ffile.get_path()[:-1]
 
-        printlog("Mainapp","   : Decision: " + \
+        printlog("Mainapp", "   : Decision: " + \
             "fwd:%s " % fwd_on + \
             "sendable:%s " % is_dst + \
             "next:%s " % nextst + \
@@ -999,92 +1145,103 @@ class MainApp(object):
 
         if fwd_on and is_dst and not bounce and not isseen:
             msg += " (%s %s)" % (_("forwarding to"), nextst)
-            msgrouting.move_to_outgoing(self.config, fn)
+            msgrouting.move_to_outgoing(self.config, fname)
             refresh_folder = "Outbox"
         else:
             refresh_folder = "Inbox"
 
-        if msgrouting.msg_is_locked(fn):
-            msgrouting.msg_unlock(fn)
+        if msgrouting.msg_is_locked(fname):
+            msgrouting.msg_unlock(fname)
         self.mainwindow.tabs["messages"].refresh_if_folder(refresh_folder)
 
-        event = main_events.FormEvent(id, msg)
+        event = main_events.FormEvent(id_name, msg)
         event.set_as_final()
         self.mainwindow.tabs["event"].event(event)
 
-    def __file_received(self, object, id, fn, port=None):
+    def __file_received(self, _obj, id_name, fname, port=None):
+        '''File Received'''
         if port:
-            id = "%s_%s" % (id, port)
-        _fn = os.path.basename(fn)
+            id_name = "%s_%s" % (id_name, port)
+        _fn = os.path.basename(fname)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Received"))
-        event = main_events.FileEvent(id, msg)
+        event = main_events.FileEvent(id_name, msg)
         event.set_as_final()
         self.mainwindow.tabs["files"].refresh_local()
         self.mainwindow.tabs["event"].event(event)
 
-    def __form_sent(self, object, id, fn, port=None):
-        self.msgrouter.form_xfer_done(fn, port, False)
+    def __form_sent(self, _obj, id_name, fname, port=None):
+        '''Form Sent'''
+        self.msgrouter.form_xfer_done(fname, port, False)
         if port:
-            id = "%s_%s" % (id, port)
-        printlog("Mainapp","   : [FORMSENT %s]: %s" % (id, fn))
+            id_name = "%s_%s" % (id_name, port)
+        printlog("Mainapp", "   : [FORMSENT %s]: %s" % (id_name, fname))
         event = main_events.FormEvent(id, _("Message Sent"))
         event.set_as_final()
 
-        self.mainwindow.tabs["messages"].message_sent(fn)
+        self.mainwindow.tabs["messages"].message_sent(fname)
         self.mainwindow.tabs["event"].event(event)
 
-    def __file_sent(self, object, id, fn, port=None):
+    def __file_sent(self, _obj, id_name, fname, port=None):
+        '''File sent'''
         if port:
-            id = "%s_%s" % (id, port)
-        printlog(("Mainapp   : [FILESENT %s]: %s" % (id, fn)))
-        _fn = os.path.basename(fn)
+            id_name = "%s_%s" % (id_name, port)
+        printlog(("Mainapp   : [FILESENT %s]: %s" % (id_name, fname)))
+        _fn = os.path.basename(fname)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Sent"))
-        event = main_events.FileEvent(id, msg)
+        event = main_events.FileEvent(id_name, msg)
         event.set_as_final()
-        self.mainwindow.tabs["files"].file_sent(fn)
+        self.mainwindow.tabs["files"].file_sent(fname)
         self.mainwindow.tabs["event"].event(event)
 
-    def __get_chat_port(self, object):
+    def __get_chat_port(self, _obj):
+        '''Get Chat Port'''
         return self.mainwindow.tabs["chat"].get_selected_port()
 
-    def __trigger_msg_router(self, object, account):
+    def __trigger_msg_router(self, _obj, account):
+        '''Trigger msg router'''
         if not account:
             self.msgrouter.trigger()
         elif account == "@WL2K":
             call = self.config.get("user", "callsign")
-            mt = wl2k.wl2k_auto_thread(self, call)
-            self.__connect_object(mt)
-            mt.start()
+            mthread = wl2k.wl2k_auto_thread(self, call)
+            self.__connect_object(mthread)
+            mthread.start()
         elif account in list(self.mail_threads.keys()):
             self.mail_threads[account].trigger()
         else:
-            mt = emailgw.AccountMailThread(self.config, account)
-            mt.start()
+            mthread = emailgw.AccountMailThread(self.config, account)
+            mthread.start()
 
-    def __register_object(self, parent, object):
-        self.__connect_object(object)
+    def __register_object(self, _parent, obj):
+        '''Register Object'''
+        self.__connect_object(obj)
 
 # ------------ END SIGNAL HANDLERS ----------------
 
-    def __connect_object(self, object, *args):
-        for signal in object._signals.keys():
+    def __connect_object(self, obj, *args):
+        '''Connect Object'''
+        for signal in obj._signals.keys():
             handler = self.handlers.get(signal, None)
             if handler is None:
                 pass
-            #raise Exception("Object signal `%s' of object %s not known" % \
-            #                        (signal, object))
+            # raise Exception("Object signal `%s' of object %s not known" % \
+            #                        (signal, obj))
             elif self.handlers[signal]:
                 try:
-                    object.connect(signal, handler, *args)
+                    obj.connect(signal, handler, *args)
                 except Exception:
-                    printlog("Mainapp","   : Failed to attach signal %s" % signal)
+                    printlog("Mainapp",
+                             "   : Failed to attach signal %s" % signal)
                     raise
 
     def _announce_self(self):
-        printlog("Mainapp","   : D-RATS v%s starting at %s" % (version.DRATS_VERSION, time.asctime()))
-        printlog("Mainapp","   : %s " % dplatform.get_platform())
-    
-    def __init__(self, **args):
+        '''Announce Self'''
+        printlog("Mainapp",
+                 "   : D-RATS v%s starting at %s" %
+                 (version.DRATS_VERSION, time.asctime()))
+        printlog("Mainapp", "   : %s " % dplatform.get_platform())
+
+    def __init__(self, **_args):
         self.handlers = {
             "status" : self.__status,
             "user-stop-session" : self.__user_stop_session,
@@ -1123,18 +1280,20 @@ class MainApp(object):
             "register-object" : self.__register_object,
             }
 
+        # pylint: disable=global-statement
         global MAINAPP
         MAINAPP = self
 
         self.comm = None
-        self.sm = {}
+        self.smgr = {}
         self.seen_callsigns = CallList()
         self.position = None
         self.mail_threads = {}
         self.__unused_pipes = {}
         self.__pipes = {}
         self.pop3srv = None
-
+        self.msgrouter = None
+        self.plugsrv = None
         self.config = config.DratsConfig(self)
         self._refresh_lang()
 
@@ -1146,72 +1305,79 @@ class MainApp(object):
                     "box and click 'Save'.  You will be connected to " +
                     "the ratflector initially for testing.")
 
-        #if user callsign is not present, ask the user to fill in the basic info
+        # if user callsign is not present, ask the user to fill in the
+        # basic info
         while self.config.get("user", "callsign") == "":
-            d = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
-            d.set_markup(message)
-            d.run()
-            d.destroy()
+            dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
+            dialog.set_markup(message)
+            dialog.run()
+            dialog.destroy()
             if not self.config.show():
                 raise Exception("User canceled configuration")
             message = _("You must enter a callsign to continue")
 
-        #load position from config
-        printlog("Mainapp","   : load position from config file")
+        # load position from config
+        printlog("Mainapp", "   : load position from config file")
         self.gps = self._static_gps()
 
-        #create map instance
-        printlog("Mainapp","   : create map window object-----")
+        # create map instance
+        printlog("Mainapp", "   : create map window object-----")
         self.map = mapdisplay.MapWindow(self.config)
-        self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
+        self.map.set_title("D-RATS Map Window - map in use: %s" %
+                           self.config.get("settings", "maptype"))
         self.map.connect("reload-sources", lambda m: self._load_map_overlays())
-        printlog("Mainapp","   : create map window object: connect object-----" ) 
+        printlog("Mainapp",
+                 "   : create map window object: connect object-----")
         self.__connect_object(self.map)
 
-        printlog("Mainapp","   : query local gps device to see our current position")
+        printlog("Mainapp",
+                 "   : query local gps device to see our current position")
         pos = self.get_position()
         self.map.set_center(pos.latitude, pos.longitude)
         self.map.set_zoom(14)
         self.__map_point = None
 
-        printlog("Mainapp","   : load main window with self config")
+        printlog("Mainapp", "   : load main window with self config")
         self.mainwindow = mainwindow.MainWindow(self.config)
-        
-        printlog("Mainapp","   : connect main window")
+
+        printlog("Mainapp", "   : connect main window")
         self.__connect_object(self.mainwindow)
-        printlog("Mainapp","   : connect tabs")
+        printlog("Mainapp", "   : connect tabs")
         for tab in self.mainwindow.tabs.values():
             self.__connect_object(tab)
-        
-        printlog("Mainapp","   : invoke config refresh")
+
+        printlog("Mainapp", "   : invoke config refresh")
         self.refresh_config()
         self._load_map_overlays()
 
         if self.config.getboolean("prefs", "dosignon") and self.chat_session:
-            printlog("Mainapp","   : going online")
+            printlog("Mainapp", "   : going online")
             msg = self.config.get("prefs", "signon")
             status = station_status.STATUS_ONLINE
-            for port in self.sm.keys():
+            for port in self.smgr.keys():
                 self.chat_session(port).advertise_status(status, msg)
-        gobject.timeout_add(3000, self._refresh_location)
+        GObject.timeout_add(3000, self._refresh_location)
 
     def get_position(self):
+        '''Get Position'''
         p = self.gps.get_position()
         p.set_station(self.config.get("user", "callsign"))
         try:
             p.set_station(self.config.get("user", "callsign"),
                           self.config.get("settings", "default_gps_comment"))
+        # pylint: disable=broad-except
         except Exception:
             pass
         return p
 
     def load_static_routes(self):
+        '''Load Static Routes'''
         routes = self.config.platform.config_file("routes.txt")
         if not os.path.exists(routes):
             return
 
-        f = open(routes)
-        lines = f.readlines()
+        froutes = open(routes)
+        lines = froutes.readlines()
         lno = 0
         for line in lines:
             lno += 1
@@ -1219,17 +1385,19 @@ class MainApp(object):
                 continue
 
             try:
-                routeto, station, port = line.split()
+                _routeto, station, port = line.split()
+            # pylint: disable=broad-except
             except Exception:
                 printlog(("Mainapp   : Line %i of %s not valid" % (lno, routes)))
                 continue
 
             self.mainwindow.tabs["stations"].saw_station(station.upper(), port)
-            if port in self.sm:
-                sm, sc = self.sm[port]
-                sm.manual_heard_station(station)
+            if port in self.smgr:
+                smgr, _sc = self.smgr[port]
+                smgr.manual_heard_station(station)
 
     def clear_all_msg_locks(self):
+        '''Clear All Message Locks'''
         path = os.path.join(self.config.platform.config_dir(),
                             "messages",
                             "*",
@@ -1237,8 +1405,9 @@ class MainApp(object):
         for lock in glob.glob(path):
             printlog(("Mainapp   : Removing stale message lock %s" % lock))
             os.remove(lock)
-    
+
     def main(self):
+        '''Main'''
         # Copy default forms before we start
         distdir = dplatform.get_platform().source_dir()
         userdir = self.config.form_source_dir()
@@ -1250,20 +1419,25 @@ class MainApp(object):
             try:
                 needupd = \
                     (os.path.getmtime(form) > os.path.getmtime(user_fname))
+            # pylint: disable=broad-except
             except Exception:
                 needupd = True
             if not os.path.exists(user_fname) or needupd:
-                printlog("Mainapp","   : Installing dist form %s -> %s" % (fname, user_fname))
+                printlog("Mainapp",
+                         "   : Installing dist form %s -> %s" %
+                         (fname, user_fname))
                 try:
                     shutil.copyfile(form, user_fname)
-                except Exception as e:
+                # pylint: disable=broad-except
+                except Exception as err:
                     printlog(("Mainapp   :  AILED: %s" % e))
 
         self.clear_all_msg_locks()
 
         if len(self.config.options("ports")) == 0 and \
                 self.config.has_option("settings", "port"):
-            printlog("Mainapp","   : Migrating single-port config to multi-port")
+            printlog("Mainapp",
+                     "   : Migrating single-port config to multi-port")
 
             port = self.config.get("settings", "port")
             rate = self.config.get("settings", "rate")
@@ -1285,8 +1459,9 @@ class MainApp(object):
             self.plugsrv = pluginsrv.DRatsPluginServer()
             self.__connect_object(self.plugsrv.get_proxy())
             self.plugsrv.serve_background()
-        except Exception as e:
-            printlog("Mainapp","   : Unable to start plugin server: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Unable to start plugin server: %s" % err)
             self.plugsrv = None
 
         self.load_static_routes()
@@ -1295,30 +1470,34 @@ class MainApp(object):
             self.msgrouter = msgrouting.MessageRouter(self.config)
             self.__connect_object(self.msgrouter)
             self.msgrouter.start()
-        except Exception as e:
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Exception %s thrown." % err)
             log_exception()
             self.msgrouter = None
 
-        #LOAD THE MAIN WINDOW
-        printlog("Mainapp","   : load the main window")
+        # LOAD THE MAIN WINDOW
+        printlog("Mainapp", "   : load the main window")
         try:
-            gtk.main()
+            Gtk.main()
         except KeyboardInterrupt:
             pass
-        except Exception as e:
-            printlog("Mainapp","   : Got exception on close: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Mainapp", "   : Got exception on close: %s" % err)
 
-        printlog("Mainapp","   : Saving config...")
+        printlog("Mainapp", "   : Saving config...")
         self.config.save()
 
-        if self.config.getboolean("prefs", "dosignoff") and self.sm:
+        if self.config.getboolean("prefs", "dosignoff") and self.smgr:
             msg = self.config.get("prefs", "signoff")
-            status = station_status.STATUS_OFFLINE 
-            for port in self.sm.keys():
+            status = station_status.STATUS_OFFLINE
+            for port in self.smgr.keys():
                 self.chat_session(port).advertise_status(status, msg)
 
             time.sleep(2) # HACK
 
-def get_mainapp(): 
-    return MAINAPP
 
+def get_mainapp():
+    '''get mainapp'''
+    return MAINAPP

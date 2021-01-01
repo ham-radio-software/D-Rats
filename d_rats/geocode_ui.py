@@ -18,8 +18,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import gtk
-import gobject
+
 from urllib2 import URLError
 try:
     # pylint: disable=import-error
@@ -29,6 +28,14 @@ except ImportError:
     # pylint: disable=import-error
     from .geopy import geocoders
     print("Falling back to built-in geocoders.")
+#importing printlog() wrapper
+from .debug import printlog
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
 
 #importing printlog() wrapper
 from .debug import printlog
@@ -37,56 +44,19 @@ from . import miscwidgets
 #setup of d-rats user_agent
 from . import version
 
-try:
-    from gtk import Assistant as baseclass
-except ImportError:
-    printlog("Geocode","   : No gtk.Assistant support")
-    class baseclass(gtk.MessageDialog):
-        __gsignals__ = {
-            "prepare" : (gobject.SIGNAL_RUN_LAST,
-                         gobject.TYPE_NONE, ()),
-            "cancel" : (gobject.SIGNAL_RUN_LAST,
-                        gobject.TYPE_NONE, ()),
-            "apply" : (gobject.SIGNAL_RUN_LAST,
-                       gobject.TYPE_NONE, ()),
-            }
-
-        def __init__(self):
-            gtk.MessageDialog.__init__(self, buttons=gtk.BUTTONS_OK)
-            self.set_property("text", "Unsupported")
-            self.format_secondary_text("The version of GTK you're using "
-                                       "is too old and does not support "
-                                       "the 'Assistant' class.  This is "
-                                       "required for geocoding support.")
-
-            def close(d, r):
-                self.destroy()  # make the dialog go away
-                gtk.main_quit() # The run method calls gtk.main()
-
-            self.connect("response", close)
-
-        def append_page(self, *a, **k):
-            pass
-
-        def set_page_type(self, *a, **k):
-            pass
-
-        def set_page_title(self, *a, **k):
-            pass
-
-class AddressAssistant(baseclass):
+class AddressAssistant(Gtk.Assistant):
     def make_address_entry_page(self):
         def complete_cb(label, page):
             self.set_page_complete(page, len(label.get_text()) > 1)
 
-        vbox = gtk.VBox(False, 0)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
 
-        lab = gtk.Label(_("Enter an address, postal code, or intersection") +\
-                            ":")
+        lab = Gtk.Label.new(
+            _("Enter an address, postal code, or intersection") + ":")
         lab.show()
         vbox.pack_start(lab, 1, 1, 1)
 
-        ent = gtk.Entry()
+        ent = Gtk.Entry()
         ent.connect("changed", complete_cb, vbox)
         ent.show()
         vbox.pack_start(ent, 0, 0, 0)
@@ -97,9 +67,9 @@ class AddressAssistant(baseclass):
         return vbox
 
     def make_address_selection(self):
-        cols = [ (gobject.TYPE_STRING, _("Address")),
-                 (gobject.TYPE_FLOAT, _("Latitude")),
-                 (gobject.TYPE_FLOAT, _("Longitude")) ]
+        cols = [ (GObject.TYPE_STRING, _("Address")),
+                 (GObject.TYPE_FLOAT, _("Latitude")),
+                 (GObject.TYPE_FLOAT, _("Longitude")) ]
         listbox = miscwidgets.ListWidget(cols)
 
         self.vals["AddressList"] = listbox
@@ -108,17 +78,17 @@ class AddressAssistant(baseclass):
         return listbox
 
     def make_address_confirm_page(self):
-        vbox = gtk.VBox(False, 0)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
 
         def make_kv(key, value):
-            hbox = gtk.HBox(False, 2)
+            hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
             
-            lab = gtk.Label(key)
+            lab = Gtk.Label.new(key)
             lab.set_size_request(100, -1)
             lab.show()
             hbox.pack_start(lab, 0, 0, 0)
 
-            lab = gtk.Label(value)
+            lab = Gtk.Label.new(value)
             lab.show()
             hbox.pack_start(lab, 0, 0, 0)
 
@@ -184,19 +154,19 @@ class AddressAssistant(baseclass):
 
     def exit(self, _, response):
         self.response = response
-        gtk.main_quit()
+        Gtk.main_quit()
 
     def run(self):
         self.show()
         self.set_modal(True)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
-        gtk.main()
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        Gtk.main()
         self.hide()
 
         return self.response
 
     def __init__(self):
-        baseclass.__init__(self)
+        super(Gtk.Assistant, self).__init__()
 
         self.response = None
 
@@ -207,30 +177,29 @@ class AddressAssistant(baseclass):
         self.entry_page = self.make_address_entry_page()
         self.append_page(self.entry_page)
         self.set_page_title(self.entry_page, _("Locate an address"))
-        self.set_page_type(self.entry_page, gtk.ASSISTANT_PAGE_CONTENT)
+        self.set_page_type(self.entry_page, Gtk.AssistantPageType.CONTENT)
 
         self.sel_page = self.make_address_selection()
         self.append_page(self.sel_page)
         self.set_page_title(self.sel_page, _("Locations found"))
-        self.set_page_type(self.sel_page, gtk.ASSISTANT_PAGE_CONTENT)
+        self.set_page_type(self.sel_page, Gtk.AssistantPageType.CONTENT)
 
         self.conf_page = self.make_address_confirm_page()
         self.append_page(self.conf_page)
         self.set_page_title(self.conf_page, _("Confirm address"))
-        self.set_page_type(self.conf_page, gtk.ASSISTANT_PAGE_CONFIRM)
+        self.set_page_type(self.conf_page, Gtk.AssistantPageType.CONFIRM)
 
         self.connect("prepare", self.prepare_page)
         self.set_size_request(500, 300)
 
-        self.connect("cancel", self.exit, gtk.RESPONSE_CANCEL)
-        self.connect("apply", self.exit, gtk.RESPONSE_OK)
+        self.connect("cancel", self.exit, Gtk.ResponseType.CANCEL)
+        self.connect("apply", self.exit, Gtk.ResponseType.OK)
 
 
 def main():
     '''Main program for unit testing'''
 
     import gettext
-    # pylint: disable=invalid-name
     lang = gettext.translation("D-RATS",
                                localedir="./locale",
                                languages=["en"],

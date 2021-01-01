@@ -1,9 +1,10 @@
 #!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# minor mods 2015-2020 by Maurizio Andreotti <iz2lxi> maurizioandreottilc@gmail.com>
+# minor mods 2015-2020 by Maurizio Andreotti
+#                         <iz2lxi> maurizioandreottilc@gmail.com>
 #
-##this module contains the d-rats version variables
+# #this module contains the d-rats version variables
 
 from __future__ import print_function
 #importing printlog() wrapper
@@ -11,7 +12,7 @@ from .debug import printlog
 
 import sys
 
-DRATS_VERSION = "0.3.10 beta 3 "
+DRATS_VERSION = "0.4.00 pre-release 1"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
@@ -25,7 +26,9 @@ COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
           "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &" +chr(13)+ \
           "Marius Petrescu (YO2LOJ)" + chr(13) + \
 		  "Location and Map data Copyright OpenStreetMap Contributors"
-LICENCE ="You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>."
+LICENCE = "You should have received a copy of the" \
+	      " GNU General Public License along with this program." \
+		  "  If not, see <http://www.gnu.org/licenses/>."
 WEBSITE = "https://groups.io/g/d-rats"
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
 

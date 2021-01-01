@@ -3,7 +3,9 @@ from __future__ import print_function
 import random
 import time
 
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from d_rats import signals, dplatform, gps, utils, station_status
 from d_rats.version import DRATS_VERSION
@@ -14,7 +16,7 @@ import six
 #importing printlog() wrapper
 from d_rats.debug import printlog
 
-class ChatSession(stateless.StatelessSession, gobject.GObject):
+class ChatSession(stateless.StatelessSession, GObject.GObject):
     __gsignals__ = {
         "incoming-chat-message" : signals.INCOMING_CHAT_MESSAGE,
         "outgoing-chat-message" : signals.OUTGOING_CHAT_MESSAGE,
@@ -43,7 +45,7 @@ class ChatSession(stateless.StatelessSession, gobject.GObject):
 
     def __init__(self, *args, **kwargs):
         stateless.StatelessSession.__init__(self, *args, **kwargs)
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.set_ping_function()
         self.handler = self.incoming_data
@@ -62,7 +64,7 @@ class ChatSession(stateless.StatelessSession, gobject.GObject):
                                                    p.os_version_string())
 
     def _emit(self, signal, *args):
-        gobject.idle_add(self.emit, signal, *args)
+        GObject.idle_add(self.emit, signal, *args)
 
     def _incoming_chat(self, frame):
         self._emit("incoming-chat-message",

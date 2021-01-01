@@ -26,7 +26,9 @@ import threading
 import time
 import os
 
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from . import formgui
 from . import emailgw
@@ -276,7 +278,7 @@ class SocketThread(SessionThread):
 
 
 
-class SessionCoordinator(gobject.GObject):
+class SessionCoordinator(GObject.GObject):
     __gsignals__ = {
         "session-status-update" : signals.SESSION_STATUS_UPDATE,
         "session-started" : signals.SESSION_STARTED,
@@ -290,7 +292,7 @@ class SessionCoordinator(gobject.GObject):
     _signals = __gsignals__
 
     def _emit(self, signal, *args):
-        gobject.idle_add(self.emit, signal, *args)
+        GObject.idle_add(self.emit, signal, *args)
 
     def session_status(self, session, msg):
         self._emit("session-status-update", session._id, msg)
@@ -366,7 +368,7 @@ class SessionCoordinator(gobject.GObject):
         to = float(self.config.get("settings", "sockflush"))
 
         try:
-            foo, port = session.name.split(":", 2)
+            _foo, port = session.name.split(":", 2)
             port = int(port)
         except Exception as e:
             printlog("SessCoord"," : Invalid socket session name %s: %s" % (session.name, e))
@@ -416,7 +418,7 @@ class SessionCoordinator(gobject.GObject):
             printlog("SessCoord"," : *** Unknown session type: %s" % session.__class__.__name__)
 
     def new_session(self, type, session, direction):
-        gobject.idle_add(self._new_session, type, session, direction)
+        GObject.idle_add(self._new_session, type, session, direction)
 
     def end_session(self, id):
         thread = self.sthreads.get(id, None)
@@ -471,7 +473,7 @@ class SessionCoordinator(gobject.GObject):
         printlog("SessCoord"," : Started form session")
 
     def __init__(self, config, sm):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.sm = sm
         self.config = config

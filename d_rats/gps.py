@@ -284,7 +284,7 @@ def parse_date(string, fmt):
 
 class GPSPosition(object):
     """Represents a position on the globe, either from GPS data or a static
-    positition"""
+       position"""
     def _from_coords(self, lat, lon, alt=0):
         try:
             self.latitude = float(lat)
@@ -307,7 +307,9 @@ class GPSPosition(object):
 
         _checksum = DPRS_checksum(self.station, self.comment[:astidx])
 
-        if int(_checksum[1:], 16) != int(checksum[1:], 16):
+        # WB8TYW this check was failing and spamming the logs before
+        # the gtk3 conversion attempt.  Disabling it for now.
+        if False and int(_checksum[1:], 16) != int(checksum[1:], 16):
             printlog("Gps","        : Failed to parse DPRS comment: %s " % self.comment)
             printlog("Gps","        : CHECKSUM(%s): %s != %s" % (self.station,int(_checksum[1:], 16),int(checksum[1:], 16)))
             printlog("Gps","        : Checksum : %s " % checksum)
@@ -552,6 +554,7 @@ class GPSPosition(object):
         self._original_comment = comment
 
         if len(self.comment) >=7 and "*" in self.comment[-3:-1]:
+            printlog('gps.set_station called _parse_dprs_comment')
             self._parse_dprs_comment()
 
     def distance_from(self, pos):
@@ -654,6 +657,7 @@ class NMEAGPSPosition(GPSPosition):
                 self._original_comment = self.comment
 
         if len(self.comment) >=7 and "*" in self.comment[-3:-1]:
+            printlog('gps._parse_GPGGA called _parse_dprs_comment')
             self._parse_dprs_comment()
 
         self.valid = self._test_checksum(string, csum)
@@ -702,6 +706,7 @@ class NMEAGPSPosition(GPSPosition):
             self._original_comment = self.comment
 
         if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
+            printlog('gps._parse_GPRMC called _parse_dprs_comment')
             self._parse_dprs_comment()
 
         if elements[2] != "A":

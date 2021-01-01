@@ -36,12 +36,24 @@ except ImportError:
     from email import MIMEBase
     from email import MIMEText 
 
-import rfc822
+# import rfc822
 import time
 from . import dplatform
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
+
 import re
 import random
+
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
 
 from . import formgui
 from .ui import main_events
@@ -88,7 +100,7 @@ def create_form_from_mail(config, mail, tmpfn):
         form = formgui.FormFile(tmpfn)
         recip = form.get_recipient_string()
         if "%" in recip:
-            recip, addr = recip.split("%", 1)
+            recip, _addr = recip.split("%", 1)
             recip = recip.upper()
     else:
         printlog("emailgw","   : Email from %s: %s" % (sender, subject))
@@ -109,25 +121,25 @@ def create_form_from_mail(config, mail, tmpfn):
 
     return form
 
-class MailThread(threading.Thread, gobject.GObject):
+class MailThread(threading.Thread, GObject.GObject):
     __gsignals__ = {
         "user-send-chat" : signals.USER_SEND_CHAT,
         "user-send-form" : signals.USER_SEND_FORM,
         "form-received" : signals.FORM_RECEIVED,
         "get-station-list" : signals.GET_STATION_LIST,
         "event" : signals.EVENT,
-        "mail-thread-complete" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                                  (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING)),
+        "mail-thread-complete" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+                                  (GObject.TYPE_BOOLEAN, GObject.TYPE_STRING)),
         }
 
     _signals = __gsignals__
 
     def _emit(self, signal, *args):
-        gobject.idle_add(self.emit, signal, *args)
+        GObject.idle_add(self.emit, signal, *args)
 
     def __init__(self, config, host, user, pasw, port=110, ssl=False):
         threading.Thread.__init__(self)
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.setDaemon(True)
 
         self.username = user
@@ -355,8 +367,10 @@ def validate_outgoing(config, callsign, emailaddr):
 def validate_incoming(config, callsign, emailaddr):
     return __validate_access(config, callsign, emailaddr, ["Both", "Incoming"])
 
-if __name__ == "__main__":
-    class fakeout(object):
+def main():
+    '''Unit test for emailgw'''
+
+    class Fakeout(object):
         form_source_dir = "forms"
         form_store_dir = "."
 
@@ -369,5 +383,18 @@ if __name__ == "__main__":
         def get_stamp(self):
             return "FOO"
 
-    mt = MailThread(None, fakeout())
+        # Todo: This is just to get this unit test to not crash
+        # Really need parameters for a test gateway as an option.
+        def getboolean(self, section, param):
+            return False
+
+    #(self, config, host, user, pasw, port=110, ssl=False)
+    mt = MailThread(Fakeout(), "localhost", "foo", "bar")
     mt.run()
+
+
+if __name__ == "__main__":
+    if not __package__:
+        # pylint: disable=redefined-builtin
+        __package__ = '__main__'
+    main()

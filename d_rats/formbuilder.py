@@ -20,8 +20,10 @@ from __future__ import print_function
 #importing printlog() wrapper
 from .debug import printlog
 
-import gtk
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
 
 import os
 import glob
@@ -36,12 +38,12 @@ from . import formgui
     
 from d_rats import dplatform
 
-class FormElementEditor(gtk.Dialog):
+class FormElementEditor(Gtk.Dialog):
     def make_entry_editor(self, id):
-        entry = gtk.Entry()
+        entry = Gtk.Entry()
         entry.show()
 
-        f = gtk.Frame("Initial value:")
+        f = Gtk.Frame.new(_("Initial value:"))
         f.add(entry)
         
         self.entries[id] = entry
@@ -49,13 +51,13 @@ class FormElementEditor(gtk.Dialog):
         return f
 
     def make_null_editor(self, id):
-        return gtk.Label("(There are no options for this type)")
+        return Gtk.Label.new("(There are no options for this type)")
 
     def make_toggle_editor(self, id):
-        cb = gtk.CheckButton("True")
+        cb = Gtk.CheckButton.new_with_label(_("True"))
         cb.show()
 
-        f = gtk.Frame("Default value")
+        f = Gtk.Frame.new(_("Default value"))
         f.add(cb)
 
         self.entries[id] = cb
@@ -63,19 +65,19 @@ class FormElementEditor(gtk.Dialog):
         return f
 
     def make_choice_editor(self, id, single=True):
-        self._choice_buffer = gtk.TextBuffer()
-        entry = gtk.TextView(self._choice_buffer)
+        self._choice_buffer = Gtk.TextBuffer()
+        entry = Gtk.TextView.new_with_buffer(self._choice_buffer)
         entry.show()
 
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        sw = Gtk.ScrolledWindow()
+        sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sw.add(entry)
         sw.show()
 
         if single:
-            f = gtk.Frame("Options (one per line, first is default)")
+            f = Gtk.Frame.new(_("Options (one per line, first is default)"))
         else:
-            f = gtk.Frame("Options (one per line)")
+            f = Gtk.Frame.new(_("Options (one per line)"))
         f.add(sw)
 
         self.entries[id] = entry
@@ -94,10 +96,11 @@ class FormElementEditor(gtk.Dialog):
                 w.hide()
 
     def __init__(self):
-        gtk.Dialog.__init__(self,
+        Gtk.Dialog.__init__(self,
                             title="Edit form element",
-                            buttons=(gtk.STOCK_OK, gtk.RESPONSE_OK,
-                                     gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+                            buttons=(Gtk.ButtonsType.OK, Gtk.ResponseType.OK,
+                                     Gtk.ButtonsType.CANCEL,
+                                     Gtk.ResponseType.CANCEL))
 
         self.entries = {}
 
@@ -120,7 +123,7 @@ class FormElementEditor(gtk.Dialog):
         self.type_sel.show()
         self.vals["text"].show()
         
-        self.ts_frame = gtk.Frame("Field Type")
+        self.ts_frame = Gtk.Frame.new(_("Field Type"))
         self.ts_frame.show()
         self.ts_frame.add(self.type_sel)
 
@@ -138,7 +141,7 @@ class FormElementEditor(gtk.Dialog):
             b = self.entries[sel].get_buffer()
             i = b.get_iter_at_line(1)
             i.backward_chars(1)
-            return b.get_text(b.get_start_iter(), i)
+            return b.get_text(b.get_start_iter(), i, True)
         elif sel in ("toggle"):
             return str(self.entries[sel].get_active())
         else:
@@ -160,11 +163,11 @@ class FormElementEditor(gtk.Dialog):
         sel = self.type_sel.get_active_text()
         if sel == "choice":
             b = self.entries[sel].get_buffer()
-            t = b.get_text(b.get_start_iter(), b.get_end_iter())
+            t = b.get_text(b.get_start_iter(), b.get_end_iter(), True)
             return str(t.split("\n"))
         elif sel == "multiselect":
             b = self.entries[sel].get_buffer()
-            t = b.get_text(b.get_start_iter(), b.get_end_iter())
+            t = b.get_text(b.get_start_iter(), b.get_end_iter(), True)
             opts = t.split("\n")
             return str([(False, x) for x in opts])
         else:
@@ -195,7 +198,7 @@ class FormElementEditor(gtk.Dialog):
     def set_type(self, type):
         self.type_sel.set_active(list(self.vals.keys()).index(type))
 
-class FormBuilderGUI(gtk.Dialog):
+class FormBuilderGUI(Gtk.Dialog):
 
     def reorder(self, up):
 
@@ -222,7 +225,7 @@ class FormBuilderGUI(gtk.Dialog):
     def but_add(self, widget, data=None):
         d = FormElementEditor()
         r = d.run()
-        if r == gtk.RESPONSE_CANCEL:
+        if r == Gtk.ResponseType.CANCEL:
             d.destroy()
             return
 
@@ -265,7 +268,7 @@ class FormBuilderGUI(gtk.Dialog):
         d.set_initial_value(v)
         d.set_options(o)
         r = d.run()
-        if r == gtk.RESPONSE_OK:
+        if r == Gtk.ResponseType.OK:
             list.set(iter,
                      self.col_type, d.get_type(),
                      self.col_value, d.get_initial_value(),
@@ -286,14 +289,14 @@ class FormBuilderGUI(gtk.Dialog):
         self.col_opts  = 4
         self.col_inst  = 5
 
-        self.store = gtk.ListStore(gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING)
+        self.store = Gtk.ListStore(GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING)
 
-        self.view = gtk.TreeView(self.store)
+        self.view = Gtk.TreeView(self.store)
         self.view.set_rules_hint(True)
         self.view.show()
 
@@ -305,20 +308,20 @@ class FormBuilderGUI(gtk.Dialog):
 
         for i in l:
             (col, cap, ed) = i
-            r = gtk.CellRendererText()
+            r = Gtk.CellRendererText()
             r.set_property("editable", ed)
             if ed:
                 r.connect("edited", self.ev_edited, col)
 
-            c = gtk.TreeViewColumn(cap, r, text=col)
+            c = Gtk.TreeViewColumn(cap, r, text=col)
             c.set_resizable(True)
             c.set_sort_column_id(col)
 
             self.view.append_column(c)
 
-        sw = gtk.ScrolledWindow()
+        sw = Gtk.ScrolledWindow()
         sw.add(self.view)
-        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sw.show()
 
         return sw
@@ -394,7 +397,8 @@ class FormBuilderGUI(gtk.Dialog):
         return self.xml
 
     def build_buttons(self):
-        box = gtk.VBox(True, 2)
+        box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
+        box.set_homogeneous(True)
 
         l = [("Move Up", self.but_move_up),
              ("Add", self.but_add),
@@ -405,7 +409,7 @@ class FormBuilderGUI(gtk.Dialog):
 
         for i in l:
             (cap, func) = i
-            b = gtk.Button(cap)
+            b = Gtk.Button.new_with_label(cap)
             b.connect("clicked", func, None)
             box.pack_start(b, 0,0,0)
             b.show()
@@ -415,16 +419,16 @@ class FormBuilderGUI(gtk.Dialog):
         return box
 
     def make_field(self, caption, choices=None):
-        box = gtk.HBox(False, 2)
+        box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         
-        l = gtk.Label(caption)
+        l = Gtk.Label.new(caption)
         l.set_size_request(45, -1)
         l.show()
 
         if choices is not None:
             e = make_choice(choices, True)
         else:
-            e = gtk.Entry()
+            e = Gtk.Entry()
         e.show()
 
         self.props[caption] = e
@@ -438,14 +442,14 @@ class FormBuilderGUI(gtk.Dialog):
     def build_formprops(self):
         self.props = {}
         
-        frame = gtk.Frame("Form Properties")
+        frame = Gtk.Frame.new(_("Form Properties"))
         from . import mainapp # Hack to force import of mainapp 
         path = mainapp.get_mainapp().config.get("settings", "form_logo_dir")
         logos = []
         for fn in glob.glob(os.path.join(path, "*.*")):
             logos.append(fn.replace(path, "")[1:])
 
-        box = gtk.VBox(False, 2)
+        box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         for i in ["Title", "ID"]:
             f = self.make_field(i)
             box.pack_start(f, 0,0,0)
@@ -463,9 +467,9 @@ class FormBuilderGUI(gtk.Dialog):
         return frame
 
     def build_fieldeditor(self):
-        frame = gtk.Frame("Form Elements")
+        frame = Gtk.Frame.new(_("Form Elements"))
 
-        box = gtk.HBox(False, 2)
+        box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         box.pack_start(self.build_display(), 1,1,1)
         box.pack_start(self.build_buttons(), 0,0,0)
         box.show()
@@ -512,7 +516,7 @@ class FormBuilderGUI(gtk.Dialog):
         form = FormDialog("", filename)
         self.props["ID"].set_text(form.id)
         self.props["Title"].set_text(form.title_text)
-        self.props["Logo"].child.set_text(form.logo_path or "")
+        self.props["Logo"].get_child().set_text(form.logo_path or "")
 
         for f in form.fields:
             w = f.entry
@@ -521,16 +525,17 @@ class FormBuilderGUI(gtk.Dialog):
         del form
 
     def __init__(self):
-        gtk.Dialog.__init__(self,
+        Gtk.Dialog.__init__(self,
                             title="Form builder",
-                            buttons=(gtk.STOCK_SAVE, gtk.RESPONSE_OK,
-                                     gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+                            buttons=(_("Save"), Gtk.ResponseType.OK,
+                                     Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL))
 
-
+        print("packing a dialog")
         self.vbox.pack_start(self.build_formprops(), 0,0,0)
         self.vbox.pack_start(self.build_fieldeditor(), 1,1,1)
 
-        preview = gtk.Button("Preview")
+        print("setting up a preview")
+        preview = Gtk.Button.new_with_label("Preview")
         preview.connect("clicked", self.show_preview, None)
         preview.show()
 
@@ -569,7 +574,7 @@ class FormManagerGUI(object):
     def but_new(self, widget, data=None):
         d = FormBuilderGUI()
         r = d.run()
-        if r != gtk.RESPONSE_CANCEL:
+        if r != Gtk.ResponseType.CANCEL:
             id = d.props["ID"].get_text()
             xml = d.get_form_xml()
             f = open(os.path.join(self.dir, "%s.xml" % id), "w")
@@ -589,7 +594,7 @@ class FormManagerGUI(object):
         d = FormBuilderGUI()
         d.load_from_file(filename)
         r = d.run()
-        if r != gtk.RESPONSE_CANCEL:
+        if r != Gtk.ResponseType.CANCEL:
             id = d.props["ID"].get_text()
             xml = d.get_form_xml()
             f = open(os.path.join(self.dir, "%s.xml" % id), "w")
@@ -623,7 +628,7 @@ class FormManagerGUI(object):
         try:
             form_id = self.add_form(fn)
         except Exception as e:
-            d = gtk.MessageDialog(buttons=gtk.BUTTONS_OK)
+            d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
             d.set_markup("<big><b>Unable to add form</b></big>")
             d.format_secondary_text(str(e))
             d.run()
@@ -648,10 +653,10 @@ class FormManagerGUI(object):
         self.col_title = 1
         self.col_file = 2
 
-        self.store = gtk.ListStore(gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING,
-                                   gobject.TYPE_STRING)
-        self.view = gtk.TreeView(self.store)
+        self.store = Gtk.ListStore(GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING,
+                                   GObject.TYPE_STRING)
+        self.view = Gtk.TreeView(self.store)
         self.view.set_rules_hint(True)
         self.view.show()
 
@@ -659,15 +664,15 @@ class FormManagerGUI(object):
              (self.col_title, "Title")]
 
         for col,cap in l:
-            r = gtk.CellRendererText()
-            c = gtk.TreeViewColumn(cap, r, text=col)
+            r = Gtk.CellRendererText()
+            c = Gtk.TreeViewColumn(cap, r, text=col)
             c.set_sort_column_id(col)
 
             self.view.append_column(c)
 
-        sw = gtk.ScrolledWindow()
+        sw = Gtk.ScrolledWindow()
         sw.add(self.view)
-        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sw.show()
 
         return sw
@@ -682,10 +687,11 @@ class FormManagerGUI(object):
              ("Export", self.but_export),
              ]
 
-        hbox = gtk.HBox(True, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
+        hbox.set_homogeneous(True)
 
         for cap,func in l:
-            b = gtk.Button(cap)
+            b = Gtk.Button.new_with_label(cap)
             b.connect("clicked", func, None)
             b.show()
             hbox.add(b)
@@ -697,7 +703,7 @@ class FormManagerGUI(object):
     def __init__(self, dir):
         self.dir = dir
 
-        vbox = gtk.VBox(False, 2)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
         vbox.pack_start(self.make_list(), 1,1,1)
         vbox.pack_start(self.make_buttons(), 0,0,0)
@@ -708,7 +714,7 @@ class FormManagerGUI(object):
 
         vbox.show()
 
-        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         self.window.set_title("Form Manager")
         self.window.set_default_size(275,300)
 
@@ -719,4 +725,4 @@ class FormManagerGUI(object):
 if __name__=="__main__":
     m = FormManagerGUI("Form_Templates")
 
-    gtk.main()
+    Gtk.main()

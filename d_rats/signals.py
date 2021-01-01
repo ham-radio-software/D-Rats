@@ -16,163 +16,165 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 STATUS = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,))
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,))
 
 USER_STOP_SESSION = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,         # Session ID
-      gobject.TYPE_STRING))     # Port Name
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,         # Session ID
+      GObject.TYPE_STRING))     # Port Name
 
 USER_CANCEL_SESSION = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,         # Session ID
-      gobject.TYPE_STRING))     # Port Name
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,         # Session ID
+      GObject.TYPE_STRING))     # Port Name
 
 USER_SEND_FORM = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,      # Station
-      gobject.TYPE_STRING,      # Port Name
-      gobject.TYPE_STRING,      # Filename
-      gobject.TYPE_STRING))     # Session name
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,      # Station
+      GObject.TYPE_STRING,      # Port Name
+      GObject.TYPE_STRING,      # Filename
+      GObject.TYPE_STRING))     # Session name
 RPC_SEND_FORM = USER_SEND_FORM
 
 USER_SEND_FILE = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,      # Station
-      gobject.TYPE_STRING,      # Port Name
-      gobject.TYPE_STRING,      # Filename
-      gobject.TYPE_STRING))     # Session name
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,      # Station
+      GObject.TYPE_STRING,      # Port Name
+      GObject.TYPE_STRING,      # Filename
+      GObject.TYPE_STRING))     # Session name
 RPC_SEND_FILE = USER_SEND_FILE
 
 USER_SEND_CHAT = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,      # Station
-      gobject.TYPE_STRING,      # Port Name
-      gobject.TYPE_STRING,      # Text
-      gobject.TYPE_BOOLEAN))    # Raw
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,      # Station
+      GObject.TYPE_STRING,      # Port Name
+      GObject.TYPE_STRING,      # Text
+      GObject.TYPE_BOOLEAN))    # Raw
 
 INCOMING_CHAT_MESSAGE = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,      # Source
-      gobject.TYPE_STRING,      # Destination
-      gobject.TYPE_STRING))     # Text
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,      # Source
+      GObject.TYPE_STRING,      # Destination
+      GObject.TYPE_STRING))     # Text
 OUTGOING_CHAT_MESSAGE = INCOMING_CHAT_MESSAGE
 
 GET_STATION_LIST = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_PYOBJECT,
+    (GObject.SignalFlags.ACTION, GObject.TYPE_PYOBJECT,
      ())
 
 GET_MESSAGE_LIST = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_PYOBJECT,
-     (gobject.TYPE_STRING,))    # Station
+    (GObject.SignalFlags.ACTION, GObject.TYPE_PYOBJECT,
+     (GObject.TYPE_STRING,))    # Station
 
 SUBMIT_RPC_JOB = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_PYOBJECT,    # Job
-      gobject.TYPE_STRING))     # Port Name
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_PYOBJECT,    # Job
+      GObject.TYPE_STRING))     # Port Name
 
 EVENT = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_PYOBJECT,))  # Event
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_PYOBJECT,))  # Event
 
 NOTICE = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
      ())
 
 CONFIG_CHANGED = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
      ())
 
 SHOW_MAP_STATION = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,))     # Station
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,))     # Station
 
 PING_STATION = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,       # Station
-      gobject.TYPE_STRING))      # Port Name
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,       # Station
+      GObject.TYPE_STRING))      # Port Name
 
 PING_STATION_ECHO = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,       # Station
-      gobject.TYPE_STRING,       # Port Name
-      gobject.TYPE_STRING,       # Data
-      gobject.TYPE_PYOBJECT,     # Callback
-      gobject.TYPE_PYOBJECT))    # Callback data
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,       # Station
+      GObject.TYPE_STRING,       # Port Name
+      GObject.TYPE_STRING,       # Data
+      GObject.TYPE_PYOBJECT,     # Callback
+      GObject.TYPE_PYOBJECT))    # Callback data
 
 PING_REQUEST = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,       # Source
-      gobject.TYPE_STRING,       # Destination
-      gobject.TYPE_STRING))      # Data
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,       # Source
+      GObject.TYPE_STRING,       # Destination
+      GObject.TYPE_STRING))      # Data
 PING_RESPONSE = PING_REQUEST
 
 INCOMING_GPS_FIX = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_PYOBJECT,))   # Fix
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_PYOBJECT,))   # Fix
 
 STATION_STATUS = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,       # Station,
-      gobject.TYPE_INT,          # Status,
-      gobject.TYPE_STRING))      # Status message
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,       # Station,
+      GObject.TYPE_INT,          # Status,
+      GObject.TYPE_STRING))      # Status message
 
 GET_CURRENT_STATUS = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_PYOBJECT,
+    (GObject.SignalFlags.ACTION, GObject.TYPE_PYOBJECT,
      ())
 
 GET_CURRENT_POSITION = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_PYOBJECT,
-     (gobject.TYPE_STRING,))     # Station (None for self)
+    (GObject.SignalFlags.ACTION, GObject.TYPE_PYOBJECT,
+     (GObject.TYPE_STRING,))     # Station (None for self)
 
 SESSION_STARTED = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING))      # Type
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING))      # Type
 
 SESSION_ENDED = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING,       # Message,
-      gobject.TYPE_PYOBJECT))    # Restart info
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING,       # Message,
+      GObject.TYPE_PYOBJECT))    # Restart info
 
 SESSION_STATUS_UPDATE = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING))      # Message
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING))      # Message
 
 FILE_RECEIVED = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING))      # Filename
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING))      # Filename
 
 FORM_RECEIVED = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING))      # Filename
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING))      # Filename
 
 FILE_SENT = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING))      # Filename
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING))      # Filename
 
 FORM_SENT = \
-    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     (gobject.TYPE_INT,          # Session ID
-      gobject.TYPE_STRING))      # Filename
+    (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+     (GObject.TYPE_INT,          # Session ID
+      GObject.TYPE_STRING))      # Filename
 
 GET_CHAT_PORT = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_STRING,
+    (GObject.SignalFlags.ACTION, GObject.TYPE_STRING,
      ())
 
 TRIGGER_MSG_ROUTER = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_NONE,
-     (gobject.TYPE_STRING,))     # account (section) to trigger, "" if msgrouter
+    (GObject.SignalFlags.ACTION, GObject.TYPE_NONE,
+     (GObject.TYPE_STRING,))     # account (section) to trigger, "" if msgrouter
 
 REGISTER_OBJECT = \
-    (gobject.SIGNAL_ACTION, gobject.TYPE_NONE,
-     (gobject.TYPE_PYOBJECT,))   # Object to register
+    (GObject.SignalFlags.ACTION, GObject.TYPE_NONE,
+     (GObject.TYPE_PYOBJECT,))   # Object to register

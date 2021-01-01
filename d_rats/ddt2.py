@@ -83,7 +83,7 @@ class DDT2Frame(object):
         self.type = 0
         self.d_station = ""
         self.s_station = ""
-        self.data = ""
+        self.data = b""
         self.magic = 0xDD
 
         self.sent_event = threading.Event()
@@ -177,7 +177,6 @@ class DDT2Frame(object):
         (magic, self.seq, self.session, self.type,
          checksum, length,
          self.s_station, self.d_station) = struct.unpack(self.format, header)
-
         _header = struct.pack(self.format,
                               magic,
                               self.seq,
@@ -189,7 +188,6 @@ class DDT2Frame(object):
                               self.d_station)
 
         _checksum = calc_checksum(_header + data)
-
         self.s_station = self.s_station.replace(b"~", b"")
         self.d_station = self.d_station.replace(b"~", b"")
 
@@ -199,7 +197,7 @@ class DDT2Frame(object):
 
         if self.compress:
             if sys.version_info[0] > 2:
-               self.data = zlib.decompress(data)
+                self.data = zlib.decompress(data)
             else:
                 comp_data = zlib.decompress(str(data))
                 self.data = bytearray(comp_data)
@@ -214,10 +212,11 @@ class DDT2Frame(object):
         else:
             c = "-"
 
-        #data = utils.filter_to_ascii(self.data[:20]) #tolto il limite dei 20 caratteri
+        # data = utils.filter_to_ascii(self.data[:20])
+        # tolto il limite dei 20 caratteri
         data = utils.filter_to_ascii(self.data)
-        #printlog("-----------" #)
-        #printlog("Ddt2      : DDT2%s: %i:%i:%i %s->%s (%s...[%i])" % (c,
+        # printlog("-----------" #)
+        # printlog("Ddt2      : DDT2%s: %i:%i:%i %s->%s (%s...[%i])" % (c,
         #                                                self.seq,
         #                                                self.session,
         #                                                self.type,
@@ -304,11 +303,12 @@ def test_symmetric(compress=True):
 def test_crap():
     f = DDT2EncodedFrame()
     try:
-        if f.unpack("[SOB]foobar[EOB]"):
+        if f.unpack(b"[SOB]foobar[EOB]"):
             printlog("Ddt2","      : FAIL")
         else:
             printlog("Ddt2","      : PASS")
     except Exception as e:
+        printlog("Generic Exception %s %s" % (type(e),e))
         printlog("Ddt2","      : PASS")
 
 if __name__ == "__main__":

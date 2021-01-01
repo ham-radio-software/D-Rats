@@ -26,18 +26,21 @@ import os
 import tempfile
 import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
 
+
 from . import dplatform
 from six.moves import range
 
 def open_icon_map(iconfn):
-    import gtk
+    import gi
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import GdkPixbuf
 
     if not os.path.exists(iconfn):
         printlog("Utils","     : Icon file %s not found" % iconfn)
         return None
     
     try:
-        return gtk.gdk.pixbuf_new_from_file(iconfn)
+        return GdkPixbuf.Pixbuf.new_from_file(iconfn)
     except Exception as e:
         printlog("Utils","     :Error opening icon map %s: %s" % (iconfn, e))
         return None
@@ -71,9 +74,9 @@ def hexprintlog(raw_data):
     
     if (len(data) % line_sz) != 0:
         lines += 1
-        
+
     for i in range(0, lines):
-        print("Utils","     :%03i: " % (i * line_sz), end=' ')
+        print("Utils","     :%03i: " % (i * line_sz), end='')
 
         left = len(data) - (i * line_sz)
         if left < line_sz:
@@ -126,23 +129,27 @@ def run_safe(f):
     return runner
 
 def run_gtk_locked(f):
-    import gtk
+    import gi
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk
 
     def runner(*args, **kwargs):
-        gtk.gdk.threads_enter()
+        Gdk.threads_enter()
         try:
             f(*args, **kwargs)
-        except Exception as e:
-            gtk.gdk.threads_leave()
+        except Exception:
+            Gdk.threads_leave()
             raise
 
-        gtk.gdk.threads_leave()
+        Gdk.threads_leave()
 
     return runner
 
 def run_or_error(f):
-    import gtk
-    from d_rats.ui import main_common
+    # import gi
+    # gi.require_version("Gtk", "3.0")
+    # from gi.repository import Gtk
+    # from d_rats.ui import main_common
 
     def runner(*args, **kwargs):
         try:
@@ -158,13 +165,16 @@ def print_stack():
     traceback.print_stack(file=sys.stdout)
 
 def get_sub_image(iconmap, i, j, size=20):
-    import gtk
+    import gi
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk
+    from gi.repository import GdkPixbuf
 
     # Account for division lines (1px per icon)
     x = (i * size) + i + 1
     y = (j * size) + j + 1
 
-    icon = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, 1, 8, size, size)
+    icon = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, size, size)
     iconmap.copy_area(x, y, size, size, icon, 0, 0)
     
     return icon
@@ -175,7 +185,7 @@ def get_icon_from_map(iconmap, symbol):
     i = index % 16
     j = index / 16
 
-    #print "Symbol `%s' is %i,%i" % (symbol, i, j)
+    # print ("Symbol `%s' is %i,%i" % (symbol, i, j))
 
     return get_sub_image(iconmap, i, j)
 
@@ -222,7 +232,7 @@ class NetFile(FileIO):
                 six.moves.urllib.request.urlretrieve(uri, self.__fn)
                 break
         
-        super(Netfile, self).__init__(self, self.__fn, mode, buffering)
+        super(NetFile, self).__init__(self, self.__fn, mode, buffering)
 
     def close(self):
         super(NetFile, self).close(self)
@@ -266,18 +276,21 @@ def log_exception():
         printlog("Utils","     :------")
 
 def set_entry_hint(entry, hint, default_focused=False):
-    import gtk
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    from gi.repository import Gdk
 
     def focus(entry, event, direction):
         if direction == "out" and not entry.get_text():
             entry.set_text(hint)
-            c = gtk.gdk.color_parse("grey")
+            c = Gdk.color_parse("grey")
         elif direction == "in" and entry.get_text() == hint:
             entry.set_text("")
-            c = gtk.gdk.color_parse("black")
+            c = Gdk.color_parse("black")
         else:
             return
-        entry.modify_text(gtk.STATE_NORMAL, c)
+        entry.modify_text(Gtk.StateType.NORMAL, c)
         
     entry.connect("focus-in-event", focus, "in")
     entry.connect("focus-out-event", focus, "out")
@@ -292,21 +305,23 @@ def port_for_station(ports, station):
     return None
 
 def make_error_dialog(msg, stack, buttons, type, extra):
-    import gtk
-    d = gtk.MessageDialog(buttons=buttons, type=type)
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    d = Gtk.MessageDialog(buttons=buttons, type=type)
 
     if extra:
         extra(d)
 
-    dvbox = gtk.VBox(False, 3)
+    dvbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 3)
 
-    sv = gtk.TextView()
+    sv = Gtk.TextView()
     sv.get_buffer().set_text(stack)
 
     dvbox.pack_start(sv, 1, 1, 1)
     sv.show()
 
-    se = gtk.Expander(_("Details"))
+    se = Gtk.Expander.new(_("Details"))
     se.add(dvbox)
     dvbox.show()
 

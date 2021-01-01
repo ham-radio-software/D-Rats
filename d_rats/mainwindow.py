@@ -19,30 +19,40 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-#importing printlog() wrapper
-from .debug import printlog
 
 import sys
 if __name__ == "__main__":
+    if not __package__:
+        # pylint disable=redefined-builtin
+        __package__ = '__main__'
     sys.path.insert(0, ".")
-    from . import mainapp
-    from . import dplatform
-    
+    # from . import mainapp
+    # from . import dplatform
+    from .debug import printlog
     # gettext is the module for translating the labels in different languages  
     import gettext
-    lang = gettext.translation("D-RATS", localedir="./locale", languages=["en"])
-    lang.install()
+    try:
+        # pylint disable=invalid-name
+        lang = gettext.translation("D-RATS",
+                                   localedir="./locale",
+                                   languages=["en"])
+        lang.install()
+    except IOError:
+        printlog("Mainwin", "  : can not open locale file")
     
     printlog("Mainwin","  : sys.path=", sys.path)
+else:
+    from .debug import printlog
 
-from . import version
+# from . import version
 import os
 import time
 
 import libxml2
-import gtk
-import gtk.glade
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
 import subprocess
 
 from d_rats.ui.main_messages import MessagesTab
@@ -88,13 +98,15 @@ class MainWindow(MainWindowElement):
     def _destroy(self, window):
         w, h = window.get_size()
 
-        maximized = window.maximize_initially
-        self._config.set("state", "main_maximized", maximized)
+        #maximized = window.maximize_initially
+        maximized = window.is_maximized()
+        if maximized:
+            self._config.set("state", "main_maximized", maximized)
         if not maximized:
             self._config.set("state", "main_size_x", w)
             self._config.set("state", "main_size_y", h)
 
-        gtk.main_quit()
+        Gtk.main_quit()
 
     def _connect_menu_items(self, window):
         def do_save_and_quit(but):
@@ -106,13 +118,14 @@ class MainWindow(MainWindowElement):
             
         def do_about(but):
             # show the "about window" 
-            d = gtk.AboutDialog()
-            d.set_transient_for(self._wtree.get_widget("mainwindow"))
+            d = Gtk.AboutDialog()
+            d.set_transient_for(self._wtree.get_object("mainwindow"))
 
-            verinfo = "Python %s\nGTK %s\nPyGTK %s\nLibXML using %.1f KB\n" %(\
+            verinfo = "Python %s\nGTK %s.%s.%s\nLibXML using %.1f KB\n" % (
                 sys.version.split()[0],
-                ".".join([str(x) for x in gtk.gtk_version]),
-                ".".join([str(x) for x in gtk.pygtk_version]),
+                Gtk.MAJOR_VERSION,
+                Gtk.MINOR_VERSION,
+                Gtk.MICRO_VERSION,
                 libxml2.memoryUsed() / 1024.0)
 
             d.set_name(DRATS_NAME)
@@ -132,7 +145,7 @@ class MainWindow(MainWindowElement):
             if os.path.exists(path):
                 self._config.platform.open_text_file(path)
             else:
-                d = gtk.MessageDialog(buttons=gtk.BUTTONS_OK,
+                d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
                                       parent=window)
                 d.set_property("text",
                                "Debug log not available")
@@ -147,12 +160,13 @@ class MainWindow(MainWindowElement):
                     tabs.reconfigure()
 
         def do_map(but):
-            # shows the map window passing our username and callsign as defined in the preferecens
+            # shows the map window passing our username and callsign
+            # as defined in the preferences
             call = self._config.get("user", "callsign")
             self.emit("show-map-station", call)
 
         def do_message_templates(but):
-            d = formbuilder.FormManagerGUI(self._config.form_source_dir())
+            _d = formbuilder.FormManagerGUI(self._config.form_source_dir())
 
         def do_ping(but):
             station_list = self.emit("get-station-list")
@@ -178,16 +192,18 @@ class MainWindow(MainWindowElement):
             
             c = self._config
             #xxxxx
-            wtree = gtk.glade.XML(c.ship_obj_fn("ui/mainwindow.glade"),
-                                  "dquery_dialog", "D-RATS")
-            dlg = wtree.get_widget("dquery_dialog")
-            cmd = wtree.get_widget("dq_cmd")
+            wtree = Gtk.Builder()
+            wtree.add_from_file(c.ship_obj_fn("ui/mainwindow.glade"))
+            #wtree = Gtk.glade.XML(c.ship_obj_fn("ui/mainwindow.glade"),
+            #                      "dquery_dialog", "D-RATS")
+            dlg = wtree.get_object("dquery_dialog")
+            cmd = wtree.get_object("dq_cmd")
             dlg.set_modal(True)
             dlg.set_transient_for(window)
             r = dlg.run()
             d = cmd.get_text()
             dlg.destroy()
-            if r == gtk.RESPONSE_OK:
+            if r == Gtk.ResponseType.OK:
                 port = self.emit("get-chat-port")
 
                 # original d-rats string 
@@ -198,6 +214,10 @@ class MainWindow(MainWindowElement):
               
                 
         def do_proxy(but):
+            # WB8TYW: This probably needs some better documentation
+            # in the gui or somewhere of what it is trying to do.
+            # The location of the d-rats_repeater can also be probably
+            # looked up from the location of this module.
             if sys.platform != "darwin":
                 args = []
             else:
@@ -209,54 +229,57 @@ class MainWindow(MainWindowElement):
             printlog("Mainwin","  : Running proxy: %s" % str(args))
             p = subprocess.Popen(args)
 
-        quit = self._wtree.get_widget("main_menu_quit")
+        quit = self._wtree.get_object("main_menu_quit")
         quit.connect("activate", do_save_and_quit)
 
-        about = self._wtree.get_widget("main_menu_about")
+        about = self._wtree.get_object("main_menu_about")
         about.connect("activate", do_about)
 
-        debug = self._wtree.get_widget("main_menu_debuglog")
+        debug = self._wtree.get_object("main_menu_debuglog")
         debug.connect("activate", do_debug)
 
-        menu_prefs = self._wtree.get_widget("main_menu_prefs")
+        menu_prefs = self._wtree.get_object("main_menu_prefs")
         menu_prefs.connect("activate", do_prefs)
 
-        menu_map = self._wtree.get_widget("main_menu_map")
-        img = gtk.Image()
+        menu_map = self._wtree.get_object("main_menu_map")
+        img = Gtk.Image()
         img.set_from_file("images/map.png")
         menu_map.set_image(img)
         menu_map.connect("activate", do_map)
 
-        menu_templates = self._wtree.get_widget("main_menu_msgtemplates")
+        menu_templates = self._wtree.get_object("main_menu_msgtemplates")
         menu_templates.connect("activate", do_message_templates)
 
-        ping = self._wtree.get_widget("main_menu_ping")
-        img = gtk.Image()
+        ping = self._wtree.get_object("main_menu_ping")
+        img = Gtk.Image()
         img.set_from_file("images/event_ping.png")
         ping.set_image(img)
         ping.connect("activate", do_ping)
 
-        conn = self._wtree.get_widget("main_menu_conninet")
+        conn = self._wtree.get_object("main_menu_conninet")
         conn.set_active(self._config.getboolean("state", "connected_inet"))
         self._config.platform.set_connected(conn.get_active())
         conn.connect("activate", do_conninet)
 
-        sspw = self._wtree.get_widget("main_menu_showpane")
-        pane = self._wtree.get_widget("main_stations_frame")
+        sspw = self._wtree.get_object("main_menu_showpane")
+        pane = self._wtree.get_object("main_stations_frame")
         sspw.set_active(self._config.getboolean("state", "sidepane_visible"))
         if not sspw.get_active():
-            pane.hide()
+            pane.hide() 
         sspw.connect("activate", do_showpane, pane)
 
-        dq = self._wtree.get_widget("main_menu_dq")
+        dq = self._wtree.get_object("main_menu_dq")
         dq.connect("activate", do_dq)
 
-        proxy = self._wtree.get_widget("main_menu_proxy")
+        proxy = self._wtree.get_object("main_menu_proxy")
         proxy.connect("activate", do_proxy)
 
     def _page_name(self, index=None):
         if index is None:
             index = self._tabs.get_current_page()
+
+        cur_page = self._tabs.get_nth_page(index)
+        page_ml = self._tabs.get_menu_label_text(cur_page)
 
         tablabels = ["messages", "chat", "files", "event"]
         return tablabels[index]
@@ -287,11 +310,14 @@ class MainWindow(MainWindowElement):
     def __init__(self, config):
         #init"
         from . import mainapp
-        wtree = gtk.glade.XML(config.ship_obj_fn("ui/mainwindow.glade"),
-                              "mainwindow", "D-RATS")
+        wtree = Gtk.Builder()
+        p = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
+        wtree.add_from_file(p)
+        #wtree = Gtk.glade.XML(config.ship_obj_fn("ui/mainwindow.glade"),
+        #                      "mainwindow", "D-RATS")
         MainWindowElement.__init__(self, wtree, config, "")
-        self.__window = self._wtree.get_widget("mainwindow")
-        self._tabs = self._wtree.get_widget("main_tabs")
+        self.__window = self._wtree.get_object("mainwindow")
+        self._tabs = self._wtree.get_object("main_tabs")
         self._tabs.connect("switch-page", self._tab_switched)
         self.tabs = {}
         self.__last_status = 0
@@ -326,7 +352,7 @@ class MainWindow(MainWindowElement):
 
         try:
             import gtkmacintegration
-            mbar = self._wtree.get_widget("menubar1")
+            mbar = self._wtree.get_object("menubar1")
             mbar.hide()
             gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
             gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
@@ -336,12 +362,12 @@ class MainWindow(MainWindowElement):
 
         self.__window.show()
 
-        gobject.timeout_add(3000, self.__update_status)
+        GObject.timeout_add(3000, self.__update_status)
 
     def __update_status(self):
         #printlog("Mainwin","  : updating status")
         if (time.time() - self.__last_status) > 30:
-            sb = self._wtree.get_widget("statusbar")
+            sb = self._wtree.get_object("statusbar")
             id = sb.get_context_id("default")
             sb.pop(id)
 
@@ -349,8 +375,8 @@ class MainWindow(MainWindowElement):
 
     def set_status(self, msg):
         # ("mainwindow: setting status")
-        sb = self._wtree.get_widget("statusbar")
-        cb = self._wtree.get_widget("callbar")
+        sb = self._wtree.get_object("statusbar")
+        cb = self._wtree.get_object("callbar")
 
         self.__last_status = time.time()
 
@@ -364,7 +390,9 @@ class MainWindow(MainWindowElement):
         cb.push(0, call)
 
 if __name__ == "__main__":
-    wtree = gtk.glade.XML("ui/mainwindow.glade", "mainwindow")
+    wtree = Gtk.Builder()
+    wtree.add_from_file("ui/mainwindow.glade")
+    #wtree = Gtk.glade.XML("ui/mainwindow.glade", "mainwindow")
 
     from d_rats import config
     conf = config.DratsConfig(None)
@@ -377,4 +405,4 @@ if __name__ == "__main__":
 
     msgs = MessagesTab(wtree, conf)
 
-    gtk.main()
+    Gtk.main()
