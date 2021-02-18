@@ -152,7 +152,8 @@ class QSTFile(QSTText):
     def do_qst(self):
         size_limit = self.config.getint("settings", "qst_size_limit")
         try:
-            f = NetFile(self.text)
+            f = open(self.text)
+#            f = NetFile(self.text)
         except:
             printlog(("Qst       : Unable to open file `%s'" % self.text))
             return
@@ -215,7 +216,8 @@ class QSTWX(QSTGPS):
 #        linecache.checkcache(self.text)
 #        wx = linecache.getline(self.text, 2).strip()
 #/* from here
-        f = NetFile(self.text)
+        f = open(self.text)
+#        f = NetFile(self.text)
         wx = f.readline()
         wx = f.readline().rstrip()
         f.close()
