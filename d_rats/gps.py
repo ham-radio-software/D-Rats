@@ -531,7 +531,9 @@ class GPSPosition(object):
         if self.altitude:
             s += "/A=%06i" % meters2feet(float(self.altitude))
         else:
-            s += "/"
+#            s += "/"
+#   Removed to permit transmit Weather information (WX)
+            s += ""
 
         if self.comment:
             l = 43
