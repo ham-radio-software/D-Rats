@@ -620,6 +620,35 @@ class QSTFileEditWidget(QSTEditWidget):
 
     def to_human(self):
         return self.__fn.get_filename()
+class QSTWXFileEditWidget(QSTEditWidget):
+    label_text = _("Choose a APRS text file.  The contents will be used when the WXGPS-A is sent.")
+
+    def __init__(self):
+        QSTEditWidget.__init__(self, False, 2)
+        
+        lab = gtk.Label(self.label_text)
+        lab.set_line_wrap(True)
+        lab.show()
+        self.pack_start(lab, 1, 1, 1)
+        
+        self.__fn = miscwidgets.FilenameBox()
+        self.__fn.show()
+        self.pack_start(self.__fn, 0, 0, 0)
+       
+    def __str__(self):
+        return "Read: %s" % self.__fn.get_filename()
+
+    def reset(self):
+        self.__fn.set_filename("")
+
+    def to_qst(self):
+        return self.__fn.get_filename()
+
+    def from_qst(self, content):
+        self.__fn.set_filename(content)
+
+    def to_human(self):
+        return self.__fn.get_filename()
 
 class QSTExecEditWidget(QSTFileEditWidget):
     label_text = _("Choose a script to execute.  The output will be used when the QST is sent")
