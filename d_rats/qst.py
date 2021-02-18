@@ -29,6 +29,7 @@ import datetime
 import copy
 import re
 import threading
+#import linecache   #Works ok on python but not on Windows
 
 from commands import getstatusoutput as run
 from .miscwidgets import make_choice, KeyedListWidget
@@ -197,7 +198,10 @@ class QSTGPSA(QSTGPS):
             fix = self.fix
 
         if not "::" in self.text:
-            fix.set_station(fix.station, self.text[:20])
+            #add "/" that was removed from gps.py to send message and not in Weather WXGPS-A
+            self.text = ("/"+self.text) 
+            fix.set_station(fix.station, self.text[:200])
+            self.text = self.text[1:]
 
         if fix.valid:
             return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
@@ -205,6 +209,38 @@ class QSTGPSA(QSTGPS):
         else:
             return None
 
+class QSTWX(QSTGPS):
+    def do_qst(self):
+#  This is working on python but not on Windows
+#        linecache.checkcache(self.text)
+#        wx = linecache.getline(self.text, 2).strip()
+#/* from here
+        f = NetFile(self.text)
+        wx = f.readline()
+        wx = f.readline().rstrip()
+        f.close()
+#*/ to here is working on Windows and python
+
+        if not self.fix:
+            from . import mainapp #hack
+            fix = self.mainapp.get_position()
+        else:
+            fix = self.fix
+
+        if not "::" in self.text:
+            fix.set_station(fix.station, wx[:200])
+
+        if fix.valid:
+            return fix.to_APRS(symtab="/",
+                               symbol="_")
+# WX symbol will be used for WXGPS-A.
+#            return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
+#                               symbol=self.config.get("settings", "aprssymbol"))
+        else:
+            return None
+
+
+        
 class QSTThreadedText(QSTText):
     def __init__(self, *a, **k):
         QSTText.__init__(self, *a, **k)
@@ -645,8 +681,12 @@ class QSTGPSEditWidget(QSTEditWidget):
         return self.__msg.get_text()
 
 class QSTGPSAEditWidget(QSTGPSEditWidget):
-    msg_limit = 20
+    msg_limit = 200
     type = "GPS-A"
+
+class QSTWXEditWidget(QSTGPSEditWidget):
+    msg_limit = 200
+    type = "WX"
 
 class QSTRSSEditWidget(QSTEditWidget):
     label_string = _("Enter the URL of an RSS feed:")
@@ -809,7 +849,7 @@ class QSTEditDialog(gtk.Dialog):
         lab.show()
         hbox.pack_start(lab, 0, 0 , 0)
 
-        intervals = ["1", "5", "10", "20", "30", "60", "120", "180", ":30", ":15"]
+        intervals = ["1", "3", "5", "10", "15", "20", "30", "60", "120", "180","240", ":00", ":15", ":30", ":45"]
         self._freq = make_choice(intervals, True, default="60")
         self._freq.set_size_request(75, -1)
         self._freq.show()
@@ -835,6 +875,7 @@ class QSTEditDialog(gtk.Dialog):
             _("Exec") : QSTExecEditWidget(),
             _("GPS")  : QSTGPSEditWidget(config),
             _("GPS-A"): QSTGPSAEditWidget(config),
+            _("WXGPS-A"): QSTWXFileEditWidget(),
             _("RSS")  : QSTRSSEditWidget(),
             _("CAP")  : QSTCAPEditWidget(),
             _("Station") : QSTStationEditWidget(),
@@ -888,6 +929,7 @@ def get_qst_class(typestr):
         _("File")    : QSTFile,
         _("GPS")     : QSTGPS,
         _("GPS-A")   : QSTGPSA,
+        _("WXGPS-A") : QSTWX,
         _("Station") : QSTStation,
         _("RSS")     : QSTRSS,
         _("CAP")     : QSTCAP,
