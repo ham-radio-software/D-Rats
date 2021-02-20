@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Weather Update?'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
@@ -17,11 +18,14 @@
 
 from __future__ import absolute_import
 import os
-import libxml2
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+
+import six.moves.urllib.request
+import six.moves.urllib.parse
+import six.moves.urllib.error
+from lxml import etree
 
 class InvalidXMLError(Exception):
-    pass
+    '''Invalid XML Error'''
 
 WEATHER_KEYS = [
     "temperature_string", "temp_f", "temp_c",
@@ -35,12 +39,14 @@ WEATHER_KEYS = [
     "precip_today_string", "precip_today_in", "precip_today_metric",
 ]
 
-class WUObservation(object):
+class WUObservation():
+    '''WU Observation'''
+
     def __init__(self):
         self.location = {}
         self.station_id = None
         self.time = None
-
+        self.staton_id = None
         self.weather = {}
 
     def __str__(self):
@@ -71,6 +77,7 @@ class WUObservation(object):
                     self.time = datetime.datetime.strptime(\
                         child.getContent(),
                         "%a, %d %B %Y %H:%M:%S %Z")
+                # pylint: disable=bare-except
                 except:
                     self.time = child.getContent()
             elif child.name in WEATHER_KEYS:
@@ -79,12 +86,13 @@ class WUObservation(object):
             child = child.next
 
     def from_xml(self, xml):
-        doc = libxml2.parseMemory(xml, len(xml))
+        '''From xml'''
+        doc = etree.fromstring(xml)
         return self.__parse_doc(doc)
 
     def from_uri(self, uri):
-        fn, foo = six.moves.urllib.request.urlretrieve(uri)
-        doc = libxml2.parseFile(fn)
-        os.remove(fn)
+        '''From Uri'''
+        file_name, _something = six.moves.urllib.request.urlretrieve(uri)
+        doc = etree.parse(file_name)
+        os.remove(file_name)
         return self.__parse_doc(doc)
-
