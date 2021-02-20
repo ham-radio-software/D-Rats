@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# pylint: disable=invalid-name
+'''d-rats main program'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -35,15 +37,16 @@ from d_rats.debug import printlog
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
 #import module to have spelling correction in chat and email applications
-from d_rats import utils, spell 
+from d_rats import utils, spell
 spell.get_spell().test()
 
-IGNORE_ALL=False
+IGNORE_ALL = False
 
-# here we design the window which usually comes out at the beginning asking 
+# here we design the window which usually comes out at the beginning asking
 # to "ignore/ignore all" the exceptions
 def handle_exception(exctyp, value, tb):
-    
+    '''handle exception'''
+
     # this eventually starts the initial window with the list of errors and the
     # buttons to open log or ignore errors
 
@@ -62,12 +65,17 @@ def handle_exception(exctyp, value, tb):
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
 
-    printlog("D-Rats","---- GUI Exception ----\n%s\n---- End ----\n" % trace)
+    printlog("D-Rats", "---- GUI Exception ----\n%s\n---- End ----\n" % trace)
 
     msg = """
 <b><big>D-RATS has encountered an error.</big></b>
-This may be non-fatal, so you may click <b>Ignore</b> below to attempt to continue running.  Otherwise, click 'Quit' to terminate D-RATS now. If you are planning to file a bug for this issue, please click <b>Debug Log</b> below and include the contents in the bug tracker.
-If you need to ignore all additional warnings for this session, click <b>Ignore All</b>.  However, please reproduce and report the issue when possible.
+This may be non-fatal, so you may click <b>Ignore</b> below to attempt to
+continue running.  Otherwise, click 'Quit' to terminate D-RATS now.
+If you are planning to file a bug for this issue, please click
+<b>Debug Log</b> below and include the contents in the bug tracker.
+If you need to ignore all additional warnings for this session, click
+<b>Ignore All</b>.  However, please reproduce and report the issue when
+possible.
 """
 
     def extra(dialog):
@@ -88,7 +96,7 @@ If you need to ignore all additional warnings for this session, click <b>Ignore 
         elif r == Gtk.ResponseType.CLOSE:
             break
         elif r == -1:
-            IGNORE_ALL=True
+            IGNORE_ALL = True
             break
         elif r == Gtk.ResponseType.HELP:
             p = dplatform.get_platform()
@@ -96,20 +104,25 @@ If you need to ignore all additional warnings for this session, click <b>Ignore 
 
 
 def install_excepthook():
+    '''install excepthook'''
     # saves away the original value of sys.excepthook
     global original_excepthook
     original_excepthook = sys.excepthook
-    #invoke the manager of the initial windows to ask user what to do with exceptions
+    # invoke the manager of the initial windows to ask user what to do with
+    # exceptions
     sys.excepthook = handle_exception
 
 def uninstall_excepthook():
+    '''Uninstall Excepthook'''
     # restores the original value of sys.excepthook
     global original_excepthook
     sys.excepthook = ignore_exception
 
-def ignore_exception(exctyp, value, tb):
+def ignore_exception(_exctyp, _value, _tb):
+    '''ignore exception'''
     return
-#-------------- main d-rats module -----------------    def set_defaults(self):---
+#-------------- main d-rats module -----------------
+# --- def set_defaults(self):---
 #
 if __name__ == "__main__":
     #
@@ -128,11 +141,12 @@ if __name__ == "__main__":
                  help="Enable profiling")
     (opts, args) = o.parse_args()
 
-    # import the platform module - this will setup all the proper parameters for the different OSs
+    # import the platform module - this will setup all the proper parameters
+    # for the different OSs
     from d_rats import dplatform
 
     if opts.config:
-        printlog("D-Rats","    : re-config option found -- Reconfigure D-rats")
+        printlog("D-Rats", "    : re-config option found -- Reconfigure D-rats")
         dplatform.get_platform(opts.config)
 
     # import the D-Rats main application
@@ -141,24 +155,24 @@ if __name__ == "__main__":
     #stores away the value of sys.excepthook
     install_excepthook()
 
-    import libxml2
-    libxml2.debugMemory(1)
+    # import libxml2
+    # libxml2.debugMemory(1)
 
-    # create the mainapp with the basic options 
+    # create the mainapp with the basic options
     app = mainapp.MainApp(safe=opts.safe)
-    
-    printlog("D-Rats","    : reloading app\n\n")
-    # finally let's open the default application triggering it differently if we 
-    # want to profile it (which is running the app under profile control to see what happens) 
-    if opts.profile :
+
+    printlog("D-Rats", "    : reloading app\n\n")
+    # finally let's open the default application triggering it differently if
+    # we want to profile it (which is running the app under profile control to
+    # see what happens)
+    if opts.profile:
         printlog("D-Rats     : Executing with cprofile")
         import cProfile
         cProfile.run('app.main()')
     else:
         #execute the main app
-        rc = app.main()
+        result_code = app.main()
         #restores  the original value of sys.excepthook
         uninstall_excepthook()
-        libxml2.dumpMemory()
-        sys.exit(rc)
-
+        # libxml2.dumpMemory()
+        sys.exit(result_code)
