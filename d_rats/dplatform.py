@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''D-Rats Platform'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -19,10 +20,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
-
 import os
 import sys
 import glob
@@ -32,14 +29,22 @@ try:
 except ModuleNotFoundError:
     pass
 import subprocess
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+import six.moves.urllib.request
+import six.moves.urllib.parse
+import six.moves.urllib.error
 from six.moves import range
 
+#importing printlog() wrapper
+from .debug import printlog
+
+
 def find_me():
+    '''Find Me'''
     return sys.modules["d_rats.dplatform"].__file__
 
-class Platform(object):
-    # pylint: disable-msg=R0201
+
+class Platform():
+    '''Platform'''
 
     def __init__(self, basepath):
         self._base = basepath
@@ -47,60 +52,75 @@ class Platform(object):
         self._connected = True
 
     def __str__(self):
-        l = ["Platform %s:" % str(self.__class__.__name__)]
-        l.append("  base:       %s" % self.config_dir())
-        l.append("  source_dir: %s" % self.source_dir())
-        l.append("  OS version: %s" % self.os_version_string())
+        text = ["Platform %s:" % str(self.__class__.__name__)]
+        text.append("  base:       %s" % self.config_dir())
+        text.append("  source_dir: %s" % self.source_dir())
+        text.append("  OS version: %s" % self.os_version_string())
 
-        return os.linesep.join(l)
+        return os.linesep.join(text)
 
     def config_dir(self):
+        '''Config Directory'''
         return self._base
 
     def source_dir(self):
+        '''Source Directory'''
         return self._source_dir
 
     def log_dir(self):
+        '''Log Directory'''
         logdir = os.path.join(self.config_dir(), "logs")
         if not os.path.isdir(logdir):
             os.mkdir(logdir)
 
         return logdir
 
+    # pylint: disable=no-self-use
     def filter_filename(self, filename):
+        '''Filter Filename'''
         return filename
 
     def log_file(self, filename):
+        '''Log file'''
         filename = self.filter_filename(filename + ".txt").replace(" ", "_")
         return os.path.join(self.log_dir(), filename)
 
     def config_file(self, filename):
+        '''Config File'''
         return os.path.join(self.config_dir(),
                             self.filter_filename(filename))
 
     def open_text_file(self, path):
+        '''Open Text File'''
         raise NotImplementedError("The base class can't do that")
 
     def open_html_file(self, path):
+        '''Open HTML File'''
         raise NotImplementedError("The base class can't do that")
 
+    # pylint: disable=no-self-use
     def list_serial_ports(self):
+        '''List Serial Ports'''
         return []
 
+    # pylint: disable=no-self-use
     def default_dir(self):
+        '''Default Directory'''
         return "."
 
+    # pylint: disable=no-self-use
     def gui_open_file(self, start_dir=None):
+        '''GUI Open File'''
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 
-        dlg = Gtk.FileChooserDialog.new("Select a file to open",
-                                        None,
-                                        Gtk.FileChooserAction.OPEN,
-                                        (Gtk.ButtonsType.CANCEL,
-                                         Gtk.ResponseType.CANCEL,
-                                         _("Open"), Gtk.ResponseType.OK))
+        dlg = Gtk.FileChooserDialog(
+            title="Select a file to open",
+            action=Gtk.FileChooserAction.OPEN)
+        dlg.add_buttons(_("Cancel"),
+                        Gtk.ResponseType.CANCEL,
+                        _("Open"), Gtk.ResponseType.OK)
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -110,20 +130,21 @@ class Platform(object):
 
         if res == Gtk.ResponseType.OK:
             return fname
-        else:
-            return None
+        return None
 
+    # pylint: disable=no-self-use
     def gui_save_file(self, start_dir=None, default_name=None):
+        '''GUI Save File'''
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 
-        dlg = Gtk.FileChooserDialog.new("Save file as",
-                                        None,
-                                        Gtk.FileChooserAction.SAVE,
-                                        (Gtk.ButtonsType.CANCEL,
-                                         Gtk.ResponseType.CANCEL,
-                                         _("Save"), Gtk.ResponseType.OK))
+        dlg = Gtk.FileChooserDialog(
+            title="Save file as",
+            action=Gtk.FileChooserAction.SAVE)
+        dlg.add_buttons(_("Cancel"),
+                        Gtk.ResponseType.CANCEL,
+                        _("Save"), Gtk.ResponseType.OK)
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -136,20 +157,23 @@ class Platform(object):
 
         if res == Gtk.ResponseType.OK:
             return fname
-        else:
-            return None
+        return None
 
+    # pylint: disable=no-self-use
     def gui_select_dir(self, start_dir=None):
+        '''Gui Select Directory'''
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 
-        dlg = Gtk.FileChooserDialog.new("Choose folder",
-                                        None,
-                                        Gtk.FileChooserAction.SELECT_FOLDER,
-                                        (Gtk.ButtonsType.CANCEL,
-                                         Gtk.ResponseType.CANCEL,
-                                         _("Save"), Gtk.ResponseType.OK))
+        dlg = Gtk.FileChooserDialog(
+            title="Choose folder",
+            action=Gtk.FileChooserAction.SELECT_FOLDER)
+        dlg.add_buttons(_("Cancel"),
+                        Gtk.ResponseType.CANCEL,
+                        _("Save"),
+                        Gtk.ResponseType.OK)
+
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -159,19 +183,22 @@ class Platform(object):
 
         if res == Gtk.ResponseType.OK and os.path.isdir(fname):
             return fname
-        else:
-            return None
+        return None
 
+    # pylint: disable=no-self-use
     def os_version_string(self):
+        '''OS Version String'''
         return "Unknown Operating System"
 
     def run_sync(self, command):
+        '''Run Sync'''
         pipe = subprocess.Popen(command, stdout=subprocess.PIPE)
         data = pipe.stdout.read()
 
         return 0, data
 
     def retrieve_url(self, url):
+        '''Retrieve URL'''
         if self._connected:
             #if yes connected=true return url to be connect
             return six.moves.urllib.request.urlretrieve(url)
@@ -179,67 +206,88 @@ class Platform(object):
         raise Exception("Not connected")
 
     def set_connected(self, connected):
+        '''Set Connected'''
         self._connected = connected
 
-    def play_sound(self, soundfile):
-        printlog("dPlatform"," : Sound is unsupported on this platform!")
+    # pylint: disable=no-self-use
+    def play_sound(self, _soundfile):
+        '''Play Sound'''
+        printlog("dPlatform",
+                 " : Sound is unsupported on this platform!")
+
 
 class UnixPlatform(Platform):
+    '''Unix Platform'''
+
     def __init__(self, basepath):
         if not basepath:
             basepath = os.path.abspath(os.path.join(self.default_dir(),
                                                     ".d-rats-ev"))
-        
+
         if not os.path.isdir(basepath):
             os.mkdir(basepath)
 
         Platform.__init__(self, basepath)
 
     def source_dir(self):
+        '''Source Directory'''
         if "site-packages" in find_me():
             return "/usr/share/d-rats"
-        elif "dist-packages" in find_me():
+        if "dist-packages" in find_me():
             return "/usr/share/d-rats"
-        elif "/usr/share/d-rats" in find_me():
+        if "/usr/share/d-rats" in find_me():
             return "/usr/share/d-rats"
-        else:
-            return self._source_dir
+        return self._source_dir
 
     def default_dir(self):
+        '''Default Directory'''
         return os.path.abspath(os.getenv("HOME"))
 
     def filter_filename(self, filename):
+        '''Filter Filename'''
         return filename.replace("/", "")
 
+    # pylint: disable=no-self-use
     def _unix_doublefork_run(self, *args):
         pid1 = os.fork()
         if pid1 == 0:
             pid2 = os.fork()
             if pid2 == 0:
-                printlog("dPlatform"," : Exec'ing %s" % str(args))
+                printlog("dPlatform", " : Exec'ing %s" % str(args))
                 os.execlp(args[0], *args)
             else:
                 sys.exit(0)
         else:
             os.waitpid(pid1, 0)
-            printlog("dPlatform"," : Exec child exited")
+            printlog("dPlatform", " : Exec child exited")
 
     def open_text_file(self, path):
-        #todo gedit to be moved as parameter in config
-        printlog("dPlatform"," : received order to open in gedit %s s" % path)
-        printlog("dPlatform"," : if after this message your linux box crashes, please install gedit")
+        '''Open Text File'''
+        # pylint: disable=fixme
+        # todo gedit to be moved as parameter in config
+        printlog("dPlatform", " : received order to open in gedit %s s" % path)
+        printlog("dPlatform",
+                 " : if after this message your linux box crashes, " +
+                 "please install gedit")
         self._unix_doublefork_run("gedit", path)
 
     def open_html_file(self, path):
-        #todo gedit to be moved as parameter in config
-        printlog("dPlatform"," : received order to open in firefox %s s" % path)
-        printlog("dPlatform"," : if after this message your linux box crashes, please install firefox")        
+        '''Open HTML file'''
+        # pylint: disable=fixme
+        # todo gedit to be moved as parameter in config
+        printlog("dPlatform",
+                 " : received order to open in firefox %s s" % path)
+        printlog("dPlatform",
+                 " : if after this message your linux box crashes, " +
+                 "please install firefox")
         self._unix_doublefork_run("firefox", path)
 
     def list_serial_ports(self):
+        '''List Serial Ports'''
         return sorted(glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*"))
 
     def os_version_string(self):
+        '''OS Version String'''
         # pylint: disable-msg=W0703
         try:
             issue = open("/etc/issue.net", "r")
@@ -251,49 +299,62 @@ class UnixPlatform(Platform):
         return ver
 
     def run_sync(self, command):
+        '''Run Sync'''
         return commands.getstatusoutput(command)
 
     def play_sound(self, soundfile):
+        '''Play Sound'''
         import ossaudiodev
         import sndhdr
 
         try:
-            (t, r, c, f, b) = sndhdr.what(soundfile)
-        except Exception as e:
-            printlog("dPlatform"," : Unable to determine sound header of %s: %s" % (soundfile, e))
+            (file_type, rate, channels, _f, bits) = sndhdr.what(soundfile)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("dPlatform",
+                     " : Unable to determine sound header of %s: %s" %
+                     (soundfile, err))
             return
 
-        if t != "wav":
-            printlog("dPlatform"," : Unable to play non-wav file %s" % soundfile)
+        if file_type != "wav":
+            printlog("dPlatform",
+                     " : Unable to play non-wav file %s" % soundfile)
             return
 
-        if b != 16:
-            printlog("dPlatform"," : Unable to support strange non-16-bit audio (%i)" % b)
+        if bits != 16:
+            printlog("dPlatform",
+                     " : Unable to support strange non-16-bit audio (%i)" %
+                     bits)
             return
 
         dev = None
         try:
             dev = ossaudiodev.open("w")
             dev.setfmt(ossaudiodev.AFMT_S16_LE)
-            dev.channels(c)
-            dev.speed(r)
+            dev.channels(channels)
+            dev.speed(rate)
 
-            f = open(soundfile, "rb")
-            dev.write(f.read())
-            f.close()
+            file_handle = open(soundfile, "rb")
+            dev.write(file_handle.read())
+            file_handle.close()
 
             dev.close()
-        except Exception as e:
-            printlog("dPlatform"," : Error playing sound %s: %s" % (soundfile, e))
-        
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("dPlatform",
+                     " : Error playing sound %s: %s" % (soundfile, err))
+
         if dev:
             dev.close()
 
+
 class MacOSXPlatform(UnixPlatform):
+    '''Mac OSX Platform'''
+
     def __init__(self, basepath):
         # We need to make sure DISPLAY is set
         if "DISPLAY" not in os.environ:
-            printlog("dPlatform"," :Forcing DISPLAY for MacOS")
+            printlog("dPlatform", " :Forcing DISPLAY for MacOS")
             os.environ["DISPLAY"] = ":0"
 
         os.environ["PANGO_RC_FILE"] = "../Resources/etc/pango/pangorc"
@@ -301,28 +362,35 @@ class MacOSXPlatform(UnixPlatform):
         UnixPlatform.__init__(self, basepath)
 
     def open_html_file(self, path):
+        '''Open HTML File'''
         self._unix_doublefork_run("open", path)
 
     def open_text_file(self, path):
+        '''Open Text File'''
         macos_textedit = "/Applications/TextEdit.app/Contents/MacOS/TextEdit"
         self._unix_doublefork_run(macos_textedit, path)
 
     def list_serial_ports(self):
+        '''List Serial Ports'''
         keyspan = glob.glob("/dev/cu.KeySerial*")
         prolific = glob.glob("/dev/tty.usbserial*")
 
         return sorted(keyspan + prolific)
 
     def os_version_string(self):
+        '''OS Version String'''
         return "MacOS X"
 
     def source_dir(self):
+        '''Source Directory'''
         if "site-packages" in find_me():
             return "../Resources"
-        else:
-            return self._source_dir
+        return self._source_dir
+
 
 class Win32Platform(Platform):
+    '''Win32 Platform'''
+
     def __init__(self, basepath=None):
         if not basepath:
             appdata = os.getenv("APPDATA")
@@ -336,22 +404,27 @@ class Win32Platform(Platform):
         Platform.__init__(self, basepath)
 
     def default_dir(self):
-        return os.path.abspath(os.path.join(os.getenv("USERPROFILE"),"Desktop"))
+        '''Default Directory'''
+        return os.path.abspath(
+            os.path.join(os.getenv("USERPROFILE"), "Desktop"))
 
     def filter_filename(self, filename):
+        '''Filter Filename'''
         for char in "/\\:*?\"<>|":
             filename = filename.replace(char, "")
 
         return filename
 
     def open_text_file(self, path):
+        '''Open Text File'''
         subprocess.Popen(["notepad", path])
-        return
 
     def open_html_file(self, path):
+        '''Open Html File'''
         subprocess.Popen(["explorer", path])
-    
+
     def list_serial_ports(self):
+        '''List Serial Ports'''
         # pylint: disable=import-error
         import win32file
         import win32con
@@ -372,6 +445,7 @@ class Win32Platform(Platform):
                 ports.append(portname)
                 win32file.CloseHandle(port)
                 port = None
+            # pylint: disable=broad-except
             except Exception:
                 pass
 
@@ -383,70 +457,83 @@ class Win32Platform(Platform):
 
         try:
             fname, _, _ = win32gui.GetOpenFileNameW()
-        except Exception as e:
-            printlog("dPlatform"," : Failed to get filename: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("dPlatform", " : Failed to get filename: %s" % err)
             return None
 
         return str(fname)
 
     def gui_save_file(self, start_dir=None, default_name=None):
+        '''GUI Save File'''
         # pylint: disable=import-error
         import win32gui
 
         try:
             fname, _, _ = win32gui.GetSaveFileNameW(File=default_name)
-        except Exception as e:
-            printlog("dPlatform"," : Failed to get filename: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("dPlatform", " : Failed to get filename: %s" % err)
             return None
 
         return str(fname)
 
     def gui_select_dir(self, start_dir=None):
+        '''GUI Select Dir'''
         # pylint: disable=import-error
         from win32com.shell import shell
 
         try:
             pidl, _, _ = shell.SHBrowseForFolder()
             fname = shell.SHGetPathFromIDList(pidl)
-        except Exception as e:
-            printlog("dPlatform"," : failed to get directory: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("dPlatform", " : failed to get directory: %s" % err)
             return None
 
         return str(fname)
 
     def os_version_string(self):
+        '''Os Version String'''
         # pylint: disable=import-error
         import win32api
         #platform: try to identify windows version
-        vers = { "10.0": "Windows 10",
-                 "6.2": "Windows 8->10",
-                 "6.1": "Windows 7",
-                 "6.0": "Windows Vista",
-                 "5.2": "Windows XP 64-Bit",
-                 "5.1": "Windows XP",
-                 "5.0": "Windows 2000",
-                } 
+        vers = {"10.0": "Windows 10",
+                "6.2": "Windows 8->10",
+                "6.1": "Windows 7",
+                "6.0": "Windows Vista",
+                "5.2": "Windows XP 64-Bit",
+                "5.1": "Windows XP",
+                "5.0": "Windows 2000",
+               }
         (pform, pver, _build, _, _) = win32api.GetVersionEx()
-        return vers.get(str(pform) +"."+ str(pver), "Win32 (Unknown %i.%i)" % (pform, pver)) + " " + str(win32api.GetVersionEx())
-                        
+        return vers.get(str(pform) + "." + \
+            str(pver), "Win32 (Unknown %i.%i)" % (pform, pver)) + \
+            " " + str(win32api.GetVersionEx())
+
     def play_sound(self, soundfile):
+        '''Play Sound'''
         # pylint: disable=import-error
         import winsound
 
         winsound.PlaySound(soundfile, winsound.SND_FILENAME)
 
+
 def _get_platform(basepath):
     if os.name == "nt":
         return Win32Platform(basepath)
-    elif sys.platform == "darwin":
+    if sys.platform == "darwin":
         return MacOSXPlatform(basepath)
-    else:
-        return UnixPlatform(basepath)
+    return UnixPlatform(basepath)
+
 
 PLATFORM = None
-def get_platform(basepath=None):
-    #pylint: disable-msg=W0602
 
+
+def get_platform(basepath=None):
+    '''Get Platform'''
+
+    # pylint: disable=global-statement
     global PLATFORM
 
     if not PLATFORM:
@@ -454,16 +541,18 @@ def get_platform(basepath=None):
 
     return PLATFORM
 
+
 def do_test():
+    '''Unit Test'''
     __pform = get_platform()
-    
-    printlog("dPlatform"," : Config dir: %s" % __pform.config_dir())
-    printlog("dPlatform"," : Default dir: %s" % __pform.default_dir())
-    printlog("dPlatform"," : Log file (foo): %s" % __pform.log_file("foo"))
-    printlog("dPlatform"," : Serial ports: %s" % __pform.list_serial_ports())
-    printlog("dPlatform"," : OS Version: %s" % __pform.os_version_string())
+
+    printlog("dPlatform", " : Config dir: %s" % __pform.config_dir())
+    printlog("dPlatform", " : Default dir: %s" % __pform.default_dir())
+    printlog("dPlatform", " : Log file (foo): %s" % __pform.log_file("foo"))
+    printlog("dPlatform", " : Serial ports: %s" % __pform.list_serial_ports())
+    printlog("dPlatform", " : OS Version: %s" % __pform.os_version_string())
  #  __pform.open_text_file("d-rats.py")
-    
+
  #   printlog("dPlatform"," : Open file: %s" % __pform.gui_open_file())
  #   printlog("dPlatform"," : Save file: %s" % __pform.gui_save_file(default_name="Foo.txt"))
  #   printlog("dPlatform"," : Open folder: %s" % __pform.gui_select_dir("/tmp"))
