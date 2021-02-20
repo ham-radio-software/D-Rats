@@ -22,7 +22,7 @@ from six.moves import range
 
 sys.path.insert(0, "..")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     import gettext
     gettext.install("D-RATS")
 
@@ -74,7 +74,7 @@ def run_lzhuf(cmd, data):
     lzhuf_path = os.path.abspath(os.path.join(p.source_dir(), "libexec", lzhuf))
     shutil.copy(os.path.abspath(lzhuf_path), cwd)
     run = [lzhuf_path, cmd, "input", "output"]
-    
+
     printlog(("wl2k       : Running %s in %s" % (run, cwd)))
 
     ret = subprocess.call(run, cwd=cwd, **kwargs)
@@ -106,7 +106,7 @@ class WinLinkAttachment:
 
     def get_content(self):
         return self.__content
-    
+
 class WinLinkMessage:
     def __init__(self, header=None):
         self.__name = ""
@@ -131,7 +131,7 @@ class WinLinkMessage:
 
     def encode_message(self, src, dst, name, body, attachments):
         msgid = time.strftime("D%H%M%S") + src
-        
+
         msg = "Mid: %s\r\n" % msgid[:12] + \
             "Subject: %s\r\n" % name + \
             "From: %s\r\n" % src
@@ -157,12 +157,12 @@ class WinLinkMessage:
 
     def create_form(self, config, callsign):
         mail = email.message_from_string(self.__content)
-	
+
         sender = mail.get("From", "Unknown")
 
         if ":" in sender:
             method, sender = sender.split(":", 1)
-        
+
         sender = "WL2K:" + sender
 
         body = mail.get("Body", "0")
@@ -253,14 +253,14 @@ class WinLinkMessage:
                     cs += ord(i)
                 if (cs % 256) != 0:
                     printlog(("wl2k       : Ack! %i left from cs %i" % (cs, size)))
-                
+
                 break
 
         printlog(("wl2k       : Got data: %i bytes" % len(data)))
         self.__content = self.__decode_lzhuf(data)
         if self.__content is None:
             raise Exception("Failed to decode compressed message")
-        
+
         if len(data) != self.__csize:
             printlog(("wl2k       : Compressed size %i != %i" % (len(data), self.__csize)))
         if len(self.__content) != self.__usize:
@@ -657,11 +657,11 @@ def wl2k_auto_thread(ma, *args, **kwargs):
         mt.set_agw_conn(a)
     else:
         raise Exception("Unknown WL2K mode: %s" % mode)
-    
+
     return mt
 
-if __name__=="__main__":
-    
+def main():
+
     if True:
       #wl = WinLinkTelnet("KK7DS", "sandiego.winlink.org")
         agwc = agw.AGWConnection("127.0.0.1", 8000, 0.5)
@@ -687,3 +687,5 @@ Body: %i\r
         wl = WinLinkTelnet("KK7DS")
         wl.send_messages([m])
 
+if __name__ == "__main__":
+    main()
