@@ -26,11 +26,9 @@ import tempfile
 import zlib
 import base64
 
-# import libxml2
-# import libxslt
-
 from lxml import etree
 from six.moves import range
+from six.moves.configparser import NoOptionError
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -38,12 +36,7 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 
-#importing printlog() wrapper
-from .debug import printlog
-
-from ConfigParser import NoOptionError
-
-#importing printlog() wrapper
+# importing printlog() wrapper
 from .debug import printlog
 
 from .miscwidgets import make_choice, KeyedListWidget
@@ -88,16 +81,17 @@ RESPONSE_SEND_VIA = -904
 # At startup, the sets are empty.   Need to figure out what this is used for.
 # pylint: disable=invalid-name
 style = Gtk.Style()
-for i in [style.fg, style.bg, style.base]:
+for style_index in [style.fg, style.bg, style.base]:
     print('-Debug Style Dump-----')
-    print(i)
+    print(style_index)
     print('-------')
-    if Gtk.StateFlags.NORMAL in i:
-        if Gtk.stateFlags.INSENSITIVE in i:
-            i[Gtk.StateFlags.INSENSITIVE] = i[Gtk.StateFlags.NORMAL]
+    if Gtk.StateFlags.NORMAL in style_index:
+        if Gtk.stateFlags.INSENSITIVE in style_index:
+            style_index[Gtk.StateFlags.INSENSITIVE] = \
+                style_index[Gtk.StateFlags.NORMAL]
 STYLE_BRIGHT_INSENSITIVE = style
 del style
-del i
+del style_index
 
 
 def xml_escape(string):
@@ -159,9 +153,8 @@ class FormWriter():
     # pylint: disable=no-self-use
     def write(self, formxml, outfile):
         '''Write'''
-        doc = libxml2.parseMemory(formxml, len(formxml))
-        doc.saveFile(outfile)
-        doc.freeDoc()
+        doc = etree.fromstring(formxml)
+        doc.write(outfile, pretty_print=True)
 
 
 class HTMLFormWriter(FormWriter):
@@ -175,23 +168,17 @@ class HTMLFormWriter(FormWriter):
     def writeDoc(self, doc, outfile):
         '''Write Doc'''
         printlog("Formgui","   : Writing to %s" % outfile)
-        styledoc = libxml2.parseFile(self.xslpath)
-        style = libxslt.parseStylesheetDoc(styledoc)
-        result = style.applyStylesheet(doc, None)
-        style.saveResultToFilename(outfile, result, 0)
-        # FIXME!!
-        #style.freeStylesheet()
-        #styledoc.freeDoc()
-        #doc.freeDoc()
-        #result.freeDoc()
+        styledoc = etree.parse(self.xslpath)
+        style_sheet = etree.XSLT(styledoc)
+        result = style_sheet(doc)
+        result.write(outfile, pretty_print=True)
 
     def writeString(self, doc):
         '''Write String'''
-        styledoc = libxml2.parseFile(self.xslpath)
-        style = libxslt.parseStylesheetDoc(styledoc)
-        result = style.applyStylesheet(doc, None)
-        return style.saveResultToString(result)
-
+        styledoc = etree.parse(self.xslpath)
+        style_sheet = etree.XSLT(styledoc)
+        result = style_sheet(doc)
+        return etree.tostring(result, pretty_print=True).decode()
 
 class FieldWidget():
     '''Field Widget'''
@@ -223,24 +210,15 @@ class FieldWidget():
 
     def get_value(self):
         '''Get value'''
-        # pass
 
     def set_value(self, value):
         '''Set value'''
-        # pass
 
     def update_node(self):
         '''Update node'''
-        child = self.node.children
-        while child:
-            if child.type == "text":
-                child.unlinkNode()
-
-            child = child.next
-
         value = xml_escape(self.get_value())
         if value:
-            self.node.addContent(value)
+            self.node.text = value
 
     def set_editable(self, editable):
         '''Set editable'''
@@ -255,8 +233,8 @@ class TextWidget(FieldWidget):
     def __init__(self, node):
         FieldWidget.__init__(self, node)
 
-        if node.children:
-            text = xml_unescape(node.getContent().strip())
+        if node.getchildren():
+            text = xml_unescape(node.text.strip())
         else:
             text = ""
 
@@ -306,8 +284,8 @@ class MultilineWidget(FieldWidget):
         FieldWidget.__init__(self, node)
         self.vertical = True
 
-        if node.children:
-            text = xml_unescape(node.children.getContent().strip())
+        if node.getchildren():
+            text = xml_unescape(node.text.strip())
         else:
             text = ""
 
@@ -410,11 +388,14 @@ class TimeWidget(FieldWidget):
             (hours, minutes, seconds) = (int(x) for x in text.split(":", 3))
         # pylint: disable=bare-except
         except:
-            #FIXME
-            #config = mainapp.get_mainapp().config
-            if False and config.getboolean("prefs", "useutc"):
-                current_time = time.gmtime()
-            else:
+            try:
+                from . import mainapp
+                config = mainapp.get_mainapp().config
+                if config.getboolean("prefs", "useutc"):
+                    current_time = time.gmtime()
+                else:
+                    current_time = time.localtime()
+            except AttributeError:
                 current_time = time.localtime()
 
             hours = int(time.strftime("%H", current_time))
@@ -558,7 +539,6 @@ class MultiselectWidget(FieldWidget):
         except Exception as err:
             printlog("Formgui",
                      "   : MultiselectWidget/parse_choice Error: %s" % err)
-            # pass
 
     def toggle(self, _rend, path):
         '''toggle'''
@@ -687,11 +667,16 @@ class FormField():
     # pylint: disable=no-self-use
     def get_caption_string(self, node):
         '''Get caption string'''
-        return node.getContent().strip()
+        return node.text.strip()
+        # return node.getContent().strip()
 
     def build_entry(self, node, caption):
         '''build_entry'''
-        widget_type = node.prop("type")
+        widget_type = None
+        for attrib, value in node.items():
+            if attrib == 'type':
+                widget_type = value
+                break
 
         wtype = self.widget_types[widget_type]
 
@@ -706,15 +691,13 @@ class FormField():
         self.caption = None
         self.entry = None
 
-        child = node.children
+        children = node.getchildren()
 
-        while child:
-            if child.name == "caption":
+        for child in children:
+            if child.tag == "caption":
                 cap_node = child
-            elif child.name == "entry":
+            elif child.tag == "entry":
                 ent_node = child
-
-            child = child.next
 
         self.caption = self.get_caption_string(cap_node)
         self.entry = self.build_entry(ent_node, self.caption)
@@ -723,7 +706,10 @@ class FormField():
 
     def __init__(self, field):
         self.node = field
-        self.ident = field.prop("id")
+        for attrib, value in field.items():
+            if attrib == 'id':
+                self.ident = value
+
         self.build_gui(field)
 
     def get_widget(self):
@@ -740,24 +726,17 @@ class FormFile():
     '''Form File'''
     def __init__(self, filename):
         self._filename = filename
-        file_handle = open(self._filename)
-        data = file_handle.read()
-        file_handle.close()
-
-        if not data:
+        self.doc = etree.parse(self._filename)
+        if not self.doc:
             raise Exception("Form file %s is empty!" % filename)
 
         self.fields = []
         self.xsl_dir = None
-        self.doc = libxml2.parseMemory(data, len(data))
         self.process_form(self.doc)
 
     def configure(self, config):
         '''configure'''
         self.xsl_dir = config.form_source_dir()
-
-    def __del__(self):
-        self.doc.freeDoc()
 
     def save_to(self, filename):
         '''Save to'''
@@ -776,47 +755,36 @@ class FormFile():
 
     def process_form(self, doc):
         '''Process Form'''
-        ctx = doc.xpathNewContext()
-        forms = ctx.xpathEval("//form")
+        forms = doc.xpath("//form")
         if len(forms) != 1:
             raise Exception("%i forms in document" % len(forms))
 
-        form = forms[0]
+        for attrib, value in forms[0].items():
+            if attrib == 'id':
+                self.ident = value
 
-        self.ident = form.prop("id")
-
-        titles = ctx.xpathEval("//form/title")
+        titles = doc.xpath("//form/title")
         if len(titles) != 1:
             raise Exception("%i titles in document" % len(titles))
 
         title = titles[0]
+        self.title_text = title.text.strip()
 
-        self.title_text = title.children.getContent().strip()
-
-        logos = ctx.xpathEval("//form/logo")
+        logos = doc.xpath("//form/logo")
         if len(logos) > 1:
             raise Exception("%i logos in document" % len(logos))
         elif len(logos) == 1:
             logo = logos[0]
-            self.logo_path = logo.children.getContent().strip()
+            self.logo_path = logo.text.strip()
         else:
             self.logo_path = None
 
-        ctx.xpathFreeContext()
-
     # pylint: disable=no-self-use
     def __set_content(self, node, content):
-        child = node.children
-        while child:
-            if child.type == "text":
-                child.unlinkNode()
-            child = child.next
-        node.addContent(content)
+        node.text = content
 
     def __get_xpath(self, path):
-        ctx = self.doc.xpathNewContext()
-        result = ctx.xpathEval(path)
-        ctx.xpathFreeContext()
+        result = self.doc.xpath(path)
         return result
 
     def get_path(self):
@@ -829,22 +797,22 @@ class FormFile():
     def __get_path(self):
         els = self.__get_xpath("//form/path")
         if not els:
-            ctx = self.doc.xpathNewContext()
-            form, = ctx.xpathEval("//form")
-            ctx.xpathFreeContext()
-            return form.newChild(None, "path", None)
+            form = self.doc.xpath("//form")
+            return etree.SubElement(form[0], "path")
         return els[0]
 
     def __add_path_element(self, name, element, append=False):
         path = self.__get_path()
 
         if append:
-            path.newChild(None, name, element)
+            child = etree.SubElement(path, name)
+            self.__set_content(child, element)
             return
 
         els = self.__get_xpath("//form/path/%s" % name)
         if not els:
-            path.newChild(None, name, element)
+            child = etree.SubElement(path, name)
+            self.__set_content(child, element)
             return
 
         self.__set_content(els[0], element)
@@ -1007,9 +975,7 @@ class FormDialog(FormFile, Gtk.Dialog):
 
     def process_fields(self, doc):
         '''Process fields'''
-        ctx = doc.xpathNewContext()
-        fields = ctx.xpathEval("//form/field")
-        ctx.xpathFreeContext()
+        fields = doc.xpath("//form/field")
         for field in fields:
             try:
                 self.fields.append(FormField(field))
@@ -1348,6 +1314,7 @@ class FormDialog(FormFile, Gtk.Dialog):
                 chk_field = field
             elif field.ident == "_auto_message":
                 msg_field = field
+            # pylint: disable=fixme
             elif field.ident == "_auto_senderX": # FIXME
                 if not field.entry.widget.get_text():
                     call = self._config.get("user", "callsign")
@@ -1414,7 +1381,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             from . import config
             self._config = config.DratsConfig(self)
             # WB8TYW: This duplication needs to be removed later.
-            self.configure(self.config)
+            self.configure(self._config)
         try:
             x = self._config.getint("state", "form_%s_x" % self.ident)
             y = self._config.getint("state", "form_%s_y" % self.ident)
@@ -1466,7 +1433,7 @@ def main():
 
     current_info = None
 
-    def form_done(dlg, response, info):
+    def form_done(_dlg, response, info):
         act = "unknown"
         if response == RESPONSE_SEND:
             act = "Send"
