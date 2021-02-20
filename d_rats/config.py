@@ -274,7 +274,7 @@ def load_portspec(wtree, portspec, info, name):
             path = ""
         else:
             _tnc, port, tncport, path = portspec.split(":", 3)
-        wtree.get_object("tnc_port").child.set_text(port)
+        wtree.get_object("tnc_port").get_child().set_text(port)
         wtree.get_object("tnc_tncport").set_value(int(tncport))
         utils.combo_select(wtree.get_object("tnc_rate"), info)
         wtree.get_object("tnc_ax25path").set_text(path.replace(";", ","))
@@ -287,7 +287,7 @@ def load_portspec(wtree, portspec, info, name):
         wtree.get_object("agw_port").set_value(int(port))
     else:
         tsel.set_active(0)
-        wtree.get_object("serial_port").child.set_text(portspec)
+        wtree.get_object("serial_port").get_child().set_text(portspec)
         utils.combo_select(wtree.get_object("serial_rate"), info)
 
 
@@ -295,9 +295,9 @@ def load_portspec(wtree, portspec, info, name):
 def prompt_for_port(portspec=None, info=None, pname=None):
     '''Prompt for port'''
     wtree = Gtk.Builder()
-    path = os.path.join(dplatform.get_platform().source_dir(), "ui/addport.glade")
+    path = os.path.join(dplatform.get_platform().source_dir(),
+                        "ui/addport.glade")
     wtree.add_from_file(path)
-    # wtree = Gtk.glade.XML(p, "addport", "D-RATS")
 
     ports = dplatform.get_platform().list_serial_ports()
 
@@ -309,8 +309,8 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     tportlst.clear()
 
     for port in ports:
-        sportlst.append((port,))
-        tportlst.append((port,))
+        sportlst.append((port, ""))
+        tportlst.append((port, ""))
 
     if ports:
         sportsel.set_active(0)
@@ -319,9 +319,8 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     sratesel = wtree.get_object("serial_rate")
     tratesel = wtree.get_object("tnc_rate")
     tprotsel = wtree.get_object("tnc_ax25")
-    tnc_ax25 = wtree.get_object("tnc_ax25")
     tnc_path = wtree.get_object("tnc_ax25path")
-    tnc_ax25.connect("toggled",
+    tprotsel.connect("toggled",
                      lambda b: tnc_path.set_sensitive(b.get_active()))
 
     sratesel.set_active(3)
@@ -335,22 +334,26 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     agwport = wtree.get_object("agw_port")
     agwport.set_value(8000)
 
-    descriptions = [
-        "A D-STAR radio connected to a serial port",
-        "A network link to a ratflector instance",
-        "A KISS-mode TNC connected to a serial port",
-        "A locally-attached dongle",
-        "A TNC attached to an AGWPE server",
-        ]
+    menutabs = []
+    for _i in range(5):
+        menutabs.append({})
 
-    tablist = [_("Serial"), _("Network"), _("TNC"), _("Dongle"), _("AGWPE")]
+    menutabs[0]['descrip'] = _("A D-STAR radio connected to a serial port")
+    menutabs[1]['descrip'] = _("A network link to a ratflector instance")
+    menutabs[2]['descrip'] = _("A KISS-mode TNC connected to a serial port")
+    menutabs[3]['descrip'] = _("A locally-attached dongle")
+    menutabs[4]['descrip'] = _("A TNC attached to an AGWPE server")
 
     def chg_type(tsel, tabs, desc):
+        active = tsel.get_active()
+        if active < 0:
+            active = 0
+            tsel.set_active(0)
         printlog("Config", "    : Changed to %s" % tsel.get_active_text())
-        tabs.set_current_page(tsel.get_active())
+        tabs.set_current_page(active)
 
-        desc.set_markup("<span fgcolor='blue'>%s</span>" % \
-                            descriptions[tsel.get_active()])
+        desc.set_markup("<span fgcolor='blue'>%s</span>" %
+                        menutabs[active]['descrip'])
 
     name = wtree.get_object("name")
     desc = wtree.get_object("typedesc")
@@ -371,13 +374,13 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     chg_type(tsel, tabs, desc)
     run_result = add_port.run()
 
-    active_t = tablist[tsel.get_active()]
-    if active_t == _("Serial"):
+    active = tsel.get_active()
+    if active == 0:
         portspec = sportsel.get_active_text(), sratesel.get_active_text()
-    elif active_t == _("Network"):
+    elif active == 1:
         portspec = "net:%s:%i" % (netaddr.get_text(), netport.get_value()), \
             netpass.get_text()
-    elif active_t == _("TNC"):
+    elif active == 2:
         if tprotsel.get_active():
             digi_path = tnc_path.get_text().replace(",", ";")
             portspec = "tnc-ax25:%s:%i:%s" % (tportsel.get_active_text(),
@@ -385,19 +388,18 @@ def prompt_for_port(portspec=None, info=None, pname=None):
                                               digi_path), \
                                               tratesel.get_active_text()
         else:
-            portspec = "%s:%s:%i" % (type,
-                                     tportsel.get_active_text(),
-                                     ttncport.get_value()), \
-                                     tratesel.get_active_text()
-    elif active_t == _("Dongle"):
+            portspec = "tnc:%s:%i" % (tportsel.get_active_text(),
+                                      ttncport.get_value()), \
+                                      tratesel.get_active_text()
+    elif active == 3:
         portspec = "dongle:", ""
-    elif active_t == _("AGWPE"):
+    elif active == 4:
         portspec = "agwpe:%s:%i" % (agwaddr.get_text(), agwport.get_value()), ""
 
     portspec = (name.get_text(),) + portspec
     add_port.destroy()
 
-    if run_result:
+    if run_result == Gtk.ResponseType.APPLY:
         return portspec
     return None, None, None
 
@@ -443,6 +445,7 @@ class AddressLookup(Gtk.Button):
             lonw.latlon.set_text("%.5f" % assistant.lon)
 
 
+# pylint: disable=too-many-instance-attributes
 class DratsConfigWidget(Gtk.Box):
     '''D-rats configuration Widget'''
 
@@ -2180,7 +2183,7 @@ def main():
     parser.widgets = []
 
     config = DratsConfigUI(parser)
-    if config.run() == Gtk.RESPONSE_OK:
+    if config.run() == Gtk.ResponseType.OK:
         config.save()
 
 
