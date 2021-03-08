@@ -110,8 +110,17 @@ class DDT2Frame(object):
 
     def get_packed(self):
         data = self.data
-        if (sys.version_info[0] > 2) and isinstance(data, str):
-            data = self.data.encode('ISO-8859-1')
+        # python2 zlib.compress needs a string
+        # python3 zlib.compress needs a bytearray
+        # self.data should always be a bytearray, but we can not guarantee
+        # that at this time.
+        if (sys.version_info[0] == 2):
+            if not isinstance(self.data, str):
+                data = str(self.data)
+        else:
+            if isinstance(data, str):
+                # ISO-8859-1 is 8 bit tolerant and should be builtin.
+                data = self.data.encode('ISO-8859-1')
         if self.compress:
             data = zlib.compress(data, 9)
         else:
