@@ -66,6 +66,10 @@ def decode_dict(string):
             k, v = element.split(ASCII_US)
         except ValueError:
             raise Exception("Malformed dict encoding")
+        # sockets and pipe routines return bytearray type
+        # which on python2 is almost the same str type, but not quite.
+        if isinstance(k, bytearray):
+            k = k.decode('ISO-8859-1')
         result[k] = v
 
     return result
