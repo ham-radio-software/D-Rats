@@ -5,6 +5,7 @@ import struct
 import os
 import time
 import zlib
+import sys # Needed for python2 only
 
 from d_rats.sessions import base, stateful
 from six.moves import range
@@ -52,18 +53,6 @@ class FileTransferSession(stateful.StatefulSession):
         self.last_status = ""
         self.stats = NotifyDict(self.status_tick, self.stats)
         self.stats["total_size"] = 0
-
-    def get_file_data(self, filename):
-        f = open(filename, "rb")
-        data = f.read()
-        f.close()
-
-        return data
-
-    def put_file_data(self, filename, data):
-        f = open(filename, "wb")
-        f.write(data)
-        f.close()
     
     def send_file(self, filename):
         data = self.get_file_data(filename)
@@ -156,7 +145,7 @@ class FileTransferSession(stateful.StatefulSession):
             return None
 
         size, = struct.unpack("I", data[:4])
-        name = data[4:]
+        name = data[4:].decode('utf-8', 'replace')
 
         if os.path.isdir(dir):
             filename = os.path.join(dir, name)
@@ -209,9 +198,9 @@ class FileTransferSession(stateful.StatefulSession):
             if os.path.exists(partfilename):
                 print("Removing old file part")
                 os.remove(partfilename)
-        except Exception as e:
-            print("Failed to write transfer data: %s" % e)
-            self.put_file_data(self, partfilename, data)
+        except Exception as err:
+            print("file.py: Failed to write transfer data: %s" % err)
+            self.put_file_data(partfilename, data)
             return None
 
         if self.stats["recv_size"] != self.stats["total_size"]:
@@ -232,7 +221,11 @@ class FileTransferSession(stateful.StatefulSession):
 
     def put_file_data(self, filename, zdata):
         try:
-            data = zlib.decompress(zdata)
+            if sys.version_info[0] > 2:
+                data = zlib.decompress(zdata)
+            else:
+                comp_data = zlib.decompress(str(zdata))
+                data = bytearray(comp_data)
             f = open(filename, "wb")
             f.write(data)
             f.close()

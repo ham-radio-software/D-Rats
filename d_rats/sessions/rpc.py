@@ -42,37 +42,78 @@ ASCII_RS = "\x1E"
 ASCII_US = "\x1F"
 
 class UnknownRPCCall(Exception):
-    pass
+    '''Unknown RPC Call.'''
+
+
+class InvalidRPCDictKey(Exception):
+    '''Invalid type for Dictionary Key encoding.'''
+
+
+class InvalidRPCDictValue(Exception):
+    '''Invalid type for Dictionary value encoding.'''
+
+
+class MalformedRPCDictEncoding(Exception):
+    '''Invalid type for Dictionary value encoding.'''
+
 
 def encode_dict(source):
+    '''
+    Encode Dictionary into a string.
+
+    :param source: Source Dictionary
+    :returns: encoded string
+    '''
     elements = []
-    for k, v in source.items():
-        if not isinstance(k, str):
-            raise Exception("Cannot encode non-string dict key")
 
-        if not isinstance(v, str):
-            raise Exception("Cannot encode non-string dict value")
+    for key, value in source.items():
+        if not isinstance(key, str):
+            raise InvalidRPCDictKey("Cannot encode non-string dict key")
 
-        elements.append(k + ASCII_US + v)
+        if isinstance(value, bytearray):
+            value = value.decode('utf-8', 'replace')
+        # python 3 type must be 'str'
+        # python 2 type must be of 'basestring'
+        elif sys.version_info[0] > 2:
+            if not isinstance(value, str):
+                raise InvalidRPCDictValue(
+                    "Cannot encode non-string dict value")
+         # Have to live with this pylint warning on python3 for now.
+         elif not isinstance(value, basestring):
+            raise InvalidRPCDictValue("Cannot encode non-string dict value")
+
+        elements.append(key + ASCII_US + value)
     return ASCII_RS.join(elements)
 
+
 def decode_dict(string):
+    '''
+    Decode into Dictionary
+
+    :param string: String
+    :returns: Dictionary for Message
+    '''
     result = {}
     if not string:
         return result
     elements = string.split(ASCII_RS)
     for element in elements:
         try:
-            k, v = element.split(ASCII_US)
+            key, value = element.split(ASCII_US)
         except ValueError:
-            raise Exception("Malformed dict encoding")
+            raise MalformedRPCDictEncoding("Malformed dict encoding")
         # sockets and pipe routines return bytearray type
         # which on python2 is almost the same str type, but not quite.
-        if isinstance(k, bytearray):
-            k = k.decode('ISO-8859-1')
-        result[k] = v
+        if isinstance(key, bytearray):
+            key = key.decode('ISO-8859-1')
+        # Just about everything will want a utf-8 string for the value.
+        if isinstance(value, bytearray):
+            result[key] = value.decode('utf-8', 'replace')
+        else:
+            result[key] = value
 
     return result
+
 
 class RPCJob(gobject.GObject):
     __gsignals__ = {

@@ -105,17 +105,23 @@ class RemoteFileView(FileView):
         # FIXME: This might need to be in the idle loop
         for k,v in result.items():
             if "B (" in v:
-                size, units, date, _time = v.split(" ")
+                size, units, file_date, file_time = v.split(" ")
                 try:
                     size = int(size)
-                    size <<= unit_decoder[units]
-                    stamp = "%s %s" % (date, _time)
+                    units_str = units.decode('utf-8', 'replace')
+                    size <<= unit_decoder[units_str]
+                except KeyError as err:
+                    printlog("Mainfiles",
+                             "  : Unable to parse file size info: %s" % err)
+                    size = 0
+                try:
+                    stamp = "%s %s" % (file_date, file_time)
                     ts = time.mktime(time.strptime(stamp,
                                                    "(%Y-%m-%d %H:%M:%S)"))
-                except Exception, e:
-                    printlog("Mainfiles","  : Unable to parse file info: %s" % e)
+                except (OverflowError, ValueError) as err:
+                    printlog("Mainfiles",
+                             "  : Unable to parse file time info: %s" % err)
                     ts = time.time()
-                    size = 0
 
                 self._store.append((self._file_icon, k, size, ts))
             else:

@@ -40,11 +40,12 @@ class SniffSession(stateless.StatelessSession, gobject.GObject):
         elif frame.type == control.T_END:
             return _("Control: END session %s") % frame.data
         elif frame.type >= control.T_NEW:
-            id, = struct.unpack("B", frame.data[0])
+            ident = frame.data[0]
             name = frame.data[1:]
             stype = session_types.get(frame.type,
                                       "Unknown type %i" % frame.type)
-            return _("Control: NEW session") +" %i: '%s' (%s)" % (id, name, stype)
+            return _("Control: NEW session") + " %i: '%s' (%s)" % \
+                     (ident, name, stype)
         else:
             return _("Control: UNKNOWN")
 
