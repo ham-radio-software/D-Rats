@@ -9,7 +9,6 @@ from d_rats import signals, dplatform, gps, utils, station_status
 from d_rats.version import DRATS_VERSION
 from d_rats.sessions import base, stateless
 from d_rats.ddt2 import DDT2EncodedFrame, DDT2RawData
-import six
 
 #importing printlog() wrapper
 from d_rats.debug import printlog
@@ -68,7 +67,7 @@ class ChatSession(stateless.StatelessSession, gobject.GObject):
         self._emit("incoming-chat-message",
                    frame.s_station,
                    frame.d_station,
-                   six.text_type(frame.data, "utf-8"))
+                   frame.data.decode("utf-8", errors='replace'))
 
     def _incoming_gps(self, fix):
         self._emit("incoming-gps-fix", fix)
@@ -114,7 +113,7 @@ class ChatSession(stateless.StatelessSession, gobject.GObject):
             self._emit("ping-response",
                        frame.s_station,
                        frame.d_station,
-                       six.text_type(frame.data, "utf-8"))
+                       frame.data.decode("utf-8", 'replace'))
         elif frame.type == self.T_PNG_RSP:
             printlog("Chat","      : PING OUT")
             self._emit("ping-response",
@@ -154,11 +153,14 @@ class ChatSession(stateless.StatelessSession, gobject.GObject):
                     printlog("Chat","      : Exception while running ping callback")
                     utils.log_exception()
         elif frame.type == self.T_STATUS:
-            try:
-                s = int(frame.data[0])
-            except Exception:
-                printlog("Chat","      : Unable to parse station status: %s" % {frame.s_station :
-                                                                  frame.data})
+            s = frame.data[0] - ord('0')
+            # Eventually invalid statuses should be logged to the event log
+            # For now just log them to the console.
+            if s > station_status.STATUS_MAX or \
+               s < station_status.STATUS_MIN:
+                printlog("Chat",
+                         "      : Unable to parse station status: %s" %
+                         {frame.s_station : frame.data})
                 s = 0
 
             self._emit("station-status", frame.s_station, s, frame.data[1:])
