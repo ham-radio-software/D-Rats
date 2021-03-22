@@ -149,7 +149,7 @@ _DEF_SETTINGS = {
     "keyformapurllandscape": "?apikey=5a1a4a79354244a38707d83969fd88a2",
     
     #GPS
-    "default_gps_comment" : "BN  *20",     #default icon for our station in the map and gpsfixes
+    "default_gps_comment" : "BN  ",     #default icon for our station in the map and gpsfixes
     "map_marker_bgcolor": "yellow",        #background color for markers in the map window
     
     "warmup_length" : "16",                 #changed from 8 to 16 in 0.3.6
