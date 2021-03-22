@@ -208,7 +208,7 @@ class DDT2Frame(object):
 
         if self.compress:
             if sys.version_info[0] > 2:
-               self.data = zlib.decompress(data)
+                self.data = zlib.decompress(data)
             else:
                 comp_data = zlib.decompress(str(data))
                 self.data = bytearray(comp_data)

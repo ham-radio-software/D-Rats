@@ -47,6 +47,7 @@ class StatefulSession(base.Session):
         self.waiting_for_ack = []
 
         self.enabled = True
+        self._closed = False
 
         self.bsize = kwargs.get("blocksize", 1024)
         self.out_limit = kwargs.get("outlimit", 8)
@@ -81,7 +82,11 @@ class StatefulSession(base.Session):
         self.event.set()
 
     def close(self, force=False):
+        if self._closed:
+            print("Stateful   : Already closed! - Avoiding recursion.")
+            return
         print("Stateful  : Got close request, joining thread...")
+        self._closed = True
         self.enabled = False
         self.notify()
 
@@ -286,7 +291,7 @@ class StatefulSession(base.Session):
                 self.__attempts = 0
                 self._rtt_measure["end"] = time.time()
                 self.waiting_for_ack = False
-                acked = [ord(x) for x in b.data]
+                acked = [x for x in b.data]
                 print(("Stateful  : Acked blocks: %s (/%i)" % (acked, len(self.outstanding))))
                 for block in self.outstanding[:]:
                     self._rtt_measure["size"] += block._xmit_z
@@ -325,7 +330,7 @@ class StatefulSession(base.Session):
                 toack = []
 
                 # FIXME: This needs to support 16-bit block numbers!
-                for i in [ord(x) for x in b.data]:
+                for i in [x for x in b.data]:
                     if i in self.recv_list:
                         print(("Stateful  : Acking block %i" % i))
                         toack.append(i)
@@ -402,7 +407,9 @@ class StatefulSession(base.Session):
             self.data_waiting.wait(1)
             return
 
-        if count > len("".join(waiting)):
+        empty = bytearray()
+        all_waiting = empty.join(waiting)
+        if count > len(all_waiting):
             self.data_waiting.wait(1)
             return
 
@@ -416,7 +423,8 @@ class StatefulSession(base.Session):
             # BlockQueue.dequeue_all() returns the blocks in poppable order,
             # which is newest first
             b.reverse()
-            buf = "".join(b)
+            empty = bytearray()
+            buf = empty.join(b)
         else:
             buf = ""
             i = 0
