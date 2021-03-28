@@ -41,19 +41,24 @@ ASCII_GS = "\x1D"
 ASCII_RS = "\x1E"
 ASCII_US = "\x1F"
 
-class UnknownRPCCall(Exception):
+
+class RPCException(Exception):
+    '''Generic RPC Exception'''
+
+
+class UnknownRPCCall(RPCException):
     '''Unknown RPC Call.'''
 
 
-class InvalidRPCDictKey(Exception):
+class InvalidRPCDictKey(RPCException):
     '''Invalid type for Dictionary Key encoding.'''
 
 
-class InvalidRPCDictValue(Exception):
+class InvalidRPCDictValue(RPCException):
     '''Invalid type for Dictionary value encoding.'''
 
 
-class MalformedRPCDictEncoding(Exception):
+class MalformedRPCDictEncoding(RPCException):
     '''Invalid type for Dictionary value encoding.'''
 
 
@@ -78,8 +83,8 @@ def encode_dict(source):
             if not isinstance(value, str):
                 raise InvalidRPCDictValue(
                     "Cannot encode non-string dict value")
-         # Have to live with this pylint warning on python3 for now.
-         elif not isinstance(value, basestring):
+        # Have to live with this pylint warning on python3 for now.
+        elif not isinstance(value, basestring):
             raise InvalidRPCDictValue("Cannot encode non-string dict value")
 
         elements.append(key + ASCII_US + value)
