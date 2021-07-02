@@ -24,7 +24,14 @@ OFFSET = 64
 
 
 def yencode_buffer(buf, banned=None):
-    '''yencode_buffer'''
+    '''
+    yencode a buffer.
+
+    :param buf: Buffer to encode
+    :param banned: Optional characters that must be encoded,
+                   Default is a list bytes for Radios
+    :returns: Encoded buffer
+    '''
     if not banned:
         banned = DEFAULT_BANNED
 
@@ -51,8 +58,14 @@ def yencode_buffer(buf, banned=None):
 
     return out
 
+
 def ydecode_buffer(buf):
-    '''ydecode_buffer'''
+    '''
+    ydecode a buffer.
+
+    :param buf: Buffer to decode
+    :returns: decoded buffer
+    '''
     out = b""
 
     # Needed for python2 compatibility
@@ -80,9 +93,12 @@ def ydecode_buffer(buf):
 
 
 def int_to_byte(data):
-    '''int to byte
+    '''
+    int to byte python2 compatibility hack.
 
-       python2 compatibility hack'''
+    :param data: Data to convert
+    :returns: Integer data
+    '''
     if isinstance(data, str):
         data = ord(data)
     if sys.version_info[0] > 2:
