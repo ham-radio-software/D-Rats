@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Stateless.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -19,7 +20,10 @@ from __future__ import absolute_import
 from d_rats.ddt2 import DDT2EncodedFrame
 from d_rats.sessions import base
 
+
 class StatelessSession(base.Session):
+    '''Stateless Session.'''
+
     stateless = True
     type = base.T_STATELESS
     compress = True
@@ -27,19 +31,30 @@ class StatelessSession(base.Session):
     T_DEF = 0
 
     def read(self):
-        f = self.inq.dequeue()
+        '''
+        Read a frame off the queue.
 
-        return f.s_station, f.d_station, f.data
+        :returns: Tuple of source station, destinaton station, and frame data
+        '''
+        frame = self.inq.dequeue()
 
+        return frame.s_station, frame.d_station, frame.data
+
+    # pylint: disable=arguments-differ
     def write(self, data, dest="CQCQCQ"):
-        f = DDT2EncodedFrame()
+        '''
+        Write.
 
-        f.seq = 0
-        f.type = self.T_DEF
-        f.d_station = dest
-        f.data = data
+        :param data: Data to write
+        :param dest: Destination station, default='CQCQCQ'
+        '''
+        frame = DDT2EncodedFrame()
 
-        f.set_compress(self.compress)
+        frame.seq = 0
+        frame.type = self.T_DEF
+        frame.d_station = dest
+        frame.data = data
 
-        self._sm.outgoing(self, f)
+        frame.set_compress(self.compress)
 
+        self._sm.outgoing(self, frame)

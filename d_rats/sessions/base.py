@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Base Session.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -22,23 +23,34 @@ import threading
 from d_rats import transport
 
 T_STATELESS = 0
-T_GENERAL   = 1
-T_UNUSED2   = 2 # Old non-pipelined FileTransfer
-T_UNUSED3   = 3 # Old non-pipelined FormTransfer
-T_SOCKET    = 4
-T_FILEXFER  = 5
-T_FORMXFER  = 6
-T_RPC       = 7
+T_GENERAL = 1
+T_UNUSED2 = 2 # Old non-pipelined FileTransfer
+T_UNUSED3 = 3 # Old non-pipelined FormTransfer
+T_SOCKET = 4
+T_FILEXFER = 5
+T_FORMXFER = 6
+T_RPC = 7
 
-ST_OPEN     = 0
-ST_CLSD     = 1
-ST_CLSW     = 2
-ST_SYNC     = 3
+ST_OPEN = 0
+ST_CLSD = 1
+ST_CLSW = 2
+ST_SYNC = 3
 
-class SessionClosedError(Exception):
-    pass
 
-class Session(object):
+class BaseSessionException(Exception):
+    '''Generic Base Session Exception.'''
+
+
+class SessionClosedError(BaseSessionException):
+    '''Session Closed Error.'''
+
+
+class Session():
+    '''
+    Session.
+
+    :param name: Name of session
+    '''
     _sm = None
     _id = None
     _st = None
@@ -52,21 +64,36 @@ class Session(object):
         self.state_event = threading.Event()
         self.state = ST_CLSD
 
-        self.stats = { "sent_size"   : 0,
-                       "recv_size"   : 0,
-                       "sent_wire"   : 0,
-                       "recv_wire"   : 0,
-                       "retries"     : 0,
-                       }
+        self.stats = {"sent_size"  : 0,
+                      "recv_size"  : 0,
+                      "sent_wire"  : 0,
+                      "recv_wire"  : 0,
+                      "retries"    : 0,
+                     }
 
     def send_blocks(self, blocks):
-        for b in blocks:
-            self._sm.outgoing(self, b)
+        '''
+        Send blocks.
+
+        :param blocks: List of blocks to send
+        '''
+        for block in blocks:
+            self._sm.outgoing(self, block)
 
     def recv_blocks(self):
+        '''
+        Receive blocks.
+
+        :returns: list of blocks received.
+        '''
         return self.inq.dequeue_all()
 
     def close(self, force=False):
+        '''
+        Close
+
+        :param force: True if forcing a close
+        '''
         print("Base      : Got close request")
         if force:
             self.state = ST_CLSD
@@ -75,26 +102,48 @@ class Session(object):
             self._sm.stop_session(self)
 
     def notify(self):
-        pass
+        '''Notify.'''
 
     def read(self):
-        pass
+        '''Read'''
 
     def write(self, dest="CQCQCQ"):
-        pass
+        '''
+        Write.
+
+        :param dest: Destination callsign, default='CQCQCQ'
+        '''
 
     def set_state(self, state):
+        '''
+        Set state
+
+        :param state: State to set
+        :returns: False if state is not legal to set
+        '''
         if state not in [ST_OPEN, ST_CLSD, ST_SYNC]:
             return False
 
         self.state = state
         self.state_event.set()
         self.notify()
+        return True
 
     def get_state(self):
+        '''
+        Get state.
+
+        :returns: state
+        '''
         return self.state
-    
+
     def wait_for_state_change(self, timeout=None):
+        '''
+        Wait for state change.
+
+        :param timeout: default=None
+        :returns: Current state
+        '''
         before = self.state
 
         self.state_event.clear()
@@ -103,7 +152,17 @@ class Session(object):
         return self.state != before
 
     def get_station(self):
+        '''
+        Get station.
+
+        :returns station
+        '''
         return self._st
 
     def get_name(self):
+        '''
+        Get name.
+
+        :returns: name
+        '''
         return self.name
