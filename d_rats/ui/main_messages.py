@@ -1,4 +1,6 @@
 #!/usr/bin/python
+'''Main Messages'''
+# pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -18,14 +20,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from ..debug import printlog
-
 import os
 import time
 import shutil
 import random
-import glob
+# import glob
+from glob import glob
 from datetime import datetime
 import gi
 gi.require_version("Gtk", "3.0")
@@ -34,35 +34,56 @@ from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
 
-from six.moves.configparser import ConfigParser,DuplicateSectionError
-from glob import glob
+from six.moves.configparser import ConfigParser, DuplicateSectionError
 
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
-from d_rats.ui.main_common import prompt_for_station, ask_for_confirmation, \
+from d_rats.ui.main_common import prompt_for_station, \
     display_error, prompt_for_string, set_toolbar_buttons
-from d_rats.ui import main_events
+# from d_rats.ui import main_events
 from d_rats import inputdialog
 from d_rats import formgui
-from d_rats import emailgw
-from d_rats.utils import log_exception, print_stack
+# from d_rats import emailgw
+from d_rats.utils import log_exception
 from d_rats import signals
 from d_rats import msgrouting
-from d_rats import wl2k
+# from d_rats import wl2k
+#importing printlog() wrapper
+from ..debug import printlog
 
 _FOLDER_CACHE = {}
 
 BASE_FOLDERS = [_("Inbox"), _("Outbox"), _("Sent"), _("Trash"), _("Drafts")]
 
 
-def mkmsgid(callsign):
-    r = random.SystemRandom().randint(0,100000)
-    return "%s.%x.%x" % (callsign, int(time.time()) - 1114880400, r)
+class MainMessageException(Exception):
+    '''Generic Main Message Exception.'''
 
-class MessageFolderInfo(object):
+
+class FolderError(MainMessageException):
+    '''Error accessing a folder.'''
+
+
+def mkmsgid(callsign):
+    '''
+    Generate a message id for a callsign.
+
+    :returns: Message id string
+    '''
+    r_num = random.SystemRandom().randint(0, 100000)
+    return "%s.%x.%x" % (callsign, int(time.time()) - 1114880400, r_num)
+
+
+class MessageFolderInfo():
+    '''
+    Message Folder Info.
+
+    :param folder_path: Folder to operate on
+    '''
+
     def __init__(self, folder_path):
         self._path = folder_path
 
-        if _FOLDER_CACHE.has_key(folder_path):
+        if folder_path in _FOLDER_CACHE:
             self._config = _FOLDER_CACHE[folder_path]
         else:
             self._config = ConfigParser()
@@ -74,12 +95,15 @@ class MessageFolderInfo(object):
 
     def _save(self):
         regpath = os.path.join(self._path, ".db")
-        f = file(regpath, "w")
-        self._config.write(f)
-        f.close()
+        file_handle = open(regpath, "w")
+        self._config.write(file_handle)
+        file_handle.close()
 
     def name(self):
-        """Return folder name"""
+        '''Folder Name.
+
+        :returns: Current Folder name
+        '''
         return os.path.basename(self._path)
 
     def _setprop(self, filename, prop, value):
@@ -96,48 +120,114 @@ class MessageFolderInfo(object):
 
         try:
             return self._config.get(filename, prop)
-        except Exception:
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("MainMsgs", " : _getprop: %s -%s-" %
+                     (type(err), err))
             return _("Unknown")
 
     def get_msg_subject(self, filename):
+        '''
+        Get message subject.
+
+        :param filename: Filename for message
+        :returns: Subject of message
+        '''
         return self._getprop(filename, "subject")
 
     def set_msg_subject(self, filename, subject):
+        '''
+        Set message subject.
+
+        :param filename: Filename for message
+        :param subject: Subject for message
+        '''
         self._setprop(filename, "subject", subject)
 
     def get_msg_type(self, filename):
+        '''
+        Get message type.
+
+        :param filename: Filename for message
+        :returns: Message Type
+        '''
         return self._getprop(filename, "type")
 
-    def set_msg_type(self, filename, type):
-        self._setprop(filename, "type", type)
+    def set_msg_type(self, filename, msg_type):
+        '''
+        Set message type.
+
+        :param filename: Filename for message
+        :param msg_type: Type of message
+        '''
+        self._setprop(filename, "type", msg_type)
 
     def get_msg_read(self, filename):
+        '''
+        Get message read status.
+
+        :param filename: Filename for message
+        :returns: True if message has been read
+        '''
         val = self._getprop(filename, "read")
         return val == "True"
 
     def set_msg_read(self, filename, read):
-        self._setprop(filename, "read", str(read == True))
+        '''
+        Set message read status.
+
+        :param filename: Filename of message
+        :param read: Boolean that is true for message read
+        '''
+        self._setprop(filename, "read", str(read))
 
     def get_msg_sender(self, filename):
+        '''
+        Get the message sender.
+
+        :param filename: Filename of message
+        :returns: Sender of message
+        '''
         return self._getprop(filename, "sender")
 
     def set_msg_sender(self, filename, sender):
+        '''
+        Set message sender.
+
+        :param filename: Filename for message
+        :param sender: Sender of message
+        '''
         self._setprop(filename, "sender", sender)
 
     def get_msg_recip(self, filename):
+        '''
+        Get the message recipient
+
+        :param filename: Filename for message
+        :returns: Message recipient
+        '''
         return self._getprop(filename, "recip")
 
     def set_msg_recip(self, filename, recip):
+        '''
+        Set the message recipient.
+
+        :param filename: Filename for message
+        :param recip: Recipient
+        '''
         self._setprop(filename, "recip", recip)
 
     def subfolders(self):
-        """Return a list of MessageFolderInfo objects representing this
-        folder's subfolders"""
+        '''
+        Get the subfolders.
+
+        :returns: List of MessageFolderInfo objects for the subfolders
+        '''
         info = []
 
         entries = glob(os.path.join(self._path, "*"))
         for entry in sorted(entries):
-            if entry == "." or entry == "..":
+            if entry in (".", ".."):
                 continue
             if os.path.isdir(entry):
                 info.append(MessageFolderInfo(entry))
@@ -145,12 +235,22 @@ class MessageFolderInfo(object):
         return info
 
     def files(self):
-        """Return a list of files contained in this folder"""
-        l = glob(os.path.join(self._path, "*"))
-        return [x for x in l if os.path.isfile(x) and not x.startswith(".")]
-    
+        '''
+        Get a list of files contained in this folder.
+
+        :returns: List of files
+        '''
+        file_list = glob(os.path.join(self._path, "*"))
+        return [x_file for x_file in file_list
+                if os.path.isfile(x_file) and not x_file.startswith(".")]
+
     def get_subfolder(self, name):
-        """Get a MessageFolderInfo object representing a named subfolder"""
+        '''
+        Get a MessageFolderInfo object representing a named subfolder.
+
+        :param name: Subfolder name
+        :returns: MessageFolderInfo object
+        '''
         for folder in self.subfolders():
             if folder.name() == name:
                 return folder
@@ -158,12 +258,17 @@ class MessageFolderInfo(object):
         return None
 
     def create_subfolder(self, name):
-        """Create a subfolder by name"""
+        '''
+        Create a subfolder by name
+
+        :param name: Subfolder name
+        '''
         path = os.path.join(self._path, name)
         os.mkdir(path)
         return MessageFolderInfo(path)
 
     def delete_self(self):
+        '''Delete Self.'''
         try:
             os.remove(os.path.join(self._path, ".db"))
         except OSError:
@@ -171,6 +276,12 @@ class MessageFolderInfo(object):
         os.rmdir(self._path)
 
     def create_msg(self, name):
+        '''
+        Create a message.
+
+        :param name: Name for message path
+        :raises: DuplicateSectionError if the section exists
+        '''
         exists = os.path.exists(os.path.join(self._path, name))
         try:
             self._config.add_section(name)
@@ -181,20 +292,46 @@ class MessageFolderInfo(object):
         return os.path.join(self._path, name)
 
     def delete(self, filename):
+        '''
+        Delete a file.
+
+        :param filename: filename to delete
+        '''
         filename = os.path.basename(filename)
         self._config.remove_section(filename)
         os.remove(os.path.join(self._path, filename))
 
     def rename(self, new_name):
+        '''
+        Rename path
+
+        :param new_name: New name for path
+        '''
         newpath = os.path.join(os.path.dirname(self._path), new_name)
-        printlog("MainMsgs"," : Renaming %s -> %s" % (self._path, newpath))
+        printlog("MainMsgs", " : Renaming %s -> %s" % (self._path, newpath))
         os.rename(self._path, newpath)
         self._path = newpath
 
     def __str__(self):
         return self.name()
 
+
+# pylint: disable=too-few-public-methods
+class MessageInfo():
+    '''Message information.
+
+    :param filename: Filename of message
+    :param info: MessageFolderInfo for filename
+    '''
+
+    def __init__(self, filename, info):
+        self.filename = filename
+        self.info = info
+
+
 class MessageFolders(MainWindowElement):
+    '''Message Folders'''
+
     __gsignals__ = {
         "user-selected-folder" : (GObject.SignalFlags.RUN_LAST,
                                   GObject.TYPE_NONE,
@@ -207,52 +344,78 @@ class MessageFolders(MainWindowElement):
             os.makedirs(path)
         return path
 
+    # pylint: disable=no-self-use
     def _create_folder(self, root, name):
         info = root
-        for el in name.split(os.sep)[:-1]:
-            info = info.get_subfolder(el)
+        for element in name.split(os.sep)[:-1]:
+            info = info.get_subfolder(element)
             if not info:
                 break
 
         try:
             return info.create_subfolder(os.path.basename(name))
-        except Exception:
-            raise Exception("Intermediate folder of %s does not exist" % name)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("MainMsgs", " : _create_folder: %s -%s-" %
+                     (type(err), err))
+            raise FolderError("Intermediate folder of %s does not exist %s" %
+                              (name, err))
 
     def create_folder(self, name):
+        '''
+        Create a folder.
+
+        :param name: Folder name
+        :raises FolderError if folder can not be created
+        '''
         root = MessageFolderInfo(self._folders_path())
         return self._create_folder(root, name)
-    
+
     def get_folders(self):
+        '''
+        Get Folders.
+        :returns: MessageFolderInfo object
+        '''
         return MessageFolderInfo(self._folders_path()).subfolders()
 
     def get_folder(self, name):
+        '''
+        Get Folder by name.
+
+        :param name: Folder name
+        '''
         return MessageFolderInfo(os.path.join(self._folders_path(), name))
 
-    def _get_folder_by_iter(self, store, iter):
+    # pylint: disable=no-self-use
+    def _get_folder_by_iter(self, store, msg_iter):
         els = []
-        while iter:
-            els.insert(0, store.get(iter, 0)[0])
-            iter = store.iter_parent(iter)
+        while msg_iter:
+            els.insert(0, store.get(msg_iter, 0)[0])
+            msg_iter = store.iter_parent(msg_iter)
 
         return os.sep.join(els)
 
     def select_folder(self, folder):
-        """Select a folder by path (i.e. Inbox/Subfolder)
-        NB: Subfolders currently not supported :)
-        """
+        '''
+        Select a folder by path.
+
+        i.e. Inbox/Subfolder
+        NB: Subfolders currently not supported.
+        :param folder: Folder to select
+        '''
+        # pylint: disable=unbalanced-tuple-unpacking
         view, = self._getw("folderlist")
         store = view.get_model()
 
-        iter = store.get_iter_first()
-        while iter:
-            fqname = self._get_folder_by_iter(store, iter)            
+        msg_iter = store.get_iter_first()
+        while msg_iter:
+            fqname = self._get_folder_by_iter(store, msg_iter)
             if fqname == folder:
-                view.set_cursor(store.get_path(iter))
+                view.set_cursor(store.get_path(msg_iter))
                 self.emit("user-selected-folder", fqname)
                 break
 
-            iter = store.iter_next(iter)
+            msg_iter = store.iter_next(msg_iter)
 
     def _ensure_default_folders(self):
         root = MessageFolderInfo(self._folders_path())
@@ -261,81 +424,90 @@ class MessageFolders(MainWindowElement):
             try:
                 info = self._create_folder(root, folder)
                 printlog(info.subfolders())
-            except Exception:
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("MainMsgs", " : _ensure_default_folders: %s -%s-" %
+                         (type(err), err))
                 pass
 
-    def _add_folders(self, store, iter, root):
-        iter = store.append(iter, (root.name(), self.folder_pixbuf))
+    def _add_folders(self, store, msg_iter, root):
+        msg_iter = store.append(msg_iter, (root.name(), self.folder_pixbuf))
         for info in root.subfolders():
-            self._add_folders(store, iter, info)
+            self._add_folders(store, msg_iter, info)
 
+    # pylint: disable=no-self-use
     def _get_selected_folder(self, view, event):
         if event.window == view.get_bin_window():
-            x, y = event.get_coords()
-            pathinfo = view.get_path_at_pos(int(x), int(y))
+            x_coord, y_coord = event.get_coords()
+            pathinfo = view.get_path_at_pos(int(x_coord), int(y_coord))
             if pathinfo is None:
                 return view.get_model(), None
-            else:
-                view.set_cursor_on_cell(pathinfo[0], None, None, False)
+            view.set_cursor_on_cell(pathinfo[0], None, None, False)
 
         return view.get_selection().get_selected()
 
-    def _mh(self, _action, store, iter, view):
+    def _mh(self, _action, store, msg_iter, _view):
         action = _action.get_name()
 
         if action == "delete":
-            info = self.get_folder(self._get_folder_by_iter(store, iter))
+            info = self.get_folder(self._get_folder_by_iter(store, msg_iter))
             try:
                 info.delete_self()
-            except OSError as e:
-                display_error("Unable to delete folder: %s" % e)
+            except OSError as err:
+                display_error("Unable to delete folder: %s" % err)
                 return
-            store.remove(iter)
+            store.remove(msg_iter)
         elif action == "create":
-            store.insert(iter, 0, ("New Folder", self.folder_pixbuf))
-            parent = self.get_folder(self._get_folder_by_iter(store, iter))
+            store.insert(msg_iter, 0, ("New Folder", self.folder_pixbuf))
+            parent = self.get_folder(self._get_folder_by_iter(store, msg_iter))
             self._create_folder(parent, "New Folder")
         elif action == "rename":
-            info = self.get_folder(self._get_folder_by_iter(store, iter))
+            info = self.get_folder(self._get_folder_by_iter(store, msg_iter))
 
             new_text = prompt_for_string("Rename folder `%s' to:" % info.name(),
                                          orig=info.name())
             if not new_text:
                 return
-            elif new_text == info.name():
+            if new_text == info.name():
                 return
 
             try:
                 info.rename(new_text)
+            # pylint: disable=broad-except
             except Exception as err:
-                display_error("Unable to rename: %s" % err)
+                printlog("MainMsgs", " : mh (rename): %s -%s-" %
+                         (type(err), err))
+                display_error("Unable to rename: %s -%s-" % (type(err), err))
                 return
 
-            store.set(iter, 0, new_text)
-
+            store.set(msg_iter, 0, new_text)
 
     def _select_folder(self, view, event):
-        store, iter = self._get_selected_folder(view, event)
-        if not iter:
+        store, msg_iter = self._get_selected_folder(view, event)
+        if not msg_iter:
             return
-        self.emit("user-selected-folder", self._get_folder_by_iter(store, iter))
+        self.emit("user-selected-folder",
+                  self._get_folder_by_iter(store, msg_iter))
 
-    def _move_cursor(self, view, step, count):
+    def _move_cursor(self, view, _step, _count):
         try:
-            (store, iter) = view.get_selection().get_selected()
+            (store, msg_iter) = view.get_selection().get_selected()
+        # pylint: disable=broad-except
         except Exception as err:
-            printlog("MainMsgs"," : Unable to find selected: %s" % err)
+            printlog("MainMsgs", " : Unable to find selected: %s -%s-" %
+                     (type(err), err))
             return
 
-        self.emit("user-selected-folder", self._get_folder_by_iter(store, iter))
+        self.emit("user-selected-folder",
+                  self._get_folder_by_iter(store, msg_iter))
 
+    # pylint: disable=too-many-locals
     def _folder_menu(self, view, event):
-        x = int(event.x)
-        y = int(event.y)
-        time = event.time
-        pthinfo = view.get_path_at_pos(x, y)
+        x_coord = int(event.x)
+        y_coord = int(event.y)
+        pthinfo = view.get_path_at_pos(x_coord, y_coord)
         if pthinfo is not None:
-            path, col, cellx, celly = pthinfo
+            path, col, _cellx, _celly = pthinfo
             view.grab_focus()
             view.set_cursor(path, col, 0)
 
@@ -348,38 +520,56 @@ class MessageFolders(MainWindowElement):
   </popup>
 </ui>
 """
-        store, iter = self._get_selected_folder(view, event)
-        folder = self._get_folder_by_iter(store, iter)
+        store, folder_iter = self._get_selected_folder(view, event)
+        folder = self._get_folder_by_iter(store, folder_iter)
 
         can_del = bool(folder and (folder not in BASE_FOLDERS))
 
-        ag = Gtk.ActionGroup.new("menu")
+        action_group = Gtk.ActionGroup.new("menu")
         actions = [("delete", _("Delete"), Gtk.STOCK_DELETE, can_del),
                    ("create", _("Create"), Gtk.STOCK_NEW, True),
                    ("rename", _("Rename"), None, can_del)]
 
         for action, label, stock, sensitive in actions:
-            a = Gtk.Action.new(action, label, None, stock)
-            a.set_sensitive(sensitive)
-            a.connect("activate", self._mh, store, iter, view)
-            ag.add_action(a)
+            new_action = Gtk.Action.new(action, label, None, stock)
+            new_action.set_sensitive(sensitive)
+            new_action.connect("activate", self._mh, store, folder_iter, view)
+            action_group.add_action(new_action)
 
         uim = Gtk.UIManager()
-        uim.insert_action_group(ag, 0)
+        uim.insert_action_group(action_group, 0)
         uim.add_ui_from_string(xml)
-        uim.get_object("/menu").popup(None, None, None,
+        # pylint: disable=no-member
+        uim.get_object("/menu").popup(None, None, None, None,
                                       event.button, event.time)
 
     def _mouse_cb(self, view, event):
         if event.button == 1:
             return self._select_folder(view, event)
-        elif event.button == 3:
+        if event.button == 3:
             return self._folder_menu(view, event)
+        return None
 
-    def _dragged_to(self, view, ctx, x, y, sel, info, ts):
-        (path, place) = view.get_dest_row_at_pos(x, y)
+    # pylint: disable=too-many-arguments, too-many-locals
+    def _dragged_to(self, view, _ctx, x_coord, y_coord, sel, _info, _ts):
+        '''
+        Dragged to.
 
-        data = sel.data.split("\x01")
+        :param view: Gtk.Widget getting signal
+        :param _ctx: Gtk.DragContex value, unused
+        :param x_coord: Horizontal coordinate of destintation
+        :param y_coord: Vertical coordinate of destination
+        :param sel: Gtk.SelectionData containing the dragged data
+        :param _info: Information registered in the Gtk.TargetList, unused
+        :param _ts: Integer timestamp of when the data was requested
+        '''
+        (path, _place) = view.get_dest_row_at_pos(x_coord, y_coord)
+
+        text = sel.get_text()
+        print('--- dragged_to')
+        print('  text = -%s-' % text)
+        byte_data = sel.get_data()
+        data = byte_data.decode('ISO-8859-1').split("\x01")
         msgs = data[1:]
 
         src_folder = data[0]
@@ -391,46 +581,57 @@ class MessageFolders(MainWindowElement):
 
         dst = MessageFolderInfo(os.path.join(self._folders_path(), dst_folder))
         src = MessageFolderInfo(os.path.join(self._folders_path(), src_folder))
-                                
+
         for record in msgs:
-            fn, subj, type, read, send, recp = record.split("\0")
-            printlog("MainMsgs"," : Dragged %s from %s into %s" % (fn, src_folder, dst_folder))
-            printlog("MainMsgs"," :   %s %s %s %s->%s" % (subj, type, read, send, recp))
+            fname, subj, msg_type, read, send, recp = record.split("\0")
+            printlog("MainMsgs",
+                     " : Dragged %s from %s into %s" %
+                     (fname, src_folder, dst_folder))
+            printlog("MainMsgs",
+                     " :   %s %s %s %s->%s" %
+                     (subj, msg_type, read, send, recp))
 
             try:
-                dst.delete(os.path.basename(fn))
-            except Exception:
+                dst.delete(os.path.basename(fname))
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("MainMsgs", " : _dragged_to: %s -%s-" %
+                         (type(err), err))
                 pass
-            newfn = dst.create_msg(os.path.basename(fn))
-            shutil.copy(fn, newfn)
-            src.delete(fn)
+            newfn = dst.create_msg(os.path.basename(fname))
+            shutil.copy(fname, newfn)
+            src.delete(fname)
 
-            dst.set_msg_read(fn, read == "True")
-            dst.set_msg_subject(fn, subj)
-            dst.set_msg_type(fn, type)
-            dst.set_msg_sender(fn, send)
-            dst.set_msg_recip(fn, recp)
+            dst.set_msg_read(fname, read == "True")
+            dst.set_msg_subject(fname, subj)
+            dst.set_msg_type(fname, msg_type)
+            dst.set_msg_sender(fname, send)
+            dst.set_msg_recip(fname, recp)
 
-    def _folder_rename(self, render, path, new_text, store):
-        iter = store.get_iter(path)
-        orig = store.get(iter, 0)[0]
+    def _folder_rename(self, _render, path, new_text, store):
+        folder_iter = store.get_iter(path)
+        orig = store.get(folder_iter, 0)[0]
         if orig == new_text:
             return
-        elif orig in BASE_FOLDERS:
+        if orig in BASE_FOLDERS:
             return
-        info = self.get_folder(self._get_folder_by_iter(store, iter))
+        info = self.get_folder(self._get_folder_by_iter(store, folder_iter))
         try:
             info.rename(new_text)
-        except Exception as e:
-            display_error("Unable to rename: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("MainMsgs", " : _folder_rename: %s -%s-" %
+                     (type(err), err))
+            display_error("Unable to rename: %s -%s-" % (type(err), err))
             return
 
         store.set(iter, 0, new_text)
 
     # MessageFolders
     def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "msg")
+        MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
 
+        # pylint: disable=unbalanced-tuple-unpacking
         folderlist, = self._getw("folderlist")
 
         store = Gtk.TreeStore(GObject.TYPE_STRING, GObject.TYPE_OBJECT)
@@ -466,13 +667,16 @@ ML_COL_FILE = 5
 ML_COL_READ = 6
 ML_COL_RECP = 7
 
+
 class MessageList(MainWindowElement):
+    '''Message List'''
+
     __gsignals__ = {"prompt-send-form" : (GObject.SignalFlags.RUN_LAST,
                                           GObject.TYPE_NONE,
                                           (GObject.TYPE_STRING,)),
                     "reply-form" : (GObject.SignalFlags.RUN_LAST,
                                     GObject.TYPE_NONE,
-                                     (GObject.TYPE_STRING,)),
+                                    (GObject.TYPE_STRING,)),
                     "delete-form" : (GObject.SignalFlags.RUN_LAST,
                                      GObject.TYPE_NONE,
                                      (GObject.TYPE_STRING,)),
@@ -487,38 +691,50 @@ class MessageList(MainWindowElement):
         else:
             return path
 
-    def open_msg(self, filename, editable, cb=None, cbdata=None):
+    def open_msg(self, filename, editable, call_back=None, cbdata=None):
+        '''
+        Open a message.
+
+        :param filename: Filename for message
+        :param editable: If message can be edited
+        :param call_back: Callback for message
+        :param cbdata: Call back data
+        :returns: Gtk.ResponseType
+        '''
         if not msgrouting.msg_lock(filename):
             display_error(_("Unable to open: message in use by another task"))
             return Gtk.ResponseType.CANCEL
 
+        print("---------MessageList/open_msg")
         parent = self._wtree.get_object("mainwindow")
         form = formgui.FormDialog(_("Form"), filename, parent=parent)
         form.configure(self._config)
 
-        def form_done(dlg, response, info):
+        def form_done(dlg, response, msg_info):
             saveable_actions = [formgui.RESPONSE_SAVE,
                                 formgui.RESPONSE_SEND,
                                 formgui.RESPONSE_SEND_VIA,
                                 ]
             dlg.hide()
             dlg.update_dst()
+            filename = msg_info.filename
+            info = msg_info.info
             if msgrouting.msg_is_locked(filename):
                 msgrouting.msg_unlock(filename)
             if response in saveable_actions:
-                printlog("MainMsgs"," : Saving to %s" % filename)
+                printlog("MainMsgs", " : Saving to %s" % filename)
                 dlg.save_to(filename)
             else:
-                printlog("MainMsgs"," : Not saving")
+                printlog("MainMsgs", " : Not saving")
             dlg.destroy()
             self.refresh(filename)
-            if cb:
-                cb(response, cbdata)
+            if call_back:
+                call_back(response, cbdata)
             if response == formgui.RESPONSE_SEND:
                 self.move_message(info, filename, _("Outbox"))
             elif response == formgui.RESPONSE_SEND_VIA:
-                fn = self.move_message(info, filename, _("Outbox"))
-                self.emit("prompt-send-form", fn)
+                filename = self.move_message(info, filename, _("Outbox"))
+                self.emit("prompt-send-form", filename)
             elif response == formgui.RESPONSE_REPLY:
                 self.emit("reply-form", filename)
             elif response == formgui.RESPONSE_DELETE:
@@ -526,33 +742,46 @@ class MessageList(MainWindowElement):
 
         form.build_gui(editable)
         form.show()
-        form.connect("response", form_done, self.current_info)
+        msg_info = MessageInfo(filename, self.current_info)
+        form.connect("response", form_done, msg_info)
+        return Gtk.ResponseType.OK
 
-    def _open_msg(self, view, path, col):
+    def _open_msg(self, view, path, _col):
         store = view.get_model()
-        iter = store.get_iter(path)
-        path, = store.get(iter, ML_COL_FILE)
+        msg_iter = store.get_iter(path)
+        path, = store.get(msg_iter, ML_COL_FILE)
 
+        print("---------MessageList/_open_msg")
         def close_msg_cb(response, info):
             if self.current_info == info:
-                iter = self.iter_from_fn(path)
-                printlog("MainMsgs"," : Updating iter %s" % iter)
-                if iter:
-                    self._update_message_info(iter)
+                msg_iter = self.iter_from_fn(path)
+                printlog("MainMsgs", " : Updating iter for close %s" % msg_iter)
+                if msg_iter:
+                    self._update_message_info(msg_iter)
             else:
-                printlog("MainMsgs"," : Not current, not updating")
+                printlog("MainMsgs", " : Not current, not updating")
 
         editable = "Outbox" in path or "Drafts" in path # Dirty hack
         self.open_msg(path, editable, close_msg_cb, self.current_info)
         self.current_info.set_msg_read(path, True)
-        iter = self.iter_from_fn(path)
-        printlog("MainMsgs"," : Updating iter %s" % iter)
-        if iter:
-            self._update_message_info(iter)
+        msg_iter = self.iter_from_fn(path)
+        printlog("MainMsgs", " : Updating iter %s" % msg_iter)
+        if msg_iter:
+            self._update_message_info(msg_iter)
 
-    def _dragged_from(self, view, ctx, sel, info, ts):
+    # pylint: disable=too-many-arguments
+    def _dragged_from(self, view, _ctx, sel, _info, _ts):
+        '''
+        Dragged from.
+
+        :param view: Gtk.Widget getting signal
+        :param _ctx: Gtk.DragContex value, unused
+        :param sel: Gtk.SelectionData containing the dragged data
+        :param _info: Information registered in the Gtk.TargetList, unused
+        :param _ts: Integer timestamp of when the data was requested
+        '''
         store, paths = view.get_selection().get_selected_rows()
-       
+
         msgs = [os.path.dirname(store[paths[0]][ML_COL_FILE])]
         for path in paths:
             data = "%s\0%s\0%s\0%s\0%s\0%s" % (store[path][ML_COL_FILE],
@@ -563,13 +792,19 @@ class MessageList(MainWindowElement):
                                                store[path][ML_COL_RECP])
             msgs.append(data)
 
-        sel.set("text/d-rats_message", 0, "\x01".join(msgs))
+        data = "\x01".join(msgs)
+        byte_data = data.encode('ISO-8859-1')
+        result = sel.set(sel.get_target(), 0, byte_data)
+        print("----Dragged to")
+        print("   result = %s, -%s-", (result, byte_data))
         GObject.idle_add(self.refresh)
 
     # MessageList
+    # pylint: disable=too-many-statements
     def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "msg")
+        MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
 
+        # pylint: disable=unbalanced-tuple-unpacking
         msglist, = self._getw("msglist")
 
         self.store = Gtk.ListStore(GObject.TYPE_OBJECT,
@@ -591,8 +826,8 @@ class MessageList(MainWindowElement):
         col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=0)
         msglist.append_column(col)
 
-        def bold_if_unread(col, rend, model, iter, cnum):
-            val, read, = model.get(iter, cnum, ML_COL_READ)
+        def bold_if_unread(_col, rend, model, msg_iter, cnum):
+            val, read, = model.get(msg_iter, cnum, ML_COL_READ)
             if not val:
                 val = ""
             if not read:
@@ -601,54 +836,55 @@ class MessageList(MainWindowElement):
                 val = val.replace(">", "&gt;")
                 rend.set_property("markup", "<b>%s</b>" % val)
 
-        r = Gtk.CellRendererText()
-        r.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Sender"), r, text=ML_COL_SEND)
-        col.set_cell_data_func(r, bold_if_unread, ML_COL_SEND)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+        col = Gtk.TreeViewColumn(_("Sender"), renderer, text=ML_COL_SEND)
+        col.set_cell_data_func(renderer, bold_if_unread, ML_COL_SEND)
         col.set_sort_column_id(ML_COL_SEND)
         col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
         col.set_resizable(True)
         msglist.append_column(col)
 
-        r = Gtk.CellRendererText()
-        r.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Recipient"), r, text=ML_COL_RECP)
-        col.set_cell_data_func(r, bold_if_unread, ML_COL_RECP)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+        col = Gtk.TreeViewColumn(_("Recipient"), renderer, text=ML_COL_RECP)
+        col.set_cell_data_func(renderer, bold_if_unread, ML_COL_RECP)
         col.set_sort_column_id(ML_COL_RECP)
         col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
         col.set_resizable(True)
         msglist.append_column(col)
 
-        r = Gtk.CellRendererText()
-        r.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Subject"), r, text=ML_COL_SUBJ)
-        col.set_cell_data_func(r, bold_if_unread, ML_COL_SUBJ)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+        col = Gtk.TreeViewColumn(_("Subject"), renderer, text=ML_COL_SUBJ)
+        col.set_cell_data_func(renderer, bold_if_unread, ML_COL_SUBJ)
         col.set_expand(True)
         col.set_sort_column_id(ML_COL_SUBJ)
         col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
         col.set_resizable(True)
         msglist.append_column(col)
 
-        r = Gtk.CellRendererText()
-        r.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Type"), r, text=ML_COL_TYPE)
-        col.set_cell_data_func(r, bold_if_unread, ML_COL_TYPE)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+        col = Gtk.TreeViewColumn(_("Type"), renderer, text=ML_COL_TYPE)
+        col.set_cell_data_func(renderer, bold_if_unread, ML_COL_TYPE)
         col.set_sort_column_id(ML_COL_TYPE)
         col.set_resizable(True)
         msglist.append_column(col)
 
-        def render_date(col, rend, model, iter, data):
-            ts, read = model.get(iter, ML_COL_DATE, ML_COL_READ)
-            stamp = datetime.fromtimestamp(ts).strftime("%H:%M:%S %Y-%m-%d")
+        def render_date(_col, rend, model, msg_iter, _data):
+            time_stamp, read = model.get(msg_iter, ML_COL_DATE, ML_COL_READ)
+            stamp = datetime.fromtimestamp(
+                time_stamp).strftime("%H:%M:%S %Y-%m-%d")
             if read:
                 rend.set_property("text", stamp)
             else:
                 rend.set_property("markup", "<b>%s</b>" % stamp)
 
-        r = Gtk.CellRendererText()
-        r.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Date"), r, text=ML_COL_DATE)
-        col.set_cell_data_func(r, render_date)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+        col = Gtk.TreeViewColumn(_("Date"), renderer, text=ML_COL_DATE)
+        col.set_cell_data_func(renderer, render_date)
         col.set_sort_column_id(ML_COL_DATE)
         col.set_resizable(True)
         msglist.append_column(col)
@@ -660,69 +896,83 @@ class MessageList(MainWindowElement):
         self.unread_pixbuf = self._config.ship_img("msg-markunread.png")
         self.current_info = None
 
+    def _update_message_info(self, msg_iter, force=False):
+        fname, = self.store.get(msg_iter, ML_COL_FILE)
 
-    def _update_message_info(self, iter, force=False):
-        fn, = self.store.get(iter, ML_COL_FILE)
-
-        subj = self.current_info.get_msg_subject(fn)
-        read = self.current_info.get_msg_read(fn)
+        subj = self.current_info.get_msg_subject(fname)
+        read = self.current_info.get_msg_read(fname)
         if subj == _("Unknown") or force:
             # Not registered, so update the registry
-            form = formgui.FormFile(fn)
-            self.current_info.set_msg_type(fn, form.id)
-            self.current_info.set_msg_read(fn, read)
-            self.current_info.set_msg_subject(fn, form.get_subject_string())
-            self.current_info.set_msg_sender(fn, form.get_sender_string())
-            self.current_info.set_msg_recip(fn, form.get_recipient_string())
+            form = formgui.FormFile(fname)
+            self.current_info.set_msg_type(fname, form.ident)
+            self.current_info.set_msg_read(fname, read)
+            self.current_info.set_msg_subject(fname, form.get_subject_string())
+            self.current_info.set_msg_sender(fname, form.get_sender_string())
+            self.current_info.set_msg_recip(fname, form.get_recipient_string())
 
-        ts = os.stat(fn).st_ctime
-        read = self.current_info.get_msg_read(fn)
+        time_stamp = os.stat(fname).st_ctime
         if read:
             icon = self.message_pixbuf
         else:
             icon = self.unread_pixbuf
-        self.store.set(iter,
+        self.store.set(msg_iter,
                        ML_COL_ICON, icon,
-                       ML_COL_SEND, self.current_info.get_msg_sender(fn),
-                       ML_COL_RECP, self.current_info.get_msg_recip(fn),
-                       ML_COL_SUBJ, self.current_info.get_msg_subject(fn),
-                       ML_COL_TYPE, self.current_info.get_msg_type(fn),
-                       ML_COL_DATE, ts,
+                       ML_COL_SEND, self.current_info.get_msg_sender(fname),
+                       ML_COL_RECP, self.current_info.get_msg_recip(fname),
+                       ML_COL_SUBJ, self.current_info.get_msg_subject(fname),
+                       ML_COL_TYPE, self.current_info.get_msg_type(fname),
+                       ML_COL_DATE, time_stamp,
                        ML_COL_READ, read)
 
-    def iter_from_fn(self, fn):
-        iter = self.store.get_iter_first()
-        while iter:
-            _fn, = self.store.get(iter, ML_COL_FILE)
-            if _fn == fn:
+    def iter_from_fn(self, file_name):
+        '''
+        Iterate from file name.
+
+        :param file_name: File Name to lookup
+        :returns: Iterated file name with each call
+        '''
+        fn_iter = self.store.get_iter_first()
+        while fn_iter:
+            _fn, = self.store.get(fn_iter, ML_COL_FILE)
+            if _fn == file_name:
                 break
-            iter = self.store.iter_next(iter)
+            fn_iter = self.store.iter_next(fn_iter)
 
-        return iter
+        return fn_iter
 
-    def refresh(self, fn=None):
-        """Refresh the current folder"""
-        if fn is None:
+    def refresh(self, file_name=None):
+        '''
+        Refresh the current folder or optional filename.
+
+        :params file_name: Optional filename.
+        '''
+        if file_name is None:
             self.store.clear()
             for msg in self.current_info.files():
-                iter = self.store.append()
-                self.store.set(iter, ML_COL_FILE, msg)
-                self._update_message_info(iter)
+                msg_iter = self.store.append()
+                self.store.set(msg_iter, ML_COL_FILE, msg)
+                self._update_message_info(msg_iter)
         else:
-            iter = self.iter_from_fn(fn)
-            if not iter:
-                iter = self.store.append()
-                self.store.set(iter,
-                               ML_COL_FILE, fn)
+            msg_iter = self.iter_from_fn(file_name)
+            if not msg_iter:
+                msg_iter = self.store.append()
+                self.store.set(msg_iter,
+                               ML_COL_FILE, file_name)
 
-            self._update_message_info(iter, True)
+            self._update_message_info(msg_iter, True)
 
     def open_folder(self, path):
-        """Open a folder by path"""
+        '''
+        Open a folder by path
+
+        :param path: Folder to open
+        '''
         self.current_info = MessageFolderInfo(self._folder_path(path))
         self.refresh()
 
     def delete_selected_messages(self):
+        '''Delete Selected Messages'''
+        # pylint: disable=unbalanced-tuple-unpacking
         msglist, = self._getw("msglist")
 
         iters = []
@@ -730,20 +980,32 @@ class MessageList(MainWindowElement):
         for path in paths:
             iters.append(store.get_iter(path))
 
-        for iter in iters:
-            fn, = store.get(iter, ML_COL_FILE)
-            store.remove(iter)
-            self.current_info.delete(fn)
+        for msg_iter in iters:
+            file_name, = store.get(msg_iter, ML_COL_FILE)
+            store.remove(msg_iter)
+            self.current_info.delete(file_name)
 
     def move_message(self, info, path, new_folder):
+        '''
+        Move message into folder.
+
+        :param info: Message information
+        :param path: Source folder
+        :param new_folder: Destination Folder
+        :returns: The new_folder on success, the source folder on failure
+        '''
         dest = MessageFolderInfo(self._folder_path(new_folder))
         try:
             newfn = dest.create_msg(os.path.basename(path))
-        except Exception:
+        # pylint: disable=broad-except
+        except Exception as err:
             # Same folder, or duplicate message id
+            printlog("MainMsgs", " : move_message: %s -%s-" %
+                     (type(err), err))
+
             return path
 
-        printlog("MainMsgs"," : Moving %s -> %s" % (path, newfn))
+        printlog("MainMsgs", " : Moving %s -> %s" % (path, newfn))
         shutil.copy(path, newfn)
         info.delete(path)
 
@@ -753,20 +1015,39 @@ class MessageList(MainWindowElement):
         return newfn
 
     def move_selected_messages(self, folder):
+        '''
+        Move selected messages into folder.
+
+        :params folder: Destination folder
+        '''
         for msg in self.get_selected_messages():
             self.move_message(self.current_info, msg, folder)
 
     def get_selected_messages(self):
+        '''
+        Get selected messages.
+
+        :returns: List of selected messages
+        '''
+        # pylint: disable=unbalanced-tuple-unpacking
         msglist, = self._getw("msglist")
 
         selected = []
         (store, paths) = msglist.get_selection().get_selected_rows()
         for path in paths:
             selected.append(store[path][ML_COL_FILE])
-        
+
         return selected
 
+
 class MessagesTab(MainWindowTab):
+    '''
+    Messages Tab.
+
+    :param wtree: Object for tree
+    :param config: Config settings object
+    '''
+
     __gsignals__ = {
         "event" : signals.EVENT,
         "notice" : signals.NOTICE,
@@ -777,22 +1058,23 @@ class MessagesTab(MainWindowTab):
 
     _signals = __gsignals__
 
-    def _new_msg(self, button, msgtype=None):
+    # pylint: disable=too-many-locals
+    def _new_msg(self, _button, msgtype=None):
         types = glob(os.path.join(self._config.form_source_dir(), "*.xml"))
-    
+
         forms = {}
-        for fn in types:
-            forms[os.path.basename(fn).replace(".xml", "")] = fn
-    
+        for file_name in types:
+            forms[os.path.basename(file_name).replace(".xml", "")] = file_name
+
         if msgtype is None:
             parent = self._wtree.get_object("mainwindow")
-            d = inputdialog.ChoiceDialog(forms.keys(),
-                                         title=_("Choose a form"),
-                                         parent=parent)
-            r = d.run()
-            msgtype = d.choice.get_active_text()
-            d.destroy()
-            if r != Gtk.ResponseType.OK:
+            dialog = inputdialog.ChoiceDialog(forms.keys(),
+                                              title=_("Choose a form"),
+                                              parent=parent)
+            result = dialog.run()
+            msgtype = dialog.choice.get_active_text()
+            dialog.destroy()
+            if result != Gtk.ResponseType.OK:
                 return
 
         current = self._messages.current_info.name()
@@ -819,18 +1101,17 @@ class MessagesTab(MainWindowTab):
         self._messages.open_msg(newfn, True,
                                 close_msg_cb, self._messages.current_info)
 
-    def _rpl_msg(self, button, fn=None):
+    # pylint: disable=too-many-locals
+    def _rpl_msg(self, _button, file_name=None):
         def subj_reply(subj):
             if "RE:" in subj.upper():
                 return subj
-            else:
-                return "RE: %s" % subj
+            return "RE: %s" % subj
 
         def msg_reply(msg):
             if self._config.getboolean("prefs", "msg_include_reply"):
                 return "--- Original Message ---\r\n\r\n" + msg
-            else:
-                return ""
+            return ""
 
         save_fields = [
             ("_auto_number", "_auto_number", lambda x: str(int(x)+1)),
@@ -840,45 +1121,49 @@ class MessagesTab(MainWindowTab):
             ("_auto_sender", "_auto_recip", None),
             ]
 
-        if not fn:
+        if not file_name:
             try:
                 sel = self._messages.get_selected_messages()
             except TypeError:
                 return
-    
+
             if len(sel) > 1:
-                printlog("MainMsgs"," : FIXME: Warn about multiple reply")
+                printlog("MainMsgs", " : FIXME: Warn about multiple reply")
                 return
-    
-            fn = sel[0]
+
+            file_name = sel[0]
 
         current = self._messages.current_info.name()
         self._folders.select_folder(_("Drafts"))
 
-        oform = formgui.FormFile(fn)
-        tmpl = os.path.join(self._config.form_source_dir(), "%s.xml" % oform.id)
+        oform = formgui.FormFile(file_name)
+        tmpl = os.path.join(self._config.form_source_dir(),
+                            "%s.xml" % oform.ident)
 
         nform = formgui.FormFile(tmpl)
         nform.add_path_element(self._config.get("user", "callsign"))
 
         try:
-            for sf, df, xf in save_fields:
-                oldval = oform.get_field_value(sf)
+            for s_field, d_field, x_field in save_fields:
+                oldval = oform.get_field_value(s_field)
                 if not oldval:
                     continue
 
-                if xf:
-                    nform.set_field_value(df, xf(oldval))
+                if x_field:
+                    nform.set_field_value(d_field, x_field(oldval))
                 else:
-                    nform.set_field_value(df, oldval)
-        except Exception as e:
+                    nform.set_field_value(d_field, oldval)
+        # pylint: disable=broad-except
+        except Exception as err:
             log_exception()
-            printlog("MainMsgs"," : Failed to do reply: %s" % e)
+            printlog("MainMsgs", " : Failed to do reply: %s -%s" %
+                     (type(err), err))
             return
 
         if ";" in oform.get_path_dst():
             rpath = ";".join(reversed(oform.get_path()[:-1]))
-            printlog("MainMsgs"," : mainmsg : rpath: %s (%s)" % (rpath, oform.get_path()))
+            printlog("MainMsgs",
+                     " : mainmsg : rpath: %s (%s)" % (rpath, oform.get_path()))
             nform.set_path_dst(rpath)
         else:
             nform.set_path_dst(oform.get_path_src())
@@ -893,7 +1178,7 @@ class MessagesTab(MainWindowTab):
 
         def close_msg_cb(response, info):
             if self._messages.current_info == info:
-                printlog("MainMsgs"," : Respone was %i (%i)" %
+                printlog("MainMsgs", " : Respone was %i (%i)" %
                          (response, Gtk.ResponseType.CANCEL))
                 if response in [Gtk.ResponseType.CANCEL,
                                 Gtk.ResponseType.CLOSE]:
@@ -905,12 +1190,15 @@ class MessagesTab(MainWindowTab):
         self._messages.open_msg(newfn, True,
                                 close_msg_cb, self._messages.current_info)
 
-    def _del_msg(self, button, fn=None):
-        if fn:
+    def _del_msg(self, _button, file_name=None):
+        if file_name:
             try:
-                os.remove(fn)
-            except Exception as e:
-                printlog("MainMsgs"," : Unable to delete %s: %s" % (fn, e))
+                os.remove(file_name)
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("MainMsgs",
+                         " : Unable to delete %s: %s -%s-" %
+                         (file_name, type(err), err))
             self._messages.refresh()
         else:
             if self._messages.current_info.name() == _("Trash"):
@@ -918,21 +1206,21 @@ class MessagesTab(MainWindowTab):
             else:
                 self._messages.move_selected_messages(_("Trash"))
 
-    def _snd_msg(self, button, fn=None):
-        if not fn:
+    def _snd_msg(self, _button, file_name=None):
+        if not file_name:
             try:
                 sel = self._messages.get_selected_messages()
             except TypeError:
                 return
-    
-            if len(sel) > 1:
-                printlog("MainMsgs"," : FIXME: Warn about multiple send")
-                return
-    
-            fn = sel[0]
-        recip = self._messages.current_info.get_msg_recip(fn)
 
-        if not msgrouting.msg_lock(fn):
+            if len(sel) > 1:
+                printlog("MainMsgs", " : FIXME: Warn about multiple send")
+                return
+
+            file_name = sel[0]
+        recip = self._messages.current_info.get_msg_recip(file_name)
+
+        if not msgrouting.msg_lock(file_name):
             display_error(_("Unable to send: message in use by another task"))
             return
 
@@ -947,40 +1235,40 @@ class MessagesTab(MainWindowTab):
 
         station, port = prompt_for_station(stations, self._config)
         if not station:
-            if msgrouting.msg_is_locked(fn):
-	            msgrouting.msg_unlock(fn)
+            if msgrouting.msg_is_locked(file_name):
+                msgrouting.msg_unlock(file_name)
             return
 
-        self.emit("user-send-form", station, port, fn, "foo")
+        self.emit("user-send-form", station, port, file_name, "foo")
 
-        if msgrouting.msg_is_locked(fn):
-            msgrouting.msg_unlock(fn)
+        if msgrouting.msg_is_locked(file_name):
+            msgrouting.msg_unlock(file_name)
 
-    def _mrk_msg(self, button, read):
+    def _mrk_msg(self, _button, read):
         try:
             sel = self._messages.get_selected_messages()
         except TypeError:
             return
 
-        for fn in sel:
-            self._messages.current_info.set_msg_read(fn, read)
+        for file_name in sel:
+            self._messages.current_info.set_msg_read(file_name, read)
 
         self._messages.refresh()
 
-    def _importmsg(self, button):
-        dir = self._config.get("prefs", "download_dir")
-        fn = self._config.platform.gui_open_file(dir)
-        if not fn:
+    def _importmsg(self, _button):
+        download_dir = self._config.get("prefs", "download_dir")
+        file_name = self._config.platform.gui_open_file(download_dir)
+        if not file_name:
             return
 
         dst = os.path.join(self._config.form_store_dir(),
                            _("Inbox"),
                            time.strftime("form_%m%d%Y_%H%M%S.xml"))
 
-        shutil.copy(fn, dst)
+        shutil.copy(file_name, dst)
         self.refresh_if_folder(_("Inbox"))
-    
-    def _exportmsg(self, button):
+
+    def _exportmsg(self, _button):
         try:
             sel = self._messages.get_selected_messages()
         except TypeError:
@@ -989,81 +1277,82 @@ class MessagesTab(MainWindowTab):
         if len(sel) > 1:
             printlog("MainMsgs", " : FIXME: Warn about multiple send")
             return
-        elif len(sel) == 0:
+        if sel:
             return
 
-        fn = sel[0]
+        file_name = sel[0]
 
-        dir = self._config.get("prefs", "download_dir")
-        nfn = self._config.platform.gui_save_file(dir, "msg.xml")
+        download_dir = self._config.get("prefs", "download_dir")
+        nfn = self._config.platform.gui_save_file(download_dir, "msg.xml")
         if not nfn:
             return
 
-        shutil.copy(fn, nfn)
+        shutil.copy(file_name, nfn)
 
-    def _sndrcv(self, button, account=""):
+    def _sndrcv(self, _button, account=""):
         self.emit("trigger-msg-router", account)
 
     def _make_sndrcv_menu(self):
         menu = Gtk.Menu()
 
-        mi = Gtk.MenuItem("Outbox")
+        menu_item = Gtk.MenuItem("Outbox")
         try:
-            mi.set_tooltip_text("Send messages in the Outbox")
+            menu_item.set_tooltip_text("Send messages in the Outbox")
         except AttributeError:
             pass
-        mi.connect("activate", self._sndrcv)
-        mi.show()
-        menu.append(mi)
+        menu_item.connect("activate", self._sndrcv)
+        menu_item.show()
+        menu.append(menu_item)
 
-        mi = Gtk.MenuItem("WL2K")
+        menu_item = Gtk.MenuItem("WL2K")
         try:
-            mi.set_tooltip_text("Check Winlink messages")
+            menu_item.set_tooltip_text("Check Winlink messages")
         except AttributeError:
             pass
-        mi.connect("activate", self._sndrcv, "@WL2K")
-        mi.show()
-        menu.append(mi)
+        menu_item.connect("activate", self._sndrcv, "@WL2K")
+        menu_item.show()
+        menu.append(menu_item)
 
         for section in self._config.options("incoming_email"):
             info = self._config.get("incoming_email", section).split(",")
             lab = "%s on %s" % (info[1], info[0])
-            mi = Gtk.MenuItem(lab)
+            menu_item = Gtk.MenuItem(lab)
             try:
-                mi.set_tooltip_text("Check for new mail on this account")
+                menu_item.set_tooltip_text("Check for new mail on this account")
             except AttributeError:
                 pass
-            mi.connect("activate", self._sndrcv, section)
-            mi.show()
-            menu.append(mi)
+            menu_item.connect("activate", self._sndrcv, section)
+            menu_item.show()
+            menu.append(menu_item)
 
         return menu
 
     def _make_new_menu(self):
         menu = Gtk.Menu()
 
-        td = self._config.form_source_dir()
-        for i in sorted(glob(os.path.join(td, "*.xml"))):
-            msgtype = os.path.basename(i).replace(".xml", "")
+        t_dir = self._config.form_source_dir()
+        for file_i in sorted(glob(os.path.join(t_dir, "*.xml"))):
+            msgtype = os.path.basename(file_i).replace(".xml", "")
             label = msgtype.replace("_", " ")
-            mi = Gtk.MenuItem(label)
+            menu_item = Gtk.MenuItem(label)
             try:
-                mi.set_tooltip_text("Create a new %s form" % label)
+                menu_item.set_tooltip_text("Create a new %s form" % label)
             except AttributeError:
                 pass
-            mi.connect("activate", self._new_msg, msgtype)
-            mi.show()
-            menu.append(mi)
+            menu_item.connect("activate", self._new_msg, msgtype)
+            menu_item.show()
+            menu.append(menu_item)
 
         return menu
 
     def _init_toolbar(self):
-        tb, = self._getw("toolbar")
+        # pylint: disable=unbalanced-tuple-unpacking
+        toolbar, = self._getw("toolbar")
 
-        set_toolbar_buttons(self._config, tb)
+        set_toolbar_buttons(self._config, toolbar)
 
-        read = lambda b: self._mrk_msg(b, True)
-        unread = lambda b: self._mrk_msg(b, False)
+        read = lambda msg: self._mrk_msg(msg, True)
+        unread = lambda msg: self._mrk_msg(msg, False)
 
         buttons = [("msg-new.png", _("New"), self._new_msg),
                    ("msg-send-via.png", _("Forward"), self._snd_msg),
@@ -1089,34 +1378,34 @@ class MessagesTab(MainWindowTab):
             "msg-sendreceive.png" : self._make_sndrcv_menu(),
             }
 
-        c = 0
-        for i, l, f in buttons:
+        count = 0
+        for button_i, button_l, button_f in buttons:
             icon = Gtk.Image()
-            icon.set_from_pixbuf(self._config.ship_img(i))
+            icon.set_from_pixbuf(self._config.ship_img(button_i))
             icon.show()
-            if menus.has_key(i):
-                item = Gtk.MenuToolButton(icon, l)
-                item.set_menu(menus[i])
+            if button_i in menus:
+                item = Gtk.MenuToolButton(icon, button_l)
+                item.set_menu(menus[button_i])
                 try:
                     item.set_arrow_tooltip_text("%s %s %s" % (_("More"),
-                                                              l,
+                                                              button_l,
                                                               _("Options")))
                 except AttributeError:
                     pass
             else:
-                item = Gtk.ToolButton(icon, l)
+                item = Gtk.ToolButton(icon, button_l)
             item.show()
-            item.connect("clicked", f)
-            if tips.has_key(l):
+            item.connect("clicked", button_f)
+            if button_l in tips:
                 try:
-                    item.set_tooltip_text(tips[l])
+                    item.set_tooltip_text(tips[button_l])
                 except AttributeError:
                     pass
-            tb.insert(item, c)
-            c += 1
+            toolbar.insert(item, count)
+            count += 1
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "msg")
+        MainWindowTab.__init__(self, wtree, config, "msg", _("Messages"))
 
         self._init_toolbar()
         self._folders = MessageFolders(wtree, config)
@@ -1133,30 +1422,46 @@ class MessagesTab(MainWindowTab):
         iport.connect("activate", self._importmsg)
 
         eport = self._wtree.get_object("main_menu_exportmsg")
-        eport.connect("activate", self._exportmsg);
+        eport.connect("activate", self._exportmsg)
 
     def refresh_if_folder(self, folder):
+        '''
+        Refresh if folder is current.
+
+        :param folder: Folder name to refresh
+        '''
         self._notice()
         if self._messages.current_info.name() == folder:
             self._messages.refresh()
 
-    def message_sent(self, fn):
+    def message_sent(self, file_name):
+        '''
+        Mark a message sent.
+
+        :param file_name:
+        '''
         outbox = self._folders.get_folder(_("Outbox"))
         files = outbox.files()
-        if fn in files:
+        if file_name in files:
             sent = self._folders.get_folder(_("Sent"))
-            newfn = sent.create_msg(os.path.basename(fn))
-            printlog("MainMsgs"," : Moving %s -> %s" % (fn, newfn))
-            shutil.copy(fn, newfn)
-            outbox.delete(fn)
+            newfn = sent.create_msg(os.path.basename(file_name))
+            printlog("MainMsgs", " : Moving %s -> %s" % (file_name, newfn))
+            shutil.copy(file_name, newfn)
+            outbox.delete(file_name)
             self.refresh_if_folder(_("Outbox"))
             self.refresh_if_folder(_("Sent"))
         else:
-            printlog("MainMsgs"," : Form %s sent but not in outbox" % os.path.basename(fn))
+            printlog("MainMsgs",
+                     " : Form %s sent but not in outbox" %
+                     os.path.basename(file_name))
 
-    def get_shared_messages(self, for_station):
-        """Return a list of (title, stamp, filename) forms destined
-        for station @for_station"""
+    def get_shared_messages(self, _for_station):
+        '''
+        Get Shared Messages for a destination.
+
+        :param for_station:  Destination Station (Currently ignored)
+        :returns: list of (title, stamp, filename) forms des
+        '''
         shared = _("Inbox")
         path = os.path.join(self._config.platform.config_dir(), "messages")
         if not os.path.isdir(path):
@@ -1164,15 +1469,16 @@ class MessagesTab(MainWindowTab):
         info = MessageFolderInfo(os.path.join(path, shared))
 
         ret = []
-        for fn in info.files():
-            stamp = os.stat(fn).st_mtime
-            ffn = "%s/%s" % (shared, os.path.basename(fn))
-            form = formgui.FormFile(fn)
+        for file_name in info.files():
+            stamp = os.stat(file_name).st_mtime
+            ffn = "%s/%s" % (shared, os.path.basename(file_name))
+            form = formgui.FormFile(file_name)
             ret.append((form.get_subject_string(), stamp, ffn))
 
         return ret
 
     def selected(self):
+        '''Selected.'''
         MainWindowTab.selected(self)
 
         make_visible = ["main_menu_importmsg", "main_menu_exportmsg"]
@@ -1182,6 +1488,7 @@ class MessagesTab(MainWindowTab):
             item.set_property("visible", True)
 
     def deselected(self):
+        '''Deselected.'''
         MainWindowTab.deselected(self)
 
         make_invisible = ["main_menu_importmsg", "main_menu_exportmsg"]
