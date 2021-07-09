@@ -553,9 +553,10 @@ class GPSPosition(object):
         self.comment = comment
         self._original_comment = comment
 
-        if len(self.comment) >=7 and "*" in self.comment[-3:-1]:
-            printlog('gps.set_station called _parse_dprs_comment')
-            self._parse_dprs_comment()
+        # Temp disabled as flooding the log
+        # if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
+        #     printlog('gps.set_station called _parse_dprs_comment')
+        #    self._parse_dprs_comment()
 
     def distance_from(self, pos):
         return distance(self.latitude, self.longitude,
