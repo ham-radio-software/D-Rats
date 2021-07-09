@@ -110,13 +110,13 @@ def install_excepthook():
     original_excepthook = sys.excepthook
     # invoke the manager of the initial windows to ask user what to do with
     # exceptions
-    sys.excepthook = handle_exception
+    # sys.excepthook = handle_exception
 
 def uninstall_excepthook():
     '''Uninstall Excepthook'''
     # restores the original value of sys.excepthook
     global original_excepthook
-    sys.excepthook = ignore_exception
+    # sys.excepthook = ignore_exception
 
 def ignore_exception(_exctyp, _value, _tb):
     '''ignore exception'''
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     # import the D-Rats main application
     from d_rats import mainapp
 
-    #stores away the value of sys.excepthook
+    # stores away the value of sys.excepthook
     install_excepthook()
 
     # import libxml2
