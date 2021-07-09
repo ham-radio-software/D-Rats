@@ -21,24 +21,28 @@ from __future__ import print_function
 
 import gi
 gi.require_version("Gtk", "3.0")
-# pylint: disable=wrong-import-position
 from gi.repository import Gtk
 from gi.repository import Gdk
 
 from .miscwidgets import make_choice
+
 
 class TextInputDialog(Gtk.Dialog):
     '''Text input dialog class'''
 
     # pylint: disable=unused-argument
     def respond_ok(self, *args):
-        ''' Respond Ok '''
+        '''
+        Respond Ok
+
+        :param args: Additional Arguments
+        '''
 
         self.response(Gtk.ResponseType.OK)
 
     def __init__(self, **args):
-        buttons = (Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL,
-                   Gtk.ButtonsType.OK, Gtk.ResponseType.OK)
+        buttons = (_("CANCEL"), Gtk.ResponseType.CANCEL,
+                   _("OK"), Gtk.ResponseType.OK)
         Gtk.Dialog.__init__(self, buttons=buttons, **args)
 
         self.label = Gtk.Label.new()
@@ -52,12 +56,15 @@ class TextInputDialog(Gtk.Dialog):
         self.label.show()
         self.text.show()
 
+
 class ChoiceDialog(Gtk.Dialog):
+    '''Choice Dialog'''
+
     editable = False
 
     def __init__(self, choices, **args):
-        buttons = (Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL,
-                   Gtk.ButtonsType.OK, Gtk.ResponseType.OK)
+        buttons = (_("CANCEL"), Gtk.ResponseType.CANCEL,
+                   _("OK"), Gtk.ResponseType.OK)
         Gtk.Dialog.__init__(self, buttons=buttons, **args)
 
         self.label = Gtk.Label.new()
@@ -76,6 +83,7 @@ class ChoiceDialog(Gtk.Dialog):
 
         self.set_default_response(Gtk.ResponseType.OK)
 
+
 class EditableChoiceDialog(ChoiceDialog):
     '''Editable Choice Dialog'''
 
@@ -86,13 +94,17 @@ class EditableChoiceDialog(ChoiceDialog):
 
         self.choice.child.set_activates_default(True)
 
+
 class ExceptionDialog(Gtk.MessageDialog):
     '''Exception for Dialog'''
 
     def __init__(self, exception, **args):
-        Gtk.MessageDialog.__init__(self, buttons=Gtk.ButtonsType.OK, **args)
+        Gtk.MessageDialog.__init__(self,
+                                   buttons=(_("OK"), Gtk.ResponseType.OK),
+                                   **args)
         self.set_property("text", _("An error has occurred"))
         self.format_secondary_text(str(exception))
+
 
 class FieldDialog(Gtk.Dialog):
     '''Field Dialog Task'''
@@ -114,12 +126,24 @@ class FieldDialog(Gtk.Dialog):
     # Can not find what arguments are actually different
     # pylint: disable=arguments-differ
     def response(self, response):
-        '''Response logging'''
+        '''
+        Response logging.
+
+        Writes the response to the console.
+
+        :param response: Response to write out.
+        '''
+        # This should probably use printlog
         print("Blocking response %d" % response)
 
     def add_field(self, label, widget, _validator=None, full=False):
-        ''' Add field to a widget '''
+        '''
+        Add field to a widget.
 
+        :param label: Label of field
+        :param widget: Widget to receive field
+        :param _validator
+        '''
         if full:
             box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         else:
@@ -147,6 +171,12 @@ class FieldDialog(Gtk.Dialog):
         self.__fields[label] = widget
 
     def get_field(self, label):
+        '''
+        Get field.
+
+        :param label:
+        :returns: Field identified by label
+        '''
         return self.__fields.get(label, None)
 
 
