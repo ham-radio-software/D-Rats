@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Email Gateway'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
@@ -17,14 +18,15 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-#importing printlog() wrapper
-from .debug import printlog
 
 import os
 import threading
 import poplib
 import smtplib
 import email
+import re
+import random
+import time
 from six.moves import range
 try:
     from email.mime.multipart import MIMEMultipart
@@ -34,27 +36,17 @@ except ImportError:
     # Python 2.4
     from email import MIMEMultipart
     from email import MIMEBase
-    from email import MIMEText 
+    from email import MIMEText
+    import rfc822
 
-# import rfc822
-import time
-from . import dplatform
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 
-import re
-import random
+#importing printlog() wrapper
+from .debug import printlog
 
-if __name__ == "__main__":
-    import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               languages=["en"],
-                               fallback=True)
-    lang.install()
-
+from . import dplatform
 from . import formgui
 from .ui import main_events
 from . import signals
@@ -62,10 +54,36 @@ from . import utils
 from . import msgrouting
 
 
+class EmailGatewayException(Exception):
+    '''Generic Email Gateway Exception.'''
+
+
+class NoUsablePartError(EmailGatewayException):
+    '''No usable part error.'''
+
+
+class BadAccountSettingsError(EmailGatewayException):
+    '''Bad Email account settings.'''
+
+
+class UnsupportedActionError(EmailGatewayException):
+    '''Unsupported action.'''
+
+
+# pylint: disable=too-many-branches
 def create_form_from_mail(config, mail, tmpfn):
+    '''
+    Create form from mail.
+
+    :param config: Config object
+    :param mail: Mail message
+    :param tmpfn: Temporary filename
+    :returns: Form
+    :raises: NoUsablePartError if unable to parse form
+    '''
     subject = mail.get("Subject", "[no subject]")
     sender = mail.get("From", "Unknown <devnull@nowhere.com>")
-    
+
     xml = None
     body = ""
 
@@ -87,25 +105,26 @@ def create_form_from_mail(config, mail, tmpfn):
         body = mail.get_payload(decode=True)
 
     if not body and not xml:
-        raise Exception("Unable to find a usable part")
+        raise NoUsablePartError("Unable to find a usable part")
 
     messageid = mail.get("Message-ID", time.strftime("%m%d%Y%H%M%S"))
     if not msgrouting.msg_lock(tmpfn):
-        printlog("emailgw","   : AIEE: Unable to lock incoming email message file!")
+        printlog("emailgw",
+                 "   : AIEE: Unable to lock incoming email message file!")
 
     if xml:
-        f = open(tmpfn, "w")
-        f.write(xml)
-        f.close()
+        file_handle = open(tmpfn, "w")
+        file_handle.write(xml)
+        file_handle.close()
         form = formgui.FormFile(tmpfn)
         recip = form.get_recipient_string()
         if "%" in recip:
             recip, _addr = recip.split("%", 1)
             recip = recip.upper()
     else:
-        printlog("emailgw","   : Email from %s: %s" % (sender, subject))
+        printlog("emailgw", "   : Email from %s: %s" % (sender, subject))
 
-        recip, addr = rfc822.parseaddr(mail.get("To", "UNKNOWN"))
+        recip, _addr = rfc822.parseaddr(mail.get("To", "UNKNOWN"))
 
         efn = os.path.join(config.form_source_dir(), "email.xml")
         form = formgui.FormFile(efn)
@@ -121,14 +140,27 @@ def create_form_from_mail(config, mail, tmpfn):
 
     return form
 
+
 class MailThread(threading.Thread, GObject.GObject):
+    '''
+    Mail Thread.
+
+    :param config: Config object
+    :param host: Email host
+    :param user: User account
+    :param password: Password for account
+    :param port: Email port, default 110
+    :param ssl: Use ssl, default False
+    '''
+
     __gsignals__ = {
         "user-send-chat" : signals.USER_SEND_CHAT,
         "user-send-form" : signals.USER_SEND_FORM,
         "form-received" : signals.FORM_RECEIVED,
         "get-station-list" : signals.GET_STATION_LIST,
         "event" : signals.EVENT,
-        "mail-thread-complete" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE,
+        "mail-thread-complete" : (GObject.SignalFlags.RUN_LAST,
+                                  GObject.TYPE_NONE,
                                   (GObject.TYPE_BOOLEAN, GObject.TYPE_STRING)),
         }
 
@@ -137,6 +169,7 @@ class MailThread(threading.Thread, GObject.GObject):
     def _emit(self, signal, *args):
         GObject.idle_add(self.emit, signal, *args)
 
+    # pylint: disable=too-many-arguments
     def __init__(self, config, host, user, pasw, port=110, ssl=False):
         threading.Thread.__init__(self)
         GObject.GObject.__init__(self)
@@ -153,35 +186,55 @@ class MailThread(threading.Thread, GObject.GObject):
         self._coerce_call = None
 
     def message(self, message):
-        printlog("emailgw","   : [MAIL %s@%s] %s" % (self.username, self.server, message))
+        '''
+        Message.
+
+        :param message: Message to send
+        '''
+        printlog("emailgw",
+                 "   : [MAIL %s@%s] %s" %
+                 (self.username, self.server, message))
 
     def create_form_from_mail(self, mail):
-        id = self.config.get("user", "callsign") + \
+        '''
+        Create form from mail.
+
+        :param mail: Mail message
+        '''
+        ident = self.config.get("user", "callsign") + \
             time.strftime("%m%d%Y%H%M%S") + \
             mail.get("Message-id", str(random.randint(0, 1000)))
-        mid = dplatform.get_platform().filter_filename(id)
+        mid = dplatform.get_platform().filter_filename(ident)
         ffn = os.path.join(self.config.form_store_dir(),
                            _("Inbox"),
                            "%s.xml" % mid)
         try:
             form = create_form_from_mail(self.config, mail, ffn)
-        except Exception as e:
-            printlog("emailgw","   : Failed to create form from mail: %s" % e)
-            return    
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("emailgw",
+                     "   : Failed to create form from mail: %s -%s-" %
+                     (type(err), err))
+            return
 
         if self._coerce_call:
-            printlog("emailgw","   : Coercing to %s" % self._coerce_call)
+            printlog("emailgw", "   : Coercing to %s" % self._coerce_call)
             form.set_path_dst(self._coerce_call)
         else:
-            printlog("emailgw","   : Not coercing")
-    
+            printlog("emailgw", "   : Not coercing")
+
         form.add_path_element("EMAIL")
         form.add_path_element(self.config.get("user", "callsign"))
         form.save_to(ffn)
-    
+
         self._emit("form-received", -999, ffn)
-    
+
     def fetch_mails(self):
+        '''
+        Fetch mails.
+
+        :returns: List of mesages
+        '''
         self.message("Querying %s:%i" % (self.server, self.port))
 
         if self.use_ssl:
@@ -191,7 +244,7 @@ class MailThread(threading.Thread, GObject.GObject):
 
         server.user(self.username)
         server.pass_(self.password)
-        
+
         num = len(server.list()[1])
 
         messages = []
@@ -216,14 +269,19 @@ class MailThread(threading.Thread, GObject.GObject):
         else:
             try:
                 mails = self.fetch_mails()
-            except Exception as e:
-                result = "Failed (%s)" % e
+            # pylint: disable=broad-except
+            except Exception as err:
+                result = "Failed (%s -%s-)" % (type(err), err)
+            printlog("emailgw",
+                     "   : MailThread/run broad exception %s -%s-" %
+                     (type(err), err))
 
             if mails:
                 for mail in mails:
                     self.create_form_from_mail(mail)
-                event = main_events.Event(_("Received %i messages") % \
-                                              len(mails))
+                event = main_events.Event(None,
+                                          _("Received %i messages") % \
+                                          len(mails))
                 self._emit("event", event)
 
                 result = "Queued %i messages" % len(mails)
@@ -232,16 +290,33 @@ class MailThread(threading.Thread, GObject.GObject):
 
         self.message("Thread ended [ %s ]" % result)
 
-        self._emit("mail-thread-complete", mails != None, result)
+        self._emit("mail-thread-complete", mails is not None, result)
+
 
 class CoercedMailThread(MailThread):
+    '''
+    Coerce Mail Thread.
+
+    :param args: MailThread arguments
+    '''
+
     def __init__(self, *args):
         call = str(args[-1])
         args = args[:-1]
         MailThread.__init__(self, *args)
         self._coerce_call = call
 
+
 class AccountMailThread(MailThread):
+    '''
+    Account Mail Thread.
+
+    :param config: Config object
+    :param account: Account name
+    :raises BadAccountSettingsError if unable to parse account settings
+    :raises UnsupportedActionError if an unsupported transfer is requested
+    '''
+
     def __init__(self, config, account):
         settings = config.get("incoming_email", account)
 
@@ -249,8 +324,9 @@ class AccountMailThread(MailThread):
             host, user, pasw, poll, ssl, port, action, enb = \
                 settings.split(",", 7)
         except ValueError:
-            raise Exception("Unable to parse account settings for `%s'" % \
-                                account)
+            raise BadAccountSettingsError(
+                "Unable to parse account settings for `%s'" %
+                account)
 
         actions = {
             _("Form") : self.create_form_from_mail,
@@ -260,8 +336,8 @@ class AccountMailThread(MailThread):
         try:
             self.__action = actions[action]
         except KeyError:
-            raise Exception("Unsupported action `%s' for %s@%s" % \
-                                (action, user, host))
+            raise UnsupportedActionError("Unsupported action `%s' for %s@%s" %
+                                         (action, user, host))
 
         ssl = ssl == "True"
         if not port:
@@ -277,6 +353,11 @@ class AccountMailThread(MailThread):
         MailThread.__init__(self, config, host, user, pasw, port, ssl)
 
     def do_chat_from_mail(self, mail):
+        '''
+        Do Chat from mail.
+
+        :param mail: mail object
+        '''
         if mail.is_multipart():
             body = None
             for part in mail.walk():
@@ -295,7 +376,7 @@ class AccountMailThread(MailThread):
             mail.get("From", "Unknown Sender"),
             mail.get("Subject", ""),
             body)
-            
+
         for port in self.emit("get-station-list").keys():
             self._emit("user-send-chat", "CQCQCQ", port, text, False)
 
@@ -305,26 +386,32 @@ class AccountMailThread(MailThread):
         self._emit("event", event)
 
     def run(self):
-    #removing the connection check as it was always failing, need to sort the scope of the variable
- #        if self.config.getboolean("state", "connected_inet"): 
-            mails = []
-            try:
-                mails = self.fetch_mails()
-            except Exception as e:
-                self.message("Failed to retrieve messages: %s" % e)
-            for mail in mails:
-                self.__action(mail)
+        '''Run account mail thread.'''
+        # Removing the connection check as it was always failing,
+        # need to sort the scope of the variable
+        # if self.config.getboolean("state", "connected_inet"):
+        mails = []
+        try:
+            mails = self.fetch_mails()
+        # pylint: disable=broad-except
+        except Exception as err:
+            self.message("Failed to retrieve messages: %s -%s-" %
+                         (type(err), err))
+        for mail in mails:
+            self.__action(mail)
             if mails:
                 event = main_events.Event(None,
                                           "Received %i email(s)" % len(mails))
-                self._emit("event", event)  
-                
-      #      else:
-       #         self.message("Not connected")
+                self._emit("event", event)
+        # else:
+        #     self.message("Not connected")
 
-        
+
 class PeriodicAccountMailThread(AccountMailThread):
+    '''Periodic Account Mail Thread.'''
+
     def run(self):
+        '''Run periodic thread.'''
         self.message("Periodic thread starting")
 
         while self.enabled:
@@ -335,62 +422,99 @@ class PeriodicAccountMailThread(AccountMailThread):
         self.message("Thread ending")
 
     def trigger(self):
+        '''Trigger.'''
         self.event.set()
 
     def stop(self):
+        '''Stop.'''
         self.enabled = False
         self.trigger()
+
 
 def __validate_access(config, callsign, emailaddr, types):
     rules = config.options("email_access")
 
     for rule in rules:
         rulespec = config.get("email_access", rule)
-        call, access, filter = rulespec.split(",", 2)
+        call, access, filter_rule = rulespec.split(",", 2)
 
-        if call in [callsign, "*"] and re.search(filter, emailaddr):
-            #print "%s -> %s matches %s,%s,%s" % (callsign, emailaddr,
-            #                                     call, access, filter)
-            #print "Access types allowed: %s" % types
+        if call in [callsign, "*"] and re.search(filter_rule, emailaddr):
+            # print "%s -> %s matches %s,%s,%s" % (callsign, emailaddr,
+            #                                      call, access, filter)
+            # print "Access types allowed: %s" % types
             return access in types
-        #else:
-            #print "%s -> %s does not match %s,%s,%s" % (callsign, emailaddr,
-            #                                            call, access, filter)
+        # else:
+            # print "%s -> %s does not match %s,%s,%s" % (callsign, emailaddr,
+            #                                             call, access, filter)
 
-    printlog("emailgw","   : No match found")
+    printlog("emailgw", "   : No match found")
 
     return False
 
+
 def validate_outgoing(config, callsign, emailaddr):
+    '''
+    Validate Outgoing message.
+
+    :param config: config object
+    :param callsign: call sign of outgoing message
+    :param emailaddr: Email address to send to
+    :returns: True if message is validated
+    '''
     return __validate_access(config, callsign, emailaddr, ["Both", "Outgoing"])
-    
+
+
 def validate_incoming(config, callsign, emailaddr):
+    '''
+    Validate Incoming message.
+
+    :param config: Config object
+    :param callsign: Call sign message is from
+    :param emailaddr: E-mail address of message
+    :returns: True if message is validated
+    '''
     return __validate_access(config, callsign, emailaddr, ["Both", "Incoming"])
 
-def main():
-    '''Unit test for emailgw'''
 
-    class Fakeout(object):
+def main():
+    '''Unit test for emailgw.'''
+
+    class Fakeout():
+        '''Fake Object.'''
+
         form_source_dir = "forms"
         form_store_dir = "."
 
         def reg_form(self, *args):
-            pass
+            '''Reg Form dummy function.'''
 
         def list_add_form(self, *args, **kwargs):
-            pass
+            '''List add form dummy function.'''
 
+        # pylint: disable=no-self-use
         def get_stamp(self):
+            '''Returns "FOO".'''
             return "FOO"
 
+        # pylint: disable=fixme
         # Todo: This is just to get this unit test to not crash
         # Really need parameters for a test gateway as an option.
-        def getboolean(self, section, param):
+        # pylint: disable=no-self-use
+        def getboolean(self, _section, _param):
+            '''Get Boolean dummy function, returns False.'''
             return False
 
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
     #(self, config, host, user, pasw, port=110, ssl=False)
-    mt = MailThread(Fakeout(), "localhost", "foo", "bar")
-    mt.run()
+    mail_thread = MailThread(Fakeout(), "localhost", "foo", "bar")
+    mail_thread.run()
 
 
 if __name__ == "__main__":
