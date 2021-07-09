@@ -2132,10 +2132,15 @@ class DratsConfig(six.moves.configparser.ConfigParser):
     def getboolean(self, sec, key):
         try:
             return six.moves.configparser.ConfigParser.getboolean(self, sec, key)
-        # pylint: disable=bare-except
-        except:
+        # pylint: disable=broad-except
+        except Exception as err:
+            print('config getboolean exception')
+            print("err = '%s'" % err)
+            print("sec = '%s'" % sec)
+            print("key = '%s'" % key)
             printlog("Config",
-                     "    : Failed to get boolean: %s/%s" % (sec, key))
+                     "    : Failed to get boolean: %s/%s (%s)" %
+                     (sec, key, err))
             return False
 
     # pylint: disable=arguments-differ
