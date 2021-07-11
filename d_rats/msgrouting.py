@@ -1,4 +1,5 @@
 #
+'''Message Routing'''
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,16 +18,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
-
-import sys
 import threading
 import time
 import os
 import smtplib
 import shutil
+import traceback
 from glob import glob
 from six.moves import range
 
@@ -34,13 +31,13 @@ try:
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
     from email.mime.text import MIMEText
-    from email.message import Message
+    # from email.message import Message
 except ImportError:
     # Python 2.4
     from email import MIMEMultipart
     from email import MIMEBase
-    from email import MIMEText 
-    from email import Message 
+    from email import MIMEText
+    # from email import Message
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -50,49 +47,72 @@ from . import formgui
 from . import signals
 #py3   from . import emailgw
 
-
 from . import utils
 from . import wl2k
 
 #py3   from . import mainapp
 
-
-import traceback
+#importing printlog() wrapper
+from .debug import printlog
 
 CALL_TIMEOUT_RETRY = 300
 
 MSG_LOCK_LOCK = threading.Lock()
 
-def __msg_lockfile(fn):
-    name = os.path.basename(fn)
-    path = os.path.dirname(fn)
+
+def __msg_lockfile(fname):
+    name = os.path.basename(fname)
+    path = os.path.dirname(fname)
     return os.path.join(path, ".lock.%s" % name)
 
-def msg_is_locked(fn):
-    return os.path.exists(__msg_lockfile(fn))
 
-def msg_lock(fn):
+def msg_is_locked(fname):
+    '''
+    Message is locked?
+
+    :param fname: Lock filename
+    :returns: True if the lock filename exists
+    '''
+    return os.path.exists(__msg_lockfile(fname))
+
+
+def msg_lock(fname):
+    '''
+    Message Lock
+
+    :param fname: Filename for lock
+    :returns: True if lock is successful
+    '''
     MSG_LOCK_LOCK.acquire()
-    if not msg_is_locked(fn):
-        lf = open(__msg_lockfile(fn), "w")
-        traceback.print_stack(file=lf)
-        lf.close()
+    if not msg_is_locked(fname):
+        lock = open(__msg_lockfile(fname), "w")
+        traceback.print_stack(file=lock)
+        lock.close()
         success = True
     else:
-        lf = open(__msg_lockfile(fn), "r")
-        printlog("Msgrouting",": ------ LOCK OWNED BY -------\n%s------------\n" % lf.read())
-        lf.close()
+        lock = open(__msg_lockfile(fname), "r")
+        printlog("Msgrouting",
+                 ": ------ LOCK OWNED BY -------\n%s------------\n" %
+                 lock.read())
+        lock.close()
         success = False
     MSG_LOCK_LOCK.release()
 
-    #printlog("Locked %s: %s" % (fn, success))
+    # printlog("Locked %s: %s" % (fn, success))
     return success
 
-def msg_unlock(fn):
+
+def msg_unlock(fname):
+    '''
+    Message Unlock
+
+    :param fname: Lock filename
+    :returns: True if the unlock is successful
+    '''
     success = True
     MSG_LOCK_LOCK.acquire()
     try:
-        os.remove(__msg_lockfile(fn))
+        os.remove(__msg_lockfile(fname))
     except OSError:
         utils.log_exception()
         success = False
@@ -101,60 +121,86 @@ def msg_unlock(fn):
     #printlog("Unlocked %s: %s" % (fn, success))
     return success
 
+
 def gratuitous_next_hop(route, path):
+    '''
+    Gratuitous Next Hop
+
+    :param route: Route information
+    :param path: Route for path
+    :returns: Route Nodes or None
+    '''
     path_nodes = path[1:]
     route_nodes = route.split(";")
 
     if len(path_nodes) >= len(route_nodes):
-        printlog("Msgrouting",": Nothing left in the routes")
+        printlog("Msgrouting", ": Nothing left in the routes")
         return None
 
+    # pylint: disable=consider-using-enumerate
     for i in range(0, len(path_nodes)):
         if path_nodes[i] != route_nodes[i]:
-            printlog("Msgrouting",": Path element %i (%s) does not match route %s" % \
-                (i, path_nodes[i], route_nodes[i]))
+            printlog("Msgrouting",
+                     ": Path element %i (%s) does not match route %s" %
+                     (i, path_nodes[i], route_nodes[i]))
             return None
 
     return route_nodes[len(path_nodes)]
 
+
+# pylint: disable=too-many-return-statements
 def is_sendable_dest(mycall, string):
-    
+    '''
+    Is sendable Dest?
+
+    :param mycall: Callsign to check
+    :param string: string value
+    :returns: Boolean is sendable
+    '''
     # Specifically for me
     if string == mycall:
-        printlog("Msgrouting",": msg for me")
+        printlog("Msgrouting", ": msg for me")
         return False
 
     # Empty string
     if not string.strip():
-        printlog("Msgrouting",": empty: %s %s" % (string, string.strip()))
+        printlog("Msgrouting", ": empty: %s %s" % (string, string.strip()))
         return False
 
     # Is an email address:
     if "@" in string:
-        printlog("Msgrouting",": is an Email")
+        printlog("Msgrouting", ": is an Email")
         return True
 
     # Contains lowercase characters
     if string != string.upper():
-        printlog("Msgrouting",": lowercase")
+        printlog("Msgrouting", ": lowercase")
         return False
 
     # Contains spaces
     if string != string.split()[0]:
-        printlog("Msgrouting",": spaces")
+        printlog("Msgrouting", ": spaces")
         return False
 
     # Contains a gratuitous route and we're the last in line
     if ";" in string and string.split(";")[-1] == mycall:
-        printlog("Msgrouting",": End of grat")
+        printlog("Msgrouting", ": End of grat")
         return False
 
-    printlog("Msgrouting",": default to call")
+    printlog("Msgrouting", ": default to call")
 
     # Looks like it's a candidate to be routed
     return True
 
+
 def form_to_email(config, msgfn, replyto=None):
+    '''
+    Form to E-mail
+
+    :param config: Config object
+    :param msgfn: Message Form
+    :param replyto: Optional replyto destination
+    '''
     form = formgui.FormFile(msgfn)
     form.configure(config)
 
@@ -180,7 +226,7 @@ def form_to_email(config, msgfn, replyto=None):
     warn = "This message is a D-RATS rich form and is only viewable " +\
         "in D_RATS itself or in an HTML-capable email client"
 
-    if form.id == "email":
+    if form.ident == "email":
         altp.attach(MIMEText(form.get_field_value("message"), "plain"))
     else:
         altp.attach(MIMEText(warn, "plain"))
@@ -197,7 +243,15 @@ def form_to_email(config, msgfn, replyto=None):
 
     return root
 
+
 def move_to_folder(config, msg, folder):
+    '''
+    Move to folder
+
+    :param config: Config object
+    :param msg: Message to move
+    :param folder: Destination folder
+    '''
     newfn = os.path.join(config.form_store_dir(),
                          folder,
                          os.path.basename(msg))
@@ -205,14 +259,39 @@ def move_to_folder(config, msg, folder):
     shutil.move(msg, newfn)
     msg_unlock(newfn)
 
+
 def move_to_outgoing(config, msg):
+    '''
+    Move to outgoing
+
+    :param config: Config object
+    :param msg: Message to move
+    :returns: Result of move to folder, which does not have a return value
+    '''
     return move_to_folder(config, msg, "Outbox")
 
-class MessageRoute(object):
-    def __init__(self, line):
-        self.dest, self.gw, self.port = line.split()
 
+# pylint: disable=too-few-public-methods
+class MessageRoute():
+    '''
+    Message Route.
+
+    :param line: String containing a destination, gateway, and port
+    '''
+
+    # This class does not appear to be used anywhere
+    def __init__(self, line):
+        self.dest, self.gateway, self.port = line.split()
+
+
+# pylint: disable=too-many-instance-attributes
 class MessageRouter(GObject.GObject):
+    '''
+    Message Router.
+
+    :param config: Configuration object
+    '''
+
     __gsignals__ = {
         "get-station-list" : signals.GET_STATION_LIST,
         "user-send-form" : signals.USER_SEND_FORM,
@@ -227,8 +306,8 @@ class MessageRouter(GObject.GObject):
         GObject.idle_add(self.emit, signal, *args)
 
     def __proxy_emit(self, signal):
-        def handler(obj, *args):
-            printlog("Msgrouting",": Proxy emit %s: %s" % (signal, args))
+        def handler(_obj, *args):
+            printlog("Msgrouting", ": Proxy emit %s: %s" % (signal, args))
             self._emit(signal, *args)
         return handler
 
@@ -249,11 +328,11 @@ class MessageRouter(GObject.GObject):
         self.__enabled = False
 
     def _get_routes(self):
-        rf = self.__config.platform.config_file("routes.txt")
+        r_file = self.__config.platform.config_file("routes.txt")
         try:
-            f = open(rf)
-            lines = f.readlines()
-            f.close()
+            f_handle = open(r_file)
+            lines = f_handle.readlines()
+            f_handle.close()
         except IOError:
             return {}
 
@@ -263,48 +342,59 @@ class MessageRouter(GObject.GObject):
             if not line.strip() or line.startswith("#"):
                 continue
             try:
-                dest, gw, _port = line.split()
-                routes[dest] = gw
-            except Exception as e:
-                printlog("Msgrouting",": Error parsing line '%s': %s" % (line, e))
+                dest, gateway, _port = line.split()
+                routes[dest] = gateway
+            # pylint: disable=broad-except
+            except Exception as err:
+                printlog("Msgrouting",
+                         ": Error parsing line '%s': %s" % (line, err))
 
         return routes
 
     def _sleep(self):
-        t = self.__config.getint("settings", "msg_flush")
-        time.sleep(t)
+        t_limit = self.__config.getint("settings", "msg_flush")
+        time.sleep(t_limit)
 
+    # pylint: disable=no-self-use
     def _p(self, string):
-        printlog("Msgrouting",": [MR] %s" % string)
+        printlog("Msgrouting", ": [MR] %s" % string)
         import sys
         sys.stdout.flush()
 
     def _get_queue(self):
         queue = {}
 
-        qd = os.path.join(self.__config.form_store_dir(), "Outbox")
-        fl = glob(os.path.join(qd, "*.xml"))
-        for f in fl:
-            if not msg_lock(f):
-                printlog("Msgrouting",": Message %s is locked, skipping" % f)
+        q_dir = os.path.join(self.__config.form_store_dir(), "Outbox")
+        field_list = glob(os.path.join(q_dir, "*.xml"))
+        for field in field_list:
+            if not msg_lock(field):
+                printlog("Msgrouting",
+                         ": Message %s is locked, skipping" % field)
                 continue
 
-            form = formgui.FormFile(f)
+            form = formgui.FormFile(field)
             call = form.get_path_dst()
             del form
 
             if not call:
-                if msg_is_locked(f):
-                    msg_unlock(f)
+                if msg_is_locked(field):
+                    msg_unlock(field)
                 continue
             elif call not in queue:
-                queue[call] = [f]
+                queue[call] = [field]
             else:
-                queue[call].append(f)
-        
+                queue[call].append(field)
+
         return queue
 
     def _send_form(self, call, port, filename):
+        '''
+        Send form.
+
+        :param call: Call sign to send to
+        :param port: Radio port
+        :param filename: Filename for message
+        '''
         self.__sent_call[call] = time.time()
         self.__sent_port[port] = time.time()
         self.__file_to_call[filename] = call
@@ -318,6 +408,7 @@ class MessageRouter(GObject.GObject):
     def _port_free(self, port):
         return port not in self.__sent_port
 
+    # pylint: disable=too-many-arguments, too-many-branches, too-many-statements
     def _route_msg(self, src, dst, path, slist, routes):
         invalid = []
 
@@ -334,7 +425,8 @@ class MessageRouter(GObject.GObject):
             if ";" in dst:
                 # Gratuitous routing takes precedence
                 route = gratuitous_next_hop(dst, path)
-                printlog("Msgrouting",": Route for %s: %s (%s)" % (dst, route, path))
+                printlog("Msgrouting",
+                         ": Route for %s: %s (%s)" % (dst, route, path))
                 break
             elif "@" in dst and dst not in invalid and \
                     not ":" in dst and \
@@ -361,15 +453,18 @@ class MessageRouter(GObject.GObject):
             if route.upper().startswith("WL2K:"):
                 break # WL2K is easy
             elif route != dst and route in path:
-                printlog("Msgrouting",": Route %s in path" % route)
+                printlog("Msgrouting",
+                         ": Route %s in path" % route)
                 invalid.append(route)
                 route = None # Don't route to the same location twice
             elif self._is_station_failed(route):
-                printlog("Msgrouting",": Route %s is failed" % route)
+                printlog("Msgrouting",
+                         ": Route %s is failed" % route)
                 invalid.append(route)
                 route = None # This one is not responding lately
             elif old(route) and self._station_pinged_out(route):
-                printlog("Msgrouting",": Route %s for %s is pinged out" % (route, dst))
+                printlog("Msgrouting",
+                         ": Route %s for %s is pinged out" % (route, dst))
                 invalid.append(route)
                 route = None # This one has been pinged and isn't responding
             else:
@@ -386,7 +481,7 @@ class MessageRouter(GObject.GObject):
                 self._p("Pinging stale route %s" % route)
                 self._emit("ping-station", route, route_station.get_port())
             route = None
-        else :
+        else:
             self._station_pinged_clear(route)
             self._p("Routing message for %s to %s" % (dst, route))
 
@@ -395,7 +490,7 @@ class MessageRouter(GObject.GObject):
     def _form_to_wl2k_em(self, dst, msgfn):
         form = formgui.FormFile(msgfn)
 
-        if form.id != "email":
+        if form.ident != "email":
             raise Exception("WL2K support requires email type message")
 
         payload = form.get_field_value("message")
@@ -404,7 +499,7 @@ class MessageRouter(GObject.GObject):
         call = "".join([x for x in call if x.isalpha()])
 
         attachments = []
-        for name, length in form.get_attachments():
+        for name, _length in form.get_attachments():
             data = form.get_attachment(name)
             attachments.append(wl2k.WinLinkAttachment(name, data))
 
@@ -417,7 +512,7 @@ class MessageRouter(GObject.GObject):
 
         return msg
 
-    def _route_via_email(self, call, msgfn):
+    def _route_via_email(self, _call, msgfn):
         server = self.__config.get("settings", "smtp_server")
         replyto = self.__config.get("settings", "smtp_replyto")
         tls = self.__config.getboolean("settings", "smtp_tls")
@@ -460,22 +555,23 @@ class MessageRouter(GObject.GObject):
         return True
 
     def _route_via_wl2k(self, src, dst, msgfn):
-        foo, addr = dst.split(":")
+        _part, addr = dst.split(":")
         msg = self._form_to_wl2k_em(addr, msgfn)
 
-        def complete(thread, status, error):
+        def complete(_thread, status, error):
             if status:
                 self._emit("form-sent", -1, msgfn)
             else:
-                printlog("Msgrouting",": Failed to send via WL2K: %s" % error)
-        
-        from . import mainapp # Hack to force import of mainapp 
-        mt = wl2k.wl2k_auto_thread(mainapp.get_mainapp(), src, send_msgs=[msg])
-        mt.connect("mail-thread-complete", complete)
-        mt.connect("event", self.__proxy_emit("event"))
-        mt.connect("form-received", self.__proxy_emit("form-received"))
-        mt.connect("form-sent", self.__proxy_emit("form-sent"))
-        mt.start()
+                printlog("Msgrouting", ": Failed to send via WL2K: %s" % error)
+
+        from . import mainapp # Hack to force import of mainapp
+        msg_thread = wl2k.wl2k_auto_thread(mainapp.get_mainapp(),
+                                           src, send_msgs=[msg])
+        msg_thread.connect("mail-thread-complete", complete)
+        msg_thread.connect("event", self.__proxy_emit("event"))
+        msg_thread.connect("form-received", self.__proxy_emit("form-received"))
+        msg_thread.connect("form-sent", self.__proxy_emit("form-sent"))
+        msg_thread.start()
 
         return True
 
@@ -511,6 +607,10 @@ class MessageRouter(GObject.GObject):
 
         routes = self._get_routes()
 
+        if not plist:
+            printlog("MsgRouting", "Station list was empty")
+            return
+
         for _port, stations in plist.items():
             for station in stations:
                 slist[str(station)] = station
@@ -520,30 +620,34 @@ class MessageRouter(GObject.GObject):
 
                 try:
                     routed = self._route_message(msg, slist, routes)
+                # pylint: disable=broad-except
                 except Exception:
                     utils.log_exception()
                     routed = False
-    
+
                 if not routed:
                     if msg_is_locked(msg):
-                        printlog("Msgrouting",": unlocking message %s" % msg)
+                        printlog("Msgrouting", ": unlocking message %s" % msg)
                         msg_unlock(msg)
-    
+
     def _run(self):
         while self.__enabled:
             if self.__config.getboolean("settings", "msg_forward") or \
                     self.__event.isSet():
-                printlog("Msgrouting",": Running routing loop")
+                # printlog("Msgrouting", ": Running routing loop")
                 queue = self._get_queue()
 
                 try:
                     self._run_one(queue)
-                except Exception:
+                # pylint: disable=broad-except
+                except Exception as err:
                     utils.log_exception()
-                    printlog("Msgrouting",": Fail-safe unlocking messages in queue:")
+                    printlog("Msgrouting",
+                             ": Fail-safe unlocking messages in queue: (%s)" %
+                             err)
                     for msgs in queue.values():
                         for msg in msgs:
-                            printlog("Msgrouting",": Unlocking %s" % msg)
+                            printlog("Msgrouting", ": Unlocking %s" % msg)
                             if msg_is_locked(msg):
                                 msg_unlock(msg)
 
@@ -551,12 +655,14 @@ class MessageRouter(GObject.GObject):
             self.__event.wait(self.__config.getint("settings", "msg_flush"))
 
     def trigger(self):
+        '''Trigger'''
         if not self.__thread.isAlive():
             self.start()
         else:
             self.__event.set()
 
     def start(self):
+        '''Start'''
         self._p("Starting message router thread")
         self.__enabled = True
         self.__event.clear()
@@ -565,20 +671,23 @@ class MessageRouter(GObject.GObject):
         self.__thread.start()
 
     def stop(self):
+        '''Stop'''
         self.__enabled = False
         self.__thread.join()
 
-    def _update_path(self, fn, call):
-        form = formgui.FormFile(fn)
+    def _update_path(self, fname, call):
+        form = formgui.FormFile(fname)
         form.add_path_element(call)
-        form.save_to(fn)
+        form.save_to(fname)
 
     def _station_succeeded(self, call):
         self.__failed_stations[call] = 0
 
     def _station_failed(self, call):
         self.__failed_stations[call] = self.__failed_stations.get(call, 0) + 1
-        printlog("Msgrouting",": Fail count for %s is %i" % (call, self.__failed_stations[call]))
+        printlog("Msgrouting",
+                 ": Fail count for %s is %i" %
+                 (call, self.__failed_stations[call]))
 
     def _is_station_failed(self, call):
         return self.__failed_stations.get(call, 0) >= 3
@@ -593,25 +702,31 @@ class MessageRouter(GObject.GObject):
     def _station_pinged_out(self, call):
         return self.__pinged_stations.get(call, 0) >= 3
 
-    def form_xfer_done(self, fn, port, failed):
-        self._p("File %s on %s done" % (fn, port))
+    def form_xfer_done(self, fname, port, failed):
+        '''
+        Form Transfer Done.
 
-        if fn and msg_is_locked(fn):
-            msg_unlock(fn)
+        :param fname: Filename of form
+        :param port: Port for transport
+        :param failed: True if the transfer failed
+        '''
+        self._p("File %s on %s done" % (fname, port))
 
-        call = self.__file_to_call.get(fn, None)
+        if fname and msg_is_locked(fname):
+            msg_unlock(fname)
+
+        call = self.__file_to_call.get(fname, None)
         if call and call in self.__sent_call:
             # This callsign completed (or failed) a transfer
             if failed:
                 self._station_failed(call)
             else:
                 self._station_succeeded(call)
-                self._update_path(fn, call)
+                self._update_path(fname, call)
 
             del self.__sent_call[call]
-            del self.__file_to_call[fn]
+            del self.__file_to_call[fname]
 
         if port in self.__sent_port:
             # This port is now open for another transfer
             del self.__sent_port[port]
-
