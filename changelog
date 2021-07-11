@@ -1,3 +1,10 @@
+20210711 - 0.4.00 pre-release #
+- This is experimental use only for development and testing
+- Start of python3 conversion
+- Silencing pylint diagnostics.  Fix issues when practical.
+  Had to guess at some variable renaming required to comply with pylint.
+- Add DocStrings - Had to guess at some definitions.
+- Additional debug code has been added.
 
 20200529 - 0.3.9 - beta 3
 - added timestamp in repeater log 
@@ -9,7 +16,8 @@
 
 20200513 - 0.3.9 - beta 1
 - removed weather QST feature based on Weather underground APIs (now retired)
-    --> users still having weather QSTs based on Weather Underground will need to remove those editing the config file
+    --> users still having weather QSTs based on Weather Underground will need
+        to remove those editing the config file
 - added Open Weather APIs for "current" and "forecasts"
 
 -----------------------------
@@ -32,21 +40,27 @@ same binary as beta4
        - New-fangled MacOS .app with D-RATS icon.
        - Set proper permissions on installer build and cleanup build directory.
        - Include gio module in py2exe build.
-       - Patch from Steve to check more paths in platform.py when determining where we're installed.
+       - Patch from Steve to check more paths in platform.py when determining
+         where we're installed.
        - Add a function to get a field caption.
        - Allow designating QSTs as going to all ports, or just the current port.
        - Allow expiring stations from the heard list after n minutes.
-       - Increase the shutdown delay when an offline message is configured giving time for the final message to go out.
+       - Increase the shutdown delay when an offline message is configured
+         giving time for the final message to go out.
        - Fix threaded QSTs (like weather, RSS, etc).
        - Update copyright dates...and add python version to the about box.
        - Fix typo causing the date column to sort with the size column in Files.
        - Support for sending attachments via WL2K.
        - Support for receiving file attachements from WL2K.
        - Enable OSX menubar integration (runtime R10 required).
-       - Fix up finding the source directory in MacOSPlatform, for the structure of the new-fangled .app.
-       - Disable the lookup-by-address function since it was rendered useless by Yahoo discontinuing their geocoding service.
-       - Disable automatic global key handler on MacOS so that we can have our 'c' key back :)
-       - Add an uninstaller to the D-RATS win32 build and register it with the Add/Remove programs tool.
+       - Fix up finding the source directory in MacOSPlatform, for the
+         structure of the new-fangled .app.
+       - Disable the lookup-by-address function since it was rendered useless
+         by Yahoo discontinuing their geocoding service.
+       - Disable automatic global key handler on MacOS so that we can have
+         our 'c' key back :)
+       - Add an uninstaller to the D-RATS win32 build and register it with
+         the Add/Remove programs tool.
        - Fix inverted speed/course in GPS-A transmission.
        - Fixes for GPS-A transmission (lots of 'em).
        - Fix transmitting GPS-A beacons with less than 10 degrees latitude.
@@ -55,13 +69,16 @@ same binary as beta4
 -----------------------------
 20200423 - 0.3.7 beta a
 - Maps
-  - added deletion of tiles which result defective at map rendering time (deletion will force re-download of the tiles at next map reload)
-  - added map reload after a change is done in the config (this avoid closing and reopening D-rats to change map)
+  - added deletion of tiles which result defective at map rendering time
+    (deletion will force re-download of the tiles at next map reload)
+  - added map reload after a change is done in the config (this avoid closing
+    and reopening D-rats to change map)
 - Continued porting "print" to print() 
 
 --------------------------
 20200414 - 0.3.6 
- - Get version: - looked into OS getversion and partially modified the output to cover Win 7 and 10/8 ids  
+ - Get version: - looked into OS getversion and partially modified the output
+   to cover Win 7 and 10/8 ids  
  - Renamed platform module to dplatform as platform 
  - Default config: 
      - base map set to http//tile.openstreetmap.de
@@ -85,7 +102,8 @@ same binary as beta4
 20200407 -  0.3.6 candidate 1 
 - fixed "get position" / "get all positions"
 - investigated and fix some warnings
-- added more output to debuglog during program execution to facilitate issue detection
+- added more output to debuglog during program execution to facilitate issue
+  detection
 
 --------------------------
 201910 -  0.3.5
@@ -101,15 +119,17 @@ same binary as beta4
 - removed enlarged background map due to a bug in displayng position markers 
 ----------------------------
 20150417 version 3.3.4 alfa 
-- fixed look and feel issue adding the entire glade folder to the distributed version
+- fixed look and feel issue adding the entire glade folder to the distributed
+  version
 issues:
 - lack of installer
 
 ------------------------
 20150416
 Removed d-Rats Map-downloader and started simplifing the mapdisplay module code 
-NOTE: The D-Rats Mapdownloader application has been discontinued -- please use one 
-of the exisitng opensource tools to download the maps tiles to use offline in D-Rats .
+NOTE: The D-Rats Mapdownloader application has been discontinued -- please
+use one of the exisitng opensource tools to download the maps tiles to use
+offline in D-Rats .
 
 ------------------------
 20150415 
