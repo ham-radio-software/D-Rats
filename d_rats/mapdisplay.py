@@ -84,7 +84,13 @@ MAP_URL_KEY = None
 
 
 def set_base_dir(basedir, mapurl, mapkey):
-    '''Set Base Dir'''
+    '''
+    Set Base Directory.
+
+    :param basedir: Base directory
+    :param mapurl: URL of Map
+    :param mapkey: Map access key
+    '''
     # pylint: disable=global-statement
     global BASE_DIR
     BASE_DIR = basedir
@@ -111,28 +117,44 @@ PROXY = None
 
 
 def set_connected(connected):
-    '''Set Connected'''
+    '''
+    Set Connected.
+
+    :param connected: Set connected state
+    '''
     # pylint: disable=global-statement
     global CONNECTED
     CONNECTED = connected
 
 
 def set_tile_lifetime(lifetime):
-    '''Set tile Lifetime'''
+    '''
+    Set tile Lifetime.
+
+    :param lifetime: Cache lifetime (in Units?)
+    '''
     # pylint: disable=global-statement
     global MAX_TILE_LIFE
     MAX_TILE_LIFE = lifetime
 
 
 def set_proxy(proxy):
-    '''set proxy'''
+    '''
+    Set Proxy.
+
+    :param: proxy to set
+    '''
     # pylint: disable=global-statement
     global PROXY
     PROXY = proxy
 
 
 def fetch_url(url, local):
-    '''Fetch Url'''
+    '''
+    Fetch Url.
+
+    :param local: Local file name to store contents
+    '''
     # pylint: disable=global-statement
     global CONNECTED
     # pylint: disable=global-statement
@@ -188,7 +210,7 @@ def fetch_url(url, local):
 
 
 class MarkerEditDialog(inputdialog.FieldDialog):
-    '''Marker Edit Dialog'''
+    '''Marker Edit Dialog.'''
 
     def __init__(self):
         printlog("Mapdisplay", " : markereditdialog")
@@ -211,7 +233,12 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         self._point = None
 
     def set_groups(self, groups, group=None):
-        '''Set Groups'''
+        '''
+        Set Groups.
+
+        :param groups: Groups to retrieve
+        :param group: Optional group text to set
+        '''
         grpsel = self.get_field(_("Group"))
         for grp in groups:
             grpsel.append_text(grp)
@@ -224,11 +251,19 @@ class MarkerEditDialog(inputdialog.FieldDialog):
 
     # pylint: disable=arguments-differ
     def get_group(self):
-        '''Get Group'''
+        '''
+        Get Group
+
+        :returns: Group for marker
+        '''
         return self.get_field(_("Group")).child.get_text()
 
     def set_point(self, point):
-        '''Set Point'''
+        '''
+        Set Point.
+
+        :param point: point object
+        '''
         self.get_field(_("Name")).set_text(point.get_name())
         self.get_field(_("Latitude")).set_text("%.4f" % point.get_latitude())
         self.get_field(_("Longitude")).set_text("%.4f" % point.get_longitude())
@@ -249,7 +284,11 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         self._point = point
 
     def get_point(self):
-        '''Get Point'''
+        '''
+        Get Point.
+
+        :returns: point object
+        '''
         name = self.get_field(_("Name")).get_text()
         lat = self.get_field(_("Latitude")).value()
         lon = self.get_field(_("Longitude")).value()
@@ -270,7 +309,14 @@ class MarkerEditDialog(inputdialog.FieldDialog):
 # These functions taken from:
 #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 def deg2num(lat_deg, lon_deg, zoom):
-    '''deg2num'''
+    '''
+    Degrees to number.
+
+    :param lat_deg: Latitude in degrees
+    :param lon_deg: Longitude in degrees
+    :param zoom: Zoom factor
+    :returns: Tuple of (x_pos, y_pos) for coordinates
+    '''
     # lat_rad = lat_deg * math.pi / 180.0
     lat_rad = math.radians(lat_deg)
     num = 2.0 ** zoom
@@ -282,7 +328,14 @@ def deg2num(lat_deg, lon_deg, zoom):
 
 
 def num2deg(xtile, ytile, zoom):
-    '''num2deg'''
+    '''
+    Number to Degrees.
+
+    :param xtile: X axis position of tile
+    :param ytile: Y axis position of tile
+    :param zoom: Zoom factor
+    :returns: Tuple of (latitude, longitude) in degrees
+    '''
     num = 2.0 ** zoom
     lon_deg = xtile / num * 360.0 - 180.0
     lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / num)))
@@ -291,30 +344,56 @@ def num2deg(xtile, ytile, zoom):
 
 
 class MapTile():
-    '''Downloads the map tiles'''
+    '''
+    Downloads the map tiles.
+
+    :param lat: Latitude
+    :param lon: Longitude
+    :param zoom: Zoom factor
+    '''
 
     def path_els(self):
-        '''Path ELS'''
+        '''
+        Path ELS.
+
+        :returns: Latitude and longitude in degrees
+        '''
         return deg2num(self.lat, self.lon, self.zoom)
 
     def tile_edges(self):
-        '''tile edges'''
+        '''
+        Tile Edges.
+
+        :returns: Axes of the tile edges
+        '''
         north, west = num2deg(self.x_axis, self.y_axis, self.zoom)
         south, east = num2deg(self.x_axis + 1, self.y_axis + 1, self.zoom)
         return (south, west, north, east)
 
     def lat_range(self):
-        '''Latitude Range'''
+        '''
+        Latitude Range.
+
+        :returns: Tuple of latitude range of tile
+        '''
         south, _w, north, _e = self.tile_edges()
         return (north, south)
 
     def lon_range(self):
-        '''Longitude Range'''
+        '''
+        Longitude Range.
+
+        :returns: Tuple of longitude range of tile
+        '''
         _s, west, _n, east = self.tile_edges()
         return (west, east)
 
     def path(self):
-        '''path'''
+        '''
+        Path.
+
+        :returns: Local path for map tile
+        '''
         return "%d/%d/%d.png" % (self.zoom, self.x_axis, self.y_axis)
 
     def _local_path(self):
@@ -324,7 +403,11 @@ class MapTile():
         return path
 
     def is_local(self):
-        '''Is local'''
+        '''
+        Is local?
+
+        :returns: True if locally cached and cache is not expired
+        '''
         if MAX_TILE_LIFE == 0 or not CONNECTED:
             return os.path.exists(self._local_path())
         try:
@@ -334,7 +417,11 @@ class MapTile():
             return False
 
     def fetch(self):
-        '''Fetch'''
+        '''
+        Fetch.
+
+        :returns: True if fetch is successfull
+        '''
         #verify if tile is local, if not fetches from web
         if not self.is_local():
             for tile_num in range(10):
@@ -361,20 +448,33 @@ class MapTile():
         GObject.idle_add(callback, fname, *args)
 
     def threaded_fetch(self, callback, *args):
-        '''Threaded fetch'''
+        '''
+        Threaded fetch.
+
+        :param callback: Callback for fetch
+        :param args: Optional arguments
+        '''
         _args = (callback,) + args
         tfetch = threading.Thread(target=self._thread, args=_args)
         tfetch.setDaemon(True)
         tfetch.start()
 
     def local_path(self):
-        '''local_path'''
+        '''
+        Local Path.
+
+        :returns: Local path
+        '''
         path = self._local_path()
         self.fetch()
         return path
 
     def remote_path(self):
-        '''remote_path'''
+        '''
+        Remote Path.
+
+        :returns: URL of path
+        '''
         return MAP_URL + (self.path()) + MAP_URL_KEY
 
     def __add__(self, count):
@@ -422,7 +522,13 @@ class MapTile():
 
 # pylint: disable=too-few-public-methods
 class LoadContext():
-    '''Tile Context'''
+    '''
+    Tile Context
+
+    :param loaded_tiles: Tile that are loaded
+    :param total_tiles: Total tiles
+    :param zoom: Zoom setting
+    '''
 
     def __init__(self, loaded_tiles, total_tiles, zoom):
         self.loaded_tiles = loaded_tiles
@@ -432,7 +538,14 @@ class LoadContext():
 
 # pylint: disable=too-many-instance-attributes
 class MapWidget(Gtk.DrawingArea):
-    '''MapWidget'''
+    '''
+    MapWidget
+
+    :param width: Width of widget
+    :param height: Height of widget
+    :param tilesize: Size of tiles, default 256
+    :param status: Optional status
+    '''
 
     __gsignals__ = {
         "redraw-markers" : (GObject.SignalFlags.RUN_LAST,
@@ -444,7 +557,14 @@ class MapWidget(Gtk.DrawingArea):
         }
 
     def draw_text_marker_at(self, x_axis, y_axis, text, color="yellow"):
-        '''Draw Text Marker at'''
+        '''
+        Draw Text Marker at.
+
+        :param x_axis: X Axis
+        :param y_axis: Y Axis
+        :param text: Text for marker
+        :param color: Color for marker, default is "yellow"
+        '''
         # printlog("Mapdisplay",
         #          ": draw_text_marker_at %s at x=%s y=%s" %(text, x, y))
 
@@ -467,7 +587,14 @@ class MapWidget(Gtk.DrawingArea):
         self.window.draw_layout(gc, int(x_axis), int(y_axis), pango_layout)
 
     def draw_image_at(self, x_axis, y_axis, pixbuf):
-        '''Draw Image At'''
+        '''
+        Draw Image At.
+
+        :param x_axis: X Axis
+        :param y_axis: Y Axis
+        :param pixbuf: Pixbuf to draw
+        :returns: Height of pixbuf
+        '''
         # printlog("Mapdisplay", ": draw_image_at x=%s y=%s" %(x_axis, y_axis))
         # pylint: disable=invalid-name
         gc = self.get_style().black_gc
@@ -480,7 +607,12 @@ class MapWidget(Gtk.DrawingArea):
         return pixbuf.get_height()
 
     def draw_cross_marker_at(self, x_axis, y_axis):
-        '''Draw cross marker'''
+        '''
+        Draw cross marker.
+
+        :param x_axis: X axis
+        :param y_axis: Y axis
+        '''
         # printlog("Mapdisplay",
         #          ": draw_cross_marker_at x=%s y=%s" %(x_axis, y_axis))
         width = 2
@@ -497,7 +629,12 @@ class MapWidget(Gtk.DrawingArea):
         self.window.draw_lines(gc, [(x_axis - 5, y_axis), (x_axis + 5, y_axis)])
 
     def latlon2xy(self, lat, lon):
-        '''lation2xy'''
+        '''
+        Translate Latitude and Longitude to X and Y axes.
+
+        :param lat: Latitude
+        :param lon: Longitude
+        :returns: Tuple of (x_axis, y_axis)'''
         y_axis = 1- ((lat - self.lat_min) / (self.lat_max - self.lat_min))
         x_axis = 1- ((lon - self.lon_min) / (self.lon_max - self.lon_min))
 
@@ -509,7 +646,13 @@ class MapWidget(Gtk.DrawingArea):
         return (x_axis, y_axis)
 
     def xy2latlon(self, x_axis, y_axis):
-        '''xy2lation'''
+        '''
+        Translate X, Y axes to latitude and longitude.
+
+        :param x_axis: X Axis
+        :param y_axis: Y Axis
+        :returns: Tuple of (latitude, longitude)
+        '''
         y_axis -= self.lat_fudge
         x_axis -= self.lng_fudge
 
@@ -522,7 +665,14 @@ class MapWidget(Gtk.DrawingArea):
         return lat, lon
 
     def draw_marker(self, label, lat, lon, img=None):
-        '''Draw Marker'''
+        '''
+        Draw Marker.
+
+        :param label: label for marker
+        :param lat: Latitude for marker
+        :param lon: Longitude for marker
+        :param img: Option image
+        '''
         # printlog("Mapdisplay", ": ----------------- %s" % time.ctime())
         # printlog("Mapdisplay", ": zoom     =%i" % self.zoom)
         # printlog("Mapdisplay",
@@ -547,7 +697,12 @@ class MapWidget(Gtk.DrawingArea):
             self.draw_text_marker_at(x_axis, y_axis, label, color)
 
     def expose(self, _area, _event):
-        '''expose'''
+        '''
+        Expose.
+
+        :param _area: unused
+        :param _event: unused
+        '''
         # pylint: disable=len-as-condition
         if len(self.map_tiles) == 0:
             self.load_tiles()
@@ -562,7 +717,7 @@ class MapWidget(Gtk.DrawingArea):
         self.emit("redraw-markers")
 
     def calculate_bounds(self):
-        '''calculate bounds'''
+        '''Calculate Bounds.'''
         center = MapTile(self.lat, self.lon, self.zoom)
 
         # here we set the bounds for the map into the window
@@ -598,7 +753,11 @@ class MapWidget(Gtk.DrawingArea):
         self.lat_fudge = ((self.height / 2) * self.tilesize) - y_axis
 
     def broken_tile(self):
-        '''Broken Tile'''
+        '''
+        Broken Tile
+
+        :returns: pixbuf object
+        '''
         if self.__broken_tile:
             return self.__broken_tile
 
@@ -644,7 +803,14 @@ class MapWidget(Gtk.DrawingArea):
         return pixbuf
 
     def draw_tile(self, path, x_axis, y_axis, ctx=None):
-        '''Draw Tile'''
+        '''
+        Draw Tile.
+
+        :param path: Path for tile
+        :param x_axis: X Axis for tile
+        :param y_axis: Y Axis for tile
+        :param ctx: Optional context
+        '''
         if ctx and ctx.zoom != self.zoom:
             # Zoom level has changed, so don't do anything
             return
@@ -691,11 +857,11 @@ class MapWidget(Gtk.DrawingArea):
 
     @utils.run_gtk_locked
     def draw_tile_locked(self, *args):
-        '''Draw Tile Locked'''
+        '''Draw Tile Locked.'''
         self.draw_tile(*args)
 
     def load_tiles(self):
-        '''Load Tiles'''
+        '''Load Tiles.'''
         self.map_tiles = []
         ctx = LoadContext(0, (self.width * self.height), self.zoom)
         center = MapTile(self.lat, self.lon, self.zoom)
@@ -750,7 +916,11 @@ class MapWidget(Gtk.DrawingArea):
         self.emit("new-tiles-loaded")
 
     def export_to(self, filename, bounds=None):
-        '''export to'''
+        '''
+        Export To File in PNG format.
+
+        :param filename: Filename to export to
+        :param bounds: Optional bounds'''
         if not bounds:
             x_axis = 0
             y_axis = 0
@@ -803,18 +973,31 @@ class MapWidget(Gtk.DrawingArea):
         # self.connect("expose-event", self.expose)
 
     def set_center(self, lat, lon):
-        '''Set Center'''
+        '''
+        Set Center.
+
+        :param lat: Latitude for center
+        :param lon: Longitude for center
+        '''
         self.lat = lat
         self.lon = lon
         self.map_tiles = []
         self.queue_draw()
 
     def get_center(self):
-        '''Get Center'''
+        '''
+        Get Center.
+
+        :returns: Tuple of latitude and longitude
+        '''
         return (self.lat, self.lon)
 
     def set_zoom(self, zoom):
-        '''Set Zoom'''
+        '''
+        Set Zoom.
+
+        :param zoom: Zoom to set
+        '''
         if zoom > 18 or zoom == 3:
             return
 
@@ -823,12 +1006,22 @@ class MapWidget(Gtk.DrawingArea):
         self.queue_draw()
 
     def get_zoom(self):
-        '''Get Zoom'''
+        '''
+        Get Zoom.
+
+        :returns: zoom value
+        '''
         return self.zoom
 
     # pylint: disable=too-many-locals
     def scale(self, x_axis, y_axis, pixels=128):
-        '''Scale'''
+        '''
+        Scale.
+
+        :param x_axis: X axis
+        :param y_axis: Y axis
+        :param pixels: Optional pixels, default=128
+        '''
         # draw the scale-ladder on the map
         shift = 15
         tick = 5
@@ -864,7 +1057,11 @@ class MapWidget(Gtk.DrawingArea):
                                 pango_layout)
 
     def point_is_visible(self, lat, lon):
-        '''Point is Visible'''
+        '''
+        Point is Visible.
+
+        :returns: True if visible
+        '''
         for i in self.map_tiles:
             if (lat, lon) in i:
                 return True
@@ -874,7 +1071,12 @@ class MapWidget(Gtk.DrawingArea):
 
 # pylint: disable=too-many-public-methods
 class MapWindow(Gtk.Window):
-    '''Map Window'''
+    '''
+    Map Window
+
+    :param config: Config object
+    :param args: Optional arguments
+    '''
 
     __gsignals__ = {
         "reload-sources" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE, ()),
@@ -887,14 +1089,23 @@ class MapWindow(Gtk.Window):
                 }
 
     def zoom(self, widget, frame):
-        '''zoom'''
+        '''
+        Zoom.
+
+        :param widget: Widget for zoom
+        :param frame: Frame for zoom
+        '''
         adj = widget.get_adjustment()
 
         self.map.set_zoom(int(adj.value))
         frame.set_label(_("Zoom") + " (%i)" % int(adj.value))
 
     def make_zoom_controls(self):
-        '''Make zoom controlls'''
+        '''
+        Make zoom controlls
+
+        :returns; Frame object
+        '''
         box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 3)
         box.set_border_width(3)
         box.show()
@@ -928,7 +1139,12 @@ class MapWindow(Gtk.Window):
         return frame
 
     def toggle_show(self, group, *vals):
-        '''Toggle Show'''
+        '''
+        Toggle Show.
+
+        :param group: Group to show
+        :param vals: Optional values
+        '''
         if group:
             station = vals[1]
         else:
@@ -959,11 +1175,16 @@ class MapWindow(Gtk.Window):
         self.map.queue_draw()
 
     # pylint: disable=too-many-branches
-    def marker_mh(self, _action, ident, group):
-        '''Marker mh'''
-        action = _action.get_name()
+    def marker_mh(self, action, ident, group):
+        '''
+        Marker Menu Handler.
 
-        if action == "delete":
+        :param action: Menu action
+        :param ident: Identification
+        :param group: Group for menu'''
+        menu_action = action.get_name()
+
+        if menu_action == "delete":
             printlog(("Mapdisplay: Deleting %s/%s" % (group, ident)))
             for source in self.map_sources:
                 if source.get_name() == group:
@@ -973,7 +1194,7 @@ class MapWindow(Gtk.Window):
                     point = source.get_point_by_name(ident)
                     source.del_point(point)
                     source.save()
-        elif action == "edit":
+        elif menu_action == "edit":
             source = None
             for source in self.map_sources:
                 if source.get_name() == group:
@@ -1041,7 +1262,13 @@ class MapWindow(Gtk.Window):
         return uim.get_widget("/menu")
 
     def make_marker_popup(self, _, view, event):
-        '''Make Marker Popup'''
+        '''
+        Make Marker Popup.
+
+        :param _: Unused
+        :param view: View for popup
+        :param event: Event for popup
+        '''
         if event.button != 3:
             return
 
@@ -1056,10 +1283,14 @@ class MapWindow(Gtk.Window):
 
         menu = self._make_marker_menu(store, iter_value)
         if menu:
-            menu.popup(None, None, None, event.button, event.time)
+            menu.popup(None, None, None, None, event.button, event.time)
 
     def make_marker_list(self):
-        '''Make Marker List'''
+        '''
+        Make Marker List.
+
+        :returns: Scroll Window object
+        '''
         cols = [(GObject.TYPE_BOOLEAN, _("Show")),
                 (GObject.TYPE_STRING, _("Station")),
                 (GObject.TYPE_FLOAT, _("Latitude")),
@@ -1126,7 +1357,11 @@ class MapWindow(Gtk.Window):
         return scrollw
 
     def refresh_marker_list(self, group=None):
-        '''Refresh Marker List'''
+        '''
+        Refresh Marker List.
+
+        :param group: Optional group
+        '''
         (lat, lon) = self.map.get_center()
         center = GPSPosition(lat=lat, lon=lon)
 
@@ -1152,7 +1387,11 @@ class MapWindow(Gtk.Window):
                                           bear)
 
     def make_track(self):
-        '''Make Track'''
+        '''
+        Make Track
+
+        :returns: Check button
+        '''
         def toggle(check_button, map_window):
             map_window.tracking_enabled = check_button.get_active()
 
@@ -1164,7 +1403,7 @@ class MapWindow(Gtk.Window):
         return check_button
 
     def clear_map_cache(self):
-        '''Clear Map Cache'''
+        '''Clear Map Cache.'''
         dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.YES_NO)
         dialog.set_property("text",
                             _("Are you sure you want to delete all"
@@ -1179,7 +1418,11 @@ class MapWindow(Gtk.Window):
             self.map.queue_draw()
 
     def printable_map(self, bounds=None):
-        '''Printable Map'''
+        '''
+        Printable Map.
+
+        :param bounds: Optional bounds
+        '''
         platform = dplatform.get_platform()
 
         file_handle = tempfile.NamedTemporaryFile()
@@ -1213,7 +1456,11 @@ class MapWindow(Gtk.Window):
         platform.open_html_file(html_file)
 
     def save_map(self, bounds=None):
-        '''Save Map'''
+        '''
+        Save Map.
+
+        :param bounds: Optional bounds to save
+        '''
         platform = dplatform.get_platform()
         fname = platform.gui_save_file(default_name="map_%s.png" % \
                                        time.strftime("%m%d%Y%_H%M%S"))
@@ -1225,7 +1472,11 @@ class MapWindow(Gtk.Window):
         self.map.export_to(fname, bounds)
 
     def get_visible_bounds(self):
-        '''Get Visible Bounds'''
+        '''
+        Get Visible Bounds.
+
+        :returns: tuple with bounds
+        '''
         hadj = self.scrollw.get_hadjustment()
         vadj = self.scrollw.get_vadjustment()
 
@@ -1234,31 +1485,39 @@ class MapWindow(Gtk.Window):
                 int(vadj.value + vadj.page_size))
 
     # pylint: disable=invalid-name
-    def mh(self, _action):
-        '''mh???'''
-        action = _action.get_name()
+    def mh(self, action):
+        '''
+        Menu Handler.
 
-        if action == "refresh":
+        :param _action: Action object
+        '''
+        menu_action = action.get_name()
+
+        if menu_action == "refresh":
             self.map_tiles = []
             self.map.queue_draw()
-        elif action == "clearcache":
+        elif menu_action == "clearcache":
             self.clear_map_cache()
-        elif action == "save":
+        elif menu_action == "save":
             self.save_map()
-        elif action == "savevis":
+        elif menu_action == "savevis":
             self.save_map(self.get_visible_bounds())          
-        elif action == "printable":
+        elif menu_action == "printable":
             self.printable_map()
-        elif action == "printablevis":
+        elif menu_action == "printablevis":
             self.printable_map(self.get_visible_bounds())
-        elif action == "editsources":
+        elif menu_action == "editsources":
             srced = map_source_editor.MapSourcesEditor(self.config)
             srced.run()
             srced.destroy()
             self.emit("reload-sources")
 
     def make_menu(self):
-        '''Make Menu'''
+        '''
+        Make Menu.
+
+        :returns: Menu object
+        '''
         menu_xml = """
 <ui>
   <menubar name="MenuBar">
@@ -1311,7 +1570,11 @@ class MapWindow(Gtk.Window):
         return uim.get_widget("/MenuBar")
 
     def make_controls(self):
-        '''Make Controls'''
+        '''
+        Make Controls.
+
+        :returns: Box object
+        '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
         vbox.pack_start(self.make_zoom_controls(), 0, 0, 0)
@@ -1322,7 +1585,11 @@ class MapWindow(Gtk.Window):
         return vbox
 
     def make_bottom_pane(self):
-        '''Make Bottom Pane'''
+        '''
+        Make Bottom Pane.
+
+        :returns: Box object
+        '''
         box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
         box.pack_start(self.make_marker_list(), 1, 1, 1)
@@ -1334,7 +1601,11 @@ class MapWindow(Gtk.Window):
 
     # pylint: disable=no-self-use
     def scroll_to_center(self, widget):
-        '''Scroll to Center'''
+        '''
+        Scroll to Center.
+
+        :param widget: Widget to Center
+        '''
         adjustment = widget.get_vadjustment()
         adjustment.set_value((adjustment.get_upper() -
                               adjustment.get_page_size()) / 2)
@@ -1344,7 +1615,12 @@ class MapWindow(Gtk.Window):
                               adjustment.get_page_size()) / 2)
 
     def center_on(self, lat, lon):
-        '''Center On'''
+        '''
+        Center On.
+
+        :param lat: Latitude to center on
+        :param long: Longitude to center on
+        '''
         hadj = self.scrollw.get_hadjustment()
         vadj = self.scrollw.get_vadjustment()
 
@@ -1354,12 +1630,22 @@ class MapWindow(Gtk.Window):
         vadj.set_value(y_axis - (vadj.page_size / 2))
 
     def status(self, frac, message):
-        '''Status'''
+        '''
+        Status.
+
+        :param frac: Fraction
+        :param message: Status message
+        '''
         self.sb_prog.set_text(message)
         self.sb_prog.set_fraction(frac)
 
     def recenter(self, lat, lon):
-        '''Recenter'''
+        '''
+        Recenter.
+
+        :param lat: Latitude to recenter on
+        :param lon: Longitude to recenter on
+        '''
         self.map.set_center(lat, lon)
         self.map.load_tiles()
         self.refresh_marker_list()
@@ -1367,11 +1653,17 @@ class MapWindow(Gtk.Window):
         self.map.queue_draw()
 
     def refresh(self):
-        '''Refresh'''
+        '''Refresh.'''
         self.map.load_tiles()
 
     def prompt_to_set_marker(self, point, group=None):
-        '''Prompt to set marker'''
+        '''
+        Prompt to set marker.
+
+        :param point: Point to set marker on
+        :param group: Optional group
+        :returns: Tuple of (point, group) or (None, None)
+        '''
         # def do_address(_button, latw, lonw, namew):
         #    dlg = geocode_ui.AddressAssistant()
         #    run_status = dlg.run()
@@ -1401,7 +1693,12 @@ class MapWindow(Gtk.Window):
         return None, None
 
     def prompt_to_send_loc(self, _lat, _lon):
-        '''Prompt to send loc'''
+        '''
+        Prompt to send location.
+
+        :param _lat: Latitude, not used
+        :param _lon: Longitude, not used
+        '''
         dialog = inputdialog.FieldDialog(title=_("Broadcast Location"))
 
         callsign_e = Gtk.Entry()
@@ -1444,7 +1741,14 @@ class MapWindow(Gtk.Window):
         dialog.destroy()
 
     def recenter_cb(self, view, path, column, data=None):
-        '''Recenter Callback'''
+        '''
+        Recenter Callback.
+
+        :param view: View to center
+        :param path: path
+        :param column: Column to center on
+        :param data: Optional data
+        '''
         model = view.get_model()
         if model.iter_parent(model.get_iter(path)) is None:
             return
@@ -1459,7 +1763,12 @@ class MapWindow(Gtk.Window):
                             _("Center") + ": %s" % self.center_mark)
 
     def make_popup(self, vals):
-        '''Make Popup'''
+        '''
+        Make Popup.
+
+        :param vals: Values for popup
+        :returns: Widget
+        '''
         def _an(cap):
             return cap.replace(" ", "_")
 
@@ -1498,7 +1807,12 @@ class MapWindow(Gtk.Window):
         return uim.get_widget("/menu")
 
     def mouse_click_event(self, widget, event):
-        '''Mouse Click Event'''
+        '''
+        Mouse Click Event.
+
+        :param widget: Widget clicked on
+        :param event: Click event
+        '''
         x_axis, y_axis = event.get_coords()
 
         hadj = widget.get_hadjustment()
@@ -1517,7 +1831,7 @@ class MapWindow(Gtk.Window):
                     "y" : my_axis}
             menu = self.make_popup(vals)
             if menu:
-                menu.popup(None, None, None, event.button, event.time)
+                menu.popup(None, None, None, None, event.button, event.time)
         elif event.type == Gdk.BUTTON_PRESS:
             printlog("Mapdisplay", ": Clicked: %.4f,%.4f" % (lat, lon))
             # The crosshair marker has been missing since 0.3.0
@@ -1530,7 +1844,12 @@ class MapWindow(Gtk.Window):
             self.recenter(lat, lon)
 
     def mouse_move_event(self, _widget, event):
-        '''Mouse Move Event'''
+        '''
+        Mouse Move Event.
+
+        :param _widget: Widget (not used)
+        :param event: Move event
+        '''
         if not self.__last_motion:
             GObject.timeout_add(100, self._mouse_motion_handler)
         self.__last_motion = (time.time(), event.x, event.y)
@@ -1597,7 +1916,6 @@ class MapWindow(Gtk.Window):
 
                     break
 
-
         if not hit:
             self.info_window.hide()
 
@@ -1609,22 +1927,45 @@ class MapWindow(Gtk.Window):
         return False
 
     def ev_destroy(self, _widget, _data=None):
-        '''EV Destroy'''
+        '''
+        Event Destroy
+
+        Hides this object
+        :param _widget: Widget (unused)
+        :param _data: data (unused)
+        :returns: True'''
         self.hide()
         return True
 
     def ev_delete(self, _widget, _event, _data=None):
-        '''EV Delete'''
+        '''
+        Event Delete.
+
+        Hides this object
+        :param _widget: Widget (unused)
+        :param _event: event (unused)
+        :param _data: data (unused)
+        :returns: True
+        '''
         self.hide()
         return True
 
     def update_gps_status(self, string):
-        '''Update GPS Status'''
+        '''
+        Update GPS Status.
+
+        :param string: GPS status string
+        '''
         self.sb_gps.pop(self.STATUS_GPS)
         self.sb_gps.push(self.STATUS_GPS, string)
 
     def add_point_visible(self, point):
-        '''Add Point Visible'''
+        '''
+        Add Point Visible.
+
+        :param point: Point to add
+        :returns: True if point is visible
+        '''
         if point in self.points_visible:
             self.points_visible.remove(point)
 
@@ -1637,7 +1978,12 @@ class MapWindow(Gtk.Window):
         return False
 
     def update_point(self, source, point):
-        '''Update Point'''
+        '''
+        Update Point.
+
+        :param source: Map source
+        :param point: Point to update
+        '''
         (_lat, _lon) = self.map.get_center()
         center = GPSPosition(*self.map.get_center())
         this = GPSPosition(point.get_latitude(), point.get_longitude())
@@ -1661,7 +2007,12 @@ class MapWindow(Gtk.Window):
         self.map.queue_draw()
 
     def add_point(self, source, point):
-        '''Add Point'''
+        '''
+        Add Point.
+
+        :param source: Map source
+        :param point: Point to add
+        '''
         (_lat, _lon) = self.map.get_center()
         center = GPSPosition(*self.map.get_center())
         this = GPSPosition(point.get_latitude(), point.get_longitude())
@@ -1676,7 +2027,12 @@ class MapWindow(Gtk.Window):
         self.map.queue_draw()
 
     def del_point(self, source, point):
-        '''Del Point'''
+        '''
+        Delete Point.
+
+        :param source: Map source
+        :param point: Point to delete
+        '''
         self.marker_list.del_item(source.get_name(), point.get_name())
 
         if point in self.points_visible:
@@ -1685,14 +2041,23 @@ class MapWindow(Gtk.Window):
         self.map.queue_draw()
 
     def get_map_source(self, name):
-        '''Get Map Source'''
+        '''
+        Get Map Source.
+
+        :param name: Name of map source
+        :returns: Map Source for name or None
+        '''
         for source in self.get_map_sources():
             if source.get_name() == name:
                 return source
         return None
 
     def add_map_source(self, source):
-        '''Add Map Source'''
+        '''
+        Add Map Source.
+
+        :param source: New map source
+        '''
         self.map_sources.append(source)
         self.marker_list.add_item(None,
                                   source.get_visible(), source.get_name(),
@@ -1706,7 +2071,7 @@ class MapWindow(Gtk.Window):
         source.connect("point-updated", self.maybe_recenter_on_updated_point)
 
     def update_points_visible(self):
-        '''Update Points Visible'''
+        '''Update Points Visible.'''
         for src in self.map_sources:
             for point in src.get_points():
                 self.update_point(src, point)
@@ -1714,7 +2079,12 @@ class MapWindow(Gtk.Window):
         self.map.queue_draw()
 
     def maybe_recenter_on_updated_point(self, source, point):
-        '''Maybe Recenter on Updated Point'''
+        '''
+        Maybe Recenter on Updated Point.
+
+        :param source: Source of map
+        :param point: Updated point
+        '''
         if point.get_name() == self.center_mark and \
                 self.tracking_enabled:
             printlog("Mapdisplay", ": Center updated")
@@ -1722,18 +2092,18 @@ class MapWindow(Gtk.Window):
         self.update_point(source, point)
 
     def clear_map_sources(self):
-        '''Clean Map Sources'''
+        '''Clean Map Sources.'''
         self.marker_list.clear()
         self.map_sources = []
         self.points_visible = []
         self.update_points_visible()
 
     def get_map_sources(self):
-        '''Get Map Sources'''
+        '''Get Map Sources.'''
         return self.map_sources
 
     def redraw_markers(self, map_widget):
-        '''Redraw Markers'''
+        '''Redraw Markers.'''
         for point in self.points_visible:
             map_widget.draw_marker(point.get_name(),
                                    point.get_latitude(),
@@ -1916,7 +2286,8 @@ class MapWindow(Gtk.Window):
                                self.prompt_to_send_loc(vals["lat"],
                                                        vals["lon"]))
 
-        # create the INFO WINDOW which is shown over the map clicking the left mouse button       
+        # create the INFO WINDOW which is shown over the map clicking
+        # the left mouse button
         self.info_window = Gtk.Window(Gtk.WindowType.POPUP)
         self.info_window.set_type_hint(Gdk.WindowTypeHint.MENU)
         self.info_window.set_decorated(False)
@@ -1924,15 +2295,15 @@ class MapWindow(Gtk.Window):
                                    Gdk.color_parse("yellow"))
 
     def add_popup_handler(self, name, handler):
-        '''Add Popup Handler'''
+        '''Add Popup Handler.'''
         self._popup_items[name] = handler
 
     def set_zoom(self, zoom):
-        '''Set zoom'''
+        '''Set zoom.'''
         self.map.set_zoom(zoom)
 
     def set_center(self, lat, lon):
-        '''Set Center'''
+        '''Set Center.'''
         self.map.set_center(lat, lon)
 
 
@@ -1981,11 +2352,11 @@ def main():
 
     map_window.show()
 
-    try:
-        Gtk.main()
+    # try:
+    Gtk.main()
     # pylint: disable=bare-except
-    except:
-        pass
+    # except:
+    #    pass
 
 if __name__ == "__main__":
     main()
