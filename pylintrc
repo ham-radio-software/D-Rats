@@ -1,0 +1,13 @@
+[MASTER]
+
+[MESSAGES CONTROL]
+# GTK+ pretty much requires disabling wrong-import-position
+disable=wrong-import-position, c-extension-no-member
+
+[TYPECHECK]
+# Needed GTK+: pack_start window
+generated-members = pack_start, window
+
+[VARIABLES]
+# Needed for I18N Support: "_"
+additional-builtins = _
