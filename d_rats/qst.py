@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# pylint: disable=too-many-lines
+'''QST'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
@@ -18,57 +20,70 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
+# import time
+import datetime
+# import copy
+import re
+import threading
+# import os
+from six.moves import range
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
-import time
-import datetime
-import copy
-import re
-import threading
-#import linecache   #Works ok on python but not on Windows
 
-try:
-    from commands import getstatusoutput as run
-except ModuleNotFoundError:
-    pass
-from .miscwidgets import make_choice, KeyedListWidget
+# import linecache   #Works ok on python but not on Windows
+
+# try:
+#    # Python2 compatibility
+#    # pylint: disable=import-error
+#    from commands import getstatusoutput as run
+# except ModuleNotFoundError:
+#    pass
+from .miscwidgets import make_choice
 from . import miscwidgets
 
-import os
-#py3 from . import mainapp
-    
+
+# py3 from . import mainapp
+
 from . import dplatform
 from . import inputdialog
 from . import cap
 from . import wu
-from . import mapdisplay
+# from . import mapdisplay
 from . import gps
-from .utils import NetFile, combo_select, get_icon
-from six.moves import range
+from .utils import combo_select, get_icon
+
+# importing printlog() wrapper
+from .debug import printlog
 
 try:
     import feedparser
     HAVE_FEEDPARSER = True
-except ImportError as e:
-    printlog("Qst","       : FeedParser not available")
+except ImportError:
+    printlog("Qst", "       : FeedParser not available")
     HAVE_FEEDPARSER = False
 
 try:
     from hashlib import md5
 except ImportError:
-    printlog("Qst","       : Installing hashlib replacement hack")
+    printlog("Qst", "       : Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
+
+# pylint: disable=too-many-locals
 def do_dprs_calculator(initial=""):
+    '''
+    Do DPRS Calculator.
+
+    :param initial: Optional initial string
+    :returns: DPRS string with Checksum
+    '''
     def ev_sym_changed(iconsel, oversel, icons):
         oversel.set_sensitive(icons[iconsel.get_active()][1][0] == "\\")
 
-    d = inputdialog.FieldDialog(title=_("DPRS message"))
+    dialog = inputdialog.FieldDialog(title=_("DPRS message"))
     msg = Gtk.Entry()
     msg.set_max_length(13)
 
@@ -98,21 +113,21 @@ def do_dprs_calculator(initial=""):
     iconsel.connect("changed", ev_sym_changed, oversel, icons)
     ev_sym_changed(iconsel, oversel, icons)
 
-    d.add_field(_("Message"), msg)
-    d.add_field(_("Icon"), iconsel)
-    d.add_field(_("Overlay"), oversel)
+    dialog.add_field(_("Message"), msg)
+    dialog.add_field(_("Icon"), iconsel)
+    dialog.add_field(_("Overlay"), oversel)
 
-    r = d.run()
+    result = dialog.run()
     aicon = icons[iconsel.get_active()][1]
     mstr = msg.get_text().upper()
     over = oversel.get_active_text()
-    d.destroy()
-    if r != Gtk.ResponseType.OK:
-        return
+    dialog.destroy()
+    if result != Gtk.ResponseType.OK:
+        return None
 
     dicon = gps.APRS_TO_DPRS[aicon]
-    
-    from . import mainapp # Hack to force import of mainapp 
+
+    from . import mainapp # Hack to force import of mainapp
     callsign = mainapp.get_mainapp().config.get("user", "callsign")
     string = "%s%s %s" % (dicon, over, mstr)
 
@@ -120,11 +135,14 @@ def do_dprs_calculator(initial=""):
 
     return string + check
 
+
 class QSTText(GObject.GObject):
+    '''QST Text'''
+
     __gsignals__ = {
         "qst-fired" : (GObject.SignalFlags.RUN_LAST,
-                 GObject.TYPE_NONE,
-                 (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+                       GObject.TYPE_NONE,
+                       (GObject.TYPE_STRING, GObject.TYPE_STRING)),
         }
 
     def __init__(self, config, content, key):
@@ -137,38 +155,64 @@ class QSTText(GObject.GObject):
         self.key = key
 
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
         return self.text
 
     def fire(self):
+        '''Fire a QST'''
         val = self.do_qst()
         self.emit("qst-fired", self.prefix + val, self.key)
 
+
 class QSTExec(QSTText):
+    '''QST Exec'''
+
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
         size_limit = self.config.getint("settings", "qst_size_limit")
         pform = dplatform.get_platform()
-        s, o = pform.run_sync(self.text)
-        if s:
-            printlog(("Qst       : Command failed with status %i" % s))
+        status, output = pform.run_sync(self.text)
+        if status:
+            printlog(("Qst       : Command failed with status %i" % status))
 
-        return o[:size_limit]
+        return output[:size_limit]
+
 
 class QSTFile(QSTText):
+    '''QST File'''
+
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String or None
+        '''
         size_limit = self.config.getint("settings", "qst_size_limit")
         try:
-            f = open(self.text)
-#            f = NetFile(self.text)
+            file_handle = open(self.text)
+            # f = NetFile(self.text)
+        # pylint: disable=bare-except
         except:
             printlog(("Qst       : Unable to open file `%s'" % self.text))
-            return
+            return None
 
-        text = f.read()
-        f.close()
+        text = file_handle.read()
+        file_handle.close()
 
         return text[:size_limit]
 
+
 class QSTGPS(QSTText):
+    '''QST GPS'''
+
     def __init__(self, *args, **kw):
         QSTText.__init__(self, *args, **kw)
 
@@ -179,11 +223,21 @@ class QSTGPS(QSTText):
         self.fix = None
 
     def set_fix(self, fix):
+        '''
+        Set Fix
+
+        :param fix: Fix to add.
+        '''
         self.fix = fix
 
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
         if not self.fix:
-            from . import mainapp #hack
+            # from . import mainapp #hack
             fix = self.mainapp.get_position()
         else:
             fix = self.fix
@@ -192,19 +246,27 @@ class QSTGPS(QSTText):
 
         if fix.valid:
             return fix.to_NMEA_GGA()
-        else:
-            return None
+        return None
+
 
 class QSTGPSA(QSTGPS):
+    '''QST GPSA'''
+
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
         if not self.fix:
-            from . import mainapp #hack
+            # from . import mainapp #hack
             fix = self.mainapp.get_position()
         else:
             fix = self.fix
 
         if not "::" in self.text:
-            #add "/" that was removed from gps.py to send message and not in Weather WXGPS-A
+            # add "/" that was removed from gps.py to send message
+            # and not in Weather WXGPS-A
             self.text = ("/"+self.text) 
             fix.set_station(fix.station, self.text[:200])
             self.text = self.text[1:]
@@ -212,54 +274,64 @@ class QSTGPSA(QSTGPS):
         if fix.valid:
             return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
                                symbol=self.config.get("settings", "aprssymbol"))
-        else:
-            return None
+        return None
+
 
 class QSTWX(QSTGPS):
+    '''QST GPS'''
+
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
 #  This is working on python but not on Windows
 #        linecache.checkcache(self.text)
 #        wx = linecache.getline(self.text, 2).strip()
-#/* from here
-        f = open(self.text)
-#        f = NetFile(self.text)
-        wx = f.readline()
-        wx = f.readline().rstrip()
-        f.close()
+# /* from here
+        file_handle = open(self.text)
+       # f = NetFile(self.text)
+        wx_line = file_handle.readline()
+        wx_line = file_handle.readline().rstrip()
+        file_handle.close()
 #*/ to here is working on Windows and python
 
         if not self.fix:
-            from . import mainapp #hack
+            # from . import mainapp #hack
             fix = self.mainapp.get_position()
         else:
             fix = self.fix
 
         if not "::" in self.text:
-            fix.set_station(fix.station, wx[:200])
+            fix.set_station(fix.station, wx_line[:200])
 
         if fix.valid:
             return fix.to_APRS(symtab="/",
                                symbol="_")
-# WX symbol will be used for WXGPS-A.
-#            return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
-#                               symbol=self.config.get("settings", "aprssymbol"))
-        else:
-            return None
+#       WX symbol will be used for WXGPS-A.
+#       return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
+#                          symbol=self.config.get("settings", "aprssymbol"))
+        return None
 
 
-        
 class QSTThreadedText(QSTText):
+    '''QST Threaded Text.'''
+
     def __init__(self, *a, **k):
         QSTText.__init__(self, *a, **k)
 
         self.thread = None
 
     def threaded_fire(self):
+        '''Threaded Fire.'''
+
         msg = self.do_qst()
         self.thread = None
 
         if not msg:
-            printlog("Qst","       : Skipping QST because no data was returned")
+            printlog("Qst",
+                     "       : Skipping QST because no data was returned")
             return
 
         GObject.idle_add(self.emit, "qst-fired",
@@ -267,38 +339,47 @@ class QSTThreadedText(QSTText):
 
     def fire(self):
         if self.thread:
-            printlog("Qst","       : QST thread still running, not starting another")
+            printlog("Qst",
+                     "       : QST thread still running, not starting another")
             return
 
         # This is a race, but probably pretty safe :)
         self.thread = threading.Thread(target=self.threaded_fire)
         self.thread.setDaemon(True)
         self.thread.start()
-        printlog("Qst","       : Started a thread for QST data...")
+        printlog("Qst", "       : Started a thread for QST data...")
+
 
 class QSTRSS(QSTThreadedText):
+    '''QST RSS'''
+
     def __init__(self, *args, **kw):
         QSTThreadedText.__init__(self, *args, **kw)
 
         self.last_id = ""
 
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
         rss = feedparser.parse(self.text)
 
         try:
             entry = rss.entries[-1]
         except IndexError:
-            printlog("Qst","       : RSS feed had no entries")
+            printlog("Qst", "       : RSS feed had no entries")
             return None
 
         try:
-            id = entry.id
+            ident = entry.id
         except AttributeError:
             # Not all feeds will have an id (I guess)
-            id = md5(entry.description)
+            ident = md5(entry.description)
 
-        if id != self.last_id:
-            self.last_id = id
+        if ident != self.last_id:
+            self.last_id = ident
             text = str(entry.description)
 
             text = re.sub("<[^>]*?>", "", text)
@@ -308,130 +389,164 @@ class QSTRSS(QSTThreadedText):
         else:
             return None
 
+
 class QSTCAP(QSTThreadedText):
+    '''QST CAP'''
+
     def __init__(self, *args, **kwargs):
         QSTThreadedText.__init__(self, *args, **kwargs)
 
         self.last_date = None
 
     def determine_starting_item(self):
-        cp = cap.CAPParserURL(self.text)
-        if cp.events:
-            lastev = cp.events[-1]
+        '''Determine Starting Item'''
+
+        cap_obj = cap.CAPParserURL(self.text)
+        if cap_obj.events:
+            lastev = cap_obj.events[-1]
             delta = datetime.timedelta(seconds=1)
             self.last_date = (lastev.effective - delta)
         else:
             self.last_date = datetime.datetime.now()
 
     def do_qst(self):
+        '''
+        do QST
+
+        :returns: QST String
+        '''
         if self.last_date is None:
             self.determine_starting_item()
 
         printlog(("Qst       : Last date is %s" % self.last_date))
 
-        cp = cap.CAPParserURL(self.text)
-        newev = cp.events_effective_after(self.last_date)
+        cap_obj = cap.CAPParserURL(self.text)
+        newev = cap_obj.events_effective_after(self.last_date)
         if not newev:
             return None
 
         try:
             self.last_date = newev[-1].effective
         except IndexError:
-            printlog("Qst","       : CAP feed had no entries")
+            printlog("Qst", "       : CAP feed had no entries")
             return None
 
-        str = ""
+        q_str = ""
 
         for i in newev:
-            printlog(("Qst       : Sending CAP that is effective %s" % i.effective))
-            str += "\r\n-----\r\n%s\r\n-----\r\n" % i.report()
+            printlog("Qst",
+                     "       : Sending CAP that is effective %s" % i.effective)
+            q_str += "\r\n-----\r\n%s\r\n-----\r\n" % i.report()
 
-        return str        
+        return q_str
+
 
 class QSTWeatherWU(QSTThreadedText):
-    printlog("Qst","       : QSTWeatherWU class retired")
+    '''QST Weather WU'''
+    printlog("Qst", "       : QSTWeatherWU class retired")
 
-class QSTOpenWeather(QSTThreadedText): 
+
+class QSTOpenWeather(QSTThreadedText):
+    '''QST Open Weather'''
+
+    # pylint: disable=too-many-statements
     def do_qst(self):
         import urllib
-        import json 
+        import json
         weath = ""
-        obs = wu.WUObservation()
+        _obs = wu.WUObservation()
         owuri = self.config.get("settings", "qst_owuri")
         owappid = self.config.get("settings", "qst_owappid")
-        
+
         try:
-            t, s = self.text.split("/", 2)
-        except Exception as e:
-            printlog(("Qst       : Unable to split weather QST %s: %s" % (self.text, e)))
+            t_qst, s_qst = self.text.split("/", 2)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Qst",
+                     "       : Unable to split weather QST %s: %s" %
+                     (self.text, err))
             return None
 
 #---to be restore when forecasts are done
      #   try:
-        if t == _("Current"):
-            url = owuri +"weather?"+ urllib.urlencode({'q': s, 'appid': owappid})
-            printlog("Qst","       : %s " % url)
-            urlRead = urllib.urlopen(url).read()
-            dataJSON = json.loads(urlRead)
-            printlog(dataJSON)
-    
-            # Check the value of "cod" key is equal to "404", means city is found otherwise, city is not found 
-            if dataJSON["cod"] != "404": 
-            
-                wname = str(dataJSON['name'])
-                wcountry = str(dataJSON['sys']['country'])
-                wlat = str(dataJSON['coord']['lat'])
-                wlon = str(dataJSON['coord']['lon'])
-                wdesc = str(dataJSON['weather'][0]['description'])
-                wtmin = float(dataJSON['main']['temp_min'])
-                wtemp = float(dataJSON['main']['temp'])
-                wtmax = float(dataJSON['main']['temp_max'])
-                whumidity = int(dataJSON['main']['humidity'])
-                wpressure = int(dataJSON['main']['pressure'])
-                wwindspeed = float(dataJSON['wind']['speed'])
+        if t_qst == _("Current"):
+            # pylint: disable=no-member
+            url = owuri +"weather?"+ \
+                urllib.urlencode({'q': s_qst, 'appid': owappid})
+            printlog("Qst", "       : %s " % url)
+            # pylint: disable=no-member
+            urlread = urllib.urlopen(url).read()
+            datajson = json.loads(urlread)
+            printlog(datajson)
 
-                weath = ("\nCurrent weather at %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
+            # Check the value of "cod" key is equal to "404",
+            # means city is found otherwise, city is not found
+            if datajson["cod"] != "404":
+
+                wname = str(datajson['name'])
+                wcountry = str(datajson['sys']['country'])
+                wlat = str(datajson['coord']['lat'])
+                wlon = str(datajson['coord']['lon'])
+                wdesc = str(datajson['weather'][0]['description'])
+                wtmin = float(datajson['main']['temp_min'])
+                wtemp = float(datajson['main']['temp'])
+                wtmax = float(datajson['main']['temp_max'])
+                whumidity = int(datajson['main']['humidity'])
+                wpressure = int(datajson['main']['pressure'])
+                wwindspeed = float(datajson['wind']['speed'])
+
+                weath = ("\nCurrent weather at %s - %s lat: %s Lon: %s \n" %
+                         (wname, wcountry, wlat, wlon))
                 weath = weath + str("Conditions: %s\n" % wdesc)
-                weath = weath + str("Current Temperature: %.2f C (%.2f F) \n" % ((wtemp - 273.0),(wtemp*9/5- 459.67)))
-                weath = weath + str("Minimum Temperature: %.2f C (%.2f F) \n" % ((wtmin - 273.0),(wtmin*9/5- 459.67)))
-                weath = weath + str("Maximum Temperature: %.2f C (%.2f F) \n" % ((wtmax - 273.0),(wtmax*9/5- 459.67)))
+                weath = weath + str("Current Temperature: %.2f C (%.2f F) \n" %
+                                    ((wtemp - 273.0), (wtemp*9/5- 459.67)))
+                weath = weath + str("Minimum Temperature: %.2f C (%.2f F) \n" %
+                                    ((wtmin - 273.0), (wtmin*9/5- 459.67)))
+                weath = weath + str("Maximum Temperature: %.2f C (%.2f F) \n" %
+                                    ((wtmax - 273.0), (wtmax*9/5- 459.67)))
                 weath = weath + str("Humidity: %d %% \n" % whumidity)
                 weath = weath + str("Pressure: %d hpa \n" %  wpressure)
-                   #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
+                # weath = weath + str("Wind Gust:%s km/hr\n" %
+                #                     float(datajson['wind']['gust']))
                 weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
-                
-                printlog("Qst","       : %s" % weath)
-                
-                return weath
-            else: 
-                printlog("Qst","       : weather forecast: %s city not found" % s)
-                return None
-            
-        elif t == _("Forecast"): 
-            url = owuri + "forecast?" + urllib.urlencode({'q': s, 'appid': owappid, 'mode': "json"})
-            printlog("Qst","       : %s " % url)
-            urlRead = urllib.urlopen(url).read()
-            dataJSON = json.loads(urlRead)
-            printlog(dataJSON)
-        
-            # Check the value of "cod" key is equal to "404", means city is found otherwise, city is not found 
-            if dataJSON["cod"] != "404": 
-                
-                wname = str(dataJSON['city']['name'])
-                wcountry = str(dataJSON['city']['country'])
-                wlat = str(dataJSON['city']['coord']['lat'])
-                wlon = str(dataJSON['city']['coord']['lon'])
 
-            
-                weath = ("\nForecast weather for %s - %s lat: %s Lon: %s \n" % (wname, wcountry, wlat, wlon))
-                                    
-              
+                printlog("Qst", "       : %s" % weath)
+
+                return weath
+            printlog("Qst",
+                     "       : weather forecast: %s city not found" % s_qst)
+            return None
+
+        if t_qst == _("Forecast"):
+            # pylint: disable=no-member
+            url = owuri + "forecast?" + \
+                urllib.urlencode({'q': s_qst, 'appid': owappid, 'mode': "json"})
+            printlog("Qst", "       : %s " % url)
+            # pylint: disable=no-member
+            urlread = urllib.urlopen(url).read()
+            datajson = json.loads(urlread)
+            printlog(datajson)
+
+            # Check the value of "cod" key is equal to "404",
+            # means city is found otherwise, city is not found
+            if datajson["cod"] != "404":
+
+                wname = str(datajson['city']['name'])
+                wcountry = str(datajson['city']['country'])
+                wlat = str(datajson['city']['coord']['lat'])
+                wlon = str(datajson['city']['coord']['lon'])
+
+                weath = ("\nForecast weather for %s - %s lat: %s Lon: %s \n" %
+                         (wname, wcountry, wlat, wlon))
+
                 # set date to start iterating through
                 current_date = ''
-                # Iterates through the array of dictionaries named list in json_data
-                for item in dataJSON['list']:
+                # Iterates through the array of dictionaries named list in
+                # json_data
+                for item in datajson['list']:
 
-                    # Time of the weather data received, partitioned into 3 hour blocks
+                    # Time of the weather data received, partitioned into
+                    # 3 hour blocks
                     wtime = item['dt_txt']
 
                     # Split the time into date and hour [2018-04-15 06:00:00]
@@ -443,7 +558,8 @@ class QSTOpenWeather(QSTThreadedText):
                         year, month, day = current_date.split('-')
                         date = {'y': year, 'm': month, 'd': day}
                         weath = weath + ('\n{d}/{m}/{y}'.format(**date))
-                        # Grabs the first 2 integers from our HH:MM:SS string to get the hours
+                        # Grabs the first 2 integers from our HH:MM:SS string
+                        # to get the hours
                     hour = int(hour[:2])
 
                     # Sets the AM (ante meridiem) or PM (post meridiem) period
@@ -455,51 +571,64 @@ class QSTOpenWeather(QSTThreadedText):
                         if hour > 12:
                             hour -= 12
                         meridiem = 'PM'
-                    
+
                     # Weather condition
-                    description = item['weather'][0]['description'],
-                    wtemp = item['main']['temp']    
+                    description = item['weather'][0]['description']
+                    wtemp = item['main']['temp']
                     wtmin = item['main']['temp_min']
                     wtmax = item['main']['temp_max']
                     whumidity = item['main']['humidity']
                     wpressure = item['main']['pressure']
                     wwindspeed = item['wind']['speed']
-                    
+
                     #prepare string with weather conditions
                     # Timestamp as [HH:MM AM/PM]
                     weath = weath + ('\n%i:00 %s ' % (hour, meridiem))
                     # Weather forecast and temperatures
-                    weath = weath + ("Weather condition: %s \n" % description )
-                    weath = weath + ("Avg Temp: %.2f C (%.2f F) \n" % ((wtemp - 273.15), (wtemp * 9/5 - 459.67)))
-                    weath = weath + ("Min Temp: %.2f C (%.2f F) \n" % ((wtmin - 273.0),(wtmin*9/5- 459.67)))
-                    weath = weath + ("Max Temp: %.2f C (%.2f F) \n" % ((wtmax - 273.0),(wtmax*9/5- 459.67)))
+                    weath = weath + ("Weather condition: %s \n" % description)
+                    weath = weath + ("Avg Temp: %.2f C (%.2f F) \n" %
+                                     ((wtemp - 273.15), (wtemp * 9/5 - 459.67)))
+                    weath = weath + ("Min Temp: %.2f C (%.2f F) \n" %
+                                     ((wtmin - 273.0), (wtmin*9/5- 459.67)))
+                    weath = weath + ("Max Temp: %.2f C (%.2f F) \n" %
+                                     ((wtmax - 273.0), (wtmax*9/5- 459.67)))
                     weath = weath + ("Humidity: %d %%  " % whumidity)
                     weath = weath + ("Pressure: %d hpa  " %  wpressure)
-                       #weath = weath + str("Wind Gust:%s km/hr\n" % float(dataJSON['wind']['gust']))  
+                    # weath = weath + str("Wind Gust:%s km/hr\n" %
+                    #                     float(datajson['wind']['gust']))
                     weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
-                
-                printlog("Qst","       : %s" % weath) 
+
+                printlog("Qst", "       : %s" % weath)
                 return  weath
-            else: 
-                printlog("Qst","       : weather forecast: %s city not found" % s)
-                return None
-            
-        else:
-            printlog("Qst","       : Unknown Weather type %s" % t)
+
+            printlog("Qst",
+                     "       : weather forecast: %s city not found" % s_qst)
             return None
 
-#---to be restore when forecats are done           
+        printlog("Qst", "       : Unknown Weather type %s" % t_qst)
+        return None
+
+#---to be restore when forecats are done
     #    except Exception as e:
     #        printlog(("Qst       : Error getting weather: %s" % e))
     #        return None
-        
 
-        return weath
-        #return str(obs)
+        # Code not reachable
+        # return weath
+        # return str(obs)
 
 
 class QSTStation(QSTGPSA):
+    '''QST Station'''
+
+    # pylint: disable=no-self-use
     def get_source(self, name):
+        '''
+        Get Map Source for name.
+
+        :param name: Name of map source
+        :returns: The map source for name or None
+        '''
         from . import mainapp # Hack to force mainapp load
         sources = mainapp.get_mainapp().map.get_map_sources()
 
@@ -510,6 +639,13 @@ class QSTStation(QSTGPSA):
         return None
 
     def get_station(self, source, station):
+        '''
+        Get Station from source.
+
+        :param source: Source to look up station in
+        :param station: Station to look up
+        :returns: Point for station or None
+        '''
         for point in source.get_points():
             if point.get_name() == station:
                 return point
@@ -517,22 +653,25 @@ class QSTStation(QSTGPSA):
         return None
 
     def do_qst(self):
-
+        '''Do QST'''
         try:
             (group, station) = self.text.split("::", 1)
-        except Exception as e:
-            printlog(("Qst       : QSTStation Error: %s" % e))
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog(("Qst       : QSTStation Error: %s" % err))
             return None
 
         source = self.get_source(group)
         if source is None:
             printlog(("Qst       : Unknown group %s" % group))
-            return
+            return None
 
         point = self.get_station(source, station)
         if point is None:
-            printlog(("Qst       : Unknown station %s in group %s" % (station, group)))
-            return
+            printlog(("Qst",
+                      "       : Unknown station %s in group %s" %
+                      (station, group)))
+            return None
 
         self.fix = gps.GPSPosition(point.get_latitude(),
                                    point.get_longitude(),
@@ -540,32 +679,52 @@ class QSTStation(QSTGPSA):
         self.fix.set_station(self.fix.station,
                              "VIA %s" % self.config.get("user", "callsign"))
 
-        printlog(("Qst       : Sending position for %s/%s: %s" % (group, station, self.fix)))
+        printlog("Qst",
+                 "       : Sending position for %s/%s: %s" %
+                 (group, station, self.fix))
 
         return QSTGPSA.do_qst(self)
 
+
 class QSTEditWidget(Gtk.Box):
+    '''QST Edit Widget'''
+
     def __init__(self, *a, **k):
         Gtk.Box.__init__(self, *a, **k)
         self.set_orientation(Gtk.Orientation.VERTICAL)
         self._id = None
 
     def to_qst(self):
-        pass
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
 
     def from_qst(self, content):
-        pass
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
 
     def __str__(self):
         return "Unknown"
 
     def reset(self):
-        pass
+        '''Reset'''
 
     def to_human(self):
-        pass
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
+
 
 class QSTTextEditWidget(QSTEditWidget):
+    '''QST Text Edit Widget'''
+
     label_text = _("Enter a message:")
 
     def __init__(self):
@@ -576,39 +735,59 @@ class QSTTextEditWidget(QSTEditWidget):
         self.pack_start(lab, 0, 0, 0)
 
         self.__tb = Gtk.TextBuffer()
-        
-        ta = Gtk.TextView.new_with_buffer(self.__tb)
-        ta.show()
 
-        self.pack_start(ta, 1, 1, 1)
+        text_view = Gtk.TextView.new_with_buffer(self.__tb)
+        text_view.show()
+
+        self.pack_start(text_view, 1, 1, 1)
 
     def __str__(self):
         return self.__tb.get_text(self.__tb.get_start_iter(),
                                   self.__tb.get_end_iter(), True)
 
     def reset(self):
+        '''Reset text to blank.'''
         self.__tb.set_text("")
-    
+
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         return str(self)
 
     def from_qst(self, content):
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
         self.__tb.set_text(content)
 
     def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
         return str(self)
 
+
 class QSTFileEditWidget(QSTEditWidget):
-    label_text = _("Choose a text file.  The contents will be used when the QST is sent.")
+    '''QST File Edit Widget'''
+
+    label_text = _("Choose a text file.  "
+                   "The contents will be used when the QST is sent.")
 
     def __init__(self):
         QSTEditWidget.__init__(self, False, 2)
-        
+
         lab = Gtk.Label.new(self.label_text)
         lab.set_line_wrap(True)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
-        
+
         self.__fn = miscwidgets.FilenameBox()
         self.__fn.show()
         self.pack_start(self.__fn, 0, 0, 0)
@@ -617,62 +796,111 @@ class QSTFileEditWidget(QSTEditWidget):
         return "Read: %s" % self.__fn.get_filename()
 
     def reset(self):
+        '''Reset Filename to blank.'''
         self.__fn.set_filename("")
 
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         return self.__fn.get_filename()
 
     def from_qst(self, content):
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
         self.__fn.set_filename(content)
 
     def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
         return self.__fn.get_filename()
+
+
 class QSTWXFileEditWidget(QSTEditWidget):
-    label_text = _("Choose a APRS text file.  The contents will be used when the WXGPS-A is sent.")
+    '''QST WX File Edit Widget'''
+
+    label_text = _("Choose a APRS text file.  "
+                   "The contents will be used when the WXGPS-A is sent.")
 
     def __init__(self):
         QSTEditWidget.__init__(self, False, 2)
-        
-        lab = gtk.Label(self.label_text)
+
+        lab = Gtk.Label(self.label_text)
         lab.set_line_wrap(True)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
-        
+
         self.__fn = miscwidgets.FilenameBox()
         self.__fn.show()
         self.pack_start(self.__fn, 0, 0, 0)
-       
+
     def __str__(self):
         return "Read: %s" % self.__fn.get_filename()
 
     def reset(self):
+        '''Reset'''
         self.__fn.set_filename("")
 
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         return self.__fn.get_filename()
 
     def from_qst(self, content):
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
         self.__fn.set_filename(content)
 
     def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
         return self.__fn.get_filename()
 
+
 class QSTExecEditWidget(QSTFileEditWidget):
-    label_text = _("Choose a script to execute.  The output will be used when the QST is sent")
+    '''QST Exec Edit Widget'''
+
+    label_text = _("Choose a script to execute.  "
+                   "The output will be used when the QST is sent")
 
     def __str__(self):
         return "Run: %s" % self.__fn.get_filename()
 
+
 class QSTGPSEditWidget(QSTEditWidget):
+    '''QST GPS Edit Widget'''
+
     msg_limit = 20
     type = "GPS"
 
-    def prompt_for_DPRS(self, button):
+    # pylint: disable=invalid-name
+    def prompt_for_DPRS(self, _button):
+        '''
+        Prompt For DPRS
+
+        :param _button: Unused.
+        '''
         dprs = do_dprs_calculator(self.__msg.get_text())
         if dprs is None:
             return
-        else:
-            self.__msg.set_text(dprs)
+        self.__msg.set_text(dprs)
 
     def __init__(self, config):
         QSTEditWidget.__init__(self, False, 2)
@@ -701,31 +929,55 @@ class QSTGPSEditWidget(QSTEditWidget):
 
         dprs.connect("clicked", self.prompt_for_DPRS)
         hbox.pack_start(dprs, 0, 0, 0)
-        
+
     def __str__(self):
         return "Message: %s" % self.__msg.get_text()
 
     def reset(self):
+        '''Reset the text to blank.'''
         self.__msg.set_text("")
 
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         return self.__msg.get_text()
 
     def from_qst(self, content):
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
         self.__msg.set_text(content)
 
     def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
         return self.__msg.get_text()
 
 class QSTGPSAEditWidget(QSTGPSEditWidget):
+    '''QST GPSA Edit'''
+
     msg_limit = 200
     type = "GPS-A"
 
+
 class QSTWXEditWidget(QSTGPSEditWidget):
+    '''QST WX Edit Widget'''
+
     msg_limit = 200
     type = "WX"
 
+
 class QSTRSSEditWidget(QSTEditWidget):
+    '''QST RSS Edit Widget'''
+
     label_string = _("Enter the URL of an RSS feed:")
 
     def __init__(self):
@@ -744,41 +996,70 @@ class QSTRSSEditWidget(QSTEditWidget):
         return "Source: %s" % self.__url.get_text()
 
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         return self.__url.get_text()
 
     def from_qst(self, content):
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
         self.__url.set_text(content)
 
     def reset(self):
+        '''Reset text to blank.'''
         self.__url.set_text("")
 
     def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
         return self.__url.get_text()
 
+
 class QSTCAPEditWidget(QSTRSSEditWidget):
+    '''QST CAP Edit Widget'''
+
     label_string = _("Enter the URL of a CAP feed:")
 
+
 class QSTStationEditWidget(QSTEditWidget):
+    '''QST Station Edit Widget'''
+
     def ev_group_sel(self, group, station):
+        '''
+        EV Group Selection.
+
+        :param group: Group to select.
+        :param station: Station to get mode of
+        '''
         group = group.get_active_text()
 
         if not self.__sources:
             return
 
-        for src in self.__sources:
-            if src.get_name() == group:
+        source = None
+        for source in self.__sources:
+            if source.get_name() == group:
                 break
 
-        if src.get_name() != group:
+        if not source or source.get_name() != group:
             return
 
-        marks = [x.get_name() for x in src.get_points()]
-    
+        marks = [x.get_name() for x in source.get_points()]
+
         store = station.get_model()
         store.clear()
         for i in sorted(marks):
             station.append_text(i)
-        if len(marks):
+        if marks:
             station.set_active(0)
 
     def __init__(self):
@@ -811,19 +1092,31 @@ class QSTStationEditWidget(QSTEditWidget):
         self.pack_start(hbox, 0, 0, 0)
 
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         if not self.__group.get_active_text():
             return None
-        elif not self.__station.get_active_text():
+        if not self.__station.get_active_text():
             return None
-        else:
-            return "%s::%s" % (self.__group.get_active_text(),
-                               self.__station.get_active_text())
-
-    def to_human(self):
         return "%s::%s" % (self.__group.get_active_text(),
                            self.__station.get_active_text())
 
+    def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
+        return "%s::%s" % (self.__group.get_active_text(),
+                           self.__station.get_active_text())
+
+
 class QSTWUEditWidget(QSTEditWidget):
+    '''QST WU Edit Widget'''
+
     label_text = _("Enter an Open Weather station name:")
 
     def __init__(self):
@@ -836,7 +1129,7 @@ class QSTWUEditWidget(QSTEditWidget):
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         hbox.show()
         self.pack_start(hbox, 0, 0, 0)
-        
+
         self.__station = Gtk.Entry()
         self.__station.show()
         hbox.pack_start(self.__station, 0, 0, 0)
@@ -847,24 +1140,43 @@ class QSTWUEditWidget(QSTEditWidget):
         hbox.pack_start(self.__type, 0, 0, 0)
 
     def to_qst(self):
+        '''
+        To QST
+
+        :returns: Returns the QST text
+        '''
         return "%s/%s" % (self.__type.get_active_text(),
                           self.__station.get_text())
 
     def from_qst(self, content):
+        '''
+        From QST
+
+        :param content: Content from QST
+        '''
         try:
-            t, s = content.split("/", 2)
+            t_qst, s_qst = content.split("/", 2)
+        # pylint: disable=bare-except
         except:
             printlog(("Qst       : Unable to split `%s'" % content))
-            t = _("Current")
-            s = _("UNKNOWN")
+            t_qst = _("Current")
+            s_qst = _("UNKNOWN")
 
-        combo_select(self.__type, t)
-        self.__station.set_text(s)        
+        combo_select(self.__type, t_qst)
+        self.__station.set_text(s_qst)
 
     def to_human(self):
+        '''
+        To Human.
+
+        :returns: Human readable QST
+        '''
         return self.to_qst()
 
+
 class QSTEditDialog(Gtk.Dialog):
+    '''QST Edit Dialog'''
+
     def _select_type(self, box):
         wtype = box.get_active_text()
 
@@ -876,7 +1188,8 @@ class QSTEditDialog(Gtk.Dialog):
     def _make_controls(self):
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
 
-        self._type = make_choice(list(self._types.keys()), False, default=_("Text"))
+        self._type = make_choice(list(self._types.keys()),
+                                 False, default=_("Text"))
         self._type.set_size_request(100, -1)
         self._type.show()
         self._type.connect("changed", self._select_type)
@@ -884,9 +1197,10 @@ class QSTEditDialog(Gtk.Dialog):
 
         lab = Gtk.Label.new(_("every"))
         lab.show()
-        hbox.pack_start(lab, 0, 0 , 0)
+        hbox.pack_start(lab, 0, 0, 0)
 
-        intervals = ["1", "3", "5", "10", "15", "20", "30", "60", "120", "180","240", ":00", ":15", ":30", ":45"]
+        intervals = ["1", "3", "5", "10", "15", "20", "30", "60",
+                     "120", "180", "240", ":00", ":15", ":30", ":45"]
         self._freq = make_choice(intervals, True, default="60")
         self._freq.set_size_request(75, -1)
         self._freq.show()
@@ -905,7 +1219,7 @@ class QSTEditDialog(Gtk.Dialog):
         return hbox
 
     def __init__(self, config, ident, parent=None):
-        printlog("Qst","      : defining qst types")
+        printlog("Qst", "      : defining qst types")
         self._types = {
             _("Text") : QSTTextEditWidget(),
             _("File") : QSTFileEditWidget(),
@@ -921,8 +1235,8 @@ class QSTEditDialog(Gtk.Dialog):
 
         Gtk.Dialog.__init__(self,
                             parent=parent,
-                            buttons=(Gtk.ButtonsType.OK, Gtk.ResponseType.OK,
-                                     Gtk.ButtonsType.CANCEL,
+                            buttons=(_("OK"), Gtk.ResponseType.OK,
+                                     _("CANCEL"),
                                      Gtk.ResponseType.CANCEL))
         self._ident = ident
         self._config = config
@@ -945,12 +1259,14 @@ class QSTEditDialog(Gtk.Dialog):
             self.__current.from_qst(self._config.get(self._ident, "content"))
             try:
                 combo_select(self._port, self._config.get(self._ident, "port"))
+            # pylint: disable=bare-except
             except:
                 pass
         else:
             self._select_type(self._type)
 
     def save(self):
+        '''save'''
         if not self._config.has_section(self._ident):
             self._config.add_section(self._ident)
             self._config.set(self._ident, "enabled", "True")
@@ -960,7 +1276,14 @@ class QSTEditDialog(Gtk.Dialog):
         self._config.set(self._ident, "type", self._type.get_active_text())
         self._config.set(self._ident, "port", self._port.get_active_text())
 
+
 def get_qst_class(typestr):
+    '''
+    Get qst class.
+
+    :param typestr: Type String for class
+    :returns: The QST class
+    '''
     classes = {
         _("Text")    : QSTText,
         _("Exec")    : QSTExec,
