@@ -33,25 +33,13 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 if __name__ == "__main__":
-    if not __package__:
-        # pylint: disable=redefined-builtin
-        __package__ = '__main__'
-    sys.path.insert(0, ".")
-    from .debug import printlog
-    # gettext is the module for translating the labels in different languages
     import gettext
-    try:
-        # pylint: disable=invalid-name
-        lang = gettext.translation("D-RATS",
-                                   localedir="./locale",
-                                   languages=["en"])
-        lang.install()
-    except IOError:
-        printlog("Mainwin", "  : can not open locale file")
-
-    printlog("Mainwin", "  : sys.path=", sys.path)
-else:
-    from .debug import printlog
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
 
 from d_rats.ui.main_messages import MessagesTab
 from d_rats.ui.main_chat import ChatTab
@@ -72,6 +60,7 @@ from d_rats.version import \
 
 from d_rats import formbuilder
 from d_rats import signals
+from .debug import printlog
 
 class MainWindow(MainWindowElement):
     '''MainWindow'''
@@ -408,7 +397,7 @@ def main():
         printlog("Mainwin", "  : %s->%s" % (station, msg))
 
     chat = ChatTab(wtree, conf)
-    chat.connect("user-sent-message", test)
+    chat.connect("user-send-chat", test)
 
     _msgs = MessagesTab(wtree, conf)
 
