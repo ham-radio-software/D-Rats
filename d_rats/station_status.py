@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Station Status'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
@@ -18,10 +19,10 @@
 STATUS_MAX = 9
 STATUS_MIN = 0
 
-STATUS_UNKNOWN    = 0
-STATUS_ONLINE     = 1
+STATUS_UNKNOWN = 0
+STATUS_ONLINE = 1
 STATUS_UNATTENDED = 2
-STATUS_OFFLINE    = 9
+STATUS_OFFLINE = 9
 
 __STATUS_MSGS = {
     STATUS_UNKNOWN    : "Unknown",
@@ -30,34 +31,72 @@ __STATUS_MSGS = {
     STATUS_OFFLINE    : "Offline",
 }
 
+
 def get_status_msgs():
-    d = {}
-    for k,v in __STATUS_MSGS.items():
-        d[k] = _(v)
-    return d
+    '''
+    Get Status Messages
+
+    :returns: Status Message
+    '''
+    data = {}
+    for key, value in __STATUS_MSGS.items():
+        data[key] = _(value)
+    return data
+
 
 def get_status_vals():
-    d = {}
-    for k,v in __STATUS_MSGS.items():
-        d[_(v)] = k
-    return d
+    '''
+    Get status value.
+
+    :returns: Status value data
+    '''
+    data = {}
+    for key, value in __STATUS_MSGS.items():
+        data[_(value)] = key
+    return data
+
 
 class Station:
+    '''
+    Station
+
+    :param callsign: String containing callsign of station.
+    '''
     def __init__(self, callsign):
         self.__call = callsign
         self.__heard = 0
         self.__port = ""
 
     def set_heard(self, heard):
+        '''
+        Set Heard
+
+        :param heard: Heard information
+        '''
         self.__heard = heard
 
     def get_heard(self):
+        '''
+        Get Heard
+
+        :returns: Heard information
+        '''
         return self.__heard
 
     def set_port(self, port):
+        '''
+        Set Radio Port.
+
+        :param port: Radio Port
+        '''
         self.__port = port
 
     def get_port(self):
+        '''
+        Get Port.
+
+        :returns: Radio port for Station
+        '''
         return self.__port
 
     def __str__(self):
