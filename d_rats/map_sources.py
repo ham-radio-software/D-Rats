@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Map Sources'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -445,6 +446,7 @@ class MapFileSource(MapSource):
 
     # pylint: disable=no-self-argument
     def _enumerate(config):
+        # pylint: disable=no-member
         dirpath = os.path.join(config.platform.config_dir(),
                                "static_locations")
         files = glob(os.path.join(dirpath, "*.*"))
@@ -455,6 +457,7 @@ class MapFileSource(MapSource):
 
     # pylint: disable=no-self-argument
     def _open_source_by_name(config, name, create=False):
+        # pylint: disable=no-member
         dirpath = os.path.join(config.platform.config_dir(),
                                "static_locations")
 
@@ -518,7 +521,7 @@ class MapFileSource(MapSource):
             printlog(msg)
             raise MapSourceFailedToConnect(msg)
 
-        lines = input.readlines()
+        lines = input_handle.readlines()
         for line in lines:
             try:
                 point = self.__parse_line(line)
@@ -539,12 +542,16 @@ class MapUSGSRiverSource(MapSource):
 
     # pylint: disable=no-self-argument
     def _open_source_by_name(config, name):
+        # pylint: disable=no-member
         if not config.has_section("rivers"):
             return None
+        # pylint: disable=no-member
         if not config.has_option("rivers", name):
             return None
+        # pylint: disable=no-member
         sites = tuple(config.get("rivers", name).split(","))
         try:
+            # pylint: disable=no-member
             _name = config.get("rivers", "%s.label" % name)
         # pylint: disable=broad-except
         except Exception as err:
@@ -558,8 +565,10 @@ class MapUSGSRiverSource(MapSource):
 
     # pylint: disable=no-self-argument
     def _enumerate(config):
+        # pylint: disable=no-member
         if not config.has_section("rivers"):
             return []
+        # pylint: disable=no-member
         options = config.options("rivers")
 
         return [x for x in options if not x.endswith(".label")]
@@ -603,12 +612,16 @@ class MapNBDCBuoySource(MapSource):
 
     # pylint: disable=no-self-argument
     def _open_source_by_name(config, name):
+        # pylint: disable=no-member
         if not config.has_section("buoys"):
             return None
+        # pylint: disable=no-member
         if not config.has_option("buoys", name):
             return None
+        # pylint: disable=no-member
         _sites = config.get("buoys", name).split(",")
         try:
+            # pylint: disable=no-member
             _name = config.get("buoys", "%s.label" % name)
         # pylint: disable=broad-except
         except Exception as err:
@@ -623,8 +636,10 @@ class MapNBDCBuoySource(MapSource):
 
     # pylint: disable=no-self-argument
     def _enumerate(config):
+        # pylint: disable=no-member
         if not config.has_section("buoys"):
             return []
+        # pylint: disable=no-member
         options = config.options("buoys")
 
         return [x for x in options if not x.endswith(".label")]
