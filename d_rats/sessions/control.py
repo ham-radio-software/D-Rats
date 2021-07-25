@@ -169,7 +169,7 @@ class ControlSession(base.Session):
         # pylint: disable=protected-access
         num = self._sm._register_session(station, frame.s_station, "new,in")
 
-        data = struct.pack("BB", id, num)
+        data = struct.pack("BB", ident, num)
         self.ack_req(frame.s_station, data)
 
     def ctl(self, frame):
