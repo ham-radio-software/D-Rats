@@ -20,6 +20,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import gettext
 import os
 import time
 import shutil
@@ -34,7 +35,9 @@ from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
 
-from six.moves.configparser import ConfigParser, DuplicateSectionError
+# pyright: reportMissingModuleSource=false
+from six.moves.configparser import ConfigParser
+from six.moves.configparser import DuplicateSectionError
 
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import prompt_for_station, \
@@ -52,6 +55,7 @@ from ..debug import printlog
 
 _FOLDER_CACHE = {}
 
+_ = gettext.gettext
 BASE_FOLDERS = [_("Inbox"), _("Outbox"), _("Sent"), _("Trash"), _("Drafts")]
 
 
@@ -426,9 +430,10 @@ class MessageFolders(MainWindowElement):
                 printlog(info.subfolders())
             # pylint: disable=broad-except
             except Exception as err:
+                # Possibly temp diagnostic until verify the exact exception.
                 printlog("MainMsgs", " : _ensure_default_folders: %s -%s-" %
                          (type(err), err))
-                pass
+                # pass
 
     def _add_folders(self, store, msg_iter, root):
         msg_iter = store.append(msg_iter, (root.name(), self.folder_pixbuf))
@@ -595,9 +600,11 @@ class MessageFolders(MainWindowElement):
                 dst.delete(os.path.basename(fname))
             # pylint: disable=broad-except
             except Exception as err:
+                # Possibly temp diagnostic until we find the specific
+                # expected exceptions.
                 printlog("MainMsgs", " : _dragged_to: %s -%s-" %
                          (type(err), err))
-                pass
+                # pass
             newfn = dst.create_msg(os.path.basename(fname))
             shutil.copy(fname, newfn)
             src.delete(fname)
@@ -1384,7 +1391,7 @@ class MessagesTab(MainWindowTab):
             icon.set_from_pixbuf(self._config.ship_img(button_i))
             icon.show()
             if button_i in menus:
-                item = Gtk.MenuToolButton(icon, button_l)
+                item = Gtk.MenuToolButton.new(icon, button_l)
                 item.set_menu(menus[button_i])
                 try:
                     item.set_arrow_tooltip_text("%s %s %s" % (_("More"),
@@ -1393,7 +1400,7 @@ class MessagesTab(MainWindowTab):
                 except AttributeError:
                     pass
             else:
-                item = Gtk.ToolButton(icon, button_l)
+                item = Gtk.ToolButton.new(icon, button_l)
             item.show()
             item.connect("clicked", button_f)
             if button_l in tips:
