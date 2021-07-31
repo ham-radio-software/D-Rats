@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gettext
 import os
 import time
 from glob import glob
@@ -39,6 +40,7 @@ from d_rats import inputdialog
 from ..debug import printlog
 
 
+_ = gettext.gettext
 THROB_IMAGE = "throbber.gif"
 REMOTE_HINT = _("Enter remote callsign")
 
@@ -159,7 +161,7 @@ class RemoteFileView(FileView):
                 except (OverflowError, ValueError) as err:
                     printlog("Mainfiles",
                              "  : Unable to parse file time info: %s" % err)
-                    ts = time.time()
+                    time_stamp = time.time()
 
                 self._store.append((self._file_icon, key, size, time_stamp))
             else:
@@ -377,7 +379,7 @@ class FilesTab(MainWindowTab):
                 icon = Gtk.Image()
                 icon.set_from_pixbuf(button_i)
                 icon.show()
-                item = Gtk.ToolButton(icon, button_l)
+                item = Gtk.ToolButton.new(icon, button_l)
                 item.connect("clicked", button_f, button_d)
                 try:
                     item.set_tooltip_text(button_l)

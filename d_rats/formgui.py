@@ -19,6 +19,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import gettext
 import sys
 import time
 import os
@@ -27,6 +28,7 @@ import zlib
 import base64
 
 from lxml import etree
+# pyright: reportMissingModuleSource=false
 from six.moves import range
 from six.moves.configparser import NoOptionError
 
@@ -65,6 +67,7 @@ from . import spell
 # </xml>
 # """
 
+_ = gettext.gettext
 XML_ESCAPES = [("<", "&lt;"),
                (">", "&gt;"),
                ("&", "&amp;"),
@@ -1684,6 +1687,9 @@ class FormDialog(FormFile, Gtk.Dialog):
         rply_tip = "Compose a reply to this message"
         dele_tip = "Delete this message"
 
+        # pylint: disable=fixme
+        # FIX-ME: This should be consistent and use a null string for
+        # images instead of putting a label string in the image field.
         if editable:
             buttons = [
                 (_("Save"), "", save_tip, save),
@@ -1694,7 +1700,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         else:
             buttons = [
                 ("msg-reply.png", _("Reply"), rply_tip, reply),
-                #("msg-send.png", _("Forward"),  send_tip, send),
+                # ("msg-send.png", _("Forward"),  send_tip, send),
                 ("msg-send-via.png", _("Forward via"), svia_tip, svia),
                 (_("Print"), "", prnt_tip, self.but_printable),
                 (_("Delete"), "", dele_tip, delete),
@@ -1707,12 +1713,12 @@ class FormDialog(FormFile, Gtk.Dialog):
         button_index = 0
         for img, lab, tip, func in buttons:
             if not lab:
-                ti = Gtk.ToolButton(img)
+                ti = Gtk.ToolButton.new(None, img)
             else:
                 icon = Gtk.Image()
                 icon.set_from_pixbuf(self._config.ship_img(img))
                 icon.show()
-                ti = Gtk.ToolButton(icon, lab)
+                ti = Gtk.ToolButton.new(icon, lab)
             ti.show()
             try:
                 ti.set_tooltip_text(tip)
@@ -1894,7 +1900,6 @@ class FormDialog(FormFile, Gtk.Dialog):
 def main():
     '''Main program for unit testing'''
 
-    import gettext
     lang = gettext.translation("D-RATS",
                                localedir="./locale",
                                languages=["en"],

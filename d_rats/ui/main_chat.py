@@ -18,6 +18,7 @@
 
 # this is the user interface for the chat tab
 
+import gettext
 import os
 import time
 import re
@@ -38,6 +39,9 @@ from d_rats import signals
 from d_rats import spell
 # importing printlog() wrapper
 from ..debug import printlog
+
+
+_ = gettext.gettext
 
 
 class LoggedTextBuffer(Gtk.TextBuffer):
@@ -698,7 +702,7 @@ class ChatTab(MainWindowTab):
             icon = Gtk.Image()
             icon.set_from_pixbuf(button_i)
             icon.show()
-            item = Gtk.ToolButton(icon, button_l)
+            item = Gtk.ToolButton.new(icon, button_l)
             item.connect("clicked", button_f)
             try:
                 item.set_tooltip_text(button_l)
