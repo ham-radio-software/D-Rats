@@ -19,6 +19,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import gettext
 import time
 import os
 
@@ -40,7 +41,10 @@ from d_rats import utils
 # importing printlog() wrapper
 from ..debug import printlog
 
+_ = gettext.gettext
 
+
+# pylint: disable=too-many-locals
 def prompt_for_account(config):
     '''
     Prompt for account.

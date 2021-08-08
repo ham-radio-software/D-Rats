@@ -345,7 +345,8 @@ class MainWindow(MainWindowElement):
             self.__window.resize(height, width)
 
         try:
-            import gtkmacintegration
+            # Pylance can not detect this import on a linux system.
+            import gtkmacintegration # type: ignore
             mbar = self._wtree.get_object("menubar1")
             mbar.hide()
             gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
