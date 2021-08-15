@@ -24,7 +24,7 @@ from datetime import datetime
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from gi.repository import GObject
 
@@ -33,7 +33,7 @@ from d_rats.ui.main_common import ask_for_confirmation, set_toolbar_buttons
 from d_rats.sessions import rpc
 from d_rats.ui import main_events
 from d_rats import image
-# from d_rats import utils
+from d_rats import utils
 from d_rats import signals
 from d_rats import inputdialog
 #importing printlog() wrapper
@@ -133,26 +133,33 @@ class LocalFileView(FileView):
 class RemoteFileView(FileView):
     '''Remote File View'''
 
+    # pylint: disable=too-many-locals
     def _file_list_cb(self, job, state, result):
         if state != "complete":
             printlog("Mainfiles", "  : Incomplete job")
             return
 
-        unit_decoder = {"B" : 0,
-                        "KB": 10,
-                        "MB": 20}
+        unit_decoder = {u"B" : 0,
+                        u"KB": 10,
+                        u"MB": 20}
 
         # pylint: disable=fixme
         # FIXME: This might need to be in the idle loop
         for key, value in result.items():
             if "B (" in value:
-                size, units, file_date, file_time = value.split(" ")
+                size_str, units, file_date, file_time = value.split(" ")
+                size = 0
+                try:
+                    size = int(size_str)
+                except ValueError as err:
+                    printlog("Mainfiles",
+                             "  : Unable to parse file size: %s" %err)
                 try:
                     units_str = units.decode('utf-8', 'replace')
                     size <<= unit_decoder[units_str]
                 except KeyError as err:
                     printlog("Mainfiles",
-                             "  : Unable to parse file size info: %s" % err)
+                             "  : Unable to parse file size units: %s" % err)
                     size = 0
                 try:
                     stamp = "%s %s" % (file_date, file_time)
@@ -198,7 +205,7 @@ class FilesTab(MainWindowTab):
         # pylint: disable=unbalanced-tuple-unpacking
         throbber, = self._getw("remote_throb")
         pix = self._config.ship_img(THROB_IMAGE)
-        throbber.set_from_pixbuf(pix)        
+        throbber.set_from_pixbuf(pix)
 
     def _end_list_job(self, job, state, *_args):
         if not self._remote:
@@ -246,7 +253,7 @@ class FilesTab(MainWindowTab):
         # pylint: disable=unbalanced-tuple-unpacking
         throbber, = self._getw("remote_throb")
         img = self._config.ship_obj_fn(os.path.join("images", THROB_IMAGE))
-        anim = Gdk.PixbufAnimation(img)
+        anim = GdkPixbuf.PixbufAnimation.new_from_file(img)
         throbber.set_from_animation(anim)
 
         job = self._remote.refresh()
@@ -454,8 +461,8 @@ class FilesTab(MainWindowTab):
         col.set_cell_data_func(renderer, render_date)
         view.append_column(col)
 
-    def _refresh_calls(self, stations, ports):
-        activeport = ports.get_active()
+    def _refresh_calls(self, file_sel_stations, file_sel_ports):
+        activeport = file_sel_ports.get_active()
         if activeport == -1:
             activeport = 0
 
@@ -463,18 +470,9 @@ class FilesTab(MainWindowTab):
         _ports = []
         _stations = []
 
-        # wb8tyw: This is currently failing to return an object
-        # adding the if sstore: and if pstore: just to stop the GUI crashing.
-        #sstore = stations.get_model()
-        #if sstore:
-        #    sstore.clear()
-        stations.remove_all()
+        file_sel_stations.remove_all()
 
-        #pstore = ports.get_model()
-        #print(type(ports))
-        ports.remove_all()
-        #if pstore:
-        #    pstore.clear()
+        file_sel_ports.remove_all()
 
         if stationlist:
             for port, stations in stationlist.items():
@@ -482,22 +480,13 @@ class FilesTab(MainWindowTab):
                 for station in stations:
                     _stations.append(str(station))
 
-            print("************* main_files.py ************")
-            print("stations type= %s" % type(stations))
             for station in sorted(_stations):
-                stations.append_text(station)
+                file_sel_stations.append_text(station)
 
             for port in sorted(_ports):
-                ports.append_text(port)
-                #if pstore:
-                #    print(type(port))
-                #    print(port)
-                #    print(type(pstore))
-                #    print(dir(pstore))
-                #    print(Gtk.Buildable.get_name(pstore))
-                #    pstore.append_text(port)
+                file_sel_ports.append_text(port)
 
-        ports.set_active(activeport)
+        file_sel_ports.set_active(activeport)
 
         return self.__selected
 
@@ -517,8 +506,9 @@ class FilesTab(MainWindowTab):
         # TODO
         # Not sure how to make this work for GTK+ ComboBox
         # Can live with out a hint while debuging
-        #stations, = self._getw("sel_station")
-        #utils.set_entry_hint(stations, REMOTE_HINT)
+        stations, = self._getw("sel_station")
+        stn_entry = stations.get_child()
+        utils.set_entry_hint(stn_entry, REMOTE_HINT)
 
         _ddir = self._config.get("prefs", "download_dir")
 

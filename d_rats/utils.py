@@ -18,19 +18,24 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import gettext
 from io import FileIO
 # import re
 import os
 import tempfile
-import six.moves.urllib.request
-import six.moves.urllib.parse
-import six.moves.urllib.error
-from six.moves import range
 
-#importing printlog() wrapper
+# pylance can not deal with imports of six classes
+import six.moves.urllib.request # type: ignore
+import six.moves.urllib.parse # type: ignore
+import six.moves.urllib.error # type: ignore
+from six.moves import range # type: ignore
+
+# importing printlog() wrapper
 from .debug import printlog
 
 from . import dplatform
+
+_ = gettext.gettext
 
 
 def open_icon_map(iconfn):
@@ -417,6 +422,9 @@ def set_entry_hint(entry, hint, default_focused=False):
             color = Gdk.color_parse("black")
         else:
             return
+        # modify_text deprecated in GTK 3.0 says to use override_color
+        # override_color deprecated in GTK 3.16 says to use a custom
+        # style provider and style classes instead.
         entry.modify_text(Gtk.StateType.NORMAL, color)
 
     entry.connect("focus-in-event", focus, "in")

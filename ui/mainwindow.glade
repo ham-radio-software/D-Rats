@@ -883,7 +883,8 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="halign">center</property>
-                                    <property name="label" translatable="yes">label</property>
+                                    <property name="label" translatable="yes">Local</property>
+                                    <property name="justify">center</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -950,7 +951,6 @@
                                   <object class="GtkLabel" id="label11">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">label</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -968,6 +968,7 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
+                                    <property name="pack_type">end</property>
                                     <property name="position">2</property>
                                   </packing>
                                 </child>
@@ -986,11 +987,11 @@
                                   <object class="GtkLabel" id="label5">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">label</property>
+                                    <property name="label" translatable="yes">Station:</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
-                                    <property name="fill">True</property>
+                                    <property name="fill">False</property>
                                     <property name="padding">4</property>
                                     <property name="position">0</property>
                                   </packing>
@@ -1002,13 +1003,14 @@
                                     <property name="has_entry">True</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
-                                        <property name="can_focus">False</property>
-                                        <property name="width_chars">4</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="tooltip_text" translatable="yes">Enter Remote Callsign</property>
+                                        <property name="width_chars">8</property>
                                       </object>
                                     </child>
                                   </object>
                                   <packing>
-                                    <property name="expand">False</property>
+                                    <property name="expand">True</property>
                                     <property name="fill">True</property>
                                     <property name="position">1</property>
                                   </packing>
@@ -1017,10 +1019,12 @@
                                   <object class="GtkComboBoxText" id="files_sel_port">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="halign">end</property>
                                     <property name="has_entry">True</property>
                                     <child internal-child="entry">
                                       <object class="GtkEntry">
                                         <property name="can_focus">False</property>
+                                        <property name="halign">end</property>
                                       </object>
                                     </child>
                                   </object>
@@ -1061,7 +1065,7 @@
                           </object>
                           <packing>
                             <property name="resize">True</property>
-                            <property name="shrink">True</property>
+                            <property name="shrink">False</property>
                           </packing>
                         </child>
                       </object>
@@ -1098,6 +1102,13 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="has_entry">True</property>
+                                <items>
+                                  <item translatable="yes">All</item>
+                                  <item translatable="yes">File Transfers</item>
+                                  <item translatable="yes">Form Transfers</item>
+                                  <item translatable="yes">Position Reports</item>
+                                  <item translatable="yes">Pings</item>
+                                </items>
                                 <child internal-child="entry">
                                   <object class="GtkEntry" id="event_typesel_entry">
                                     <property name="can_focus">False</property>
