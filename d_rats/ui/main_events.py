@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gettext
 import time
 import os
 from datetime import datetime
@@ -32,6 +33,7 @@ from d_rats import signals
 # importing printlog() wrapper
 from ..debug import printlog
 
+_ = gettext.gettext
 EVENT_INFO = 0
 EVENT_FILE_XFER = 1
 EVENT_FORM_XFER = 2
