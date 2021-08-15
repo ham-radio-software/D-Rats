@@ -16,6 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gettext
+
+_ = gettext.gettext
 STATUS_MAX = 9
 STATUS_MIN = 0
 
