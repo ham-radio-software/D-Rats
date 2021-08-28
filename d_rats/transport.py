@@ -197,18 +197,19 @@ class Transporter(object):
     def _match_gps(self):
         # NMEA-style
         # Starts with $GP**[a-f0-9]{2}\r?\n?
+        inbuf_str = self.inbuf.decode('utf-8', 'replace')
         m = re.search(
-            b"((?:\x24GP[^\x42]+\x42[A-f0-9]{2}\x0d?\x0a?){1,2}.{8},.{20})",
-                       self.inbuf)
+            r"((?:\$GP[^\*]+\*[A-f0-9]{2}\r?\n?){1,2}.{8},.{20})",
+            inbuf_str)
         if m:
-            return m.group(1)
+            return bytearray(m.group(1), 'utf-8', 'replace')
 
         # GPS-A style
         # Starts with $$CRC[A-Z0-9]{4},\r
-        m = re.search(b"(\x24\x24CRC[A-z0-9]{4},[^\x0d]*\x0d)", self.inbuf)
+        m = re.search(r"(\$\$CRC[A-z0-9]{4},[^\r]*\r)", inbuf_str)
         if m:
-            return m.group(1)
-        if b"$$CRC" in self.inbuf:
+            return bytearray(m.group(1), 'utf-8', 'replace')
+        if u"$$CRC" in inbuf_str:
             printlog("Transport"," : Didn't match:\n%s" % repr(self.inbuf))
         return None
 
@@ -225,7 +226,11 @@ class Transporter(object):
     def _parse_gps(self):
         result = self._match_gps()
         if result:
-            self.inbuf = self.inbuf.replace(result, b"")
+            new_inbuf = self.inbuf.replace(result, b"")
+            if isinstance(new_inbuf, str):
+                self.inbuf = bytearray(new_inbuf, 'utf-8', 'replace')
+            else:
+                self.inbuf = new_inbuf
             printlog("Transport"," : Found GPS string: %s" % repr(result))
             self._send_text_block(result)
         else:
