@@ -23,7 +23,7 @@ import threading
 import re
 import time
 import random
-from six.moves import range
+from six.moves import range # type: ignore
 
 # importing printlog() wrapper
 from .debug import printlog
@@ -66,9 +66,9 @@ class BlockQueue():
         :returns: lock dequeued
         '''
         self._lock.acquire()
-        try:
+        if self._queue:
             block = self._queue.pop()
-        except IndexError:
+        else:
             block = None
         self._lock.release()
 
@@ -94,13 +94,9 @@ class BlockQueue():
         :returns: Lock element
         '''
         self._lock.acquire()
-        try:
+        if self._queue:
             element = self._queue[0]
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Transport",
-                     "   : BlockQueue/peek broad-execpt (%s -%s-)" %
-                     (type(err), err))
+        else:
             element = None
         self._lock.release()
 
@@ -183,6 +179,7 @@ class Transporter():
                 except comm.DataPathNotConnectedError:
                     pass
 
+        # Need to put connection info in this exception
         raise comm.DataPathIOError("Unable to reconnect")
 
     def __recv(self):
@@ -202,7 +199,7 @@ class Transporter():
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
-
+        # Need to put connection info in this exception
         raise comm.DataPathIOError("Unable to reconnect")
 
     def get_input(self):
@@ -258,19 +255,19 @@ class Transporter():
     def _match_gps(self):
         # NMEA-style
         # Starts with $GP**[a-f0-9]{2}\r?\n?
+        inbuf_str = self.inbuf.decode('utf-8', 'replace')
         match = re.search(
-            b"((?:\x24GP[^\x42]+\x42[A-f0-9]{2}\x0d?\x0a?){1,2}.{8},.{20})",
-            self.inbuf)
+            r"((?:\$GP[^\*]+\*[A-f0-9]{2}\r?\n?){1,2}.{8},.{20})",
+            inbuf_str)
         if match:
-            return match.group(1)
+            return bytearray(match.group(1), 'utf-8', 'replace')
 
         # GPS-A style
         # Starts with $$CRC[A-Z0-9]{4},\r
-        match = re.search(b"(\x24\x24CRC[A-z0-9]{4},[^\x0d]*\x0d)",
-                          self.inbuf)
+        match = re.search(r"(\$\$CRC[A-z0-9]{4},[^\r]*\r)", inbuf_str)
         if match:
-            return match.group(1)
-        if b"$$CRC" in self.inbuf:
+            return bytearray(match.group(1), 'utf-8', 'replace')
+        if u"$$CRC" in inbuf_str:
             printlog("Transport",
                      " : Didn't match:\n%s" % repr(self.inbuf))
         return None
@@ -281,14 +278,24 @@ class Transporter():
         frame.session = 1 # Chat (for now)
         frame.s_station = "CQCQCQ"
         frame.d_station = "CQCQCQ"
-        frame.data = utils.filter_to_ascii(string)
+        if isinstance(string, str):
+            printlog("Transport/_send_text_block",
+                     " : Called with str data!")
+            ascii_data = utils.filter_to_ascii(string)
+        else:
+            ascii_data = utils.filter_to_ascii_bytes(string)
+        frame.data = ascii_data
 
         self._handle_frame(frame)
 
     def _parse_gps(self):
         result = self._match_gps()
         if result:
-            self.inbuf = self.inbuf.replace(result, b"")
+            new_inbuf = self.inbuf.replace(result, b"")
+            if isinstance(new_inbuf, str):
+                self.inbuf = bytearray(new_inbuf, 'utf-8', 'replace')
+            else:
+                self.inbuf = new_inbuf
             printlog("Transport", " : Found GPS string: %s" % repr(result))
             self._send_text_block(result)
 
@@ -381,6 +388,12 @@ class Transporter():
         while self.enabled:
             try:
                 self.get_input()
+            except comm.DataPathIOError:
+                printlog("Transport",
+                         " : Unable to reconnect!")
+                self.enabled = False
+                break
+            # This pylint disable does not work.
             # pylint: disable=broad-except
             except Exception as err:
                 printlog("Transport",
