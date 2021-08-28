@@ -23,7 +23,8 @@ from __future__ import print_function
 import threading
 import time
 import socket
-import six.moves.configparser
+import sys
+import six.moves.configparser # type: ignore
 # import os
 
 import gettext
@@ -45,6 +46,13 @@ from d_rats.debug import printlog
 from d_rats import utils
 
 gettext.install("D-RATS")
+
+
+# Needed for python2+python3 support
+if sys.version_info[0] < 3:
+    # pylint: disable=redefined-builtin
+    class BlockingIOError(socket.error):
+        '''Suppress pylint on python3 warning.'''
 
 
 def call_with_lock(lock, function, *args):
@@ -174,10 +182,12 @@ class Repeater:
     def __repeat(self, rpt_transport, frame):
         if frame.d_station == "!":
             return
-
+        gps_start = '$'
+        if not isinstance(frame.data, str):
+            gps_start = b'$'
         if frame.s_station == frame.d_station == "CQCQCQ" and \
                 frame.session == 1 and \
-                frame.data.startswith("$") and \
+                frame.data.startswith(gps_start) and \
                 self.__should_repeat_gps(rpt_transport, frame):
             for sock in self.gps_sockets:
                 sock.send(frame.data)
@@ -241,7 +251,8 @@ class Repeater:
                 self.__repeat(new_transport, frame)
             # pylint: disable=broad-except
             except Exception as err:
-                printlog("Repeater  : Exception during __repeat: %s -%s-" %
+                printlog("Repeater  :",
+                         "Exception during __repeat: Generic %s -%s-" %
                          (type(err), err))
             self.condition.release()
 
@@ -365,14 +376,12 @@ class Repeater:
 
         try:
             (csocket, addr) = self.socket.accept()
+        # python3
         except BlockingIOError:
             return
-        # pylint: disable=broad-except
-        #except Exception as err:
-        #    printlog("Repeater   : Repeater/",
-        #             "accept_new broad-except (%s -%s-)" %
-        #             (type(err), err))
-        #    return
+        # python2
+        except socket.error:
+            return
 
         printlog("Repeater  : Accepted new client %s:%i" % addr)
 
@@ -389,14 +398,12 @@ class Repeater:
 
         try:
             (csocket, addr) = self.gps_socket.accept()
+        # python3
         except BlockingIOError:
             return
-        # pylint: disable=broad-except
-        # except Exception as err:
-        #    printlog("Repeater   : Repeater/",
-        #             "accept_new_gps broad-except (%s -%s-)" %
-        #             (type(err), err))
-        #    return
+        # python2
+        except socket.error:
+            return
 
         printlog("Repeater  : Accepted new GPS client %s:%i" % addr)
         self.gps_sockets.append(csocket)
@@ -509,9 +516,9 @@ class RepeaterUI:
             timeout = 0
             if dev.startswith("net:"):
                 try:
-                    _net, host, port = dev.split(":", 2)
+                    _net, host, port = dev.split(":", 2) # type: ignore
                     port = int(port)
-                # pylint disable=broad-except
+                # pylint: disable=broad-except
                 except Exception as err:
                     printlog("Invalid net string: %s (%s -%s-)"
                              % (dev, type(err), err))
@@ -1166,8 +1173,6 @@ class RepeaterConsole(RepeaterUI):
 
 def main():
     '''D-Rats Repeater main program.'''
-
-    import sys
 
     # pylint: disable=deprecated-module
     from optparse import OptionParser
