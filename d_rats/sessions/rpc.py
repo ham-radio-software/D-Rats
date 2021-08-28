@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import time
 import datetime
+import gettext
 import os
 import glob
 import sys
@@ -40,6 +41,7 @@ from d_rats.utils import log_exception
 # importing printlog() wrapper
 from d_rats.debug import printlog
 
+_ = gettext.gettext
 ASCII_FS = "\x1C"
 ASCII_GS = "\x1D"
 ASCII_RS = "\x1E"
@@ -78,6 +80,12 @@ class RPCActionSetRequired(RPCException):
     '''RPCSession needs an rpcactions parameter.'''
 
 
+if sys.version_info[0] > 2:
+    # pylint: disable=invalid-name
+    class basestring(str):
+        '''Suppress pylint on python3 warning.'''
+
+
 def encode_dict(source):
     '''
     Encode Dictionary into a string.
@@ -100,7 +108,8 @@ def encode_dict(source):
                 raise InvalidRPCDictValue(
                     "Cannot encode non-string dict value")
         # Have to live with this pylint warning on python3 for now.
-        elif not isinstance(value, basestring):
+        # and also add a pylance ignore for it.
+        elif not isinstance(value, basestring):  # type: ignore
             raise InvalidRPCDictValue("Cannot encode non-string dict value")
 
         elements.append(key + ASCII_US + value)

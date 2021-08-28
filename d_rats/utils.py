@@ -142,9 +142,25 @@ def hexprintlog(raw_data):
     return csum
 
 
+def filter_to_ascii_bytes(bytes_str):
+    '''
+    Filter to ASCII bytes.
+
+    :param byte_str: bytes string to filter
+    :returns: Filtered bytes string
+    '''
+    out_bytes = bytearray(len(bytes_str))
+    idx = 0
+    for byte_char in bytes_str:
+        if byte_char in range(32, 127) or byte_char in [0x0a, 0x0d]:
+            out_bytes[idx] = byte_char & 0xff
+        idx += 1
+    return out_bytes
+
+
 def filter_to_ascii(string):
     '''
-    Filter To ASCII
+    Filter to ASCII.
 
     :param string: String to filter
     :returns: Filtered string
@@ -157,7 +173,8 @@ def filter_to_ascii(string):
     xlate[ord('\n')] = '\n'
     xlate[ord('\r')] = '\r'
 
-    return str(string).translate("".join(xlate)).replace("\x00", "")
+    out_string = str(string).translate("".join(xlate)).replace("\x00", "")
+    return out_string
 
 
 def run_safe(function):

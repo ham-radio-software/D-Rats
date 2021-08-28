@@ -1,6 +1,8 @@
 '''Sessions Chat'''
 from __future__ import absolute_import
 from __future__ import print_function
+
+import gettext
 import random
 import time
 
@@ -15,6 +17,8 @@ from d_rats.ddt2 import DDT2EncodedFrame, DDT2RawData
 
 #importing printlog() wrapper
 from d_rats.debug import printlog
+
+_ = gettext.gettext
 
 
 class ChatInvalidStatus(base.BaseSessionException):
@@ -102,7 +106,7 @@ class ChatSession(stateless.StatelessSession, GObject.GObject):
         '''
         printlog("Chat", "      : Got chat frame: %s" % frame)
         if frame.type == self.T_DEF:
-            fix = gps.parse_GPS(frame.data)
+            fix = gps.parse_GPS(frame.data.decode('utf-8', 'replace'))
             if fix and fix.valid:
                 self._incoming_gps(fix)
             else:
