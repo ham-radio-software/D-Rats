@@ -461,7 +461,7 @@ class EventTab(MainWindowTab):
 
             :param adj: Adjustment
             '''
-            adj.set_value(adj.upper - adj.page_size)
+            adj.set_value(adj.get_upper() - adj.adj.get_page_size)
 
         if top_scrolled:
             GObject.idle_add(top_scroll, adj)
