@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# review 2015 Maurizio Andreotti 
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -147,7 +147,7 @@ class MainWindow(MainWindowElement):
                     tabs.reconfigure()
 
         def do_map(but):
-            # shows the map window passing our username and callsign as defined in the preferecens
+            # shows the map window passing our username and callsign as defined in the preferences
             call = self._config.get("user", "callsign")
             self.emit("show-map-station", call)
 
