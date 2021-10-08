@@ -22,12 +22,12 @@ def printlog(arg1, *args):
                      'Formgui',          # d_rats\formgui.py
                      'Gps',              # d_rats\gps.py
                      'Geocode',          # geocode.py      
-                     'Mainapp',          # mainapp.py'
+                     'Mainapp',          # d_rats\mainapp.py
                      'Mainchat',         # d_rats\ui\main_chat.py
                      
-                     'MainEvents',       #d_rats\ui\main_events.py                     
+                     'MainEvents',       # d_rats\ui\main_events.py                     
                      
-                     'MainMsgs',     #d_rats\ui\main_messages.py                     
+                     'MainMsgs',         # d_rats\ui\main_messages.py                     
                      'Mainfiles',        # d_rats\ui\main_files.py
                      'MainStation',      # d_rats\ui\main_stations.py                                        
                      'Mainwind',         # mainwindow.py'
@@ -37,7 +37,7 @@ def printlog(arg1, *args):
                      'MscWidget',        # d_rats\miscwidgets.py
                      'Platform',         # d_rats\platform.py
                      'Pluginsrv',        # d_rats\pluginsrv.py   
-                     'Msgrouting',        # d_rats\msgrouting.py                    
+                     'Msgrouting',       # d_rats\msgrouting.py                    
                      'Qst',              # d_rats\qst.py
                      'RPC',              # d_rats\sessions\rpc.py
                      'SessCoord',        # d_rats\session_coordinator.py
@@ -50,18 +50,18 @@ def printlog(arg1, *args):
                      'Wl2k',             # d_rats\wl2k.py
                      
                      #TO DO
-                     'Callsigns',    #d_rats\callsigns.py
-                     'geocode_ui',   #d_rats\geocode_ui.py
-                     'image',        #d_rats\image.py
-                     'inputdialog',  #d_rats\inputdialog.py
-                     'mailsrv',      #d_rats\mailsrv.py
+                     'Callsigns',       #d_rats\callsigns.py
+                     'geocode_ui',      #d_rats\geocode_ui.py
+                     'image',           #d_rats\image.py
+                     'inputdialog',     #d_rats\inputdialog.py
+                     'mailsrv',         #d_rats\mailsrv.py
                      
-                     'reqobject',            #d_rats\reqobject.py
-                     'sessionmgr',           #d_rats\sessionmgr.py
+                     'reqobject',       #d_rats\reqobject.py
+                     'sessionmgr',      #d_rats\sessionmgr.py
 
-                     'signals',              #d_rats\signals.py
-                     'spell',                #d_rats\spell.py
-                     'station_status',       #d_rats\station_status.py
+                     'signals',         #d_rats\signals.py
+                     'spell',           #d_rats\spell.py
+                     'station_status',  #d_rats\station_status.py
 
 
 

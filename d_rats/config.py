@@ -128,31 +128,33 @@ _DEF_SETTINGS = {
     "sockflush" : "0.5",
     "pipelinexfers" : "True",
     
-    #Weather APIs
-    "qst_owuri" : "https://api.openweathermap.org/data/2.5/",
+    #since 0.3.10beta4 removed "s" from https:// in default config to avoid https complaints on windows machines
+   
+    #OpenWeather APIs
+    "qst_owuri" : "http://api.openweathermap.org/data/2.5/",
     "qst_owappid" : "ecd42c31b76e59e83de5cb8c16f7bd95a",
     
     #MAPS APIs
     "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),
     "maptype": "base",
-    #"mapurlbase":  "http://a.tile.openstreetmap.org/", 
-    "mapurlbase":  "https://tile.openstreetmap.de/",
+    "mapurlbase":  "http://a.tile.openstreetmap.org/", 
+    #"mapurlbase":  "https://tile.openstreetmap.de/",
     "keyformapurlbase": "",
 
-    "mapurlcycle": "https://tile.thunderforest.com/cycle/",
+    "mapurlcycle": "http://tile.thunderforest.com/cycle/",
     "keyformapurlcycle": "?apikey=YOUR APIKEY REQUIRED",
     
-    "mapurloutdoors": "https://tile.thunderforest.com/outdoors/",
+    "mapurloutdoors": "http://tile.thunderforest.com/outdoors/",
     "keyformapurloutdoors": "?apikey=5a1a4a79354244a38707d83969fd88a2",
      
-    "mapurllandscape": "https://tile.thunderforest.com/landscape/",
+    "mapurllandscape": "http://tile.thunderforest.com/landscape/",
     "keyformapurllandscape": "?apikey=5a1a4a79354244a38707d83969fd88a2",
     
     #GPS
     "default_gps_comment" : "BN  *20",     #default icon for our station in the map and gpsfixes
     "map_marker_bgcolor": "yellow",        #background color for markers in the map window
     
-    "warmup_length" : "16",                 #changed from 8 to 16 in 0.3.6
+    "warmup_length" : "16",                #changed from 8 to 16 in 0.3.6
     "warmup_timeout" : "0",                #changed from 3 to 0 in 0.3.6
     "force_delay" : "-2",
     "ping_info" : "",
@@ -568,14 +570,14 @@ class DratsConfigWidget(gtk.HBox):
             try:
                 confwidget.value = "%3.6f" % entry.value()
             except Exception as e:
-                printlog(("Config    : Invalid Coords: %s" % e))
+                printlog("Config","    : Invalid Coords: %s" % e)
                 confwidget.value = "0"
 
         w = miscwidgets.LatLonEntry()
         w.connect("changed", changed, self)
-        printlog(("Config    : Setting LatLon value: %s" % self.value))
+        printlog("Config","    : Setting LatLon value: %s" % self.value)
         w.set_text(self.value)
-        printlog(("Config    : LatLon text: %s" % w.get_text()))
+        printlog("Config","    : LatLon text: %s" % w.get_text())
         w.show()
 
         # Dirty ugly hack!
@@ -634,7 +636,7 @@ class DratsConfigWidget(gtk.HBox):
             self.value = box.get_filename()
 
         def test_sound(button):
-            printlog(("Config    : Testing playback of %s" % self.value))
+            printlog("Config","    : Testing playback of %s" % self.value)
             p = dplatform.get_platform()
             p.play_sound(self.value)
 
@@ -677,7 +679,7 @@ class DratsListConfigWidget(DratsConfigWidget):
                 elif gtype == gobject.TYPE_BOOLEAN:
                     value = eval(value)
             except ValueError as e:
-                printlog(("Config    : Failed to convert %s for %s: %s" % (value, label, e)))
+                printlog("Config","    : Failed to convert %s for %s: %s" % (value, label, e))
                 return []
 
             i += 1
@@ -1921,10 +1923,16 @@ class DratsConfig(six.moves.configparser.ConfigParser):
 
     def getboolean(self, sec, key):
         try:
-            return six.moves.configparser.ConfigParser.getboolean(self, sec, key)
+            if key == "connected_inet": printlog("Config","    : Try to get boolean: %s/%s/%s => %s" % (self, sec, key,(six.moves.configparser.ConfigParser.getboolean(self, sec, key))))
+            return six.moves.configparser.ConfigParser.getboolean(self, sec, key)            
         except:
-            printlog("Config","    : Failed to get boolean: %s/%s" % (sec, key))
-            return False
+            try:
+                conn = (six.moves.configparser.ConfigParser.get(self, sec, key) == True)
+                printlog("Config","    : Get boolean failed - try getting string: %s/%s/%s => %s :: %s" % (self, sec, key,(six.moves.configparser.ConfigParser.get(self, sec, key)),conn))
+                return six.moves.configparser.ConfigParser.get(self, sec, key)            
+            except:
+                printlog("Config","    : Failed to get boolean: %s/%s/%s" % (self, sec, key))
+                return False
 
     def getint(self, sec, key):
         return int(float(six.moves.configparser.ConfigParser.get(self, sec, key)))

@@ -248,8 +248,7 @@ class MainApp(object):
                 printlog("Mainapp","   : Failed to start socket listener %i:%i@%s: %s" % \
                     (sport, dport, station, e))
 
-    def start_comms(self, portid):
-        printlog("Mainapp","   : Starting Comms")
+    def start_comms(self, portid, conninet):
         #load from the "ports" config the line related to portid
         spec = self.config.get("ports", portid)
         try:
@@ -267,16 +266,19 @@ class MainApp(object):
             #if port not enabled, and was already active, let's cancel it
             if name in self.sm:
                 del self.sm[name]
+                printlog("Mainapp","   : startcomms: deleted port %s (%s)" % (portid, name))
+
             return
 
-        printlog("Mainapp","   : Starting port %s (%s)" % (portid, name))
+        printlog("Mainapp","   : startcomms: Starting port %s (%s)" % (portid, name))
 
         call = self.config.get("user", "callsign")
-
+        
+        #configure path depending port type and parameters
         if port in self.__unused_pipes:
             path = self.__unused_pipes[port]
             del self.__unused_pipes[port]
-            printlog("Mainapp","   : Re-using path %s for port %s" % (path, port))
+            printlog("Mainapp","   : deleted unused pipe %s for port %s" % (path, port))
         elif port.startswith("tnc-ax25:"):
             printlog("Mainapp","   : Port %s as tnc-ax25" %  port)
             tnc, _port, tncport, path = port.split(":")
@@ -284,25 +286,35 @@ class MainApp(object):
             _port = "%s:%s" % (_port, tncport)
             path = comm.TNCAX25DataPath((_port, int(rate), call, path))
         elif port.startswith("tnc:"):
+            printlog("Mainapp","   : Port %s as tnc" %  port)
             _port = port.replace("tnc:", "")
             path = comm.TNCDataPath((_port, int(rate)))
         elif port.startswith("dongle:"):
+            printlog("Mainapp","   : Port %s as Dongle" %  port)
             path = comm.SocketDataPath(("127.0.0.1", 20003, call, None))
         elif port.startswith("agwpe:"):
             path = comm.AGWDataPath(port, 0.5)
-            printlog("Mainapp","   : Opening AGW: %s" % path)
-        elif ":" in port:
-            try:
+            printlog("Mainapp","   : Opening AGW: %s" % portid)
+        #ratflector case
+        elif ":" in port:          
+            #if internet connection is set to False, lets skip activating this port
+            
+            printlog("Mainapp","   : Ratflector Port=%s with internet connectivy=%s" %  (portid, conninet))
+            if not conninet:
+                   printlog("Mainapp","   : Skipping port %s with internet connectivy=%s" %  (portid, conninet)) 
+                   return
+            try:    
                 (mode, host, sport) = port.split(":")
             except ValueError:
                 event = main_events.Event(None,
-                                          _("Failed to connect to") + \
-                                              " %s: " % port + \
-                                              _("Invalid port string"))
+                                          _("Failed to connect to") +    \
+                                                  " %s: " % port + \
+                                                  _("Invalid port string"))
                 self.mainwindow.tabs["event"].event(event)
                 return False
-
             path = comm.SocketDataPath((host, int(sport), call, rate))
+            printlog("Mainapp","   : path set to=%s" %  path) 
+        #last option is serial line
         else:
             path = comm.SerialDataPath((port, int(rate)))
 
@@ -397,10 +409,10 @@ class MainApp(object):
 
     def check_comms_status(self):
         #added in 0.3.10
-        printlog("Mainapp","   : Check ports status ")
+        printlog("Mainapp","   : CHECK PORTS STATUS ")
         printlog("Mainapp","   : Ports expected to be already started:")
         for portid in self.sm.keys():
-            printlog("Mainapp","   : %s" % portid)
+            printlog("Mainapp","    ->   %s" % portid)
         
         printlog("Mainapp","   : Checking all Ports from config:")          
         for portid in self.config.options("ports"):
@@ -424,35 +436,51 @@ class MainApp(object):
             else:
                 printlog("Mainapp","   : Port %s not started" % name)
             
-            
-    
-    def check_stations_status(self):
-    #added in 0.3.10        
+
+    def check_stations_status(self):    
+        #added in 0.3.10        
         printlog("Mainapp","   : Check stations")
         station_list = self.emit("get-station-list")
         stations = []
         for portlist in station_list.values():
             stations += [str(x) for x in portlist]
             station, port = prompt_for_station(stations, self._config)
-            printlog("Mainapp","   : Stations %s resulting on port %s" % station, port)
+            printlog("Mainapp","   : Station %s resulting on port %s" % station, port)
            
-    def _refresh_comms(self):
-        delay = False
-        printlog("Mainapp","   : refreshing comms")
+    def _refresh_comms(self, conn):    
+        printlog("Mainapp","   : REFRESHING COMMS invoked with conninet=%s " % conn)
         
+        if (conn == ""): 
+            #this case of "" happens when invoked at start up and conninet is not passed but shall read from config file
+            # although this should always working, reading this value from config file works only at startup, 
+            # so it needed to be passed within the event signal
+            conninet = self.config.getboolean("state","connected_inet") 
+            printlog("Mainapp","   : Conninet value changed from emptystring with getboolean to: %s " % conn)
+       
+        #Validate the boolean identity of the received conn
+        if (conn == "True"):
+                conninet = True
+        if (conn == True):
+                conninet = True
+        else:
+                conninet = False    
+        printlog("Mainapp","   :  verify  :-------------------- Conninet=%s " % conninet)
+        
+        #lets first delete all comms in place
+        delay = False       
         for portid in self.sm.keys():
             printlog("Mainapp","   : Stopping %s" % portid)
             if self.stop_comms(portid):
                 if sys.platform == "win32":
                     # Wait for windows to let go the serial port
                     delay = True
-
         if delay:
             time.sleep(0.25)
-
+        
+        #lets restart all needed comms, skipping ratfactors if conninet=False
         for portid in self.config.options("ports"):
             printlog("Mainapp","   : Re-Starting %s" % portid)
-            self.start_comms(portid)
+            self.start_comms(portid,conninet)
 
         for spec, path in self.__unused_pipes.items():
             printlog("Mainapp","   : Path %s for port %s no longer needed" % (path, spec))
@@ -460,9 +488,8 @@ class MainApp(object):
 
         self.__unused_pipes = {}
 
-        #added in 0.3.10
-        #checking status
-        self.check_comms_status()
+        ### avoid checking status to speed up 
+        ### self.check_comms_status()
         #self.check_stations_status()
  
     def _static_gps(self):
@@ -627,45 +654,49 @@ class MainApp(object):
                                                               "Static Overlay",
                                                               fn)
 
-    def refresh_config(self):
-        printlog("Mainapp","   : Refreshing config...")
-  
-        call = self.config.get("user", "callsign")
-        gps.set_units(self.config.get("user", "units"))
 
-        self._refresh_comms()
+    def refresh_config_conn(self, conninet):
+        printlog("Mainapp","   : Refresh_config_conn invoking refresh_comms with conninet= %s" % conninet)
+        self._refresh_comms(conninet)                
+         
+    def refresh_config(self,conninet):
+        printlog("Mainapp","   : Refreshing config with conninet= %s" % conninet) 
+        #conninet is the bool value relted to the setting of internet connectivty flag in the menu
+        call = self.config.get("user", "callsign")
+        gps.set_units(self.config.get("user", "units"))        
+        self._refresh_comms(conninet)
         self._refresh_gps()
         self._refresh_mail_threads() 
         self._refresh_map()
     
     def _refresh_map(self):
-	printlog("Mainapp","   : reconfigure Mapwindow with new map")
-    
-	#setup of the url for retrieving the map tiles depending on the preference
-	if self.config.get("settings", "maptype") == "cycle":
-	    mapurl = self.config.get("settings", "mapurlcycle")
-	    mapkey = self.config.get("settings", "keyformapurlcycle")
-	elif self.config.get("settings", "maptype") == "landscape":
-	    mapurl = self.config.get("settings", "mapurllandscape")
-	    mapkey = self.config.get("settings", "keyformapurllandscape")
-	elif self.config.get("settings", "maptype") == "outdoors":
-	    mapurl = self.config.get("settings", "mapurloutdoors")
-	    mapkey = self.config.get("settings", "keyformapurloutdoors")
-	else:
-	    mapurl = self.config.get("settings", "mapurlbase")
-	    mapkey = ""
-    
-	mapdisplay.set_base_dir(os.path.join(self.config.get("settings", "mapdir"), self.config.get("settings", "maptype")), mapurl, mapkey)
+        printlog("Mainapp","   : reconfigure Mapwindow with new map, connection = ", self.config.getboolean("state","connected_inet"))
+        
+        #setup of the url for retrieving the map tiles depending on the preference
+        if self.config.get("settings", "maptype") == "cycle":
+            mapurl = self.config.get("settings", "mapurlcycle")
+            mapkey = self.config.get("settings", "keyformapurlcycle")
+        elif self.config.get("settings", "maptype") == "landscape":
+            mapurl = self.config.get("settings", "mapurllandscape")
+            mapkey = self.config.get("settings", "keyformapurllandscape")
+        elif self.config.get("settings", "maptype") == "outdoors":
+            mapurl = self.config.get("settings", "mapurloutdoors")
+            mapkey = self.config.get("settings", "keyformapurloutdoors")
+        else:
+            mapurl = self.config.get("settings", "mapurlbase")
+            mapkey = ""
+        
+        mapdisplay.set_base_dir(os.path.join(self.config.get("settings", "mapdir"), self.config.get("settings", "maptype")), mapurl, mapkey)
+        
+        mapdisplay.set_connected(self.config.getboolean("state","connected_inet"))
+        mapdisplay.set_tile_lifetime(self.config.getint("settings","map_tile_ttl") * 3600)
+        proxy = self.config.get("settings", "http_proxy") or None
+        mapdisplay.set_proxy(proxy)
 
-	mapdisplay.set_connected(self.config.getboolean("state","connected_inet"))
-	mapdisplay.set_tile_lifetime(self.config.getint("settings","map_tile_ttl") * 3600)
-	proxy = self.config.get("settings", "http_proxy") or None
-	mapdisplay.set_proxy(proxy)
-
-	self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
-#	self.map.connect("reload-sources", lambda m: self._load_map_overlays())
-	self.map.set_zoom(14)
-	self.map.queue_draw()
+        self.map.set_title("D-RATS Map Window - map in use: %s" % self.config.get("settings", "maptype"))
+    #	self.map.connect("reload-sources", lambda m: self._load_map_overlays())
+        self.map.set_zoom(14)
+        self.map.queue_draw()
         return True
     
     def _refresh_location(self):
@@ -800,12 +831,17 @@ class MainApp(object):
     def __event(self, object, event):
         self.mainwindow.tabs["event"].event(event)
 
-    def __config_changed(self, object):
-        self.refresh_config()
+    def __config_changed(self, object, conninet):
+        printlog("Mainapp","   : Event received: config_changed")
+        conninet = self.config.getboolean("state","connected_inet") 
+        self.refresh_config(conninet)
+      
+    def __conn_changed(self, object, conninet):
+        printlog("Mainapp","   : Event received: conn_changed")
+        self.refresh_config_conn(conninet)
         
-
     def __show_map_station(self, object, station):      
-        printlog("Mainapp","   : Showing Map Window")
+        printlog("Mainapp","    : Event received: Showing Map Window")
         self.map.show()
 
 
@@ -1086,41 +1122,42 @@ class MainApp(object):
     
     def __init__(self, **args):
         self.handlers = {
-            "status" : self.__status,
-            "user-stop-session" : self.__user_stop_session,
-            "user-cancel-session" : self.__user_cancel_session,
-            "user-send-form" : self.__user_send_form,
-            "user-send-file" : self.__user_send_file,
-            "rpc-send-form" : self.__user_send_form,
-            "rpc-send-file" : self.__user_send_file,
-            "user-send-chat" : self.__user_send_chat,
-            "incoming-chat-message" : self.__incoming_chat_message,
-            "outgoing-chat-message" : self.__outgoing_chat_message,
-            "get-station-list" : self.__get_station_list,
-            "get-message-list" : self.__get_message_list,
-            "submit-rpc-job" : self.__submit_rpc_job,
-            "event" : self.__event,
-            "notice" : False,
+            "conn-changed" : self.__conn_changed,
             "config-changed" : self.__config_changed,
-            "show-map-station" : self.__show_map_station,
+            "event" : self.__event,          
+            "incoming-chat-message" : self.__incoming_chat_message,
+            "incoming-gps-fix" : self.__incoming_gps_fix,
+            "notice" : False,
+            "outgoing-chat-message" : self.__outgoing_chat_message,              
             "ping-station" : self.__ping_station,
             "ping-station-echo" : self.__ping_station_echo,
             "ping-request" : self.__ping_request,
             "ping-response" : self.__ping_response,
-            "incoming-gps-fix" : self.__incoming_gps_fix,
-            "station-status" : self.__station_status,
-            "get-current-status" : self.__get_current_status,
-            "get-current-position" : self.__get_current_position,
-            "session-status-update" : self.__session_status_update,
-            "session-started" : self.__session_started,
-            "session-ended" : self.__session_ended,
-            "file-received" : self.__file_received,
-            "form-received" : self.__form_received,
+            "file-received" : self.__file_received,            
             "file-sent" : self.__file_sent,
+            "form-received" : self.__form_received,            
             "form-sent" : self.__form_sent,
             "get-chat-port" : self.__get_chat_port,
-            "trigger-msg-router" : self.__trigger_msg_router,
+            "get-current-status" : self.__get_current_status,
+            "get-current-position" : self.__get_current_position,
+            "get-message-list" : self.__get_message_list,   
+            "get-station-list" : self.__get_station_list,  
             "register-object" : self.__register_object,
+            "rpc-send-form" : self.__user_send_form,
+            "rpc-send-file" : self.__user_send_file,
+            "session-ended" : self.__session_ended,
+            "session-started" : self.__session_started,            
+            "session-status-update" : self.__session_status_update,
+            "show-map-station" : self.__show_map_station,            
+            "station-status" : self.__station_status,
+            "status" : self.__status,
+            "submit-rpc-job" : self.__submit_rpc_job,            
+            "trigger-msg-router" : self.__trigger_msg_router,            
+            "user-cancel-session" : self.__user_cancel_session,
+            "user-send-chat" : self.__user_send_chat,                            
+            "user-send-form" : self.__user_send_form,
+            "user-send-file" : self.__user_send_file,
+            "user-stop-session" : self.__user_stop_session,       
             }
 
         global MAINAPP
@@ -1184,8 +1221,11 @@ class MainApp(object):
             self.__connect_object(tab)
         
         printlog("Mainapp","   : invoke config refresh")
-        self.refresh_config()
+        
+        conninet = self.config.getboolean("state","connected_inet") 
+        self.refresh_config(conninet)
         self._load_map_overlays()
+        
 
         if self.config.getboolean("prefs", "dosignon") and self.chat_session:
             printlog("Mainapp","   : going online")

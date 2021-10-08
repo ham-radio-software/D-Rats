@@ -39,7 +39,7 @@ def open_icon_map(iconfn):
     try:
         return gtk.gdk.pixbuf_new_from_file(iconfn)
     except Exception as e:
-        printlog("Utils","     :Error opening icon map %s: %s" % (iconfn, e))
+        printlog("Utils","     : Error opening icon map %s: %s" % (iconfn, e))
         return None
 
 ICON_MAPS = None
@@ -189,20 +189,20 @@ def get_icon(key):
         elif key[0] == "\\":
             set = "\\"
         else:
-            printlog("Utils","     :Utils     : Unknown APRS symbol table: %s" % key[0])
+            printlog("Utils","     : Utils     : Unknown APRS symbol table: %s" % key[0])
             return None
 
         key = key[1]
     elif len(key) == 1:
         set = "/"
     else:
-        printlog("Utils","     :Utils     : Unknown APRS symbol: `%s'" % key)
+        printlog("Utils","     : Utils     : Unknown APRS symbol: `%s'" % key)
         return None
 
     try:
         return get_icon_from_map(ICON_MAPS[set], key)
     except Exception as e:
-        printlog("Utils","     :Error cutting icon %s: %s" % (key, e))
+        printlog("Utils","     : Error cutting icon %s: %s" % (key, e))
         return None
 
 class NetFile(FileIO):
@@ -218,7 +218,7 @@ class NetFile(FileIO):
                 self.__fn = tmpf.name
                 tmpf.close()
 
-                printlog("Utils","     :Retrieving %s -> %s" % (uri, self.__fn))
+                printlog("Utils","     : Retrieving %s -> %s" % (uri, self.__fn))
                 six.moves.urllib.request.urlretrieve(uri, self.__fn)
                 break
         
@@ -324,6 +324,6 @@ def dict_rev(target_dict, key):
     for k,v in target_dict.items():
         reverse[v] = k
 
-    printlog("Utils","     :Reversed dict: %s" % reverse)
+    printlog("Utils","     : Reversed dict: %s" % reverse)
 
     return reverse[key]

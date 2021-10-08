@@ -289,6 +289,7 @@ class Transporter(object):
         if not self.pipe.is_connected():
             if self.msg_fn:
                 self.msg_fn("Connecting")
+                printlog("Transport"," : worker function Connecting")
     
             try:
                 self.pipe.connect()

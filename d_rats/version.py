@@ -11,7 +11,7 @@ from .debug import printlog
 
 import sys
 
-DRATS_VERSION = "0.3.10 beta 4 "
+DRATS_VERSION = "0.3.10 beta 5 "
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"

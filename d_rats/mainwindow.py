@@ -33,7 +33,7 @@ if __name__ == "__main__":
     lang = gettext.translation("D-RATS", localedir="./locale", languages=["en"])
     lang.install()
     
-    printlog("Mainwin","  : sys.path=", sys.path)
+    printlog("Mainwind","  : sys.path=", sys.path)
 
 from . import version
 import os
@@ -52,6 +52,8 @@ from d_rats.ui.main_files import FilesTab
 from d_rats.ui.main_stations import StationsList
 from d_rats.ui.main_common import MainWindowElement, prompt_for_station, \
     ask_for_confirmation
+    
+#from d_rats import mainapp
 
 from d_rats.version import \
     DRATS_VERSION, \
@@ -70,11 +72,12 @@ from d_rats import signals
 class MainWindow(MainWindowElement):
     __gsignals__ = {
         "config-changed" : signals.CONFIG_CHANGED,
-        "show-map-station" : signals.SHOW_MAP_STATION,
+        "conn-changed" : signals.CONN_CHANGED,
+        "get-chat-port" : signals.GET_CHAT_PORT,        
+        "get-station-list" : signals.GET_STATION_LIST,        
         "ping-station" : signals.PING_STATION,
-        "get-station-list" : signals.GET_STATION_LIST,
         "user-send-chat" : signals.USER_SEND_CHAT,
-        "get-chat-port" : signals.GET_CHAT_PORT,
+        "show-map-station" : signals.SHOW_MAP_STATION,      
         }
     _signals = __gsignals__
 
@@ -141,8 +144,9 @@ class MainWindow(MainWindowElement):
 
         def do_prefs(but):
             saved = self._config.show(parent=window)
+            conninet = self._config.getboolean("state", "connected_inet")
             if saved:
-                self.emit("config-changed")
+                self.emit("config-changed", conninet)
                 for tabs in self.tabs.values():
                     tabs.reconfigure()
 
@@ -165,14 +169,17 @@ class MainWindow(MainWindowElement):
 
         def do_conninet(but):
             self._config.set("state", "connected_inet", but.get_active())
-            printlog("Mainwin","  : change on connection status to %s" % but.get_active())
+            printlog("Mainwind","  : Changing internet connection status to %s" % but.get_active()) 
+            self._config.save()
+            #send signal which is taken care by function refresh_config_conn() in mainapp module
+            self.emit("conn-changed", but.get_active())
 
         def do_showpane(but, pane):
             self._config.set("state", "sidepane_visible", but.get_active())
-            if but.get_active():
+            if but.get_active():    
                 pane.show()
             else:
-                pane.hide()
+                pane.hide() 
 
         def do_dq(but):
             
@@ -206,7 +213,7 @@ class MainWindow(MainWindowElement):
                 args.append("./d-rats_repeater")
             else:
                 args.append("d-rats_repeater")
-            printlog("Mainwin","  : Running proxy: %s" % str(args))
+            printlog("Mainwind","  : Running proxy: %s" % str(args))
             p = subprocess.Popen(args)
 
         quit = self._wtree.get_widget("main_menu_quit")
@@ -330,7 +337,7 @@ class MainWindow(MainWindowElement):
             mbar.hide()
             gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
             gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
-            printlog("Mainwin","  : Enabled OSX menubar integration")
+            printlog("Mainwind","  : Enabled OSX menubar integration")
         except ImportError:
             pass
 
@@ -339,7 +346,7 @@ class MainWindow(MainWindowElement):
         gobject.timeout_add(3000, self.__update_status)
 
     def __update_status(self):
-        #printlog("Mainwin","  : updating status")
+        #printlog("Mainwind","  : updating status")
         if (time.time() - self.__last_status) > 30:
             sb = self._wtree.get_widget("statusbar")
             id = sb.get_context_id("default")
@@ -370,7 +377,7 @@ if __name__ == "__main__":
     conf = config.DratsConfig(None)
 
     def test(chat, station, msg):
-        printlog("Mainwin","  : %s->%s" % (station, msg))
+        printlog("Mainwind","  : %s->%s" % (station, msg))
 
     chat = ChatTab(wtree, conf)
     chat.connect("user-sent-message", test)

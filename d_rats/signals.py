@@ -85,7 +85,11 @@ NOTICE = \
 
 CONFIG_CHANGED = \
     (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-     ())
+     (gobject.TYPE_BOOLEAN,))    # conninet - status of internet connection
+     
+CONN_CHANGED = \
+    (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
+     (gobject.TYPE_BOOLEAN,))    # conninet - status of internet connection
 
 SHOW_MAP_STATION = \
     (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
