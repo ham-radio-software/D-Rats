@@ -164,7 +164,7 @@ class Platform(object):
 
     def retrieve_url(self, url):
         if self._connected:
-            'if yes connected=true return url to be connect
+            #if yes connected=true return url to be connect
             return six.moves.urllib.request.urlretrieve(url)
 
         raise Exception("Not connected")
