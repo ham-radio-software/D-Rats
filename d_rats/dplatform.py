@@ -22,29 +22,40 @@ from __future__ import print_function
 
 import os
 import sys
+import gettext
 import glob
 try:
     # pylint: disable=import-error
-    import commands
+    import commands # type: ignore
 except ModuleNotFoundError:
     pass
 import subprocess
-import six.moves.urllib.request
-import six.moves.urllib.parse
-import six.moves.urllib.error
-from six.moves import range
+import six.moves.urllib.request # type: ignore
+import six.moves.urllib.parse # type: ignore
+import six.moves.urllib.error # type: ignore
+from six.moves import range # type: ignore
 
 #importing printlog() wrapper
-from .debug import printlog
+if not __package__:
+    def printlog(arg1, *args):
+        print(arg1, *args)
+else:
+    from .debug import printlog
+
+_ = gettext.gettext
 
 
 def find_me():
-    '''Find Me'''
+    '''Find Me.'''
     return sys.modules["d_rats.dplatform"].__file__
 
 
 class Platform():
-    '''Platform'''
+    '''
+    Platform.
+
+    :param basepath: Base path of platform configuration file
+    '''
 
     def __init__(self, basepath):
         self._base = basepath
@@ -60,15 +71,27 @@ class Platform():
         return os.linesep.join(text)
 
     def config_dir(self):
-        '''Config Directory'''
+        '''
+        Config Directory.
+
+        :returns: configuration directory
+        '''
         return self._base
 
     def source_dir(self):
-        '''Source Directory'''
+        '''
+        Source Directory.
+
+        :returns: source directory
+        '''
         return self._source_dir
 
     def log_dir(self):
-        '''Log Directory'''
+        '''
+        Log Directory
+
+        :returns: Log directory
+        '''
         logdir = os.path.join(self.config_dir(), "logs")
         if not os.path.isdir(logdir):
             os.mkdir(logdir)
@@ -77,40 +100,77 @@ class Platform():
 
     # pylint: disable=no-self-use
     def filter_filename(self, filename):
-        '''Filter Filename'''
+        '''
+        Filter Filename.
+
+        :param filename: filename passed in
+        :returns: filename passed in adjusted for platform if needed
+        '''
         return filename
 
     def log_file(self, filename):
-        '''Log file'''
+        '''
+        Log file.
+
+        :param filename: filename template
+        :returns: Log file path
+        '''
         filename = self.filter_filename(filename + ".txt").replace(" ", "_")
         return os.path.join(self.log_dir(), filename)
 
     def config_file(self, filename):
-        '''Config File'''
+        '''
+        Config File.
+
+        :returns: Configuration file path
+        '''
         return os.path.join(self.config_dir(),
                             self.filter_filename(filename))
 
     def open_text_file(self, path):
-        '''Open Text File'''
+        '''
+        Open Text File.
+
+        :param path: Path to file
+        :raises: NotImplementedError
+        '''
         raise NotImplementedError("The base class can't do that")
 
     def open_html_file(self, path):
-        '''Open HTML File'''
+        '''
+        Open HTML File
+
+        :param path: Path to file
+        :raises: NotImplementedError
+        '''
         raise NotImplementedError("The base class can't do that")
 
     # pylint: disable=no-self-use
     def list_serial_ports(self):
-        '''List Serial Ports'''
+        '''
+        List Serial Ports.
+
+        :returns: empty list
+        '''
         return []
 
     # pylint: disable=no-self-use
     def default_dir(self):
-        '''Default Directory'''
+        '''
+        Default Directory.
+
+        :returns: '.'
+        '''
         return "."
 
     # pylint: disable=no-self-use
     def gui_open_file(self, start_dir=None):
-        '''GUI Open File'''
+        '''
+        GUI Open File.
+
+        :param start_dir: Directory to start in, default None
+        :returns: Filename or None
+        '''
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
@@ -134,7 +194,13 @@ class Platform():
 
     # pylint: disable=no-self-use
     def gui_save_file(self, start_dir=None, default_name=None):
-        '''GUI Save File'''
+        '''
+        GUI Save File.
+
+        :param start_dir: Directory to start in, default None
+        :param default_name: Default filename, default None
+        :returns: Filename to save or None
+        '''
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
@@ -161,7 +227,12 @@ class Platform():
 
     # pylint: disable=no-self-use
     def gui_select_dir(self, start_dir=None):
-        '''Gui Select Directory'''
+        '''
+        Gui Select Directory.
+
+        :param start_dir: Directory to start in, default None
+        :returns: Directory selected or None
+        '''
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
@@ -187,36 +258,63 @@ class Platform():
 
     # pylint: disable=no-self-use
     def os_version_string(self):
-        '''OS Version String'''
+        '''
+        OS Version String.
+
+        :returns: "Unknown Operating System"
+        '''
         return "Unknown Operating System"
 
     def run_sync(self, command):
-        '''Run Sync'''
+        '''
+        Run Sync.
+
+        :param command: Command to run and wait for
+        :returns: Tuple of 0, and data read.'''
         pipe = subprocess.Popen(command, stdout=subprocess.PIPE)
         data = pipe.stdout.read()
 
         return 0, data
 
     def retrieve_url(self, url):
-        '''Retrieve URL'''
+        '''
+        Retrieve URL.
+
+        :param url: Url to retrieve
+        :raises: Exception if not connected
+        '''
         if self._connected:
             return six.moves.urllib.request.urlretrieve(url)
 
         raise Exception("Not connected")
 
     def set_connected(self, connected):
-        '''Set Connected'''
+        '''
+        Set Connected.
+
+        :param connected: New connected state
+        '''
         self._connected = connected
 
     # pylint: disable=no-self-use
     def play_sound(self, _soundfile):
-        '''Play Sound'''
+        '''
+        Play Sound.
+
+        Reports sound is unsupported for this platform to log.
+        :param _soundfile: Sound file to use
+        '''
         printlog("dPlatform",
                  " : Sound is unsupported on this platform!")
 
 
 class UnixPlatform(Platform):
-    '''Unix Platform'''
+    '''
+    Unix Platform.
+
+    :param basepath: Path to store the configuration file,
+                     default "~/.d-rats-ev"
+    '''
 
     def __init__(self, basepath):
         if not basepath:
@@ -229,7 +327,11 @@ class UnixPlatform(Platform):
         Platform.__init__(self, basepath)
 
     def source_dir(self):
-        '''Source Directory'''
+        '''
+        Source Directory.
+
+        :returns: source directory path
+        '''
         if "site-packages" in find_me():
             return "/usr/share/d-rats"
         if "dist-packages" in find_me():
@@ -239,11 +341,21 @@ class UnixPlatform(Platform):
         return self._source_dir
 
     def default_dir(self):
-        '''Default Directory'''
+        '''
+        Default Directory.
+
+        :returns: Default directory path
+        '''
         return os.path.abspath(os.getenv("HOME"))
 
+    # pylint: disable=no-self-use
     def filter_filename(self, filename):
-        '''Filter Filename'''
+        '''
+        Filter Filename.
+
+        :param filename: Source filename
+        :returns: filename adjusted for platform
+        '''
         return filename.replace("/", "")
 
     # pylint: disable=no-self-use
@@ -261,7 +373,11 @@ class UnixPlatform(Platform):
             printlog("dPlatform", " : Exec child exited")
 
     def open_text_file(self, path):
-        '''Open Text File'''
+        '''
+        Open Text File for editing.
+
+        :param path: Path to text file
+        '''
         # pylint: disable=fixme
         # todo gedit to be moved as parameter in config
         printlog("dPlatform", " : received order to open in gedit %s s" % path)
@@ -271,7 +387,11 @@ class UnixPlatform(Platform):
         self._unix_doublefork_run("gedit", path)
 
     def open_html_file(self, path):
-        '''Open HTML file'''
+        '''
+        Open HTML file in Firefox.
+
+        :param path: Path of file to open
+        '''
         # pylint: disable=fixme
         # todo gedit to be moved as parameter in config
         printlog("dPlatform",
@@ -282,27 +402,46 @@ class UnixPlatform(Platform):
         self._unix_doublefork_run("firefox", path)
 
     def list_serial_ports(self):
-        '''List Serial Ports'''
+        '''
+        List Serial Ports.
+
+        :returns a list of serial ports
+        '''
         return sorted(glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*"))
 
     def os_version_string(self):
-        '''OS Version String'''
-        # pylint: disable-msg=W0703
+        '''
+        OS Version String.
+
+        :returns: a version string for the OS
+        '''
         try:
             issue = open("/etc/issue.net", "r")
             ver = issue.read().strip()
             issue.close()
             ver = "%s - %s" % (os.uname()[0], ver)
-        except Exception:
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("dPlatform",
+                     " broad-exception handled (%s) %s" %
+                     (type(err), err))
             ver = " ".join(os.uname())
         return ver
 
     def run_sync(self, command):
-        '''Run Sync'''
+        '''
+        Run Sync.
+
+        :param command: Command to run.
+        '''
         return commands.getstatusoutput(command)
 
     def play_sound(self, soundfile):
-        '''Play Sound'''
+        '''
+        Play Sound.
+
+        :param soundfile: Sound file to try.
+        '''
         import ossaudiodev
         import sndhdr
 
@@ -311,8 +450,8 @@ class UnixPlatform(Platform):
         # pylint: disable=broad-except
         except Exception as err:
             printlog("dPlatform",
-                     " : Unable to determine sound header of %s: %s" %
-                     (soundfile, err))
+                     " : Unable to determine sound header of %s: (%s) %s" %
+                     (soundfile, type(err), err))
             return
 
         if file_type != "wav":
@@ -341,14 +480,19 @@ class UnixPlatform(Platform):
         # pylint: disable=broad-except
         except Exception as err:
             printlog("dPlatform",
-                     " : Error playing sound %s: %s" % (soundfile, err))
+                     " : Error playing sound %s: (%s) %s" %
+                     (soundfile, type(err), err))
 
         if dev:
             dev.close()
 
 
 class MacOSXPlatform(UnixPlatform):
-    '''Mac OSX Platform'''
+    '''
+    Mac OSX Platform.
+
+    :param basepath: path to the configuration directory
+    '''
 
     def __init__(self, basepath):
         # We need to make sure DISPLAY is set
@@ -361,34 +505,58 @@ class MacOSXPlatform(UnixPlatform):
         UnixPlatform.__init__(self, basepath)
 
     def open_html_file(self, path):
-        '''Open HTML File'''
+        '''
+        Open HTML File.
+
+        :param path: file to open
+        '''
         self._unix_doublefork_run("open", path)
 
     def open_text_file(self, path):
-        '''Open Text File'''
+        '''
+        Open Text File for edit.
+
+        :param path: Path to textfile
+        '''
         macos_textedit = "/Applications/TextEdit.app/Contents/MacOS/TextEdit"
         self._unix_doublefork_run(macos_textedit, path)
 
     def list_serial_ports(self):
-        '''List Serial Ports'''
+        '''
+        List Serial Ports.
+
+        :returns: list of serial port names
+        '''
         keyspan = glob.glob("/dev/cu.KeySerial*")
         prolific = glob.glob("/dev/tty.usbserial*")
 
         return sorted(keyspan + prolific)
 
     def os_version_string(self):
-        '''OS Version String'''
+        '''
+        OS Version String.
+
+        :returns: "MacOS X"
+        '''
         return "MacOS X"
 
     def source_dir(self):
-        '''Source Directory'''
+        '''
+        Source Directory.
+
+        :returns: source directory
+        '''
         if "site-packages" in find_me():
             return "../Resources"
         return self._source_dir
 
 
 class Win32Platform(Platform):
-    '''Win32 Platform'''
+    '''
+    Win32 Platform.
+
+    :param basepath, default is "%APPDATA%\\D-RATS-EV"
+    '''
 
     def __init__(self, basepath=None):
         if not basepath:
@@ -403,30 +571,57 @@ class Win32Platform(Platform):
         Platform.__init__(self, basepath)
 
     def default_dir(self):
-        '''Default Directory'''
+        '''
+        Default Directory.
+
+        :returns: default directory
+        '''
         return os.path.abspath(
             os.path.join(os.getenv("USERPROFILE"), "Desktop"))
 
     def filter_filename(self, filename):
-        '''Filter Filename'''
+        '''
+        Filter Filename.
+
+        :param filename: filename to use
+        :returns: filename filtered for platform.
+        '''
         for char in "/\\:*?\"<>|":
             filename = filename.replace(char, "")
 
         return filename
 
     def open_text_file(self, path):
-        '''Open Text File'''
+        '''
+        Open Text File for editing.
+
+        :param path: path of file to open
+        '''
         subprocess.Popen(["notepad", path])
 
     def open_html_file(self, path):
-        '''Open Html File'''
+        '''
+        Open Html File in explorer.
+
+        :param path: Path to file
+        '''
         subprocess.Popen(["explorer", path])
 
     def list_serial_ports(self):
-        '''List Serial Ports'''
+        '''
+        List Serial Ports.
+
+        :returns: List of serial ports
+        '''
         # pylint: disable=import-error
-        import win32file
-        import win32con
+        try:
+            import win32file # type: ignore
+        except ImportError as err:
+            printlog("dPlatform",
+                     " : failed to load win32file %s" % err)
+
+            return []
+        import win32con # type: ignore
 
         ports = []
         for i in range(1, 257):
@@ -445,59 +640,92 @@ class Win32Platform(Platform):
                 win32file.CloseHandle(port)
                 port = None
             # pylint: disable=broad-except
-            except Exception:
-                pass
+            except Exception as err:
+                printlog("dPlatform",
+                         " Broad-exception ignored (%s) %s" %
+                         (type(err), err))
+                # pass
 
         return ports
 
     def gui_open_file(self, start_dir=None):
+        '''
+        GUI open file
+
+        :param start_dir: Directory to start in, default None
+        :returns: Filename to open or none.
+        '''
         # pylint: disable=import-error
-        import win32gui
+        import win32gui # type: ignore
 
         try:
             fname, _, _ = win32gui.GetOpenFileNameW()
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("dPlatform", " : Failed to get filename: %s" % err)
+            printlog("dPlatform", " : Failed to get filename: (%s) %s" %
+                     (type(err), err))
             return None
 
         return str(fname)
 
     def gui_save_file(self, start_dir=None, default_name=None):
-        '''GUI Save File'''
+        '''
+        GUI Save File.
+
+        :param start_dir: directory to start in, default None
+        :param default_name: Default name of file, default None.
+        :returns: filename to save to or None
+        '''
         # pylint: disable=import-error
-        import win32gui
+        import win32gui # type: ignore
 
         try:
             fname, _, _ = win32gui.GetSaveFileNameW(File=default_name)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("dPlatform", " : Failed to get filename: %s" % err)
+            printlog("dPlatform", " : Failed to get filename: (%s) %s" %
+                     (type(err), err))
             return None
 
         return str(fname)
 
     def gui_select_dir(self, start_dir=None):
-        '''GUI Select Dir'''
+        '''
+        GUI Select Dir.
+
+        :param start_dir: directory to start in, default None
+        :returns: selected diretory or None
+        '''
         # pylint: disable=import-error
-        from win32com.shell import shell
+        from win32com.shell import shell # type: ignore
 
         try:
             pidl, _, _ = shell.SHBrowseForFolder()
             fname = shell.SHGetPathFromIDList(pidl)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("dPlatform", " : failed to get directory: %s" % err)
+            printlog("dPlatform", " : failed to get directory: (%s) %s" %
+                     (type(err), err))
             return None
 
         return str(fname)
 
     def os_version_string(self):
-        '''Os Version String'''
-        # pylint: disable=import-error
-        import win32api
+        '''
+        Os Version String.
+
+        :returns: Platform version string
+        '''
+        # pylint: disable=import-error, unused-import
+        try:
+            import win32file # type: ignore
+        except ImportError as err:
+            printlog("dPlatform",
+                     " : failed to load win32file %s" % err)
+            return "Windows Unknown."
         #platform: try to identify windows version
-        vers = {"10.0": "Windows 10",
+        vers = {"11.0": "Windows 11",
+                "10.0": "Windows 10",
                 "6.2": "Windows 8->10",
                 "6.1": "Windows 7",
                 "6.0": "Windows Vista",
@@ -505,13 +733,18 @@ class Win32Platform(Platform):
                 "5.1": "Windows XP",
                 "5.0": "Windows 2000",
                }
-        (pform, pver, _build, _, _) = win32api.GetVersionEx()
+        # pylint: disable=undefined-variable
+        (pform, pver, _build, _, _) = win32api.GetVersionEx() # type: ignore
         return vers.get(str(pform) + "." + \
             str(pver), "Win32 (Unknown %i.%i)" % (pform, pver)) + \
-            " " + str(win32api.GetVersionEx())
+            " " + str(win32api.GetVersionEx()) # type: ignore
 
     def play_sound(self, soundfile):
-        '''Play Sound'''
+        '''
+        Play Sound.
+
+        :param soundfile: file to play sound from
+        '''
         # pylint: disable=import-error
         import winsound
 
@@ -530,7 +763,12 @@ PLATFORM = None
 
 
 def get_platform(basepath=None):
-    '''Get Platform'''
+    '''
+    Get Platform.
+
+    :param basepath: configuration file path, default None
+    :returns: platform object
+    '''
 
     # pylint: disable=global-statement
     global PLATFORM
@@ -542,7 +780,7 @@ def get_platform(basepath=None):
 
 
 def do_test():
-    '''Unit Test'''
+    '''Unit Test.'''
     __pform = get_platform()
 
     printlog("dPlatform", " : Config dir: %s" % __pform.config_dir())
@@ -553,9 +791,10 @@ def do_test():
  #  __pform.open_text_file("d-rats.py")
 
  #   printlog("dPlatform"," : Open file: %s" % __pform.gui_open_file())
- #   printlog("dPlatform"," : Save file: %s" % __pform.gui_save_file(default_name="Foo.txt"))
+ #   printlog("dPlatform"," : ",
+ #            "Save file: %s" % __pform.gui_save_file(default_name="Foo.txt"))
  #   printlog("dPlatform"," : Open folder: %s" % __pform.gui_select_dir("/tmp"))
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     do_test()
