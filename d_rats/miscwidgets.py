@@ -1,4 +1,6 @@
 #
+'''Misc Widgets'''
+# pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,8 +19,9 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
+import os
+
+from six.moves import range # type:ignore
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -27,12 +30,78 @@ from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
 
-import os
-
+#importing printlog() wrapper
+from .debug import printlog
 from . import dplatform
-from six.moves import range
+
+
+class MiscWidgetsException(Exception):
+    '''Generic Misc Widgets Exception.'''
+
+
+class KeyedListWidgetException(MiscWidgetsException):
+    '''Generic KeyedList Widget Exception.'''
+
+
+class KeyedListWidgetMakeViewError(KeyedListWidgetException):
+    '''Keyed List Widget Make View Error'''
+
+
+class ListWidgetException(MiscWidgetsException):
+    '''Generic List Widget Exception.'''
+
+
+class TreeWidgetException(ListWidgetException):
+    '''Generic Tree Widget Exception.'''
+
+
+class MakeViewColumnError(ListWidgetException):
+    '''List Widget Make View Column Error.'''
+
+
+class ListWidgetAddItemException(ListWidgetException):
+    '''List Widget Add Item Exception.'''
+
+
+class AddItemColumnError(ListWidgetAddItemException):
+    '''List Widget Add Item Column Error.'''
+
+
+class AddItemParentError(ListWidgetAddItemException):
+    '''Tree Widget Add Item Parent Error.'''
+
+
+class DelItemError(ListWidgetException):
+    '''Tree Widget Del Item Error.'''
+
+
+class GetItemError(ListWidgetException):
+    '''Tree Widget Get Item Error.'''
+
+
+class SetItemError(ListWidgetException):
+    '''Tree Widget Set Item Error.'''
+
+
+class LatLongEntryException(MiscWidgetsException):
+    '''Generic LatLongEntry Exception.'''
+
+
+class LatLongEntryValueError(LatLongEntryException):
+    '''LatLongEntry Value Error.'''
+
+
+class LatLongEntryParseDMSError(LatLongEntryException):
+    '''LatLongEntry Parse DMS Error.'''
+
 
 class KeyedListWidget(Gtk.Box):
+    '''
+    Keyed List Widget.
+
+    :param columns: Columns for widget
+    '''
+
     __gsignals__ = {
         "item-selected" : (GObject.SignalFlags.RUN_LAST,
                            GObject.TYPE_NONE,
@@ -45,22 +114,24 @@ class KeyedListWidget(Gtk.Box):
                       (GObject.TYPE_STRING,)),
         }
 
-    def _toggle(self, rend, path, colnum):
+    def _toggle(self, _rend, path, colnum):
         if self.__toggle_connected:
+            # pylint: disable=unsubscriptable-object
             self.__store[path][colnum] = not self.__store[path][colnum]
-            iter = self.__store.get_iter(path)
-            id, = self.__store.get(iter, 0)
-            self.emit("item-toggled", id, self.__store[path][colnum])
+            iter_val = self.__store.get_iter(path)
+            ident, = self.__store.get(iter_val, 0)
+            # pylint: disable=unsubscriptable-object
+            self.emit("item-toggled", ident, self.__store[path][colnum])
 
-    def _edited(self, rend, path, new, colnum):
-        iter = self.__store.get_iter(path)
-        key = self.__store.get(iter, 0)
-        self.__store.set(iter, colnum, new)
+    def _edited(self, _rend, path, new, colnum):
+        iter_val = self.__store.get_iter(path)
+        key = self.__store.get(iter_val, 0)
+        self.__store.set(iter_val, colnum, new)
         self.emit("item-set", key)
 
-    def _mouse(self, view, event):
-        x, y = event.get_coords()
-        path = self.__view.get_path_at_pos(int(x), int(y))
+    def _mouse(self, _view, event):
+        x_coord, y_coord = event.get_coords()
+        path = self.__view.get_path_at_pos(int(x_coord), int(y_coord))
         if path:
             self.__view.set_cursor_on_cell(path[0], None, None, False)
 
@@ -70,13 +141,15 @@ class KeyedListWidget(Gtk.Box):
 
     def _make_view(self):
         colnum = -1
-    
+
         for typ, cap in self.columns:
             colnum += 1
             if colnum == 0:
                 continue # Key column
-    
-            if typ in [GObject.TYPE_STRING, GObject.TYPE_INT, GObject.TYPE_FLOAT]:
+
+            if typ in [GObject.TYPE_STRING,
+                       GObject.TYPE_INT,
+                       GObject.TYPE_FLOAT]:
                 rend = Gtk.CellRendererText()
                 rend.set_property("ellipsize", Pango.EllipsizeMode.END)
                 column = Gtk.TreeViewColumn(cap, rend, text=colnum)
@@ -85,122 +158,189 @@ class KeyedListWidget(Gtk.Box):
                 rend.connect("toggled", self._toggle, colnum)
                 column = Gtk.TreeViewColumn(cap, rend, active=colnum)
             else:
-                raise Exception("Unsupported type %s" % typ)
-            
+                raise KeyedListWidgetMakeViewError("Unsupported type %s" % typ)
+
             column.set_sort_column_id(colnum)
             self.__view.append_column(column)
-    
+
         self.__view.connect("button_press_event", self._mouse)
 
     def set_item(self, key, *values):
-        iter = self.__store.get_iter_first()
-        while iter:
-            id, = self.__store.get(iter, 0)
-            if id == key:
-                self.__store.insert_after(iter, row=(id,)+values)
-                self.__store.remove(iter)
+        '''
+        Set Item.
+
+        :param key: Key for item
+        :param *values: Values to set for item
+        '''
+        iter_val = self.__store.get_iter_first()
+        while iter_val:
+            ident, = self.__store.get(iter_val, 0)
+            if ident == key:
+                self.__store.insert_after(iter_val, row=(ident,)+values)
+                self.__store.remove(iter_val)
                 return
-            iter = self.__store.iter_next(iter)
-    
+            iter_val = self.__store.iter_next(iter_val)
+
         self.__store.append(row=(key,) + values)
 
         self.emit("item-set", key)
-    
+
     def get_item(self, key):
-        iter = self.__store.get_iter_first()
-        while iter:
-            vals = self.__store.get(iter, *tuple(range(len(self.columns))))
+        '''
+        Get Item.
+
+        :param key: key for item
+        :returns: Item or None
+        '''
+        iter_val = self.__store.get_iter_first()
+        while iter_val:
+            vals = self.__store.get(iter_val, *tuple(range(len(self.columns))))
             if vals[0] == key:
                 return vals
-            iter = self.__store.iter_next(iter)
-    
+            iter_val = self.__store.iter_next(iter_val)
+
         return None
-    
+
     def del_item(self, key):
-        iter = self.__store.get_iter_first()
+        '''
+        Delete Item.
+
+        :param key: Key for item to delete
+        :returns: True if item is deleted
+        '''
+        iter_val = self.__store.get_iter_first()
         while iter:
-            id, = self.__store.get(iter, 0)
-            if id == key:
-                self.__store.remove(iter)
+            ident, = self.__store.get(iter_val, 0)
+            if ident == key:
+                self.__store.remove(iter_val)
                 return True
 
-            iter = self.__store.iter_next(iter)
-    
+            iter_val = self.__store.iter_next(iter_val)
+
         return False
-    
+
     def has_item(self, key):
+        '''
+        Has Item.
+
+        :param key
+        :returns: True if key is present
+        '''
         return self.get_item(key) is not None
-    
+
     def get_selected(self):
+        '''
+        Get Selected.
+
+        :returns: Selected item
+        '''
         try:
-            (store, iter) = self.__view.get_selection().get_selected()
-            return store.get(iter, 0)[0]
-        except Exception as e:
-            printlog("MscWidget",": Unable to find selected: %s" % e)
+            (store, iter_val) = self.__view.get_selection().get_selected()
+            return store.get(iter_val, 0)[0]
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("MscWidget",
+                     ": Unable to find selected: (%s) %s" % (type(err), err))
             return None
 
     def select_item(self, key):
+        '''
+        Select Item.
+
+        :param key: Key to select
+        :returns: True if item selected
+        '''
         if key is None:
             sel = self.__view.get_selection()
             sel.unselect_all()
             return True
 
-        iter = self.__store.get_iter_first()
-        while iter:
-            if self.__store.get(iter, 0)[0] == key:
+        iter_val = self.__store.get_iter_first()
+        while iter_val:
+            if self.__store.get(iter_val, 0)[0] == key:
                 selection = self.__view.get_selection()
-                path = self.__store.get_path(iter)
+                path = self.__store.get_path(iter_val)
                 selection.select_path(path)
                 return True
-            iter = self.__store.iter_next(iter)
+            iter_val = self.__store.iter_next(iter_val)
 
         return False
-        
+
     def get_keys(self):
+        '''
+        Get Keys.
+
+        :returns: keys
+        '''
         keys = []
-        iter = self.__store.get_iter_first()
-        while iter:
-            key, = self.__store.get(iter, 0)
+        iter_val = self.__store.get_iter_first()
+        while iter_val:
+            key, = self.__store.get(iter_val, 0)
             keys.append(key)
-            iter = self.__store.iter_next(iter)
+            iter_val = self.__store.iter_next(iter_val)
 
         return keys
 
     def __init__(self, columns):
         Gtk.Box.__init__(self, True, 0)
-    
+
         self.columns = columns
-    
-        types = tuple([x for x,y in columns])
-    
+
+        types = tuple([x for x, y in columns])
+
         self.__store = Gtk.ListStore(*types)
         self.__view = Gtk.TreeView(self.__store)
-    
+
         self.pack_start(self.__view, 1, 1, 1)
-    
+
         self.__toggle_connected = False
 
         self._make_view()
         self.__view.show()
 
+    # pylint: disable=arguments-differ
     def connect(self, signame, *args):
+        '''
+        Connect.
+
+        :param signame: Signal name
+        :param *args: Arguments for signal
+        '''
         if signame == "item-toggled":
             self.__toggle_connected = True
-        
+
         Gtk.Box.connect(self, signame, *args)
 
-    def set_editable(self, column, is_editable):
-        col = self.__view.get_column(column)
-        #rend = col.get_cell_renderers()[0]
+    def set_editable(self, column, _is_editable):
+        '''
+        Set Editable.
+
+        :param column: Set column to change
+        :param _is_editable: Not used
+        '''
+        _col = self.__view.get_column(column)
+        # rend = col.get_cell_renderers()[0]
         rend = Gtk.CellRendererText()
         rend.set_property("editable", True)
         rend.connect("edited", self._edited, column + 1)
 
-    def set_sort_column(self, column, value=None):
+    def set_sort_column(self, column, _value=None):
+        '''
+        Set Sort Column.
+        :param column: Column to sort on
+        :param _value: Unused
+        '''
         self.__view.get_model().set_sort_column_id(column,
                                                    Gtk.SortType.ASCENDING)
-    
+
     def set_resizable(self, column, resizable, ellipsize=False):
+        '''
+        Set Resizable.
+
+        :param column: Column data
+        :param resizable: Resizable setting
+        :param ellipsize: Default False
+        '''
         col = self.__view.get_column(column)
         col.set_resizable(resizable)
         #rend = col.get_cell_renderers()[0]
@@ -208,23 +348,39 @@ class KeyedListWidget(Gtk.Box):
         rend.set_property("ellipsize",
                           ellipsize and Pango.EllipsizeMode.END \
                               or Pango.EllipsizeMode.NONE)
-        
+
     def set_expander(self, column):
+        '''
+        Set Expander.
+
+        :param colum: Column data
+        '''
         col = self.__view.get_column(column)
         self.__view.set_expander_column(col)
 
     def set_password(self, column):
-        def render_password(foo, rend, model, iter, data):
-            val = model.get(iter, column+1)[0]
+        '''
+        Set Password.
+
+        :param column: Column data
+        '''
+        def render_password(_foo, rend, model, iter_val, _data):
+            val = model.get(iter_val, column+1)[0]
             rend.set_property("text", "*" * len(val))
-        
+
         col = self.__view.get_column(column)
         #rnd = col.get_cell_renderers()[0]
         rnd = Gtk.CellRendererText()
         col.set_cell_data_func(rnd, render_password)
-        
+
 
 class ListWidget(Gtk.Box):
+    '''
+    List Widget Box.
+
+    :param columns: Columns for box
+    :param parent: Is parrent, defalt True
+    '''
     __gsignals__ = {
         "click-on-list" : (GObject.SignalFlags.RUN_LAST,
                            GObject.TYPE_NONE,
@@ -236,39 +392,57 @@ class ListWidget(Gtk.Box):
 
     store_type = Gtk.ListStore
 
-    def mouse_cb(self, view, event):
+    def mouse_cb(self, view, event_button):
+        '''
+        Mouse Callback.
+
+        :param view: view object
+        :param event: Gdk.EventButton
+        '''
+        event = Gdk.Event.new(event_button.type)
+        # https://lazka.github.io/pgi-docs/Gdk-3.0/classes/Event.html
+        # on 11-Sep-2021 states that the event button is Gdk.EventButton type.
+        # It appears that it needs to be the button member of Gdk.EventButton.
+        event.button = event_button.button
         self.emit("click-on-list", view, event)
 
-    # pylint: disable-msg=W0613
-    def _toggle(self, render, path, column):
+    def _toggle(self, _render, path, column):
+        # pylint: disable=unsubscriptable-object
         self._store[path][column] = not self._store[path][column]
-        iter = self._store.get_iter(path)
-        vals = tuple(self._store.get(iter, *tuple(range(self._ncols))))
-        for cb in self.toggle_cb:
-            cb(*vals)
+        iter_val = self._store.get_iter(path)
+        vals = tuple(self._store.get(iter_val, *tuple(range(self._ncols))))
+        for callback in self.toggle_cb:
+            callback(*vals)
         self.emit("item-toggled", vals)
 
     def make_view(self, columns):
+        '''
+        Make View.
+
+        :param columns: tuple of (type, String)
+        :raises: MakeViewColumnError if unknown column type
+        '''
         self._view = Gtk.TreeView(self._store)
 
-        for _type, _col in columns:
-            if _col.startswith("__"):
+        for col_type, col in columns:
+            if col.startswith("__"):
                 continue
 
-            index = columns.index((_type, _col))
-            if _type == GObject.TYPE_STRING or \
-                    _type == GObject.TYPE_INT or \
-                    _type == GObject.TYPE_FLOAT:
+            index = columns.index((col_type, col))
+
+            if col_type in [GObject.TYPE_STRING,
+                            GObject.TYPE_INT,
+                            GObject.TYPE_FLOAT]:
                 rend = Gtk.CellRendererText()
-                column = Gtk.TreeViewColumn(_col, rend, text=index)
+                column = Gtk.TreeViewColumn(col, rend, text=index)
                 column.set_resizable(True)
                 rend.set_property("ellipsize", Pango.EllipsizeMode.END)
-            elif _type == GObject.TYPE_BOOLEAN:
+            elif col_type == GObject.TYPE_BOOLEAN:
                 rend = Gtk.CellRendererToggle()
                 rend.connect("toggled", self._toggle, index)
-                column = Gtk.TreeViewColumn(_col, rend, active=index)
+                column = Gtk.TreeViewColumn(col, rend, active=index)
             else:
-                raise Exception("Unknown column type (%i)" % index)
+                raise MakeViewColumnError("Unknown column type (%i)" % index)
 
             column.set_sort_column_id(index)
             self._view.append_column(column)
@@ -278,10 +452,9 @@ class ListWidget(Gtk.Box):
     def __init__(self, columns, parent=True):
         Gtk.Box.__init__(self)
 
-        # pylint: disable-msg=W0612
         col_types = tuple([x for x, y in columns])
         self._ncols = len(col_types)
-        
+
         self._store = self.store_type(*col_types)
         self._view = None
         self.make_view(columns)
@@ -293,11 +466,21 @@ class ListWidget(Gtk.Box):
         self.toggle_cb = []
 
     def packable(self):
+        '''
+        Packable.
+
+        :returns: packable value
+        '''
         return self._view
 
     def add_item(self, *vals):
+        '''
+        Add Item.
+
+        :raises: AddItemError if not enough values
+        '''
         if len(vals) != self._ncols:
-            raise Exception("Need %i columns" % self._ncols)
+            raise AddItemColumnError("Need %i columns" % self._ncols)
 
         args = []
         i = 0
@@ -308,36 +491,56 @@ class ListWidget(Gtk.Box):
 
         args = tuple(args)
 
-        iter = self._store.append()
-        self._store.set(iter, *args)
+        iter_val = self._store.append()
+        self._store.set(iter_val, *args)
 
-    def _remove_item(self, model, path, iter, match):
-        vals = model.get(iter, *tuple(range(0, self._ncols)))
+    def _remove_item(self, model, _path, iter_val, match):
+        vals = model.get(iter_val, *tuple(range(0, self._ncols)))
         if vals == match:
-            model.remove(iter)
+            model.remove(iter_val)
 
     def remove_item(self, *vals):
+        '''
+        Remove Item.
+
+        :raises: DelItemError if not enough vals
+        '''
         if len(vals) != self._ncols:
-            raise Exception("Need %i columns" % self._ncols)
+            raise DelItemError("Need %i columns" % self._ncols)
 
     def remove_selected(self):
+        '''Remove Selected.'''
         try:
-            (lst, iter) = self._view.get_selection().get_selected()
-            lst.remove(iter)
-        except Exception as e:
-            printlog("MscWidget",": Unable to remove selected: %s" % e)
+            (lst, iter_val) = self._view.get_selection().get_selected()
+            lst.remove(iter_val)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("MscWidget",
+                     ": Unable to remove selected: (%s) %s" % (type(err), err))
 
     def get_selected(self, take_default=False):
-        (lst, iter) = self._view.get_selection().get_selected()
-        if not iter and take_default:
-            iter = lst.get_iter_first()
+        '''
+        Get Selected.
 
-        return lst.get(iter, *tuple(range(self._ncols)))
+        :param take_default: Default False
+        :returns: Selected value
+        '''
+        (lst, iter_val) = self._view.get_selection().get_selected()
+        if not iter_val and take_default:
+            iter_val = lst.get_iter_first()
+
+        return lst.get(iter_val, *tuple(range(self._ncols)))
 
     def move_selected(self, delta):
-        (lst, iter) = self._view.get_selection().get_selected()
+        '''
+        Move Selected.
 
-        pos = int(lst.get_path(iter)[0])
+        :param delta: Delta to move
+        :returns: True if move successful
+        '''
+        (lst, iter_val) = self._view.get_selection().get_selected()
+
+        pos = int(lst.get_path(iter_val)[0])
 
         try:
             target = None
@@ -346,16 +549,26 @@ class ListWidget(Gtk.Box):
                 target = lst.get_iter(pos-1)
             elif delta < 0:
                 target = lst.get_iter(pos+1)
-        except Exception:
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("miscwidgets.ListWidget.move_selected",
+                     ": Generic exception suppressed: (%s) %s" %
+                     (type(err), err))
             return False
 
         if target:
-            return lst.swap(iter, target)
+            return lst.swap(iter_val, target)
+        return False
 
-    def _get_value(self, model, path, iter, lst):
-        lst.append(model.get(iter, *tuple(range(0, self._ncols))))
+    def _get_value(self, model, _path, iter_val, lst):
+        lst.append(model.get(iter_val, *tuple(range(0, self._ncols))))
 
     def get_values(self):
+        '''
+        Get Values.
+
+        :return: List of values
+        '''
         lst = []
 
         self._store.foreach(self._get_value, lst)
@@ -363,28 +576,42 @@ class ListWidget(Gtk.Box):
         return lst
 
     def set_values(self, lst):
+        '''
+        Set Values.
+
+        :param lst: List of values
+        '''
         self._store.clear()
 
         for i in lst:
             self.add_item(*i)
 
+
 class TreeWidget(ListWidget):
+    '''
+    Tree Widget.
+
+    :param columns: Columns for Widget
+    :param key: Key for widget
+    :param parent: Is a parent, default True
+    '''
+
     store_type = Gtk.TreeStore
 
-    # pylint: disable-msg=W0613
-    def _toggle(self, render, path, column):
+    def _toggle(self, _render, path, column):
+        # pylint: disable=unsubscriptable-object
         self._store[path][column] = not self._store[path][column]
-        iter = self._store.get_iter(path)
-        vals = tuple(self._store.get(iter, *tuple(range(self._ncols))))
+        iter_val = self._store.get_iter(path)
+        vals = tuple(self._store.get(iter_val, *tuple(range(self._ncols))))
 
-        piter = self._store.iter_parent(iter)
+        piter = self._store.iter_parent(iter_val)
         if piter:
             parent = self._store.get(piter, self._key)[0]
         else:
             parent = None
 
-        for cb in self.toggle_cb:
-            cb(parent, *vals)
+        for callback in self.toggle_cb:
+            callback(parent, *vals)
 
     def __init__(self, columns, key, parent=True):
         ListWidget.__init__(self, columns, parent)
@@ -393,110 +620,160 @@ class TreeWidget(ListWidget):
 
     def _add_item(self, piter, *vals):
         args = []
-        i = 0
+        indx = 0
         for val in vals:
-            args.append(i)
+            args.append(indx)
             args.append(val)
-            i += 1
+            indx += 1
 
         args = tuple(args)
 
-        iter = self._store.append(piter)
-        self._store.set(iter, *args)
+        iter_val = self._store.append(piter)
+        self._store.set(iter_val, *args)
 
-    def _iter_of(self, key, iter=None):
-        if not iter:
-            iter = self._store.get_iter_first()
+    def _iter_of(self, key, iter_val=None):
+        if not iter_val:
+            iter_val = self._store.get_iter_first()
 
-        while iter is not None:
-            _id = self._store.get(iter, self._key)[0]
-            if _id == key:
-                return iter
+        while iter_val is not None:
+            found_id = self._store.get(iter_val, self._key)[0]
+            if found_id == key:
+                return iter_val
 
-            iter = self._store.iter_next(iter)
+            iter_val = self._store.iter_next(iter_val)
 
         return None
 
+    # pylint: disable=arguments-differ
     def add_item(self, parent, *vals):
+        '''
+        Add Item.
+
+        :param parent: Parent of item
+        :param vals: Optional vals for item
+        :raises: AddItemColumnError if not enough columns
+        :raises: AddItemParentError if parent not found
+        '''
         if len(vals) != self._ncols:
-            raise Exception("Need %i columns" % self._ncols)
+            raise AddItemColumnError("Need %i columns" % self._ncols)
 
         if not parent:
             self._add_item(None, *vals)
         else:
-            iter = self._iter_of(parent)
-            if iter:
-                self._add_item(iter, *vals)
+            iter_val = self._iter_of(parent)
+            # pylint: disable=raising-format-tuple
+            if iter_val:
+                self._add_item(iter_val, *vals)
             else:
-                raise Exception("Parent not found: %s", parent)
+                raise AddItemParentError("Parent not found: %s", parent)
 
     def _set_values(self, parent, vals):
         if isinstance(vals, dict):
             for key, val in vals.items():
-                iter = self._store.append(parent)
-                self._store.set(iter, self._key, key)
-                self._set_values(iter, val)
+                iter_val = self._store.append(parent)
+                self._store.set(iter_val, self._key, key)
+                self._set_values(iter_val, val)
         elif isinstance(vals, list):
-            for i in vals:
-                self._set_values(parent, i)
+            for indx in vals:
+                self._set_values(parent, indx)
         elif isinstance(vals, tuple):
             self._add_item(parent, *vals)
         else:
-            printlog("MscWidget",": Unknown type: %s" % vals)
+            printlog("MscWidget", ": Unknown type: %s" % vals)
 
+    # pylint: disable=arguments-differ
     def set_values(self, vals):
+        '''
+        Set Values.
+
+        :param vals: Values to set
+        '''
         self._store.clear()
         self._set_values(self._store.get_iter_first(), vals)
 
-    def _get_values(self, iter, onlyone=False):
-
-        l = []
-        while iter:
-            if self._store.iter_has_child(iter):
-                l.append((self._store.get(iter, *tuple(range(self._ncols))),
-                          self._get_values(self._store.iter_children(iter))))
+    def _get_values(self, iter_val, onlyone=False):
+        values = []
+        while iter_val:
+            if self._store.iter_has_child(iter_val):
+                values.append((self._store.get(iter_val,
+                                               *tuple(range(self._ncols))),
+                               self._get_values(
+                                   self._store.iter_children(iter_val))))
             else:
-                l.append(self._store.get(iter, *tuple(range(self._ncols))))
+                values.append(self._store.get(iter_val,
+                                              *tuple(range(self._ncols))))
 
             if onlyone:
                 break
-            iter = self._store.iter_next(iter)
-            
-        return l            
+            iter_val = self._store.iter_next(iter_val)
 
+        return values
+
+    # pylint: disable=arguments-differ
     def get_values(self, parent=None):
-        if parent:
-            iter = self._iter_of(parent)
-        else:
-            iter = self._store.get_iter_first()
+        '''
+        Get Values.
 
-        return self._get_values(iter, parent is not None)
+        :param parent: Parent object, default None
+        :returns: values
+        '''
+        if parent:
+            iter_val = self._iter_of(parent)
+        else:
+            iter_val = self._store.get_iter_first()
+
+        return self._get_values(iter_val, parent is not None)
 
     def clear(self):
+        '''Clear.'''
         self._store.clear()
 
     def del_item(self, parent, key):
-        iter = self._iter_of(key,
-                             self._store.iter_children(self._iter_of(parent)))
-        if iter:
-            self._store.remove(iter)
+        '''
+        Del Item.
+
+        :param parent: parent of object
+        :param key: key of item to delete
+        :raises: DelItemError if item is not found
+        '''
+        iter_val = self._iter_of(key,
+                                 self._store.iter_children(
+                                     self._iter_of(parent)))
+        if iter_val:
+            self._store.remove(iter_val)
         else:
-            raise Exception("Item not found")
+            raise DelItemError("Item not found")
 
     def get_item(self, parent, key):
-        iter = self._iter_of(key,
-                             self._store.iter_children(self._iter_of(parent)))
+        '''
+        Set Item.
 
-        if iter:
-            return self._store.get(iter, *(tuple(range(0, self._ncols))))
-        else:
-            raise Exception("Item not found")
+        :param parent: Parent of object
+        :param key: Key for item
+        :returns: Returned item
+        :raises: GetItemError when item not found
+        '''
+        iter_val = self._iter_of(key,
+                                 self._store.iter_children(
+                                     self._iter_of(parent)))
+
+        if iter_val:
+            return self._store.get(iter_val, *(tuple(range(0, self._ncols))))
+        raise GetItemError("Item not found")
 
     def set_item(self, parent, *vals):
-        iter = self._iter_of(vals[self._key],
-                             self._store.iter_children(self._iter_of(parent)))
+        '''
+        Set Item.
 
-        if iter:
+        :param parent: Parent of item
+        :param *vals: Optional vals
+        :raises: SetItemError if item is not found
+        '''
+        iter_val = self._iter_of(vals[self._key],
+                                 self._store.iter_children(
+                                     self._iter_of(parent)))
+
+        if iter_val:
             args = []
             i = 0
 
@@ -505,11 +782,19 @@ class TreeWidget(ListWidget):
                 args.append(val)
                 i += 1
 
-            self._store.set(iter, *(tuple(args)))
+            self._store.set(iter_val, *(tuple(args)))
         else:
-            raise Exception("Item not found")
+            raise SetItemError("Item not found")
+
 
 class ProgressDialog(Gtk.Window):
+    '''
+    Progress Dialog Window.
+
+    :param title: Title for window
+    :param parent: Parent object, default None
+    '''
+
     def __init__(self, title, parent=None):
         Gtk.Window.__init__(self, Gtk.WindowType.TOPLEVEL)
         self.set_modal(True)
@@ -528,7 +813,7 @@ class ProgressDialog(Gtk.Window):
 
         self.pbar = Gtk.ProgressBar()
         self.pbar.show()
-        
+
         vbox.pack_start(self.label, 0, 0, 0)
         vbox.pack_start(self.pbar, 0, 0, 0)
 
@@ -537,6 +822,11 @@ class ProgressDialog(Gtk.Window):
         self.add(vbox)
 
     def set_text(self, text):
+        '''
+        Set Text.
+
+        :parm text: Text to set
+        '''
         self.label.set_text(text)
         self.queue_draw()
 
@@ -544,19 +834,35 @@ class ProgressDialog(Gtk.Window):
             Gtk.main_iteration_do(False)
 
     def set_fraction(self, frac):
+        '''
+        Set Fraction.
+
+        :param frac: Fraction to set
+        '''
         self.pbar.set_fraction(frac)
         self.queue_draw()
 
         while Gtk.events_pending():
             Gtk.main_iteration_do(False)
 
+
 class LatLonEntry(Gtk.Entry):
+    '''
+    Latitude Longitude Entry.
+
+    :param *args: Optional gtkEntry arguments
+    '''
     def __init__(self, *args):
         Gtk.Entry.__init__(self, *args)
 
         self.connect("changed", self.format)
 
     def format(self, entry):
+        '''
+        Format entry text.
+
+        :param entry: Entry Object
+        '''
         string = entry.get_text()
         if string is None:
             return
@@ -578,12 +884,25 @@ class LatLonEntry(Gtk.Entry):
         entry.set_text(string)
 
     def parse_dd(self, string):
+        '''
+        Parse Decimal Degrees.
+
+        :param string: String with decimal Degrees
+        :returns: Float with degrees
+        '''
         return float(string)
 
+    # pylint: disable=no-self-use
     def parse_dm(self, string):
+        '''
+        Parse Degrees Minutes.
+
+        :param string: String with Degrees and Minutes
+        :returns: Float with degrees and minutes
+        '''
         string = string.strip()
         string = string.replace('  ', ' ')
-        
+
         (_degrees, _minutes) = string.split(' ', 2)
 
         degrees = int(_degrees)
@@ -592,6 +911,13 @@ class LatLonEntry(Gtk.Entry):
         return degrees + (minutes / 60.0)
 
     def parse_dms(self, string):
+        '''
+        Parse Degrees Minutes Seconds.
+
+        :param string: String with Degrees Minutes and Seconds
+        :returns: Float with Degrees Minutes and Seconds
+        :raises: LatLongEntryParseDMSError on parsing error.
+        '''
         string = string.replace(u"\u00b0", " ")
         string = string.replace('"', ' ')
         string = string.replace("'", ' ')
@@ -601,7 +927,7 @@ class LatLonEntry(Gtk.Entry):
         items = string.split(' ')
 
         if len(items) > 3:
-            raise Exception("Invalid format")
+            raise LatLongEntryParseDMSError("Invalid format")
         elif len(items) == 3:
             deg = items[0]
             mns = items[1]
@@ -622,46 +948,92 @@ class LatLonEntry(Gtk.Entry):
         degrees = int(deg)
         minutes = int(mns)
         seconds = float(sec)
-        
+
         return degrees + (minutes / 60.0) + (seconds / 3600.0)
 
     def value(self):
+        '''
+        Value.
+
+        :raises: LatLongEntryValueError for invalid values.
+        '''
         string = self.get_text()
 
+        # pylint: disable=broad-except
         try:
             return self.parse_dd(string)
-        except:
+        except Exception as err:
+            printlog("miscwidgets.LatLonEntry.value",
+                     ": Generic exception suppressed: (%s) %s" %
+                     (type(err), err))
             try:
                 return self.parse_dm(string)
-            except:
+            except Exception as err:
+                printlog("miscwidgets.LatLonEntry.validate-2",
+                         ": Generic exception suppressed: (%s) %s" %
+                         (type(err), err))
+
                 try:
                     return self.parse_dms(string)
-                except Exception as e:
-                    printlog("MscWidget",": DMS: %s" % e)
+                except Exception as err:
+                    printlog("MscWidget", ": DMS: %s" % err)
+                    printlog("miscwidgets.LatLonEntry.validate-3",
+                             ": Generic exception suppressed: (%s) %s" %
+                             (type(err), err))
 
-        raise Exception("Invalid format")
+        raise LatLongEntryValueError("Invalid format")
 
     def validate(self):
+        '''
+        Validate.
+
+        :Returns: True if validates
+        '''
         try:
             self.value()
             return True
-        except:
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("miscwidgets.LatLonEntry.validate",
+                     ": Generic exception suppressed: (%s) %s" %
+                     (type(err), err))
             return False
 
+
 class YesNoDialog(Gtk.Dialog):
+    '''
+    Yes No Dialog.
+
+    :param title: Dialog title, Default ''
+    :param parent: Parent object, default None
+    :param buttons: Buttons, Default None
+    '''
+
     def __init__(self, title="", parent=None, buttons=None):
         Gtk.Dialog.__init__(self, title=title, parent=parent, buttons=buttons)
 
         self._label = Gtk.Label.new("")
         self._label.show()
 
-        # pylint: disable-msg=E1101
         self.vbox.pack_start(self._label, 1, 1, 1)
 
     def set_text(self, text):
+        '''
+        Set Text.
+
+        :param text: Text to set
+        '''
         self._label.set_text(text)
 
+
 def make_choice(options, editable=True, default=None):
+    '''
+    Make Choice.
+
+    :param options: options
+    :param editable: Default True
+    :param default: Default None
+    '''
     if editable:
         sel = Gtk.ComboBoxText.new_with_entry()
     else:
@@ -674,36 +1046,62 @@ def make_choice(options, editable=True, default=None):
         try:
             idx = options.index(default)
             sel.set_active(idx)
-        except:
-            pass
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("miscwidgets.make_choice",
+                     ": Generic exception suppressed: (%s) %s" %
+                     (type(err), err))
+
+            # pass
 
     return sel
 
+
 class FilenameBox(Gtk.Box):
+    '''
+    File Name Box.
+
+    :params find_dir: Find directory, default False
+    :param types: types, default []
+    '''
     __gsignals__ = {
         "filename-changed" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE, ()),
         }
 
-    def do_browse(self, _, dir):
+    def do_browse(self, _dummy, directory):
+        '''
+        Do Browse.
+
+        :param _dummy: unused
+        :param direcory: Directory
+        '''
         if self.filename.get_text():
             start = os.path.dirname(self.filename.get_text())
         else:
             start = None
 
-        if dir:
-            fn = dplatform.get_platform().gui_select_dir(start)
+        if directory:
+            fname = dplatform.get_platform().gui_select_dir(start)
         else:
-            fn = dplatform.get_platform().gui_save_file(start)
-        if fn:
-            self.filename.set_text(fn)
+            fname = dplatform.get_platform().gui_save_file(start)
+        if fname:
+            self.filename.set_text(fname)
 
-    def do_changed(self, _):
+    def do_changed(self, _dummy):
+        '''
+        Do Changed.
+
+        :param _dummy: Unused
+        '''
         self.emit("filename_changed")
 
-    def __init__(self, find_dir=False, types=[]):
+    def __init__(self, find_dir=False, types=None):
         Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 0)
 
-        self.types = types
+        if types:
+            self.types = types
+        else:
+            self.types = []
 
         self.filename = Gtk.Entry()
         self.filename.show()
@@ -716,16 +1114,39 @@ class FilenameBox(Gtk.Box):
         self.filename.connect("changed", self.do_changed)
         browse.connect("clicked", self.do_browse, find_dir)
 
-    def set_filename(self, fn):
-        self.filename.set_text(fn)
+    def set_filename(self, fname):
+        '''
+        Set Filename.
+
+        :param fname: File name
+        '''
+        self.filename.set_text(fname)
 
     def get_filename(self):
+        '''
+        Get Filename.
+
+        :returns: String with filename
+        '''
         return self.filename.get_text()
 
     def set_mutable(self, mutable):
+        '''
+        Set Mutable.
+
+        :param mutable: Set mutable property
+        '''
         self.filename.set_sensitive(mutable)
 
+
 def make_pixbuf_choice(options, default=None):
+    '''
+    Make Pixbuf Choice.
+
+    :param options: Options
+    :param default: Default is None
+    :returns: GtkBox object
+    '''
     store = Gtk.ListStore(Gdk.Pixbuf, GObject.TYPE_STRING)
     box = Gtk.ComboBox.new_with_model(store)
 
@@ -739,8 +1160,8 @@ def make_pixbuf_choice(options, default=None):
 
     _default = None
     for pic, value in options:
-        iter = store.append()
-        store.set(iter, 0, pic, 1, value)
+        iter_val = store.append()
+        store.set(iter_val, 0, pic, 1, value)
         if default == value:
             _default = options.index((pic, value))
 
@@ -749,14 +1170,16 @@ def make_pixbuf_choice(options, default=None):
 
     return box
 
+
 def test():
+    '''Unit Test'''
     win = Gtk.Window(Gtk.WindowType.TOPLEVEL)
     lst = ListWidget([(GObject.TYPE_STRING, "Foo"),
-                    (GObject.TYPE_BOOLEAN, "Bar")])
+                      (GObject.TYPE_BOOLEAN, "Bar")])
 
     lst.add_item("Test1", True)
     lst.set_values([("Test2", True), ("Test3", False)])
-    
+
     lst.show()
     win.add(lst)
     win.show()
@@ -785,9 +1208,9 @@ def test():
 
     def print_val(entry):
         if entry.validate():
-            printlog("MscWidget",": Valid: %s" % entry.value())
+            printlog("MscWidget", ": Valid: %s" % entry.value())
         else:
-            printlog("MscWidget",": Invalid")
+            printlog("MscWidget", ": Invalid")
     lle.connect("activate", print_val)
 
     lle.set_text("45 13 12")
