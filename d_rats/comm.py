@@ -852,6 +852,7 @@ class SocketDataPath(DataPath):
     def connect(self):
         '''Connect.'''
         try:
+            printlog("Comm: connection to %s %s" % (self.host, self.port))
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket.connect((self.host, self.port))
             self._socket.settimeout(self.timeout)
