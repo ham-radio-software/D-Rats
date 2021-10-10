@@ -11,6 +11,7 @@ import sys
 # importing printlog() wrapper
 if not __package__:
     def printlog(arg1, *args):
+        '''Fake printlog replacement.'''
         print(arg1, *args)
 else:
     from .debug import printlog
@@ -36,7 +37,7 @@ class Spelling:
             # msys2 aspell has an issue with the nroff formatter
             # This hides the diagnostic for it but requires python 3.3
             if subprocess.DEVNULL:
-                stderr_pipe=subprocess.DEVNULL
+                stderr_pipe = subprocess.DEVNULL
 
         proc = subprocess.Popen([self.__aspell, "pipe"],
                                 stdin=subprocess.PIPE,
