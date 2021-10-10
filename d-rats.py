@@ -22,6 +22,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 import sys
 import os
+import gettext
+
 # pylint: disable=deprecated-module
 from optparse import OptionParser
 
@@ -31,7 +33,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
-
+from d_rats.dplatform import get_platform
 #importing print() wrapper
 from d_rats.debug import printlog
 
@@ -39,12 +41,17 @@ sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
 #import module to have spelling correction in chat and email applications
 from d_rats import utils, spell
+
+_ = gettext.gettext
+
 spell.get_spell().test()
 
 IGNORE_ALL = False
 
 # here we design the window which usually comes out at the beginning asking
 # to "ignore/ignore all" the exceptions
+
+
 def handle_exception(exctyp, value, tb):
     '''handle exception'''
 
@@ -89,20 +96,20 @@ possible.
         dialog.set_default_response(Gtk.ResponseType.CANCEL)
 
     while True:
-        r = utils.make_error_dialog(msg, trace,
+        response = utils.make_error_dialog(msg, trace,
                                     Gtk.ButtonsType.NONE,
                                     Gtk.MessageType.ERROR,
                                     extra=extra)
-        if r == Gtk.ResponseType.CANCEL:
+        if response == Gtk.ResponseType.CANCEL:
             sys.exit(1)
-        elif r == Gtk.ResponseType.CLOSE:
+        if response == Gtk.ResponseType.CLOSE:
             break
-        elif r == -1:
+        if response == -1:
             IGNORE_ALL = True
             break
-        elif r == Gtk.ResponseType.HELP:
-            p = dplatform.get_platform()
-            p.open_text_file(p.config_file("debug.log"))
+        if response == Gtk.ResponseType.HELP:
+            platform = get_platform()
+            platform.open_text_file(platform.config_file("debug.log"))
 
 
 def install_excepthook():
@@ -115,6 +122,7 @@ def install_excepthook():
     # exceptions
     # sys.excepthook = handle_exception
 
+
 def uninstall_excepthook():
     '''Uninstall Excepthook'''
     # restores the original value of sys.excepthook
@@ -122,36 +130,36 @@ def uninstall_excepthook():
     global original_excepthook
     # sys.excepthook = ignore_exception
 
+
 def ignore_exception(_exctyp, _value, _tb):
     '''ignore exception'''
     return
 #-------------- main d-rats module -----------------
 # --- def set_defaults(self):---
 #
-if __name__ == "__main__":
+
+
+def main():
+    '''D-Rats Main module.'''
     #
     # lets parse the options passed from command line
-    o = OptionParser()
-    o.add_option("-s", "--safe",
-                 dest="safe",
-                 action="store_true",
-                 help="Safe mode (ignore configuration)")
-    o.add_option("-c", "--config",
-                 dest="config",
-                 help="Use alternate configuration directory")
-    o.add_option("-p", "--profile",
-                 dest="profile",
-                 action="store_true",
-                 help="Enable profiling")
-    (opts, args) = o.parse_args()
-
-    # import the platform module - this will setup all the proper parameters
-    # for the different OSs
-    from d_rats import dplatform
+    ops = OptionParser()
+    ops.add_option("-s", "--safe",
+                   dest="safe",
+                   action="store_true",
+                   help="Safe mode (ignore configuration)")
+    ops.add_option("-c", "--config",
+                   dest="config",
+                   help="Use alternate configuration directory")
+    ops.add_option("-p", "--profile",
+                   dest="profile",
+                   action="store_true",
+                   help="Enable profiling")
+    (opts, _args) = ops.parse_args()
 
     if opts.config:
         printlog("D-Rats", "    : re-config option found -- Reconfigure D-rats")
-        dplatform.get_platform(opts.config)
+        get_platform(opts.config)
 
     # import the D-Rats main application
     from d_rats import mainapp
@@ -176,9 +184,13 @@ if __name__ == "__main__":
     else:
         #execute the main app
         # result_code = app.main()
-        result_code=0
+        result_code = 0
         app.main()
         #restores  the original value of sys.excepthook
         uninstall_excepthook()
         # libxml2.dumpMemory()
         sys.exit(result_code)
+
+
+if __name__ == "__main__":
+    main()
