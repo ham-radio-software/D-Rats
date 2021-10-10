@@ -1,30 +1,52 @@
 #!/usr/bin/python
+'''Spell.'''
 #
 from __future__ import absolute_import
 from __future__ import print_function
 
 import os
 import subprocess
+import sys
 
 # importing printlog() wrapper
-from .debug import printlog
+if not __package__:
+    def printlog(arg1, *args):
+        print(arg1, *args)
+else:
+    from .debug import printlog
+
 
 class Spelling:
+    '''
+    Spelling.
+
+    :param aspell: Spelling program, default 'aspell'
+    :param persist: Keep subprocess to spelling program running
+    '''
+
     def __open_aspell(self):
         kwargs = {}
-        # pylint: disable=maybe-no-member
-        if subprocess.mswindows:
-            su = subprocess.STARTUPINFO()
-            su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            su.wShowWindow = subprocess.SW_HIDE
-            kwargs["startupinfo"] = su
+        stderr_pipe = None
+        if sys.platform == "win32":
+            subproc = subprocess.STARTUPINFO()
+            subproc.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            subproc.wShowWindow = subprocess.SW_HIDE
+            kwargs["startupinfo"] = subproc
 
-        p = subprocess.Popen([self.__aspell, "pipe"],
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             #close_fds=True,
-                             **kwargs)
-        return p
+            # msys2 aspell has an issue with the nroff formatter
+            # This hides the diagnostic for it but requires python 3.3
+            if subprocess.DEVNULL:
+                stderr_pipe=subprocess.DEVNULL
+
+        proc = subprocess.Popen([self.__aspell, "pipe"],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=stderr_pipe,
+                                bufsize=1,
+                                universal_newlines=True,
+                                #close_fds=True,
+                                **kwargs)
+        return proc
 
     def __close_aspell(self):
         if self.__pipe:
@@ -37,64 +59,97 @@ class Spelling:
         self.__pipe = None
 
     def lookup_word(self, wiq):
-        for c in wiq:
-            c = ord(c)
-            if c < ord('A') or c > ord('z') or \
-                    (c > ord('Z') and c < ord('a')):
+        '''
+        Lookup Word.
+
+        :param wiq: wiq string
+        :returns: List of matching words
+        '''
+        for char in wiq:
+            char = ord(char)
+            if char < ord('A') or char > ord('z') or \
+                    (ord('Z') < char < ord('a')):
                 return []
 
         try:
             self.__pipe.stdout.readline()
-        except Exception:
+
+        except AttributeError:
             printlog("Demand-opening aspell...")
             self.__pipe = self.__open_aspell()
             self.__pipe.stdout.readline()
 
-        self.__pipe.stdin.write("%s%s" % (wiq, os.linesep))
+        self.__pipe.stdin.write("%s%s" %(wiq, os.linesep))
         suggest_str = self.__pipe.stdout.readline()
 
+        print("spell: suggest_str = %s" % suggest_str)
         if not self.__persist:
             self.__close_aspell()
 
         if suggest_str.startswith("*"):
             return []
-        elif not suggest_str.startswith("&"):
-            raise Exception("Unknown response from aspell: %s" % suggest_str)
+        if not suggest_str.startswith("&"):
+            raise Exception("Unknown response from aspell: %s" %
+                            suggest_str)
 
         suggestions = suggest_str.split()
         return suggestions[4:]
 
     def test(self):
+        '''
+        Test.
+
+        :returns: True if test passes
+        '''
         try:
-            s = self.lookup_word("speling")
-            if s[0] != "spelling,":
-                printlog("Spell     : Unable to validate first suggestion of `spelling'")
-                printlog(s[0])
+            spell = self.lookup_word("speling")
+            if spell[0] != "spelling,":
+                printlog("Spell     : ",
+                         "Unable to validate first suggestion of `spelling'")
+                printlog(spell[0])
                 return False
-        except Exception as e:
-            printlog("Spelling test failed: %s" % e)
+        # pylint: disable=broad-except
+        except Exception as err:
+            printlog("Spelling test failed broad-exception: (%s) %s" %
+                     (type(err), err))
             return False
 
-        printlog("Tested spelling okay: %s" % s)
+        printlog("Tested spelling okay: %s" % spell)
         return True
 
 
 def test_word(spell, word):
+    '''
+    Test Word.
+
+    :param spell: Spelling object
+    :param word: Word pattern to check
+    :returns: list of words
+    '''
     spell.stdin.write(word + "\n")
     result = spell.stdout.readline()
     spell.stdout.readline()
 
     if result.startswith("*"):
         return []
-    elif result.startswith("&"):
+    if result.startswith("&"):
         items = result.split()
         return items[4:]
-    else:
-        printlog("Unknown response: `%s'" % result)
+    printlog("Unknown response: `%s'" % result)
+    return []
+
 
 SPELL = None
+
+
 def get_spell():
-    #m this is executed when d-rats starts
+    '''
+    Get Spell.
+
+    :returns: Spelling object
+    '''
+    # m this is executed when d-rats starts
+    # pylint: disable=global-statement
     global SPELL
     if not SPELL:
         SPELL = Spelling()
@@ -130,7 +185,14 @@ def __do_fly_spell(buffer):
     else:
         buffer.remove_tag_by_name("misspelled", start_iter, end_iter)
 
+
+# pylint: disable=invalid-name
 def prepare_TextBuffer(buf):
+    '''
+    Prepare Text Buffer.
+
+    :param buf: Buffer widget
+    '''
     import gi
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
@@ -145,8 +207,14 @@ def prepare_TextBuffer(buf):
 
     buf.connect("changed", __do_fly_spell)
 
+
+def main():
+    '''Unit test.'''
+    spell = Spelling()
+    printlog(spell.lookup_word("speling"))
+    printlog(spell.lookup_word("teh"))
+    printlog(spell.lookup_word("foo"))
+
+
 if __name__ == "__main__":
-    s = Spelling()
-    printlog(s.lookup_word("speling"))
-    printlog(s.lookup_word("teh"))
-    printlog(s.lookup_word("foo"))
+    main()
