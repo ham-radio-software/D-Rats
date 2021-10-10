@@ -6,6 +6,10 @@ import socket
 import time
 import struct
 import select
+
+# Needed for python2+python3 support
+import sys
+
 import serial
 
 from . import utils
@@ -13,6 +17,12 @@ from . import agw
 
 #importing printlog() wrapper
 from .debug import printlog
+
+# Needed for python2+python3 support
+if sys.version_info[0] < 3:
+    # pylint: disable=redefined-builtin
+    class BlockingIOError(socket.error):
+        '''Suppress pylint on python3 warning.'''
 
 
 class CommException(Exception):
@@ -413,10 +423,12 @@ class AGWDataPath(DataPath):
         :raises: DataPathNotConnectedError if can not connect
         '''
         try:
-            self._agw = agw.AGWConnection(self._addr, int(self._port), self.timeout)
+            self._agw = agw.AGWConnection(self._addr, int(self._port),
+                                          self.timeout)
             self._agw.enable_raw()
         except Exception as err:
-            printlog("Comm", "        : AGWPE exception on connect: %s" % err)
+            printlog("Comm", "        : AGWPE exception on connect: (%s) %s" %
+                     (type(err), err))
             raise DataPathNotConnectedError("Unable to connect to AGWPE")
 
     def disconnect(self):
@@ -502,7 +514,8 @@ class SerialDataPath(DataPath):
                                      xonxoff=0)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Comm", "        : Serial exception on connect: %s" % err)
+            printlog("Comm", "        : Serial exception on connect: (%s) %s" %
+                     (type(err), err))
             raise DataPathNotConnectedError("Unable to open serial port")
 
     def disconnect(self):
@@ -536,7 +549,8 @@ class SerialDataPath(DataPath):
             data = self._serial.read(size)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Comm", "        : Serial read exception: %s" % err)
+            printlog("Comm", "        : Serial read exception: (%s) %s" %
+                     (type(err), err))
             utils.log_exception()
             raise DataPathIOError("Failed to read from serial port")
 
@@ -563,7 +577,8 @@ class SerialDataPath(DataPath):
             self._serial.write(buf)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Comm", "        : Serial write exception: %s" % err)
+            printlog("Comm", "        : Serial write exception: (%s) %s" %
+                     (type(err), err))
             utils.log_exception()
             raise DataPathIOError("Failed to write to serial port")
 
@@ -602,7 +617,8 @@ class TNCDataPath(SerialDataPath):
                                      writeTimeout=self.timeout*10,
                                      xonxoff=0)
         except Exception as err:
-            printlog(("Comm      : TNC exception on connect: %s" % err))
+            printlog(("Comm      : TNC exception on connect: (%s) %s" %
+                      (type(err), err)))
             utils.log_exception()
             raise DataPathNotConnectedError("Unable to open serial port")
 
@@ -794,8 +810,8 @@ class SocketDataPath(DataPath):
                 code = int(code)
             # pylint: disable=broad-except
             except Exception as err:
-                printlog("Comm", "        : Error parsing line '%s': %s" %
-                         (line, err))
+                printlog("Comm", "        : Error parsing line '%s': (%s) %s" %
+                         (line, type(err), err))
                 raise DataPathNotConnectedError("Conversation error")
 
             return code, string
@@ -841,7 +857,8 @@ class SocketDataPath(DataPath):
             self._socket.settimeout(self.timeout)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Comm", "      : Socket connect failed: %s" % err)
+            printlog("Comm", "      : Socket connect failed: (%s) %s" %
+                     (type(err), err))
             self._socket = None
             raise DataPathNotConnectedError("Unable to connect (%s)" % err)
 
@@ -881,7 +898,7 @@ class SocketDataPath(DataPath):
                     continue
             except Exception as err:
                 printlog("Comm",
-                         "     :Read Generic Exception %s %s" %
+                         "     :Read Generic Exception (%s) %s" %
                          (type(err), err))
                 raise DataPathIOError("Socket error: %s" % err)
 
@@ -913,18 +930,18 @@ class SocketDataPath(DataPath):
         while True:
             try:
                 data_read = self._socket.recv(4096)
-            # Python 3:
-            # except BlockingIOError:
-            #    break
-            # python 2: socket.error
-            # pylint: disable=broad-except
-            except Exception as err:
-                # Best practice is to trap the specific exceptions that
-                # are known to occur.
-                printlog("Comm",
-                         "     :Generic Exception read_all_waiting %s %s" %
-                         (type(err), err))
+            except BlockingIOError:
                 break
+            except socket.error:
+                break
+            # pylint: disable=broad-except
+            # except Exception as err:
+            #    # Best practice is to trap the specific exceptions that
+            #    # are known to occur.
+            #    printlog("Comm/SocketDatapath",
+            #             "     :Generic Exception read_all_waiting %s %s" %
+            #             (type(err), err))
+            #    break
             if not data_read:
                 raise DataPathIOError("Socket disconnected: %s")
             data += data_read
@@ -937,11 +954,23 @@ class SocketDataPath(DataPath):
 
         :param buf: Buffer to write
         '''
+        ba_buf = buf
+        print('comm/write type(buf) = %s' % type(buf))
+        print("buf = %s" % buf)
+        print('version is %s' % sys.version_info[0])
+        print("is string = -%s- " % isinstance(buf, str))
+        if sys.version_info[0] > 2 and isinstance(buf, str):
+            # python3 hack
+            print("python3 convert hack")
+            ba_buf = buf.encode('utf-8', 'replace')
+            print("  type(ba_buf) %s" % type(ba_buf))
+        print("ba_buf = %s" % ba_buf)
         try:
-            self._socket.sendall(buf)
+            self._socket.sendall(ba_buf)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Comm", "      : Write - Socket write failed: %s" % err)
+            printlog("Comm", "      : Write - Socket write failed: (%s) %s" %
+                     (type(err), err))
             raise DataPathIOError("Socket write failed")
 
     def is_connected(self):
@@ -965,5 +994,6 @@ class SocketDataPath(DataPath):
             return "[NET %s:%i]" % (addr, port)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Comm", "      : __str__ Generic exception: %s" % err)
+            printlog("Comm", "      : __str__ Generic exception: (%s) %s" %
+                     (type(err), err))
             return "[NET closed]"
