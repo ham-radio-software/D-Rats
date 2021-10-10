@@ -22,6 +22,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import sys
 import os
+# pylint: disable=deprecated-module
 from optparse import OptionParser
 
 import traceback
@@ -50,6 +51,7 @@ def handle_exception(exctyp, value, tb):
     # this eventually starts the initial window with the list of errors and the
     # buttons to open log or ignore errors
 
+    # pylint: disable=global-statement
     global IGNORE_ALL
 
     if exctyp is KeyboardInterrupt or IGNORE_ALL:
@@ -106,6 +108,7 @@ possible.
 def install_excepthook():
     '''install excepthook'''
     # saves away the original value of sys.excepthook
+    # pylint: disable=global-variable-undefined
     global original_excepthook
     original_excepthook = sys.excepthook
     # invoke the manager of the initial windows to ask user what to do with
@@ -115,6 +118,7 @@ def install_excepthook():
 def uninstall_excepthook():
     '''Uninstall Excepthook'''
     # restores the original value of sys.excepthook
+    # pylint: disable=global-variable-undefined
     global original_excepthook
     # sys.excepthook = ignore_exception
 
@@ -171,7 +175,9 @@ if __name__ == "__main__":
         cProfile.run('app.main()')
     else:
         #execute the main app
-        result_code = app.main()
+        # result_code = app.main()
+        result_code=0
+        app.main()
         #restores  the original value of sys.excepthook
         uninstall_excepthook()
         # libxml2.dumpMemory()
