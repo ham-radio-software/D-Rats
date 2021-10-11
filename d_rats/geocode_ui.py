@@ -25,16 +25,14 @@ from urllib2 import URLError
 
 
 
-# try:
-    # # pylint: disable=import-error
-    # from geopy import geocoders
-# except ImportError:
-    # # WB8TYW: This will probably go away in the future.
-    # # pylint: disable=import-error
-    # from .geopy import geocoders
-    # print("Falling back to built-in geocoders.")
-from .geopy import geocoders
-
+try:
+    # pylint: disable=import-error
+    from geopy import geocoders
+except ImportError:
+    # WB8TYW: This will probably go away in the future.
+    # pylint: disable=import-error
+    from .geopy import geocoders
+    print("Falling back to built-in geocoders.")
 
 
 #importing printlog() wrapper
