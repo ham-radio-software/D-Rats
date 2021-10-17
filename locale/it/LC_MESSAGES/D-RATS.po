@@ -16,6 +16,23 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-SearchPath-0: D:\\git\\D-Rats-0.3.ev\\d-rats\n"
 
+#: internationalization_test.py:70
+# from google translate
+msgid "HELLO_WORLD"
+msgstr "Ciao mondo"
+
+#: internationalization_test.py:79
+msgid "COMMAND ARGS NOT IMPLEMENTED!"
+msgstr "Argomenti di comando non implementati."
+
+#: internationalization_test.py:82
+msgid "DEFAULT ARGUMENTS NOT IMPLEMENTED!"
+msgstr "Default arguments not implemented."
+
+#: internationalization_test.py:84
+msgid "EXECUTING UNIT TEST FUNCTION."
+msgstr "Esecuzione della funzione di test dell'unita."
+
 msgid " on port "
 msgstr "sulla porta"
 

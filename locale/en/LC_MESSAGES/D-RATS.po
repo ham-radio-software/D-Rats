@@ -1,0 +1,2009 @@
+# D-RATS English translation.
+# Copyright 2021 John e. Malmberg
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# John E. Malmberg <wb8tyw@gmail.com>, 2021.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: D-Rats-EV\n"
+"Report-Msgid-Bugs-To: https://github.com/maurizioandreotti/D-Rats/issues\n"
+"POT-Creation-Date: 2021-10-16 14:15-0500\n"
+"PO-Revision-Date: 2021-10-16 04:51+CDT\n"
+"Last-Translator: John E. Malmberg <wb8tyw@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+#"Language-Team: LANGUAGE <LL@li.org>\n"
+#"Language: \n"
+
+
+#: d-rats.py:91
+msgid "Debug Log"
+msgstr ""
+
+#: d-rats.py:92
+msgid "Ignore"
+msgstr ""
+
+#: d-rats.py:93
+msgid "Ignore All"
+msgstr ""
+
+#: d-rats.py:94
+msgid "Quit"
+msgstr ""
+
+#: internationalization_test.py:70
+msgid "HELLO_WORLD"
+msgstr "Hello World"
+
+#: internationalization_test.py:79
+msgid "COMMAND ARGS NOT IMPLEMENTED!"
+msgstr "Command Arguments not implemented."
+
+#: internationalization_test.py:82
+msgid "DEFAULT ARGUMENTS NOT IMPLEMENTED!"
+msgstr "Default arguments not implemented."
+
+#: internationalization_test.py:84
+msgid "EXECUTING UNIT TEST FUNCTION."
+msgstr "Executing unit test function."
+
+#: d_rats/config_addport.py:72 d_rats/config_addport.py:948 d_rats/config.py:72
+#: d_rats/config.py:926 d_rats/gps.py:218
+msgid "Metric"
+msgstr ""
+
+#: d_rats/config_addport.py:80 d_rats/config.py:80
+msgid "Online (D-RATS)"
+msgstr ""
+
+#: d_rats/config_addport.py:81 d_rats/config.py:81
+msgid "Going offline (D-RATS)"
+msgstr ""
+
+#: d_rats/config_addport.py:342 d_rats/config.py:341
+msgid "A D-STAR radio connected to a serial port"
+msgstr ""
+
+#: d_rats/config_addport.py:343 d_rats/config.py:342
+msgid "A network link to a ratflector instance"
+msgstr ""
+
+#: d_rats/config_addport.py:344 d_rats/config.py:343
+msgid "A KISS-mode TNC connected to a serial port"
+msgstr ""
+
+#: d_rats/config_addport.py:345 d_rats/config.py:344
+msgid "A locally-attached dongle"
+msgstr ""
+
+#: d_rats/config_addport.py:346 d_rats/config.py:345
+msgid "A TNC attached to an AGWPE server"
+msgstr ""
+
+#: d_rats/config_addport.py:501 d_rats/config.py:479
+msgid "Revert"
+msgstr ""
+
+#: d_rats/config_addport.py:621 d_rats/config_addport.py:1291
+#: d_rats/config_addport.py:1680 d_rats/config_addport.py:1727
+#: d_rats/config_addport.py:1740 d_rats/config_addport.py:1752
+#: d_rats/config_addport.py:1767 d_rats/config_addport.py:1796
+#: d_rats/config.py:599 d_rats/config.py:1269 d_rats/config.py:1658
+#: d_rats/config.py:1705 d_rats/config.py:1718 d_rats/config.py:1730
+#: d_rats/config.py:1745 d_rats/config.py:1774 ui/addport.glade:371
+msgid "Enabled"
+msgstr ""
+
+#: d_rats/config_addport.py:727 d_rats/config.py:705
+msgid "Test"
+msgstr ""
+
+#: d_rats/config_addport.py:925 d_rats/config_addport.py:1874
+#: d_rats/config_addport.py:1897 d_rats/config_addport.py:1902
+#: d_rats/config_addport.py:1905 d_rats/config_addport.py:1914
+#: d_rats/config_addport.py:1922 d_rats/config_addport.py:1930
+#: d_rats/config.py:903 d_rats/config.py:1852 d_rats/config.py:1875
+#: d_rats/config.py:1880 d_rats/config.py:1883 d_rats/config.py:1892
+#: d_rats/config.py:1900 d_rats/config.py:1908 d_rats/mapdisplay1.py:1911
+#: d_rats/mapdisplay1.py:1922 d_rats/mapdisplay.py:1888
+#: d_rats/mapdisplay.py:1899
+msgid "Callsign"
+msgstr ""
+
+#: d_rats/config_addport.py:929 d_rats/config_addport.py:1296
+#: d_rats/config.py:907 d_rats/config.py:1274 d_rats/formgui.py:1556
+#: d_rats/mapdisplay1.py:254 d_rats/mapdisplay1.py:295
+#: d_rats/mapdisplay1.py:320 d_rats/mapdisplay.py:254 d_rats/mapdisplay.py:295
+#: d_rats/mapdisplay.py:320 d_rats/map_source_editor.py:80
+#: d_rats/map/markereditdialog.py:15 d_rats/map/markereditdialog.py:56
+#: d_rats/map/markereditdialog.py:81 ui/mainwindow.glade:1418
+msgid "Name"
+msgstr ""
+
+#: d_rats/config_addport.py:935 d_rats/config.py:913
+msgid "Sign-on Message"
+msgstr ""
+
+#: d_rats/config_addport.py:943 d_rats/config.py:921
+msgid "Sign-off Message"
+msgstr ""
+
+#: d_rats/config_addport.py:948 d_rats/config.py:926 d_rats/gps.py:215
+msgid "Imperial"
+msgstr ""
+
+#: d_rats/config_addport.py:949 d_rats/config.py:927
+msgid "Units"
+msgstr ""
+
+#: d_rats/config_addport.py:953 d_rats/config.py:931
+msgid "Show time in UTC"
+msgstr ""
+
+#: d_rats/config_addport.py:956 d_rats/config.py:934
+msgid "Version and OS Info"
+msgstr ""
+
+#: d_rats/config_addport.py:957 d_rats/config.py:935
+msgid "Ping reply"
+msgstr ""
+
+#: d_rats/config_addport.py:961 d_rats/config.py:939
+msgid "Language"
+msgstr ""
+
+#: d_rats/config_addport.py:975 d_rats/config.py:953
+msgid "Blink tray on"
+msgstr ""
+
+#: d_rats/config_addport.py:976 d_rats/config.py:954
+msgid "Incoming Messages"
+msgstr ""
+
+#: d_rats/config_addport.py:977 d_rats/config.py:955
+msgid "New Chat Messages"
+msgstr ""
+
+#: d_rats/config_addport.py:978 d_rats/config.py:956
+msgid "Incoming Files"
+msgstr ""
+
+#: d_rats/config_addport.py:979 d_rats/config.py:957
+msgid "Received Events"
+msgstr ""
+
+#: d_rats/config_addport.py:990 d_rats/config.py:968
+msgid "File Transfer Path"
+msgstr ""
+
+#: d_rats/config_addport.py:994 d_rats/config.py:972
+msgid "Base Map Storage Path"
+msgstr ""
+
+#: d_rats/config_addport.py:998 d_rats/config.py:976
+msgid "Form Logo Path"
+msgstr ""
+
+#: d_rats/config_addport.py:1010 d_rats/config.py:988
+msgid "Map to use"
+msgstr ""
+
+#: d_rats/config_addport.py:1014 d_rats/config.py:992
+msgid "BaseMap server url"
+msgstr ""
+
+#: d_rats/config_addport.py:1019 d_rats/config.py:997
+msgid "OpenCycleMap server url"
+msgstr ""
+
+#: d_rats/config_addport.py:1023 d_rats/config.py:1001
+msgid "Key string to append to CycleMap url"
+msgstr ""
+
+#: d_rats/config_addport.py:1028 d_rats/config.py:1006
+msgid "Landscape server url"
+msgstr ""
+
+#: d_rats/config_addport.py:1032 d_rats/config.py:1010
+msgid "Key string to append to landscape url"
+msgstr ""
+
+#: d_rats/config_addport.py:1037 d_rats/config.py:1015
+msgid "Outdoors server url"
+msgstr ""
+
+#: d_rats/config_addport.py:1041 d_rats/config.py:1019
+msgid "Key string to append to outdoors url"
+msgstr ""
+
+#: d_rats/config_addport.py:1045 d_rats/config.py:1023
+msgid "Freshen map after"
+msgstr ""
+
+#: d_rats/config_addport.py:1045 d_rats/config.py:1023
+msgid "hours"
+msgstr ""
+
+#: d_rats/config_addport.py:1049 d_rats/config.py:1027
+msgid "Report position timestamps on map"
+msgstr ""
+
+#: d_rats/config_addport.py:1060 d_rats/config.py:1038 d_rats/geocode_ui.py:69
+#: d_rats/geocode_ui.py:100 d_rats/geocode_ui.py:139 d_rats/mapdisplay1.py:255
+#: d_rats/mapdisplay1.py:296 d_rats/mapdisplay1.py:321
+#: d_rats/mapdisplay1.py:1490 d_rats/mapdisplay1.py:1915
+#: d_rats/mapdisplay1.py:1917 d_rats/mapdisplay1.py:1924
+#: d_rats/mapdisplay.py:255 d_rats/mapdisplay.py:296 d_rats/mapdisplay.py:321
+#: d_rats/mapdisplay.py:1474 d_rats/mapdisplay.py:1892
+#: d_rats/mapdisplay.py:1894 d_rats/mapdisplay.py:1901
+#: d_rats/map/markereditdialog.py:16 d_rats/map/markereditdialog.py:57
+#: d_rats/map/markereditdialog.py:82
+msgid "Latitude"
+msgstr ""
+
+#: d_rats/config_addport.py:1064 d_rats/config.py:1042 d_rats/geocode_ui.py:70
+#: d_rats/geocode_ui.py:101 d_rats/geocode_ui.py:140 d_rats/mapdisplay1.py:256
+#: d_rats/mapdisplay1.py:297 d_rats/mapdisplay1.py:322
+#: d_rats/mapdisplay1.py:1491 d_rats/mapdisplay1.py:1916
+#: d_rats/mapdisplay1.py:1918 d_rats/mapdisplay1.py:1925
+#: d_rats/mapdisplay.py:256 d_rats/mapdisplay.py:297 d_rats/mapdisplay.py:322
+#: d_rats/mapdisplay.py:1475 d_rats/mapdisplay.py:1893
+#: d_rats/mapdisplay.py:1895 d_rats/mapdisplay.py:1902
+#: d_rats/map/markereditdialog.py:17 d_rats/map/markereditdialog.py:58
+#: d_rats/map/markereditdialog.py:83
+msgid "Longitude"
+msgstr ""
+
+#: d_rats/config_addport.py:1071 d_rats/config.py:1049
+msgid "Altitude"
+msgstr ""
+
+#: d_rats/config_addport.py:1077 d_rats/config.py:1055
+msgid "Use External GPS"
+msgstr ""
+
+#: d_rats/config_addport.py:1083 d_rats/config.py:1061
+msgid "External GPS"
+msgstr ""
+
+#: d_rats/config_addport.py:1093 d_rats/config.py:1071
+msgid "GPS-A Symbol"
+msgstr ""
+
+#: d_rats/config_addport.py:1094 d_rats/config.py:1072
+msgid "Table:"
+msgstr ""
+
+#: d_rats/config_addport.py:1095 d_rats/config.py:1073
+msgid "Symbol:"
+msgstr ""
+
+#: d_rats/config_addport.py:1109 d_rats/config.py:1087
+msgid "DPRS"
+msgstr ""
+
+#: d_rats/config_addport.py:1111 d_rats/config.py:1089
+msgid "Default GPS comment"
+msgstr ""
+
+#: d_rats/config_addport.py:1122 d_rats/config.py:1100
+msgid "Check to enable export GPS messages as JSON string"
+msgstr ""
+
+#: d_rats/config_addport.py:1126 d_rats/config.py:1104
+msgid "IP address"
+msgstr ""
+
+#: d_rats/config_addport.py:1130 d_rats/config.py:1108
+msgid "IP port"
+msgstr ""
+
+#: d_rats/config_addport.py:1141 d_rats/config.py:1119
+msgid "Notice RegEx"
+msgstr ""
+
+#: d_rats/config_addport.py:1145 d_rats/config.py:1123
+msgid "Ignore RegEx"
+msgstr ""
+
+#: d_rats/config_addport.py:1152 d_rats/config.py:1130
+msgid "Incoming Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1152 d_rats/config.py:1130
+msgid "Outgoing Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1153 d_rats/config.py:1131
+msgid "Notice Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1153 d_rats/config.py:1131
+msgid "Ignore Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1154 d_rats/config.py:1132
+msgid "Callsign Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1154 d_rats/config.py:1132
+msgid "Broken Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1160 d_rats/config.py:1138
+#, python-format
+msgid "%s Color"
+msgstr ""
+
+#: d_rats/config_addport.py:1162 d_rats/config.py:1140
+msgid "Default"
+msgstr ""
+
+#: d_rats/config_addport.py:1162 d_rats/config.py:1140
+msgid "Large"
+msgstr ""
+
+#: d_rats/config_addport.py:1162 d_rats/config.py:1140
+msgid "Small"
+msgstr ""
+
+#: d_rats/config_addport.py:1165 d_rats/config.py:1143
+msgid "Toolbar buttons"
+msgstr ""
+
+#: d_rats/config_addport.py:1169 d_rats/config.py:1147
+msgid "Check spelling"
+msgstr ""
+
+#: d_rats/config_addport.py:1176 d_rats/config.py:1154
+msgid "Confirm exit"
+msgstr ""
+
+#: d_rats/config_addport.py:1180 d_rats/config.py:1158
+msgid "minutes"
+msgstr ""
+
+#: d_rats/config_addport.py:1181 d_rats/config.py:1159
+msgid "Expire stations after"
+msgstr ""
+
+#: d_rats/config_addport.py:1192 d_rats/config.py:1170
+msgid "Log chat traffic"
+msgstr ""
+
+#: d_rats/config_addport.py:1196 d_rats/config.py:1174
+msgid "Load log tail"
+msgstr ""
+
+#: d_rats/config_addport.py:1200 d_rats/config.py:1178
+msgid "Chat font"
+msgstr ""
+
+#: d_rats/config_addport.py:1204 d_rats/config.py:1182
+msgid "Scrollback Lines"
+msgstr ""
+
+#: d_rats/config_addport.py:1208 d_rats/config.py:1186
+msgid "Show status updates in chat"
+msgstr ""
+
+#: d_rats/config_addport.py:1212 d_rats/config.py:1190
+msgid "Timestamp chat messages"
+msgstr ""
+
+#: d_rats/config_addport.py:1216 d_rats/config.py:1194
+msgid "QST Size Limit"
+msgstr ""
+
+#: d_rats/config_addport.py:1221 d_rats/config.py:1199
+msgid "OpenWeather uri"
+msgstr ""
+
+#: d_rats/config_addport.py:1225 d_rats/config.py:1203
+msgid "OpenWeather appid"
+msgstr ""
+
+#: d_rats/config_addport.py:1241 d_rats/config.py:1219
+msgid "Chat activity"
+msgstr ""
+
+#: d_rats/config_addport.py:1242 d_rats/config.py:1220
+msgid "Message activity"
+msgstr ""
+
+#: d_rats/config_addport.py:1243 d_rats/config.py:1221
+msgid "File activity"
+msgstr ""
+
+#: d_rats/config_addport.py:1292 d_rats/config_addport.py:1412
+#: d_rats/config_addport.py:1572 d_rats/config_addport.py:1577
+#: d_rats/config_addport.py:1578 d_rats/config_addport.py:1585
+#: d_rats/config_addport.py:1725 d_rats/config_addport.py:1738
+#: d_rats/config_addport.py:1750 d_rats/config_addport.py:1765
+#: d_rats/config_addport.py:1794 d_rats/config.py:1270 d_rats/config.py:1390
+#: d_rats/config.py:1550 d_rats/config.py:1555 d_rats/config.py:1556
+#: d_rats/config.py:1563 d_rats/config.py:1703 d_rats/config.py:1716
+#: d_rats/config.py:1728 d_rats/config.py:1743 d_rats/config.py:1772
+#: ui/addport.glade:253 ui/addport.glade:511
+msgid "Port"
+msgstr ""
+
+#: d_rats/config_addport.py:1293 d_rats/config.py:1271
+msgid "Settings"
+msgstr ""
+
+#: d_rats/config_addport.py:1294 d_rats/config.py:1272
+msgid "Sniff"
+msgstr ""
+
+#: d_rats/config_addport.py:1295 d_rats/config.py:1273
+msgid "Raw Text"
+msgstr ""
+
+#: d_rats/config_addport.py:1298 d_rats/config.py:1276
+msgid ""
+"Configure data paths below.  This may include any number of serial-attached "
+"radios and network-attached proxies."
+msgstr ""
+
+#: d_rats/config_addport.py:1309 d_rats/config_addport.py:1560
+#: d_rats/config_addport.py:1590 d_rats/config_addport.py:1813
+#: d_rats/config_addport.py:1944 d_rats/config.py:1287 d_rats/config.py:1538
+#: d_rats/config.py:1568 d_rats/config.py:1791 d_rats/config.py:1922
+#: d_rats/formbuilder.py:581 d_rats/formgui.py:1595
+msgid "Add"
+msgstr ""
+
+#: d_rats/config_addport.py:1311 d_rats/config_addport.py:1815
+#: d_rats/config_addport.py:1946 d_rats/config.py:1289 d_rats/config.py:1793
+#: d_rats/config.py:1924 d_rats/formbuilder.py:582 d_rats/formbuilder.py:984
+#: d_rats/mapdisplay1.py:1436 d_rats/mapdisplay.py:1420
+msgid "Edit"
+msgstr ""
+
+#: d_rats/config_addport.py:1313 d_rats/config_addport.py:1562
+#: d_rats/config_addport.py:1592 d_rats/config_addport.py:1817
+#: d_rats/config_addport.py:1948 d_rats/config.py:1291 d_rats/config.py:1540
+#: d_rats/config.py:1570 d_rats/config.py:1795 d_rats/config.py:1926
+#: d_rats/formgui.py:1607
+msgid "Remove"
+msgstr ""
+
+#: d_rats/config_addport.py:1318 d_rats/config_addport.py:2036
+#: d_rats/config.py:1296 d_rats/config.py:2014
+msgid "Paths"
+msgstr ""
+
+#: d_rats/config_addport.py:1331 d_rats/config.py:1309
+msgid "Block size"
+msgstr ""
+
+#: d_rats/config_addport.py:1335 d_rats/config.py:1313
+msgid "Pipeline blocks"
+msgstr ""
+
+#: d_rats/config_addport.py:1339 d_rats/config.py:1317
+msgid "Remote file transfers"
+msgstr ""
+
+#: d_rats/config_addport.py:1343 d_rats/config.py:1321
+msgid "Warmup Length"
+msgstr ""
+
+#: d_rats/config_addport.py:1347 d_rats/config.py:1325
+msgid "Warmup timeout"
+msgstr ""
+
+#: d_rats/config_addport.py:1351 d_rats/config.py:1329
+msgid "Force transmission delay"
+msgstr ""
+
+#: d_rats/config_addport.py:1355 d_rats/config.py:1333
+msgid "Allow file deletes from"
+msgstr ""
+
+#: d_rats/config_addport.py:1359 d_rats/config.py:1337
+msgid "Remote admin password"
+msgstr ""
+
+#: d_rats/config_addport.py:1371 d_rats/config.py:1349
+msgid "Automatically forward messages"
+msgstr ""
+
+#: d_rats/config_addport.py:1375 d_rats/config_addport.py:1382
+#: d_rats/config.py:1353 d_rats/config.py:1360
+msgid "seconds"
+msgstr ""
+
+#: d_rats/config_addport.py:1376 d_rats/config.py:1354
+msgid "Queue flush interval"
+msgstr ""
+
+#: d_rats/config_addport.py:1383 d_rats/config.py:1361
+msgid "Station TTL"
+msgstr ""
+
+#: d_rats/config_addport.py:1389 d_rats/config.py:1367
+msgid "Include original in reply"
+msgstr ""
+
+#: d_rats/config_addport.py:1393 d_rats/config.py:1371
+msgid "Allow POP3 Gateway"
+msgstr ""
+
+#: d_rats/config_addport.py:1397 d_rats/config.py:1375
+msgid "Allow WL2K Gateway"
+msgstr ""
+
+#: d_rats/config_addport.py:1401 d_rats/config.py:1379
+msgid "WL2K Connection"
+msgstr ""
+
+#: d_rats/config_addport.py:1415 d_rats/config_addport.py:1675
+#: d_rats/config_addport.py:1722 d_rats/config_addport.py:1735
+#: d_rats/config_addport.py:1747 d_rats/config_addport.py:1762
+#: d_rats/config_addport.py:1791 d_rats/config.py:1393 d_rats/config.py:1653
+#: d_rats/config.py:1700 d_rats/config.py:1713 d_rats/config.py:1725
+#: d_rats/config.py:1740 d_rats/config.py:1769 ui/addport.glade:278
+#: ui/addport.glade:556
+msgid "Password"
+msgstr ""
+
+#: d_rats/config_addport.py:1416 d_rats/config.py:1394
+msgid "WL2K Network Server"
+msgstr ""
+
+#: d_rats/config_addport.py:1421 d_rats/config.py:1399
+msgid " on port "
+msgstr ""
+
+#: d_rats/config_addport.py:1432 d_rats/config.py:1410
+msgid "WL2K RMS Station"
+msgstr ""
+
+#: d_rats/config_addport.py:1448 d_rats/config.py:1426
+msgid "My Winlink SSID"
+msgstr ""
+
+#: d_rats/config_addport.py:1452 d_rats/config_addport.py:1461
+#: d_rats/config.py:1430 d_rats/config.py:1439
+msgid "on port"
+msgstr ""
+
+#: d_rats/config_addport.py:1455 d_rats/config.py:1433
+msgid "POP3 Server"
+msgstr ""
+
+#: d_rats/config_addport.py:1464 d_rats/config_addport.py:1609
+#: d_rats/config.py:1442 d_rats/config.py:1587
+msgid "SMTP Server"
+msgstr ""
+
+#: d_rats/config_addport.py:1520 d_rats/config_addport.py:1706
+#: d_rats/config_addport.py:1883 d_rats/config.py:1498 d_rats/config.py:1684
+#: d_rats/config.py:1861
+msgid "Invalid value for"
+msgstr ""
+
+#: d_rats/config_addport.py:1539 d_rats/config_addport.py:1545
+#: d_rats/config_addport.py:1546 d_rats/config.py:1517 d_rats/config.py:1523
+#: d_rats/config.py:1524
+msgid "Local Port"
+msgstr ""
+
+#: d_rats/config_addport.py:1540 d_rats/config_addport.py:1547
+#: d_rats/config.py:1518 d_rats/config.py:1525
+msgid "Remote Port"
+msgstr ""
+
+#: d_rats/config_addport.py:1541 d_rats/config_addport.py:1548
+#: d_rats/config_addport.py:1556 d_rats/config.py:1519 d_rats/config.py:1526
+#: d_rats/config.py:1534 d_rats/mainapp.py:1187 d_rats/mapdisplay1.py:1489
+#: d_rats/mapdisplay.py:1473 d_rats/qst.py:1232 d_rats/qst.py:1294
+msgid "Station"
+msgstr ""
+
+#: d_rats/config_addport.py:1554 d_rats/config.py:1532
+#: d_rats/sessions/sniff.py:55 ui/mainwindow.glade:886
+msgid "Local"
+msgstr ""
+
+#: d_rats/config_addport.py:1555 d_rats/config.py:1533
+#: d_rats/sessions/sniff.py:56
+msgid "Remote"
+msgstr ""
+
+#: d_rats/config_addport.py:1564 d_rats/config_addport.py:1935
+#: d_rats/config.py:1542 d_rats/config.py:1913
+msgid "Outgoing"
+msgstr ""
+
+#: d_rats/config_addport.py:1573 d_rats/config_addport.py:1579
+#: d_rats/config_addport.py:1586 d_rats/config.py:1551 d_rats/config.py:1557
+#: d_rats/config.py:1564
+msgid "Host"
+msgstr ""
+
+#: d_rats/config_addport.py:1594 d_rats/config_addport.py:1935
+#: d_rats/config.py:1572 d_rats/config.py:1913
+msgid "Incoming"
+msgstr ""
+
+#: d_rats/config_addport.py:1605 d_rats/config.py:1583
+msgid "SMTP Gateway"
+msgstr ""
+
+#: d_rats/config_addport.py:1617 d_rats/config.py:1595
+msgid "Port and Mode"
+msgstr ""
+
+#: d_rats/config_addport.py:1625 d_rats/config.py:1603
+msgid "Source Address"
+msgstr ""
+
+#: d_rats/config_addport.py:1631 d_rats/config.py:1609
+msgid "SMTP Username"
+msgstr ""
+
+#: d_rats/config_addport.py:1637 d_rats/config.py:1615
+msgid "SMTP Password"
+msgstr ""
+
+#: d_rats/config_addport.py:1720 d_rats/config_addport.py:1731
+#: d_rats/config_addport.py:1733 d_rats/config_addport.py:1745
+#: d_rats/config_addport.py:1758 d_rats/config_addport.py:1760
+#: d_rats/config_addport.py:1789 d_rats/config.py:1698 d_rats/config.py:1709
+#: d_rats/config.py:1711 d_rats/config.py:1723 d_rats/config.py:1736
+#: d_rats/config.py:1738 d_rats/config.py:1767
+msgid "Server"
+msgstr ""
+
+#: d_rats/config_addport.py:1721 d_rats/config_addport.py:1731
+#: d_rats/config_addport.py:1734 d_rats/config_addport.py:1746
+#: d_rats/config_addport.py:1758 d_rats/config_addport.py:1761
+#: d_rats/config_addport.py:1790 d_rats/config.py:1699 d_rats/config.py:1709
+#: d_rats/config.py:1712 d_rats/config.py:1724 d_rats/config.py:1736
+#: d_rats/config.py:1739 d_rats/config.py:1768 ui/addport.glade:535
+msgid "Username"
+msgstr ""
+
+#: d_rats/config_addport.py:1723 d_rats/config_addport.py:1736
+#: d_rats/config_addport.py:1748 d_rats/config_addport.py:1763
+#: d_rats/config_addport.py:1792 d_rats/config.py:1701 d_rats/config.py:1714
+#: d_rats/config.py:1726 d_rats/config.py:1741 d_rats/config.py:1770
+msgid "Poll Interval"
+msgstr ""
+
+#: d_rats/config_addport.py:1724 d_rats/config_addport.py:1737
+#: d_rats/config_addport.py:1749 d_rats/config_addport.py:1764
+#: d_rats/config_addport.py:1793 d_rats/config.py:1702 d_rats/config.py:1715
+#: d_rats/config.py:1727 d_rats/config.py:1742 d_rats/config.py:1771
+msgid "Use SSL"
+msgstr ""
+
+#: d_rats/config_addport.py:1726 d_rats/config_addport.py:1739
+#: d_rats/config_addport.py:1751 d_rats/config_addport.py:1766
+#: d_rats/config_addport.py:1795 d_rats/config_addport.py:1800
+#: d_rats/config.py:1704 d_rats/config.py:1717 d_rats/config.py:1729
+#: d_rats/config.py:1744 d_rats/config.py:1773 d_rats/config.py:1778
+msgid "Action"
+msgstr ""
+
+#: d_rats/config_addport.py:1800 d_rats/config.py:1778 d_rats/emailgw.py:332
+msgid "Form"
+msgstr ""
+
+#: d_rats/config_addport.py:1800 d_rats/config_addport.py:2041
+#: d_rats/config.py:1778 d_rats/config.py:2019 d_rats/emailgw.py:333
+msgid "Chat"
+msgstr ""
+
+#: d_rats/config_addport.py:1822 d_rats/config.py:1800
+msgid "Incoming Accounts"
+msgstr ""
+
+#: d_rats/config_addport.py:1898 d_rats/config_addport.py:1906
+#: d_rats/config_addport.py:1915 d_rats/config_addport.py:1923
+#: d_rats/config_addport.py:1931 d_rats/config_addport.py:1935
+#: d_rats/config.py:1876 d_rats/config.py:1884 d_rats/config.py:1893
+#: d_rats/config.py:1901 d_rats/config.py:1909 d_rats/config.py:1913
+msgid "Access"
+msgstr ""
+
+#: d_rats/config_addport.py:1898 d_rats/config_addport.py:1935
+#: d_rats/config.py:1876 d_rats/config.py:1913
+msgid "Both"
+msgstr ""
+
+#: d_rats/config_addport.py:1899 d_rats/config_addport.py:1907
+#: d_rats/config_addport.py:1916 d_rats/config_addport.py:1924
+#: d_rats/config_addport.py:1932 d_rats/config.py:1877 d_rats/config.py:1885
+#: d_rats/config.py:1894 d_rats/config.py:1902 d_rats/config.py:1910
+msgid "Email Filter"
+msgstr ""
+
+#: d_rats/config_addport.py:1935 d_rats/config.py:1913
+msgid "None"
+msgstr ""
+
+#: d_rats/config_addport.py:1953 d_rats/config_addport.py:2054
+#: d_rats/config.py:1931 d_rats/config.py:2032
+msgid "Email Access"
+msgstr ""
+
+#: d_rats/config_addport.py:2035 d_rats/config.py:2013
+msgid "Preferences"
+msgstr ""
+
+#: d_rats/config_addport.py:2037 d_rats/config.py:2015
+msgid "Maps"
+msgstr ""
+
+#: d_rats/config_addport.py:2038 d_rats/config.py:2016
+msgid "GPS config"
+msgstr ""
+
+#: d_rats/config_addport.py:2039 d_rats/config.py:2017
+msgid "Export GPS messages"
+msgstr ""
+
+#: d_rats/config_addport.py:2040 d_rats/config.py:2018
+msgid "Appearance"
+msgstr ""
+
+#: d_rats/config_addport.py:2042 d_rats/config.py:2020
+msgid "Sounds"
+msgstr ""
+
+#: d_rats/config_addport.py:2044 d_rats/config.py:2022
+msgid "Messages"
+msgstr ""
+
+#: d_rats/config_addport.py:2046 d_rats/config.py:2024
+msgid "Radio"
+msgstr ""
+
+#: d_rats/config_addport.py:2047 d_rats/config.py:2025
+msgid "Transfers"
+msgstr ""
+
+#: d_rats/config_addport.py:2049 d_rats/config.py:2027 ui/addport.glade:107
+msgid "Network"
+msgstr ""
+
+#: d_rats/config_addport.py:2050 d_rats/config.py:2028
+msgid "TCP Gateway"
+msgstr ""
+
+#: d_rats/config_addport.py:2051 d_rats/config.py:2029
+msgid "TCP Forwarding"
+msgstr ""
+
+#: d_rats/config_addport.py:2052 d_rats/config.py:2030
+msgid "Outgoing Email"
+msgstr ""
+
+#: d_rats/config_addport.py:2053 d_rats/config.py:2031
+msgid "Email Accounts"
+msgstr ""
+
+#: d_rats/config_addport.py:2070 d_rats/config.py:2048
+msgid "Config"
+msgstr ""
+
+#: d_rats/config_addport.py:2071 d_rats/config.py:2049 d_rats/dplatform.py:213
+#: d_rats/dplatform.py:245 d_rats/formbuilder.py:740 d_rats/formgui.py:1626
+#: d_rats/formgui.py:1695 d_rats/formgui.py:1831 d_rats/platform.py:125
+#: d_rats/platform.py:151
+msgid "Save"
+msgstr ""
+
+#: d_rats/config_addport.py:2072 d_rats/config.py:2050 d_rats/dplatform.py:181
+#: d_rats/dplatform.py:211 d_rats/dplatform.py:243 d_rats/formbuilder.py:741
+#: d_rats/inputdialog.py:115
+msgid "Cancel"
+msgstr ""
+
+#: d_rats/config_tips.py:9
+msgid ""
+"Your current latitude.  Use decimal degrees (DD.DDDDD)\n"
+"or D*M'S\".  Use a space for special characters"
+msgstr ""
+
+#: d_rats/config_tips.py:13
+msgid ""
+"Your current longitude.  Use decimal degrees (DD.DDDDD)\n"
+"or D*M'S\".  Use a space for special characters"
+msgstr ""
+
+#: d_rats/config_tips.py:17
+msgid "Your current altitude"
+msgstr ""
+
+#: d_rats/config_tips.py:21
+msgid ""
+"When enabled, form time fields will default to current time in UTC.  When "
+"disabled, default to local time"
+msgstr ""
+
+#: d_rats/config_tips.py:23
+msgid "Requires a D-RATS restart"
+msgstr ""
+
+#: d_rats/config_tips.py:24
+msgid "Allow remote stations to pull forms"
+msgstr ""
+
+#: d_rats/config_tips.py:25
+msgid "Allow remote stations to pull files"
+msgstr ""
+
+#: d_rats/config_tips.py:26
+msgid "Default state for private flag on new forms"
+msgstr ""
+
+#: d_rats/config_tips.py:27
+msgid ""
+"Include the text of the original message when replying (not recommended as "
+"it wastes bandwidth)"
+msgstr ""
+
+#: d_rats/config_tips.py:33
+msgid "On Windows, use something like 'COM12'"
+msgstr ""
+
+#: d_rats/config_tips.py:34
+msgid "On UNIX, use something like '/dev/ttyUSB0'"
+msgstr ""
+
+#: d_rats/config_tips.py:35
+msgid "For a network connection, use something like 'net:host:9000'"
+msgstr ""
+
+#: d_rats/config_tips.py:36
+msgid ""
+"Serial rate shall be 38400 for IC92 handhelds, 9600 for all other D-Star "
+"radios"
+msgstr ""
+
+#: d_rats/config_tips.py:38
+msgid "Serial port for an NMEA-compliant external GPS"
+msgstr ""
+
+#: d_rats/config_tips.py:39
+msgid "If enabled, take current position from the external GPS"
+msgstr ""
+
+#: d_rats/config_tips.py:40
+msgid "The NMEA standard is 4800"
+msgstr ""
+
+#: d_rats/config_tips.py:41
+msgid "The symbol table character for GPS-A beacons"
+msgstr ""
+
+#: d_rats/config_tips.py:42
+msgid "The symbol character for GPS-A beacons"
+msgstr ""
+
+#: d_rats/config_tips.py:43
+msgid ""
+"Treat incoming raw text (and garbage) as chat data and display it on-screen"
+msgstr ""
+
+#: d_rats/config_tips.py:45
+msgid "Alternate location to store cached map images"
+msgstr ""
+
+#: d_rats/config_tips.py:46
+msgid ""
+"Amount of bytes to to prefix to each packet during a warmup cycle after a "
+"period of idle"
+msgstr ""
+
+#: d_rats/config_tips.py:48
+msgid ""
+"Amount of seconds between transmissions that must pass before we send a "
+"warmup block to open the power-save circuits on handhelds"
+msgstr ""
+
+#: d_rats/config_tips.py:51
+msgid ""
+"Amount of seconds to wait between transmissions (a positive number is a "
+"fixed delay, a negative value means 'randomly choose between 0 and X')"
+msgstr ""
+
+#: d_rats/config_tips.py:54
+msgid "Comma-separated list of callsigns that may delete files remotely"
+msgstr ""
+
+#: d_rats/config_tips.py:56
+msgid "Password required for remote administration tasks (blank for none)"
+msgstr ""
+
+#: d_rats/config_tips.py:58
+msgid "Text string to return in response to a ping."
+msgstr ""
+
+#: d_rats/config_tips.py:59
+msgid "If prefixed by a > character, interpret as a path to a text file"
+msgstr ""
+
+#: d_rats/config_tips.py:61
+msgid "If prefixed by a ! character, interpret as a path to a script"
+msgstr ""
+
+#: d_rats/config_tips.py:62
+msgid ""
+"Hostname of outgoing SMTP server.  If this is specified, this station will "
+"be a gateway for email forms.  If left blank, this feature is disabled"
+msgstr ""
+
+#: d_rats/config_tips.py:65
+msgid "Email address to set on outgoing form email messages"
+msgstr ""
+
+#: d_rats/config_tips.py:66
+msgid "If enabled, attempt to negotiate TLS/SSL with SMTP server"
+msgstr ""
+
+#: d_rats/config_tips.py:67
+msgid "Username for SMTP authentication.  Disabled if blank"
+msgstr ""
+
+#: d_rats/config_tips.py:68
+msgid "Password for SMTP authentication"
+msgstr ""
+
+#: d_rats/config_tips.py:69
+msgid "Default is 25.  Set to the value given by your ISP"
+msgstr ""
+
+#: d_rats/config_tips.py:70
+msgid ""
+"Display information about packets seen that are destined for other stations"
+msgstr ""
+
+#: d_rats/config_tips.py:72
+msgid ""
+"After this many hours, a map tile will be re-fetched, regardless of if it is "
+"already stored locally.  0 means never re-fetch.  720 hours is 30 days."
+msgstr ""
+
+#: d_rats/config_tips.py:75
+msgid ""
+"Seconds between each attempt to process forwarded messages.  Do not set this "
+"too low!"
+msgstr ""
+
+#: d_rats/config_tips.py:77
+msgid ""
+"If a station was last heard more than this many seconds ago, do not assume "
+"you have a clear path (ping it first)"
+msgstr ""
+
+#: d_rats/config_tips.py:81
+msgid ""
+"Path to the online map tile server used to feed the \"base\" map - can be "
+"changed to suit what is available to your location"
+msgstr ""
+
+#: d_rats/config_tips.py:84
+msgid ""
+"Change this to select a map different from the base one - beware to config "
+"the API Key correctly"
+msgstr ""
+
+#: d_rats/config_tips.py:86
+msgid ""
+"Insert you API key or completely empty this field to get maps with \"API key "
+"required \"overlay"
+msgstr ""
+
+#: d_rats/config_tips.py:89
+msgid ""
+"For each position report received, change the callsign to 'callsign."
+"datestamp'.  NOTE: This will generate a LOT of map pointers, use with "
+"caution!"
+msgstr ""
+
+#: d_rats/config_tips.py:95
+msgid "Specify a .WAV file to be played"
+msgstr ""
+
+#: d_rats/config_tips.py:97
+msgid " when a new chat arrives"
+msgstr ""
+
+#: d_rats/config_tips.py:98
+msgid " when new message activity occurs"
+msgstr ""
+
+#: d_rats/config_tips.py:99
+msgid " when new file activity occurs"
+msgstr ""
+
+#: d_rats/dplatform.py:183 d_rats/platform.py:102
+msgid "Open"
+msgstr ""
+
+#: d_rats/emailgw.py:209 d_rats/session_coordinator.py:227
+msgid "Inbox"
+msgstr ""
+
+#: d_rats/emailgw.py:283
+#, python-format
+msgid "Received %i messages"
+msgstr ""
+
+#: d_rats/formbuilder.py:64
+msgid "Initial value:"
+msgstr ""
+
+#: d_rats/formbuilder.py:88
+msgid "True"
+msgstr ""
+
+#: d_rats/formbuilder.py:91
+msgid "Default value"
+msgstr ""
+
+#: d_rats/formbuilder.py:116
+msgid "Options (one per line, first is default)"
+msgstr ""
+
+#: d_rats/formbuilder.py:118
+msgid "Options (one per line)"
+msgstr ""
+
+#: d_rats/formbuilder.py:145 d_rats/inputdialog.py:45 d_rats/inputdialog.py:67
+#: d_rats/inputdialog.py:103 d_rats/qst.py:1238
+msgid "OK"
+msgstr ""
+
+#: d_rats/formbuilder.py:146 d_rats/inputdialog.py:44 d_rats/inputdialog.py:66
+#: d_rats/qst.py:1239
+msgid "CANCEL"
+msgstr ""
+
+#: d_rats/formbuilder.py:169
+msgid "Field Type"
+msgstr ""
+
+#: d_rats/formbuilder.py:454 d_rats/formbuilder.py:960
+msgid "ID"
+msgstr ""
+
+#: d_rats/formbuilder.py:455 d_rats/map_source_editor.py:77
+msgid "Type"
+msgstr ""
+
+#: d_rats/formbuilder.py:456
+msgid "Caption"
+msgstr ""
+
+#: d_rats/formbuilder.py:457
+msgid "Initial Value"
+msgstr ""
+
+#: d_rats/formbuilder.py:580
+msgid "Move Up"
+msgstr ""
+
+#: d_rats/formbuilder.py:583 d_rats/formbuilder.py:985 d_rats/formgui.py:1706
+#: d_rats/mapdisplay1.py:1442 d_rats/mapdisplay.py:1426
+msgid "Delete"
+msgstr ""
+
+#: d_rats/formbuilder.py:584
+msgid "Move Down"
+msgstr ""
+
+#: d_rats/formbuilder.py:634
+msgid "Form Properties"
+msgstr ""
+
+#: d_rats/formbuilder.py:664
+msgid "Form Elements"
+msgstr ""
+
+#: d_rats/formbuilder.py:961
+msgid "Title"
+msgstr ""
+
+#: d_rats/formbuilder.py:983
+msgid "New"
+msgstr ""
+
+#: d_rats/formbuilder.py:986
+msgid "Close"
+msgstr ""
+
+#: d_rats/formbuilder.py:987
+msgid "Import"
+msgstr ""
+
+#: d_rats/formbuilder.py:988 d_rats/mapdisplay1.py:1746
+#: d_rats/mapdisplay.py:1725
+msgid "Export"
+msgstr ""
+
+#: d_rats/formgui.py:355
+msgid "Yes"
+msgstr ""
+
+#: d_rats/formgui.py:1503
+msgid "Source Callsign"
+msgstr ""
+
+#: d_rats/formgui.py:1507
+msgid "Destination Callsign"
+msgstr ""
+
+#: d_rats/formgui.py:1527
+msgid "Routing Information"
+msgstr ""
+
+#: d_rats/formgui.py:1544
+msgid "Path"
+msgstr ""
+
+#: d_rats/formgui.py:1557
+msgid "Size (bytes)"
+msgstr ""
+
+#: d_rats/formgui.py:1573 d_rats/formgui.py:1576 d_rats/formgui.py:1631
+msgid "Attachments"
+msgstr ""
+
+#: d_rats/formgui.py:1696 ui/mainwindow.glade:637
+msgid "Send"
+msgstr ""
+
+#: d_rats/formgui.py:1697
+msgid "Send via"
+msgstr ""
+
+#: d_rats/formgui.py:1698 d_rats/formgui.py:1705
+msgid "Print"
+msgstr ""
+
+#: d_rats/formgui.py:1702
+msgid "Reply"
+msgstr ""
+
+#: d_rats/formgui.py:1704
+msgid "Forward via"
+msgstr ""
+
+#: d_rats/geocode_ui.py:52
+msgid "Enter an address, postal code, or intersection"
+msgstr ""
+
+#: d_rats/geocode_ui.py:68 d_rats/geocode_ui.py:99 d_rats/geocode_ui.py:138
+#: ui/addport.glade:490
+msgid "Address"
+msgstr ""
+
+#: d_rats/geocode_ui.py:184
+msgid "Locate an address"
+msgstr ""
+
+#: d_rats/geocode_ui.py:189
+msgid "Locations found"
+msgstr ""
+
+#: d_rats/geocode_ui.py:194
+msgid "Confirm address"
+msgstr ""
+
+#: d_rats/gps.py:591
+msgid "away"
+msgstr ""
+
+#: d_rats/gps.py:593
+msgid "degrees"
+msgstr ""
+
+#: d_rats/gps.py:610
+msgid "Heading"
+msgstr ""
+
+#: d_rats/gps.py:621
+msgid "reporting"
+msgstr ""
+
+#: d_rats/gps.py:631
+msgid "Invalid GPS data"
+msgstr ""
+
+#: d_rats/gps.py:1039 d_rats/qst.py:1163
+msgid "UNKNOWN"
+msgstr ""
+
+#: d_rats/gps.py:1283
+msgid "Unable to open GPS port"
+msgstr ""
+
+#: d_rats/gps.py:1328
+msgid "ME"
+msgstr ""
+
+#: d_rats/gps.py:1353
+msgid "GPS Locked"
+msgstr ""
+
+#: d_rats/gps.py:1354
+msgid "GPS Not Locked"
+msgstr ""
+
+#: d_rats/gps.py:1401
+msgid "Unable to parse address"
+msgstr ""
+
+#: d_rats/gps.py:1415
+msgid "Unable to connect"
+msgstr ""
+
+#: d_rats/gps.py:1476
+msgid "GPSd Locked"
+msgstr ""
+
+#: d_rats/gps.py:1477
+msgid "GPSd Not Locked"
+msgstr ""
+
+#: d_rats/gps.py:1523
+msgid "Static position"
+msgstr ""
+
+#: d_rats/image.py:82
+msgid "Filename"
+msgstr ""
+
+#: d_rats/image.py:85
+msgid "Size"
+msgstr ""
+
+#: d_rats/image.py:89
+msgid "Resize to"
+msgstr ""
+
+#: d_rats/image.py:95
+msgid "Quality"
+msgstr ""
+
+#: d_rats/image.py:102
+msgid "Preview"
+msgstr ""
+
+#: d_rats/image.py:121
+msgid "No support for resizing images.  Send unaltered?"
+msgstr ""
+
+#: d_rats/image.py:130
+msgid "Unknown image type"
+msgstr ""
+
+#: d_rats/inputdialog.py:105
+msgid "An error has occurred"
+msgstr ""
+
+#: d_rats/inputdialog.py:114 d_rats/inputdialog.py:197
+msgid "Ok"
+msgstr ""
+
+#: d_rats/mainapp.py:417
+msgid "Failed to connect to"
+msgstr ""
+
+#: d_rats/mainapp.py:419
+msgid "Invalid port string"
+msgstr ""
+
+#: d_rats/mainapp.py:804 d_rats/mainapp.py:810 d_rats/mainapp.py:822
+#: d_rats/qst.py:1080 ui/mainwindow.glade:1205
+msgid "Stations"
+msgstr ""
+
+#: d_rats/mainapp.py:1189
+msgid "is now"
+msgstr ""
+
+#: d_rats/mainapp.py:1210
+msgid "stations"
+msgstr ""
+
+#: d_rats/mainapp.py:1264 d_rats/qst.py:116
+msgid "Message"
+msgstr ""
+
+#: d_rats/mainapp.py:1266
+msgid "received from"
+msgstr ""
+
+#: d_rats/mainapp.py:1288
+msgid "forwarding to"
+msgstr ""
+
+#: d_rats/mainapp.py:1307 d_rats/mainapp.py:1331 d_rats/qst.py:1225
+#: d_rats/qst.py:1290
+msgid "File"
+msgstr ""
+
+#: d_rats/mainapp.py:1307
+msgid "Received"
+msgstr ""
+
+#: d_rats/mainapp.py:1319
+msgid "Message Sent"
+msgstr ""
+
+#: d_rats/mainapp.py:1331
+msgid "Sent"
+msgstr ""
+
+#: d_rats/mainapp.py:1446
+msgid ""
+"Since this is your first time running D-RATS, you will be taken directly to "
+"the configuration dialog.  At a minimum, put your callsign in the box and "
+"click 'Save'.  You will be connected to the ratflector initially for testing."
+msgstr ""
+
+#: d_rats/mainapp.py:1461
+msgid "You must enter a callsign to continue"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:245 d_rats/mapdisplay.py:245
+#: d_rats/map/markereditdialog.py:6
+msgid "Add Marker"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:253 d_rats/mapdisplay1.py:270
+#: d_rats/mapdisplay1.py:287 d_rats/mapdisplay1.py:2543
+#: d_rats/mapdisplay.py:253 d_rats/mapdisplay.py:270 d_rats/mapdisplay.py:287
+#: d_rats/mapdisplay.py:2508 d_rats/map/markereditdialog.py:14
+#: d_rats/map/markereditdialog.py:31 d_rats/map/markereditdialog.py:48
+msgid "Group"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:257 d_rats/mapdisplay.py:257
+#: d_rats/map/markereditdialog.py:18
+msgid "Lookup"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:257 d_rats/mapdisplay.py:257
+#: d_rats/map/markereditdialog.py:18
+msgid "By Address"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:258 d_rats/mapdisplay1.py:298
+#: d_rats/mapdisplay1.py:323 d_rats/mapdisplay.py:258 d_rats/mapdisplay.py:298
+#: d_rats/mapdisplay.py:323 d_rats/map/markereditdialog.py:19
+#: d_rats/map/markereditdialog.py:59 d_rats/map/markereditdialog.py:84
+msgid "Comment"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:259 d_rats/mapdisplay1.py:300
+#: d_rats/mapdisplay1.py:324 d_rats/mapdisplay.py:259 d_rats/mapdisplay.py:300
+#: d_rats/mapdisplay.py:324 d_rats/qst.py:117 d_rats/map/markereditdialog.py:20
+#: d_rats/map/markereditdialog.py:61 d_rats/map/markereditdialog.py:85
+msgid "Icon"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:278 d_rats/mapdisplay.py:278
+#: d_rats/map/markereditdialog.py:39
+msgid "Misc"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:968 d_rats/mapdisplay.py:962
+#: d_rats/map/mapwidget.py:364
+msgid "Loaded"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1046 d_rats/mapdisplay.py:1040
+#: d_rats/map/mapwidget.py:442
+msgid "Retrieving"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1048 d_rats/mapdisplay.py:1042
+#: d_rats/map/mapwidget.py:444
+msgid "Loading"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1287 d_rats/mapdisplay1.py:1319
+#: d_rats/mapdisplay.py:1272 d_rats/mapdisplay.py:1304
+msgid "Zoom"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1299 d_rats/mapdisplay.py:1284
+msgid "Min"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1315 d_rats/mapdisplay.py:1300
+msgid "Max"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1446 d_rats/mapdisplay.py:1430
+msgid "Center on this"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1488 d_rats/mapdisplay.py:1472
+msgid "Show"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1492 d_rats/mapdisplay.py:1476
+msgid "Distance"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1493 d_rats/mapdisplay.py:1477
+msgid "Direction"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1592 d_rats/mapdisplay.py:1576
+msgid "Track center"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1603 d_rats/mapdisplay.py:1587
+#, python-format
+msgid ""
+"Are you sure you want to delete allyour map files in \n"
+" %s\n"
+"?"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1632 d_rats/mapdisplay.py:1615
+msgid "Station map"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1633 d_rats/mapdisplay.py:1616
+msgid "Generated at"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1737 d_rats/mapdisplay.py:1716
+msgid "Map"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1738 d_rats/mapdisplay.py:1717
+msgid "Refresh"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1739 d_rats/mapdisplay.py:1718
+msgid "Delete local Map cache"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1741 d_rats/mapdisplay.py:1720
+msgid "Edit Sources"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1748 d_rats/mapdisplay.py:1727
+msgid "Printable"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1750 d_rats/mapdisplay.py:1729
+msgid "Printable (visible area)"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1752 d_rats/mapdisplay.py:1731
+msgid "Save Image"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1754 d_rats/mapdisplay.py:1733
+msgid "Save Image (visible area)"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1907 d_rats/mapdisplay.py:1884
+msgid "Broadcast Location"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1914 d_rats/mapdisplay1.py:1923
+#: d_rats/mapdisplay.py:1891 d_rats/mapdisplay.py:1900
+msgid "Description"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1944 d_rats/mapdisplay.py:1921
+msgid "Invalid value"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:1970 d_rats/mapdisplay.py:1947
+msgid "Center"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:2514 d_rats/mapdisplay.py:2479
+msgid "Center here"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:2544 d_rats/mapdisplay.py:2509
+msgid "does not exist.  Do you want to create it?"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:2556 d_rats/mapdisplay.py:2521
+msgid "New marker here"
+msgstr ""
+
+#: d_rats/mapdisplay1.py:2557 d_rats/mapdisplay.py:2522
+msgid "Broadcast this location"
+msgstr ""
+
+#: d_rats/mapdisplay3.py:97
+msgid "processing default case not implemented."
+msgstr ""
+
+#: d_rats/mapdisplay3.py:112
+msgid "Exectuting Unit test function."
+msgstr ""
+
+#: d_rats/map_source_editor.py:220
+msgid "Sites (comma separated)"
+msgstr ""
+
+#: d_rats/map_source_editor.py:267
+msgid "Buoys (comma separated)"
+msgstr ""
+
+#: d_rats/qst.py:86
+msgid "DPRS message"
+msgstr ""
+
+#: d_rats/qst.py:118
+msgid "Overlay"
+msgstr ""
+
+#: d_rats/qst.py:472 d_rats/qst.py:1137 d_rats/qst.py:1162 d_rats/qst.py:1213
+msgid "Current"
+msgstr ""
+
+#: d_rats/qst.py:520 d_rats/qst.py:1137
+msgid "Forecast"
+msgstr ""
+
+#: d_rats/qst.py:728
+msgid "Enter a message:"
+msgstr ""
+
+#: d_rats/qst.py:780
+msgid "Choose a text file.  The contents will be used when the QST is sent."
+msgstr ""
+
+#: d_rats/qst.py:830
+msgid ""
+"Choose a APRS text file.  The contents will be used when the WXGPS-A is sent."
+msgstr ""
+
+#: d_rats/qst.py:880
+msgid ""
+"Choose a script to execute.  The output will be used when the QST is sent"
+msgstr ""
+
+#: d_rats/qst.py:908
+msgid "Enter your GPS message:"
+msgstr ""
+
+#: d_rats/qst.py:981
+msgid "Enter the URL of an RSS feed:"
+msgstr ""
+
+#: d_rats/qst.py:1030
+msgid "Enter the URL of a CAP feed:"
+msgstr ""
+
+#: d_rats/qst.py:1068
+msgid "Choose a station whose position will be sent"
+msgstr ""
+
+#: d_rats/qst.py:1120
+msgid "Enter an Open Weather station name:"
+msgstr ""
+
+#: d_rats/qst.py:1192 d_rats/qst.py:1224 d_rats/qst.py:1288
+msgid "Text"
+msgstr ""
+
+#: d_rats/qst.py:1198
+msgid "every"
+msgstr ""
+
+#: d_rats/qst.py:1209
+msgid "minutes on port"
+msgstr ""
+
+#: d_rats/qst.py:1213 ui/mainwindow.glade:1106
+msgid "All"
+msgstr ""
+
+#: d_rats/qst.py:1226 d_rats/qst.py:1289
+msgid "Exec"
+msgstr ""
+
+#: d_rats/qst.py:1227 d_rats/qst.py:1291
+msgid "GPS"
+msgstr ""
+
+#: d_rats/qst.py:1228 d_rats/qst.py:1292
+msgid "GPS-A"
+msgstr ""
+
+#: d_rats/qst.py:1229 d_rats/qst.py:1293
+msgid "WXGPS-A"
+msgstr ""
+
+#: d_rats/qst.py:1230 d_rats/qst.py:1295 d_rats/qst.py:1306
+msgid "RSS"
+msgstr ""
+
+#: d_rats/qst.py:1231 d_rats/qst.py:1296
+msgid "CAP"
+msgstr ""
+
+#: d_rats/qst.py:1233 d_rats/qst.py:1298
+msgid "OpenWeather"
+msgstr ""
+
+#: d_rats/qst.py:1297
+msgid "Weather (WU)"
+msgstr ""
+
+#: d_rats/session_coordinator.py:122 d_rats/session_coordinator.py:124
+msgid "Total"
+msgstr ""
+
+#: d_rats/session_coordinator.py:140
+msgid "Transfer Completed"
+msgstr ""
+
+#: d_rats/session_coordinator.py:169
+msgid "Transfer Interrupted"
+msgstr ""
+
+#: d_rats/session_coordinator.py:236
+msgid "from"
+msgstr ""
+
+#: d_rats/session_coordinator.py:279
+msgid "retries"
+msgstr ""
+
+#: d_rats/session_coordinator.py:285 d_rats/session_coordinator.py:287
+#: d_rats/sessions/chat.py:162 d_rats/sessions/chat.py:181
+#: d_rats/sessions/chat.py:186 d_rats/sessions/chat.py:272
+msgid "bytes"
+msgstr ""
+
+#: d_rats/session_coordinator.py:285
+msgid "sent"
+msgstr ""
+
+#: d_rats/session_coordinator.py:287
+msgid "received"
+msgstr ""
+
+#: d_rats/session_coordinator.py:511
+#, python-format
+msgid "File transfer of %s started with %s"
+msgstr ""
+
+#: d_rats/session_coordinator.py:535
+#, python-format
+msgid "Message transfer of %s started with %s"
+msgstr ""
+
+#: d_rats/session_coordinator.py:559
+#, python-format
+msgid "Socket session %s started with %s"
+msgstr ""
+
+#: d_rats/session_coordinator.py:598
+#, python-format
+msgid "Error starting socket session: %s -%s-"
+msgstr ""
+
+#: d_rats/utils.py:241
+msgid "An error occurred: "
+msgstr ""
+
+#: d_rats/utils.py:494
+msgid "Details"
+msgstr ""
+
+#: d_rats/sessions/chat.py:85
+msgid "Running"
+msgstr ""
+
+#: d_rats/sessions/chat.py:160
+msgid "Echo request of"
+msgstr ""
+
+#: d_rats/sessions/chat.py:179 d_rats/sessions/chat.py:184
+#: d_rats/sessions/chat.py:270
+msgid "Echo of"
+msgstr ""
+
+#: d_rats/sessions/file.py:128
+msgid "Waiting for response"
+msgstr ""
+
+#: d_rats/sessions/file.py:130
+msgid "Negotiation Complete"
+msgstr ""
+
+#: d_rats/sessions/file.py:143
+msgid "Resuming at"
+msgstr ""
+
+#: d_rats/sessions/file.py:168
+msgid "Failed to send file (incomplete)"
+msgstr ""
+
+#: d_rats/sessions/file.py:172 d_rats/sessions/file.py:264
+msgid "Complete"
+msgstr ""
+
+#: d_rats/sessions/file.py:182
+msgid "Waiting for transfer to start"
+msgstr ""
+
+#: d_rats/sessions/file.py:196
+msgid "No start block received!"
+msgstr ""
+
+#: d_rats/sessions/file.py:217
+msgid "Receiving file"
+msgstr ""
+
+#: d_rats/sessions/file.py:219
+msgid "of size"
+msgstr ""
+
+#: d_rats/sessions/file.py:235
+msgid "Waiting for first block"
+msgstr ""
+
+#: d_rats/sessions/file.py:246
+msgid "Receiving"
+msgstr ""
+
+#: d_rats/sessions/file.py:260
+msgid "Failed to receive file (incomplete)"
+msgstr ""
+
+#: d_rats/sessions/rpc.py:743
+msgid "Requested file list"
+msgstr ""
+
+#: d_rats/sessions/rpc.py:763
+msgid "Requested message list"
+msgstr ""
+
+#: d_rats/sessions/rpc.py:792
+#, python-format
+msgid "Requested file %s"
+msgstr ""
+
+#: d_rats/sessions/rpc.py:870
+#, python-format
+msgid "Requested message %s"
+msgstr ""
+
+#: d_rats/sessions/rpc.py:914
+msgid "Checking mail for"
+msgstr ""
+
+#: d_rats/sessions/rpc.py:947
+msgid "requested a mail check"
+msgstr ""
+
+#: d_rats/sessions/sniff.py:54
+msgid "Control: ACK"
+msgstr ""
+
+#: d_rats/sessions/sniff.py:58
+#, python-format
+msgid "Control: END session %s"
+msgstr ""
+
+#: d_rats/sessions/sniff.py:64
+msgid "Control: NEW session"
+msgstr ""
+
+#: d_rats/sessions/sniff.py:66
+msgid "Control: UNKNOWN"
+msgstr ""
+
+#: d_rats/sessions/sniff.py:76
+msgid "chat"
+msgstr ""
+
+#: ui/addport.glade:27
+msgid "Add a port"
+msgstr ""
+
+#: ui/addport.glade:106
+msgid "Serial"
+msgstr ""
+
+#: ui/addport.glade:108
+msgid "TNC"
+msgstr ""
+
+#: ui/addport.glade:109
+msgid "Dongle"
+msgstr ""
+
+#: ui/addport.glade:110
+msgid "AGWPE"
+msgstr ""
+
+#: ui/addport.glade:158 ui/addport.glade:312
+msgid "Serial Port"
+msgstr ""
+
+#: ui/addport.glade:169 ui/addport.glade:324
+msgid "Baud Rate"
+msgstr ""
+
+#: ui/addport.glade:204
+msgid "115200"
+msgstr ""
+
+#: ui/addport.glade:232
+msgid "Host Address"
+msgstr ""
+
+#: ui/addport.glade:335
+msgid "TNC Port"
+msgstr ""
+
+#: ui/addport.glade:346
+msgid ""
+"If the TNC is a multi-port unit, this\n"
+"specifies which port will be used\n"
+"(starting with 0 as the first one)"
+msgstr ""
+
+#: ui/addport.glade:362
+msgid "AX.25"
+msgstr ""
+
+#: ui/addport.glade:375
+msgid ""
+"When enabled, D-RATS will encapsulate\n"
+"its packets in AX.25 UI frames which can be\n"
+"passed through a digipeater"
+msgstr ""
+
+#: ui/addport.glade:389 ui/addport.glade:579
+msgid "Digi Path"
+msgstr ""
+
+#: ui/addport.glade:400
+msgid "AX.25 Digi path (CALL1,CALL2,...)"
+msgstr ""
+
+#: ui/addport.glade:427
+msgid ""
+"The baud rate used to communicate with\n"
+"the TNC (not the rate over the air)"
+msgstr ""
+
+#: ui/addport.glade:467
+msgid "There are no parameters for dongle operation"
+msgstr ""
+
+#: ui/addport.glade:611
+msgid "Parameters"
+msgstr ""
+
+#: ui/mainwindow.glade:70
+msgid "<big><b>D*Query Tool</b></big>"
+msgstr ""
+
+#: ui/mainwindow.glade:85
+msgid ""
+"This utility will allow you to send D*Query commands to the local gateway "
+"(if supported).  Type a command here (such as <i>wx</i>) and hit <b>Send</"
+"b>.  If successful, the result will appear in the chat window."
+msgstr ""
+
+#: ui/mainwindow.glade:106
+msgid "Command:"
+msgstr ""
+
+#: ui/mainwindow.glade:172
+msgid "D-RATS"
+msgstr ""
+
+#: ui/mainwindow.glade:191
+msgid "_File"
+msgstr ""
+
+#: ui/mainwindow.glade:200
+msgid "Tools"
+msgstr ""
+
+#: ui/mainwindow.glade:288
+msgid "Connected to Internet"
+msgstr ""
+
+#: ui/mainwindow.glade:316
+msgid "_Edit"
+msgstr ""
+
+#: ui/mainwindow.glade:369
+msgid "_View"
+msgstr ""
+
+#: ui/mainwindow.glade:378
+msgid "Side Pane"
+msgstr ""
+
+#: ui/mainwindow.glade:434
+msgid "_Help"
+msgstr ""
+
+#: ui/mainwindow.glade:586
+msgid "Main"
+msgstr ""
+
+#: ui/mainwindow.glade:734
+msgid "Quick Messages"
+msgstr ""
+
+#: ui/mainwindow.glade:836
+msgid "QSTs"
+msgstr ""
+
+#: ui/mainwindow.glade:990
+msgid "Station:"
+msgstr ""
+
+#: ui/mainwindow.glade:1007
+msgid "Enter Remote Callsign"
+msgstr ""
+
+#: ui/mainwindow.glade:1091
+msgid "Show event type:"
+msgstr ""
+
+#: ui/mainwindow.glade:1107
+msgid "File Transfers"
+msgstr ""
+
+#: ui/mainwindow.glade:1108
+msgid "Form Transfers"
+msgstr ""
+
+#: ui/mainwindow.glade:1109
+msgid "Position Reports"
+msgstr ""
+
+#: ui/mainwindow.glade:1110
+msgid "Pings"
+msgstr ""
+
+#: ui/mainwindow.glade:1130
+msgid "Containing text:"
+msgstr ""
+
+#: ui/mainwindow.glade:1353
+msgid "Edit Map Source"
+msgstr ""
+
+#: ui/mainwindow.glade:1456
+msgid "Edit Map Sources"
+msgstr ""
