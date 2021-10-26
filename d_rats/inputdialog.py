@@ -14,37 +14,44 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''Input Dialog Module'''
+'''Input Dialog Module.'''
 
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               fallback=True)
+    lang.install()
+    _ = lang.gettext
+
 from .miscwidgets import make_choice
 
 
 class TextInputDialog(Gtk.Dialog):
-    '''Text input dialog class'''
+    '''
+    Text Input Dialog.
 
-    # pylint: disable=unused-argument
-    def respond_ok(self, *args):
-        '''
-        Respond Ok
+    :param title: Title for dialog, default None
+    :param parent: Parent widget, default None
+    '''
 
-        :param args: Additional Arguments
-        '''
+    def __init__(self, title=None, parent=None):
+        Gtk.Dialog.__init__(self, parent=parent)
 
-        self.response(Gtk.ResponseType.OK)
-
-    def __init__(self, **args):
-        buttons = (_("CANCEL"), Gtk.ResponseType.CANCEL,
-                   _("OK"), Gtk.ResponseType.OK)
-        Gtk.Dialog.__init__(self, buttons=buttons, **args)
-
+        if title:
+            self.set_title(title)
+        self.add_button(_("CANCEL"), Gtk.ResponseType.CANCEL)
+        self.add_button(_("OK"), Gtk.ResponseType.OK)
         self.label = Gtk.Label.new()
         self.label.set_size_request(300, 100)
         self.vbox.pack_start(self.label, 1, 1, 0)
@@ -56,17 +63,33 @@ class TextInputDialog(Gtk.Dialog):
         self.label.show()
         self.text.show()
 
+    def respond_ok(self, *_args):
+        '''
+        Respond Ok
+
+        :param _args: Additional Arguments, Unused
+        '''
+        self.response(Gtk.ResponseType.OK)
+
 
 class ChoiceDialog(Gtk.Dialog):
-    '''Choice Dialog'''
+    '''
+    Choice Dialog.
+
+    :param choices: List of strings with choices
+    :param title: Title for dialog, default None
+    :param parent: Parent Widget, default None
+    '''
 
     editable = False
 
-    def __init__(self, choices, **args):
-        buttons = (_("CANCEL"), Gtk.ResponseType.CANCEL,
-                   _("OK"), Gtk.ResponseType.OK)
-        Gtk.Dialog.__init__(self, buttons=buttons, **args)
+    def __init__(self, choices, title=None, parent=None):
+        Gtk.Dialog.__init__(self, parent=parent)
 
+        if title:
+            self.set_title(title)
+        self.add_button(_("CANCEL"), Gtk.ResponseType.CANCEL)
+        self.add_button(_("OK"), Gtk.ResponseType.OK)
         self.label = Gtk.Label.new()
         self.label.set_size_request(300, 100)
         self.vbox.pack_start(self.label, 1, 1, 0)
@@ -85,39 +108,64 @@ class ChoiceDialog(Gtk.Dialog):
 
 
 class EditableChoiceDialog(ChoiceDialog):
-    '''Editable Choice Dialog'''
+    '''
+    Editable Choice Dialog.
+
+    This class does not appear to be used.
+    :param choices: List of strings with choices
+    :param title: Title for dialog, defult None
+    :param parent: Parent widget, default None
+    '''
 
     editable = True
 
-    def __init__(self, choices, **args):
-        ChoiceDialog.__init__(self, choices, **args)
+    def __init__(self, choices, title=None, parent=None):
+        ChoiceDialog.__init__(self, choices, title, parent)
 
         self.choice.child.set_activates_default(True)
 
 
 class ExceptionDialog(Gtk.MessageDialog):
-    '''Exception for Dialog'''
+    '''
+    Exception Dialog.
 
-    def __init__(self, exception, **args):
-        Gtk.MessageDialog.__init__(self,
-                                   buttons=(_("OK"), Gtk.ResponseType.OK),
-                                   **args)
+    This class does not appear to be used.
+    :param exception: Exception class
+    :param title: Title for dialog, default None
+    :param parent: Parent widget, default None
+    '''
+
+    def __init__(self, exception, title=None, parent=None):
+        Gtk.MessageDialog.__init__(self, parent=parent)
+        if title:
+            self.set_title(title)
+        self.add_button(_("OK"), Gtk.ResponseType.OK)
         self.set_property("text", _("An error has occurred"))
         self.format_secondary_text(str(exception))
 
 
 class FieldDialog(Gtk.Dialog):
-    '''Field Dialog Task'''
+    '''
+    Field Dialog.
 
-    def __init__(self, **kwargs):
-        if "buttons" not in list(kwargs.keys()):
-            kwargs["buttons"] = (_("Ok"), Gtk.ResponseType.OK,
-                                 _("Cancel"),
-                                 Gtk.ResponseType.CANCEL)
+    :param title: Title of dialog, default None
+    :param buttons: List of tuples for buttons, default None
+    :param parent: Parent widget, default None
+    '''
 
+    def __init__(self, title=None, buttons=None, parent=None):
+        if not buttons:
+            buttons = [(_("Ok"), Gtk.ResponseType.OK),
+                       (_("Cancel"), Gtk.ResponseType.CANCEL)]
+        self.logger = logging.getLogger("FieldDialog")
         self.__fields = {}
 
-        Gtk.Dialog.__init__(self, **kwargs)
+        Gtk.Dialog.__init__(self, parent=parent)
+        if title:
+            self.set_title(title)
+
+        for button, responsetype in buttons:
+            self.add_button(button, responsetype)
         self.set_default_response(Gtk.ResponseType.OK)
 
         self.set_modal(True)
@@ -133,8 +181,7 @@ class FieldDialog(Gtk.Dialog):
 
         :param response: Response to write out.
         '''
-        # This should probably use printlog
-        print("Blocking response %d" % response)
+        self.logger.info("Blocking response %d", response)
 
     def add_field(self, label, widget, _validator=None, full=False):
         '''
@@ -183,23 +230,12 @@ class FieldDialog(Gtk.Dialog):
 def main():
     '''main function for testing'''
 
-    if not __package__:
-        # pylint: disable=redefined-builtin
-        __package__ = '__main__'
-    import gettext
-
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               languages=["en"],
-                               fallback=True)
-    lang.install()
-
-    dialog = FieldDialog(buttons=(_("Ok"), Gtk.ResponseType.OK))
+    dialog = FieldDialog(buttons=[(_("Ok"), Gtk.ResponseType.OK)])
     dialog.add_field("Foo", Gtk.Entry())
     dialog.add_field("Bar", make_choice(["A", "B"]))
     dialog.run()
+    dialog.connect("destroy", Gtk.main_quit)
     Gtk.main()
-    dialog.destroy()
 
 
 if __name__ == "__main__":
