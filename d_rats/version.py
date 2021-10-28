@@ -9,22 +9,34 @@
 
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
+import logging
+
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               fallback=True)
+    lang.install()
+    _ = lang.gettext
+
 
 DRATS_VERSION = "0.4.00 pre-release 1"
 DRATS_NAME = "d-rats"
 DRATS_DESCRIPTION = "D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
-AUTHORS = "Dan Smith, KK7DS" +chr(13)+ \
-          "Maurizio Andreotti, IZ2LXI" +chr(13)+ \
-          "Marius Petrescu, YO2LOJ"
-AUTHORS_EMAIL = "Dan Smith KK7DS <dsmith@danplanet.com>;" +chr(13)+ \
-          "Maurizio Andreotti IZ2LXI <maurizio.iz2lxi@gmail.com>" +chr(13)+ \
-          "Marius Petrescu YO2LOJ <marius@yo2loj.ro>"
-COPYRIGHT = "Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
-          "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &" +chr(13)+ \
-          "Marius Petrescu (YO2LOJ)" + chr(13) + \
+AUTHORS = "Dan Smith, KK7DS\n" \
+          "Maurizio Andreotti, IZ2LXI" \
+          "Marius Petrescu, YO2LOJ" \
+          "John E. Malmberg, WB8TYW"
+AUTHORS_EMAIL = "Dan Smith KK7DS <dsmith@danplanet.com>;\n"  \
+          "Maurizio Andreotti IZ2LXI <maurizio.iz2lxi@gmail.com>\n" \
+          "Marius Petrescu YO2LOJ <marius@yo2loj.ro>\n" \
+          "John E. Malmberg WB8TYW <wb8tyw@wsl.net>"
+COPYRIGHT = "Copyright 2010 Dan Smith (KK7DS)\n" \
+          "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &\n"  \
+          "Marius Petrescu (YO2LOJ)\n" \
+          "Copyright 2021 John E. Malmberg (WB8TYW) - Python3 conversion\n" \
 		  "Location and Map data Copyright OpenStreetMap Contributors"
 LICENCE = "You should have received a copy of the" \
 	      " GNU General Public License along with this program." \
@@ -34,16 +46,31 @@ TRANSLATIONS = "Italian: Leo, IZ5FSA"
 
 HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION}
 
-printlog("Version", "   : HTTP_CLIENT_HEADERS=%s" % HTTP_CLIENT_HEADERS)
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("Version")
+
+module_logger.info("HTTP_CLIENT_HEADERS=%s", HTTP_CLIENT_HEADERS)
+
+
+def main():
+    '''Main package for testing.'''
+
+    logging.basicConfig(level=logging.INFO)
+
+    # Each class should have their own logger.
+    logger = logging.getLogger("version_test")
+
+    logger.info("DRATS_VERSION:         %s", DRATS_VERSION)
+    logger.info("DRATS_NAME:            %s", DRATS_NAME)
+    logger.info("DRATS_DESCRIPTION:     %s", DRATS_DESCRIPTION)
+    logger.info("DRATS_LONG_DESCRIPTION:%s", DRATS_LONG_DESCRIPTION)
+    logger.info("AUTHORS:               %s", AUTHORS)
+    logger.info("AUTHORS_EMAIL:         %s", AUTHORS_EMAIL)
+    logger.info("COPYRIGHT:             %s", COPYRIGHT)
+    logger.info("LICENCE:               %s", LICENCE)
+    logger.info("WEBSITE:               %s", WEBSITE)
+    logger.info("TRANSLATIONS:          %s", TRANSLATIONS)
+
 
 if __name__ == "__main__":
-    printlog("Version", "   : DRATS_VERSION:         ", DRATS_VERSION)
-    printlog("Version", "   : DRATS_NAME:            ", DRATS_NAME)
-    printlog("Version", "   : DRATS_DESCRIPTION:     ", DRATS_DESCRIPTION)
-    printlog("Version", "   : DRATS_LONG_DESCRIPTION:", DRATS_LONG_DESCRIPTION)
-    printlog("Version", "   : AUTHORS:               ", AUTHORS)
-    printlog("Version", "   : AUTHORS_EMAIL:         ", AUTHORS_EMAIL)
-    printlog("Version", "   : COPYRIGHT:             ", COPYRIGHT)
-    printlog("Version", "   : LICENCE:               ", LICENCE)
-    printlog("Version", "   : WEBSITE:               ", WEBSITE)
-    printlog("Version", "   : TRANSLATIONS:          ", TRANSLATIONS)
+    main()
