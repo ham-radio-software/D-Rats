@@ -5,16 +5,21 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import os
+import logging
 import subprocess
 import sys
 
-# importing printlog() wrapper
-if not __package__:
-    def printlog(arg1, *args):
-        '''Fake printlog replacement.'''
-        print(arg1, *args)
-else:
-    from .debug import printlog
+
+class SpellException(Exception):
+    '''Generic Spell Exception.'''
+
+
+class SpellNoSpellCheckerError(SpellException):
+    '''No Spell Checker program found.'''
+
+
+class SpellBadResponseError(SpellException):
+    '''Spelling Bad response error.'''
 
 
 class Spelling:
@@ -24,6 +29,13 @@ class Spelling:
     :param aspell: Spelling program, default 'aspell'
     :param persist: Keep subprocess to spelling program running
     '''
+
+    def __init__(self, aspell="aspell", persist=True):
+        self.logger = logging.getLogger("Spelling")
+        self.__aspell = aspell
+        self.__persist = persist
+        self.__pipe = None
+        self._spell_good = True
 
     def __open_aspell(self):
         kwargs = {}
@@ -54,44 +66,52 @@ class Spelling:
             self.__pipe.terminate()
             self.__pipe = None
 
-    def __init__(self, aspell="aspell", persist=True):
-        self.__aspell = aspell
-        self.__persist = persist
-        self.__pipe = None
-
     def lookup_word(self, wiq):
         '''
         Lookup Word.
 
         :param wiq: wiq string
         :returns: List of matching words
+        :raises: SpellNoSpellCheckerError if no spelling program found.
+        :raises: SpellBadResponseError if spell program has bad response.
         '''
+        if not self._spell_good:
+            raise SpellNoSpellCheckerError("Program %s present" % self.__aspell)
         for char in wiq:
             char = ord(char)
             if char < ord('A') or char > ord('z') or \
                     (ord('Z') < char < ord('a')):
                 return []
 
+        error = None
         try:
             self.__pipe.stdout.readline()
 
         except AttributeError:
-            printlog("Demand-opening aspell...")
-            self.__pipe = self.__open_aspell()
-            self.__pipe.stdout.readline()
+            self.logger.info("Demand-opening aspell...")
+            try:
+                self.__pipe = self.__open_aspell()
+                self.__pipe.stdout.readline()
+            except FileNotFoundError as local_error:
+                error = local_error
+                self._spell_good = False
+        if error:
+            raise SpellNoSpellCheckerError("Program %s not present" %
+                                           self.__aspell)
 
         self.__pipe.stdin.write("%s%s" %(wiq, os.linesep))
         suggest_str = self.__pipe.stdout.readline()
 
-        print("spell: suggest_str = %s" % suggest_str)
+        self.logger.info("spell: suggest_str = %s", suggest_str)
         if not self.__persist:
             self.__close_aspell()
 
         if suggest_str.startswith("*"):
             return []
         if not suggest_str.startswith("&"):
-            raise Exception("Unknown response from aspell: %s" %
-                            suggest_str)
+            self._spell_good = False
+            raise SpellBadResponseError("Unknown response from aspell: %s" %
+                                        suggest_str)
 
         suggestions = suggest_str.split()
         return suggestions[4:]
@@ -105,17 +125,21 @@ class Spelling:
         try:
             spell = self.lookup_word("speling")
             if spell[0] != "spelling,":
-                printlog("Spell     : ",
-                         "Unable to validate first suggestion of `spelling'")
-                printlog(spell[0])
+                self.logger.info(
+                    "Unable to validate first suggestion of `spelling' %s",
+                    spell[0])
                 return False
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Spelling test failed broad-exception: (%s) %s" %
-                     (type(err), err))
+        except SpellNoSpellCheckerError:
+            self.logger.debug("Did not find %s program", self.__aspell,
+                              exc_info=True)
             return False
 
-        printlog("Tested spelling okay: %s" % spell)
+        except SpellBadResponseError:
+            self.logger.info("Spelling failed check",
+                             exc_info=True)
+            return False
+
+        self.logger.info("Tested spelling okay: %s", spell)
         return True
 
 
@@ -127,6 +151,7 @@ def test_word(spell, word):
     :param word: Word pattern to check
     :returns: list of words
     '''
+    logger = logging.getLogger("sell_test_word")
     spell.stdin.write(word + "\n")
     result = spell.stdout.readline()
     spell.stdout.readline()
@@ -136,7 +161,7 @@ def test_word(spell, word):
     if result.startswith("&"):
         items = result.split()
         return items[4:]
-    printlog("Unknown response: `%s'" % result)
+    logger.info("Unknown response: `%s'", result)
     return []
 
 
@@ -211,10 +236,19 @@ def prepare_TextBuffer(buf):
 
 def main():
     '''Unit test.'''
+
+    logging.basicConfig(level=logging.INFO)
+
+    logger = logging.getLogger("config_test")
+
     spell = Spelling()
-    printlog(spell.lookup_word("speling"))
-    printlog(spell.lookup_word("teh"))
-    printlog(spell.lookup_word("foo"))
+    result = spell.test()
+    if not result:
+        logger.info("Spell sanity check failed.")
+        # return
+    logger.info(spell.lookup_word("speling"))
+    logger.info(spell.lookup_word("teh"))
+    logger.info(spell.lookup_word("foo"))
 
 
 if __name__ == "__main__":
