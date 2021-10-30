@@ -3,6 +3,7 @@
 '''QST'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,15 +24,25 @@ from __future__ import print_function
 # import time
 import datetime
 # import copy
+import logging
 import re
 import threading
 # import os
-from six.moves import range
+from six.moves import range # type: ignore
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
+
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               fallback=True)
+    lang.install()
+    _ = lang.gettext
 
 # import linecache   #Works ok on python but not on Windows
 
@@ -44,7 +55,6 @@ from gi.repository import GObject
 from .miscwidgets import make_choice
 from . import miscwidgets
 
-
 # py3 from . import mainapp
 
 from . import dplatform
@@ -55,20 +65,20 @@ from . import wu
 from . import gps
 from .utils import combo_select, get_icon
 
-# importing printlog() wrapper
-from .debug import printlog
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("QST")
 
 try:
     import feedparser
     HAVE_FEEDPARSER = True
 except ImportError:
-    printlog("Qst", "       : FeedParser not available")
+    module_logger.info("FeedParser not available")
     HAVE_FEEDPARSER = False
 
 try:
     from hashlib import md5
 except ImportError:
-    printlog("Qst", "       : Installing hashlib replacement hack")
+    module_logger.info("Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
 
@@ -77,7 +87,7 @@ def do_dprs_calculator(initial=""):
     '''
     Do DPRS Calculator.
 
-    :param initial: Optional initial string
+    :param initial: initial string, default ""
     :returns: DPRS string with Checksum
     '''
     def ev_sym_changed(iconsel, oversel, icons):
@@ -90,13 +100,15 @@ def do_dprs_calculator(initial=""):
     overlays = [chr(x) for x in range(ord(" "), ord("_"))]
 
     cur = initial
+    logger = logging.getLogger("QST_Do_DPRS_Calculator")
+
     if cur and cur[-3] == "*" and cur[3] == " ":
         msg.set_text(cur[4:-3])
         dsym = cur[:2]
         deficn = gps.DPRS_TO_APRS.get(dsym, "/#")
         defovr = cur[2]
         if defovr not in overlays:
-            printlog(("Qst       : Overlay %s not in list" % defovr))
+            logger.info("Overlay %s not in list", defovr)
             defovr = " "
     else:
         deficn = "/#"
@@ -137,7 +149,13 @@ def do_dprs_calculator(initial=""):
 
 
 class QSTText(GObject.GObject):
-    '''QST Text'''
+    '''
+    QST Text.
+
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
 
     __gsignals__ = {
         "qst-fired" : (GObject.SignalFlags.RUN_LAST,
@@ -148,6 +166,7 @@ class QSTText(GObject.GObject):
     def __init__(self, config, content, key):
         GObject.GObject.__init__(self)
 
+
         self.config = config
         self.prefix = "[QST] "
         self.text = content
@@ -156,20 +175,30 @@ class QSTText(GObject.GObject):
 
     def do_qst(self):
         '''
-        do QST
+        Do QST.
 
         :returns: QST String
         '''
         return self.text
 
     def fire(self):
-        '''Fire a QST'''
+        '''Fire a QST.'''
         val = self.do_qst()
         self.emit("qst-fired", self.prefix + val, self.key)
 
 
 class QSTExec(QSTText):
-    '''QST Exec'''
+    '''
+    QST Exec.
+
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTExec")
 
     def do_qst(self):
         '''
@@ -181,13 +210,22 @@ class QSTExec(QSTText):
         pform = dplatform.get_platform()
         status, output = pform.run_sync(self.text)
         if status:
-            printlog(("Qst       : Command failed with status %i" % status))
+            self.logger.info("Command failed with status %i", status)
 
         return output[:size_limit]
 
 
 class QSTFile(QSTText):
-    '''QST File'''
+    '''QST File.
+
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTFile")
 
     def do_qst(self):
         '''
@@ -201,7 +239,8 @@ class QSTFile(QSTText):
             # f = NetFile(self.text)
         # pylint: disable=bare-except
         except:
-            printlog(("Qst       : Unable to open file `%s'" % self.text))
+            self.logger.info("Unable to open file `%s'", self.text,
+                             exc_info=True)
             return None
 
         text = file_handle.read()
@@ -211,10 +250,17 @@ class QSTFile(QSTText):
 
 
 class QSTGPS(QSTText):
-    '''QST GPS'''
+    '''
+    QST GPS
 
-    def __init__(self, *args, **kw):
-        QSTText.__init__(self, *args, **kw)
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTGPS")
 
         self.prefix = ""
         self.raw = True
@@ -250,7 +296,7 @@ class QSTGPS(QSTText):
 
 
 class QSTGPSA(QSTGPS):
-    '''QST GPSA'''
+    '''QST GPSA.'''
 
     def do_qst(self):
         '''
@@ -278,7 +324,7 @@ class QSTGPSA(QSTGPS):
 
 
 class QSTWX(QSTGPS):
-    '''QST GPS'''
+    '''QST GPS.'''
 
     def do_qst(self):
         '''
@@ -316,10 +362,17 @@ class QSTWX(QSTGPS):
 
 
 class QSTThreadedText(QSTText):
-    '''QST Threaded Text.'''
+    '''
+    QST Threaded Text.
 
-    def __init__(self, *a, **k):
-        QSTText.__init__(self, *a, **k)
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTThreadedText")
 
         self.thread = None
 
@@ -330,8 +383,7 @@ class QSTThreadedText(QSTText):
         self.thread = None
 
         if not msg:
-            printlog("Qst",
-                     "       : Skipping QST because no data was returned")
+            self.logger.info("Skipping QST because no data was returned")
             return
 
         GObject.idle_add(self.emit, "qst-fired",
@@ -339,28 +391,34 @@ class QSTThreadedText(QSTText):
 
     def fire(self):
         if self.thread:
-            printlog("Qst",
-                     "       : QST thread still running, not starting another")
+            self.logger.info("QST thread still running, not starting another")
             return
 
         # This is a race, but probably pretty safe :)
         self.thread = threading.Thread(target=self.threaded_fire)
         self.thread.setDaemon(True)
         self.thread.start()
-        printlog("Qst", "       : Started a thread for QST data...")
+        self.logger.info("Started a thread for QST data...")
 
 
 class QSTRSS(QSTThreadedText):
-    '''QST RSS'''
+    '''
+    QST RSS.
 
-    def __init__(self, *args, **kw):
-        QSTThreadedText.__init__(self, *args, **kw)
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTThreadedText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTRSS")
 
         self.last_id = ""
 
     def do_qst(self):
         '''
-        do QST
+        Do QST.
 
         :returns: QST String
         '''
@@ -369,7 +427,7 @@ class QSTRSS(QSTThreadedText):
         try:
             entry = rss.entries[-1]
         except IndexError:
-            printlog("Qst", "       : RSS feed had no entries")
+            self.logger.info("RSS feed had no entries")
             return None
 
         try:
@@ -386,20 +444,26 @@ class QSTRSS(QSTThreadedText):
             text = text[:8192]
 
             return text
-        else:
-            return None
+        return None
 
 
 class QSTCAP(QSTThreadedText):
-    '''QST CAP'''
+    '''
+    QST CAP.
 
-    def __init__(self, *args, **kwargs):
-        QSTThreadedText.__init__(self, *args, **kwargs)
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTThreadedText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTCAP")
 
         self.last_date = None
 
     def determine_starting_item(self):
-        '''Determine Starting Item'''
+        '''Determine Starting Item.'''
 
         cap_obj = cap.CAPParserURL(self.text)
         if cap_obj.events:
@@ -411,14 +475,14 @@ class QSTCAP(QSTThreadedText):
 
     def do_qst(self):
         '''
-        do QST
+        do QST.
 
         :returns: QST String
         '''
         if self.last_date is None:
             self.determine_starting_item()
 
-        printlog(("Qst       : Last date is %s" % self.last_date))
+        self.logger.info("Last date is %s", self.last_date)
 
         cap_obj = cap.CAPParserURL(self.text)
         newev = cap_obj.events_effective_after(self.last_date)
@@ -428,29 +492,47 @@ class QSTCAP(QSTThreadedText):
         try:
             self.last_date = newev[-1].effective
         except IndexError:
-            printlog("Qst", "       : CAP feed had no entries")
+            self.logger.info("CAP feed had no entries")
             return None
 
         q_str = ""
 
         for i in newev:
-            printlog("Qst",
-                     "       : Sending CAP that is effective %s" % i.effective)
+            self.logger.info("Sending CAP that is effective %s", i.effective)
             q_str += "\r\n-----\r\n%s\r\n-----\r\n" % i.report()
 
         return q_str
 
 
 class QSTWeatherWU(QSTThreadedText):
-    '''QST Weather WU'''
-    printlog("Qst", "       : QSTWeatherWU class retired")
+    '''QST Weather WU
+
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTThreadedText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QST_Weather_WU")
+        self.logger.info("QSTWeatherWU class retired")
 
 
 class QSTOpenWeather(QSTThreadedText):
-    '''QST Open Weather'''
+    '''QST Open Weather.
+
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTThreadedText.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTOpenWeather")
 
     # pylint: disable=too-many-statements
     def do_qst(self):
+        '''Do QST.'''
         import urllib
         import json
         weath = ""
@@ -461,10 +543,10 @@ class QSTOpenWeather(QSTThreadedText):
         try:
             t_qst, s_qst = self.text.split("/", 2)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Qst",
-                     "       : Unable to split weather QST %s: %s" %
-                     (self.text, err))
+        except Exception:
+            self.logger.info("Unable to split weather QST %s",
+                             self.text,
+                             exc_info=True)
             return None
 
 #---to be restore when forecasts are done
@@ -473,11 +555,11 @@ class QSTOpenWeather(QSTThreadedText):
             # pylint: disable=no-member
             url = owuri +"weather?"+ \
                 urllib.urlencode({'q': s_qst, 'appid': owappid})
-            printlog("Qst", "       : %s " % url)
+            self.logger.info("URL=%s", url)
             # pylint: disable=no-member
             urlread = urllib.urlopen(url).read()
             datajson = json.loads(urlread)
-            printlog(datajson)
+            self.logger.info(datajson)
 
             # Check the value of "cod" key is equal to "404",
             # means city is found otherwise, city is not found
@@ -510,22 +592,21 @@ class QSTOpenWeather(QSTThreadedText):
                 #                     float(datajson['wind']['gust']))
                 weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
 
-                printlog("Qst", "       : %s" % weath)
+                self.logger.info("Weather %s", weath)
 
                 return weath
-            printlog("Qst",
-                     "       : weather forecast: %s city not found" % s_qst)
+            self.logger.info("weather forecast: %s city not found", s_qst)
             return None
 
         if t_qst == _("Forecast"):
             # pylint: disable=no-member
             url = owuri + "forecast?" + \
                 urllib.urlencode({'q': s_qst, 'appid': owappid, 'mode': "json"})
-            printlog("Qst", "       : %s " % url)
+            self.logger.info("Forecast: %s ", url)
             # pylint: disable=no-member
             urlread = urllib.urlopen(url).read()
             datajson = json.loads(urlread)
-            printlog(datajson)
+            self.logger.info(datajson)
 
             # Check the value of "cod" key is equal to "404",
             # means city is found otherwise, city is not found
@@ -598,14 +679,13 @@ class QSTOpenWeather(QSTThreadedText):
                     #                     float(datajson['wind']['gust']))
                     weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
 
-                printlog("Qst", "       : %s" % weath)
-                return  weath
+                self.logger.info("forecast: %s", weath)
+                return weath
 
-            printlog("Qst",
-                     "       : weather forecast: %s city not found" % s_qst)
+            self.logger.info("weather forecast: %s city not found", s_qst)
             return None
 
-        printlog("Qst", "       : Unknown Weather type %s" % t_qst)
+        self.logger.info("Unknown Weather type %s", t_qst)
         return None
 
 #---to be restore when forecats are done
@@ -619,7 +699,16 @@ class QSTOpenWeather(QSTThreadedText):
 
 
 class QSTStation(QSTGPSA):
-    '''QST Station'''
+    '''QST Station.
+
+    :param config: Configuration object
+    :param content: QST Content
+    :param key: Name for QST
+    '''
+
+    def __init__(self, config, content, key):
+        QSTGPSA.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QSTStation")
 
     # pylint: disable=no-self-use
     def get_source(self, name):
@@ -653,24 +742,23 @@ class QSTStation(QSTGPSA):
         return None
 
     def do_qst(self):
-        '''Do QST'''
+        '''Do QST/'''
         try:
             (group, station) = self.text.split("::", 1)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog(("Qst       : QSTStation Error: %s" % err))
+        except Exception:
+            self.logger.info("QSTStation Error", exc_info=True)
             return None
 
         source = self.get_source(group)
         if source is None:
-            printlog(("Qst       : Unknown group %s" % group))
+            self.logger.info("Unknown group %s", group)
             return None
 
         point = self.get_station(source, station)
         if point is None:
-            printlog(("Qst",
-                      "       : Unknown station %s in group %s" %
-                      (station, group)))
+            self.logger.info("Unknown station %s in group %s",
+                             station, group)
             return None
 
         self.fix = gps.GPSPosition(point.get_latitude(),
@@ -679,15 +767,14 @@ class QSTStation(QSTGPSA):
         self.fix.set_station(self.fix.station,
                              "VIA %s" % self.config.get("user", "callsign"))
 
-        printlog("Qst",
-                 "       : Sending position for %s/%s: %s" %
-                 (group, station, self.fix))
+        self.logger.info("Sending position for %s/%s: %s",
+                         group, station, self.fix)
 
         return QSTGPSA.do_qst(self)
 
 
 class QSTEditWidget(Gtk.Box):
-    '''QST Edit Widget'''
+    '''QST Edit Widget.'''
 
     def __init__(self, *a, **k):
         Gtk.Box.__init__(self, *a, **k)
@@ -723,7 +810,7 @@ class QSTEditWidget(Gtk.Box):
 
 
 class QSTTextEditWidget(QSTEditWidget):
-    '''QST Text Edit Widget'''
+    '''QST Text Edit Widget.'''
 
     label_text = _("Enter a message:")
 
@@ -775,7 +862,7 @@ class QSTTextEditWidget(QSTEditWidget):
 
 
 class QSTFileEditWidget(QSTEditWidget):
-    '''QST File Edit Widget'''
+    '''QST File Edit Widget.'''
 
     label_text = _("Choose a text file.  "
                    "The contents will be used when the QST is sent.")
@@ -825,7 +912,7 @@ class QSTFileEditWidget(QSTEditWidget):
 
 
 class QSTWXFileEditWidget(QSTEditWidget):
-    '''QST WX File Edit Widget'''
+    '''QST WX File Edit Widget.'''
 
     label_text = _("Choose a APRS text file.  "
                    "The contents will be used when the WXGPS-A is sent.")
@@ -846,12 +933,12 @@ class QSTWXFileEditWidget(QSTEditWidget):
         return "Read: %s" % self.__fn.get_filename()
 
     def reset(self):
-        '''Reset'''
+        '''Reset.'''
         self.__fn.set_filename("")
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
         '''
@@ -859,7 +946,7 @@ class QSTWXFileEditWidget(QSTEditWidget):
 
     def from_qst(self, content):
         '''
-        From QST
+        From QST.
 
         :param content: Content from QST
         '''
@@ -875,7 +962,7 @@ class QSTWXFileEditWidget(QSTEditWidget):
 
 
 class QSTExecEditWidget(QSTFileEditWidget):
-    '''QST Exec Edit Widget'''
+    '''QST Exec Edit Widget.'''
 
     label_text = _("Choose a script to execute.  "
                    "The output will be used when the QST is sent")
@@ -885,22 +972,10 @@ class QSTExecEditWidget(QSTFileEditWidget):
 
 
 class QSTGPSEditWidget(QSTEditWidget):
-    '''QST GPS Edit Widget'''
+    '''QST GPS Edit Widget.'''
 
     msg_limit = 20
     type = "GPS"
-
-    # pylint: disable=invalid-name
-    def prompt_for_DPRS(self, _button):
-        '''
-        Prompt For DPRS
-
-        :param _button: Unused.
-        '''
-        dprs = do_dprs_calculator(self.__msg.get_text())
-        if dprs is None:
-            return
-        self.__msg.set_text(dprs)
 
     def __init__(self, config):
         QSTEditWidget.__init__(self, False, 2)
@@ -929,6 +1004,18 @@ class QSTGPSEditWidget(QSTEditWidget):
 
         dprs.connect("clicked", self.prompt_for_DPRS)
         hbox.pack_start(dprs, 0, 0, 0)
+
+    # pylint: disable=invalid-name
+    def prompt_for_DPRS(self, _button):
+        '''
+        Prompt For DPRS
+
+        :param _button: Unused.
+        '''
+        dprs = do_dprs_calculator(self.__msg.get_text())
+        if dprs is None:
+            return
+        self.__msg.set_text(dprs)
 
     def __str__(self):
         return "Message: %s" % self.__msg.get_text()
@@ -961,22 +1048,23 @@ class QSTGPSEditWidget(QSTEditWidget):
         '''
         return self.__msg.get_text()
 
+
 class QSTGPSAEditWidget(QSTGPSEditWidget):
-    '''QST GPSA Edit'''
+    '''QST GPSA Edit.'''
 
     msg_limit = 200
     type = "GPS-A"
 
 
 class QSTWXEditWidget(QSTGPSEditWidget):
-    '''QST WX Edit Widget'''
+    '''QST WX Edit Widget.'''
 
     msg_limit = 200
     type = "WX"
 
 
 class QSTRSSEditWidget(QSTEditWidget):
-    '''QST RSS Edit Widget'''
+    '''QST RSS Edit Widget.'''
 
     label_string = _("Enter the URL of an RSS feed:")
 
@@ -1025,13 +1113,43 @@ class QSTRSSEditWidget(QSTEditWidget):
 
 
 class QSTCAPEditWidget(QSTRSSEditWidget):
-    '''QST CAP Edit Widget'''
+    '''QST CAP Edit Widget.'''
 
     label_string = _("Enter the URL of a CAP feed:")
 
 
 class QSTStationEditWidget(QSTEditWidget):
-    '''QST Station Edit Widget'''
+    '''QST Station Edit Widget.'''
+
+    def __init__(self):
+        QSTEditWidget.__init__(self, False, 2)
+
+        lab = Gtk.Label.new(_("Choose a station whose position will be sent"))
+        lab.show()
+
+        self.pack_start(lab, 1, 1, 1)
+
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 10)
+
+        # This is really ugly, but to fix it requires more work
+        from . import mainapp
+        self.__sources = mainapp.get_mainapp().map.get_map_sources()
+        sources = [x.get_name() for x in self.__sources]
+        self.__group = miscwidgets.make_choice(sources,
+                                               False,
+                                               _("Stations"))
+        self.__group.show()
+        hbox.pack_start(self.__group, 0, 0, 0)
+
+        self.__station = miscwidgets.make_choice([], False)
+        self.__station.show()
+        hbox.pack_start(self.__station, 0, 0, 0)
+
+        self.__group.connect("changed", self.ev_group_sel, self.__station)
+        self.ev_group_sel(self.__group, self.__station)
+
+        hbox.show()
+        self.pack_start(hbox, 0, 0, 0)
 
     def ev_group_sel(self, group, station):
         '''
@@ -1061,35 +1179,6 @@ class QSTStationEditWidget(QSTEditWidget):
             station.append_text(i)
         if marks:
             station.set_active(0)
-
-    def __init__(self):
-        QSTEditWidget.__init__(self, False, 2)
-
-        lab = Gtk.Label.new(_("Choose a station whose position will be sent"))
-        lab.show()
-        self.pack_start(lab, 1, 1, 1)
-
-        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 10)
-
-        # This is really ugly, but to fix it requires more work
-        from . import mainapp
-        self.__sources = mainapp.get_mainapp().map.get_map_sources()
-        sources = [x.get_name() for x in self.__sources]
-        self.__group = miscwidgets.make_choice(sources,
-                                               False,
-                                               _("Stations"))
-        self.__group.show()
-        hbox.pack_start(self.__group, 0, 0, 0)
-
-        self.__station = miscwidgets.make_choice([], False)
-        self.__station.show()
-        hbox.pack_start(self.__station, 0, 0, 0)
-
-        self.__group.connect("changed", self.ev_group_sel, self.__station)
-        self.ev_group_sel(self.__group, self.__station)
-
-        hbox.show()
-        self.pack_start(hbox, 0, 0, 0)
 
     def to_qst(self):
         '''
@@ -1124,6 +1213,8 @@ class QSTWUEditWidget(QSTEditWidget):
 
         lab = Gtk.Label.new(self.label_text)
         lab.show()
+        self.logger = logging.getLogger("QSTWUEditWidget")
+
         self.pack_start(lab, 1, 1, 1)
 
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
@@ -1158,7 +1249,7 @@ class QSTWUEditWidget(QSTEditWidget):
             t_qst, s_qst = content.split("/", 2)
         # pylint: disable=bare-except
         except:
-            printlog(("Qst       : Unable to split `%s'" % content))
+            self.logger.info("Unable to split `%s'", content, exc_info=True)
             t_qst = _("Current")
             s_qst = _("UNKNOWN")
 
@@ -1174,8 +1265,62 @@ class QSTWUEditWidget(QSTEditWidget):
         return self.to_qst()
 
 
+# pylint: disable=too-many-instance-attributes
 class QSTEditDialog(Gtk.Dialog):
-    '''QST Edit Dialog'''
+    '''
+    QST Edit Dialog.
+
+    :param config: Configuration object
+    :param ident: Identification for dialog
+    :param parent: Parent widget
+    '''
+
+    def __init__(self, config, ident, parent=None):
+        self.logger = logging.getLogger("QSTEditDialog")
+
+        self.logger.info("defining qst types")
+        self._types = {
+            _("Text") : QSTTextEditWidget(),
+            _("File") : QSTFileEditWidget(),
+            _("Exec") : QSTExecEditWidget(),
+            _("GPS")  : QSTGPSEditWidget(config),
+            _("GPS-A"): QSTGPSAEditWidget(config),
+            _("WXGPS-A"): QSTWXFileEditWidget(),
+            _("RSS")  : QSTRSSEditWidget(),
+            _("CAP")  : QSTCAPEditWidget(),
+            _("Station") : QSTStationEditWidget(),
+            _("OpenWeather") : QSTWUEditWidget(),
+            }
+
+        Gtk.Dialog.__init__(self, parent=parent)
+        self.add_button(_("OK"), Gtk.ResponseType.OK)
+        self.add_button(_("CANCEL"), Gtk.ResponseType.CANCEL)
+        self._ident = ident
+        self._config = config
+
+        self.__current = None
+
+        self.set_size_request(400, 150)
+
+        self.vbox.pack_start(self._make_controls(), 0, 0, 0)
+
+        for i in self._types.values():
+            i.set_size_request(-1, 80)
+            self.vbox.pack_start(i, 0, 0, 0)
+
+
+        if self._config.has_section(self._ident):
+            combo_select(self._type, self._config.get(self._ident, "type"))
+            self._freq.child.set_text(self._config.get(self._ident, "freq"))
+            self._select_type(self._type)
+            self.__current.from_qst(self._config.get(self._ident, "content"))
+            try:
+                combo_select(self._port, self._config.get(self._ident, "port"))
+            # pylint: disable=bare-except
+            except:
+                pass
+        else:
+            self._select_type(self._type)
 
     def _select_type(self, box):
         wtype = box.get_active_text()
@@ -1217,53 +1362,6 @@ class QSTEditDialog(Gtk.Dialog):
 
         hbox.show()
         return hbox
-
-    def __init__(self, config, ident, parent=None):
-        printlog("Qst", "      : defining qst types")
-        self._types = {
-            _("Text") : QSTTextEditWidget(),
-            _("File") : QSTFileEditWidget(),
-            _("Exec") : QSTExecEditWidget(),
-            _("GPS")  : QSTGPSEditWidget(config),
-            _("GPS-A"): QSTGPSAEditWidget(config),
-            _("WXGPS-A"): QSTWXFileEditWidget(),
-            _("RSS")  : QSTRSSEditWidget(),
-            _("CAP")  : QSTCAPEditWidget(),
-            _("Station") : QSTStationEditWidget(),
-            _("OpenWeather") : QSTWUEditWidget(),
-            }
-
-        Gtk.Dialog.__init__(self,
-                            parent=parent,
-                            buttons=(_("OK"), Gtk.ResponseType.OK,
-                                     _("CANCEL"),
-                                     Gtk.ResponseType.CANCEL))
-        self._ident = ident
-        self._config = config
-
-        self.__current = None
-
-        self.set_size_request(400, 150)
-
-        self.vbox.pack_start(self._make_controls(), 0, 0, 0)
-
-        for i in self._types.values():
-            i.set_size_request(-1, 80)
-            self.vbox.pack_start(i, 0, 0, 0)
-
-
-        if self._config.has_section(self._ident):
-            combo_select(self._type, self._config.get(self._ident, "type"))
-            self._freq.child.set_text(self._config.get(self._ident, "freq"))
-            self._select_type(self._type)
-            self.__current.from_qst(self._config.get(self._ident, "content"))
-            try:
-                combo_select(self._port, self._config.get(self._ident, "port"))
-            # pylint: disable=bare-except
-            except:
-                pass
-        else:
-            self._select_type(self._type)
 
     def save(self):
         '''save'''
