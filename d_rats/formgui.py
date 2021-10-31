@@ -2,6 +2,7 @@
 '''Form GUI'''
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,8 +20,8 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import gettext
 import sys
+import logging
 import time
 import os
 import tempfile
@@ -38,8 +39,19 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 
-# importing printlog() wrapper
-from .debug import printlog
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               fallback=True)
+    lang.install()
+    _ = lang.gettext
+
+# logging.basicConfig(level=logging.INFO)
+
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("Formgui")
 
 from .miscwidgets import make_choice, KeyedListWidget
 from .utils import run_or_error
@@ -67,7 +79,6 @@ from . import spell
 # </xml>
 # """
 
-_ = gettext.gettext
 XML_ESCAPES = [("<", "&lt;"),
                (">", "&gt;"),
                ("&", "&amp;"),
@@ -81,21 +92,61 @@ RESPONSE_DELETE = -903
 RESPONSE_SEND_VIA = -904
 
 
+class FormguiException(Exception):
+    '''Generic Formgui Exception.'''
+
+
+class FormguiFileException(FormguiException):
+    '''Formgui File Exception.'''
+
+
+class FormguiFileNotValid(FormguiFileException):
+    '''Form file is not valid Exception.'''
+
+
+class FormguiFileMultipleForms(FormguiFileException):
+    '''Form file has multiple forms Exception.'''
+
+
+class FormguiFileMultipleTitles(FormguiFileException):
+    '''Form file has multiple titles Exception.'''
+
+
+class FormguiFileMultipleLogos(FormguiFileException):
+    '''Form file has multiple logos Exception.'''
+
+
+class FormguiFileMultipleIds(FormguiFileException):
+    '''Form file has multiple Ids Exception.'''
+
+
+class FormguiFileMultipleAtts(FormguiFileException):
+    '''Form file has multiple Attachment Exception.'''
+
+
+class FormguiFileDuplicateAtt(FormguiFileException):
+    '''Duplicate Attachment Exception.'''
+
+
+class FormguiFileInvalidAtt(FormguiFileException):
+    '''Invalid Attachment Exception.'''
+
+
 # wb8tyw: Style is deprecated in favor of Gtk.StyleContext.
 # At startup, the sets are empty.   Need to figure out what this is used for.
-# pylint: disable=invalid-name
-style = Gtk.Style()
-for style_index in [style.fg, style.bg, style.base]:
-    print('-Debug Style Dump-----')
-    print(style_index)
-    print('-------')
-    if Gtk.StateFlags.NORMAL in style_index:
-        if Gtk.stateFlags.INSENSITIVE in style_index:
-            style_index[Gtk.StateFlags.INSENSITIVE] = \
-                style_index[Gtk.StateFlags.NORMAL]
-STYLE_BRIGHT_INSENSITIVE = style
-del style
-del style_index
+# style = Gtk.Style()
+# accessing these members triggers GTK "CRITICAL stack overflow protection"
+# for style_index in [style.fg, style.bg, style.base]:
+#    print('-Debug Style Dump-----')
+#    print(style_index)
+#    print('-------')
+#    if Gtk.StateFlags.NORMAL in style_index:
+#        if Gtk.stateFlags.INSENSITIVE in style_index:
+#            style_index[Gtk.StateFlags.INSENSITIVE] = \
+#                style_index[Gtk.StateFlags.NORMAL]
+# STYLE_BRIGHT_INSENSITIVE = style
+# del style
+# del style_index
 
 
 def xml_escape(string):
@@ -103,6 +154,7 @@ def xml_escape(string):
     XML escape.
 
     :param string: String to add XML escapes
+    :returns: String with data escaped to add to XML element
     '''
     data = {}
     for char, esc in XML_ESCAPES:
@@ -120,6 +172,7 @@ def xml_unescape(string):
     XML unescape.
 
     :param string: string containing XML
+    :returns: string with excapes replaced with original text
     '''
     data = {}
     for char, esc in XML_ESCAPES:
@@ -135,25 +188,22 @@ def xml_unescape(string):
             try:
                 semi = string[string_index:].index(";") + string_index + 1
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Formgui", "   : XML Error: & with no ; (%s -%s-)" %
-                         (type(err), err))
+            except Exception:
+                module_logger.info("XML Error: broad-except", exc_info=True)
                 string_index += 1
                 continue
 
             esc = string[string_index:semi]
 
             if not esc:
-                printlog("Formgui", "   : No escape: %i:%i" %
-                         (string_index, semi))
+                module_logger.info("No escape: %i:%i", string_index, semi)
                 string_index += 1
                 continue
 
             if string[string_index:semi] in data:
                 out += data[esc]
             else:
-                printlog("Formgui",
-                         "   : XML Error: No such escape: `%s'" % esc)
+                module_logger.info("XML Error: No such escape: `%s'", esc)
             string_index += len(esc)
     return out
 
@@ -183,6 +233,7 @@ class HTMLFormWriter(FormWriter):
     '''
 
     def __init__(self, form_type, xsl_dir):
+        self.logger = logging.getLogger("HTMLFormwriter")
         self.xslpath = os.path.join(xsl_dir, "%s.xsl" % form_type)
         if not os.path.exists(self.xslpath):
             self.xslpath = os.path.join(xsl_dir, "default.xsl")
@@ -194,7 +245,7 @@ class HTMLFormWriter(FormWriter):
         :param doc: ElementTree document
         :param outfile: File name to write
         '''
-        printlog("Formgui", "   : Writing to %s" % outfile)
+        self.logger.info("Writing to %s", outfile)
         styledoc = etree.parse(self.xslpath)
         style_sheet = etree.XSLT(styledoc)
         result = style_sheet(doc)
@@ -218,10 +269,12 @@ class FieldWidget():
     Field Widget.
 
     :param node: Element Tree for node
+    :param config: Configuration object
     '''
 
-    def __init__(self, node):
+    def __init__(self, node, config):
         self.node = node
+        self.config = config
         self.caption = "Untitled Field"
         self.ident = "unknown"
         self.type = (self.__class__.__name__.replace("Widget", "")).lower()
@@ -291,7 +344,10 @@ class FieldWidget():
         '''
         if self.widget:
             self.widget.set_sensitive(editable)
-            self.widget.set_style(STYLE_BRIGHT_INSENSITIVE)
+            # Gtk 3 ignors set_style, have to learn a bit on
+            # how to use css to replace this function.
+            # style_context = self.widget.get_style_context()
+            # self.widget.set_style(STYLE_BRIGHT_INSENSITIVE)
 
 
 class TextWidget(FieldWidget):
@@ -299,13 +355,15 @@ class TextWidget(FieldWidget):
     Text Widget.
 
     :param node: ElementTree for node
+    :param config: Configuration object
     '''
 
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
 
         text = ""
-        if node.text and node.getchildren():
+        # if node.text and node.getchildren():
+        if node.text:
             text = xml_unescape(node.text.strip())
 
         self.widget = Gtk.Entry()
@@ -334,23 +392,18 @@ class ToggleWidget(FieldWidget):
     Toggle Widget.
 
     :param node: ElementTree for node
+    :param config: Configuration object
     '''
 
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
 
-        if node.children:
-            try:
-                # pylint: disable=eval-used
-                status = eval(node.text.title())
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Formgui   ",
-                         ": ToggleWidget Status of `%s' is invalid (%s -%s-)" %
-                         (node.text.title(), type(err), err))
-                status = False
-        else:
-            status = False
+        self.logger = logging.getLogger("ToggleWidget")
+        status = False
+        if node.text:
+            text = node.text.strip().lower()
+            if text in ['true', '1', 'yes', 'on', 'y']:
+                status = True
 
         self.widget = Gtk.CheckButton.new_with_label(_("Yes"))
         self.widget.set_active(status)
@@ -372,12 +425,12 @@ class MultilineWidget(FieldWidget):
     :param node: ElementTree for node
     '''
 
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
         self.vertical = True
 
         text = ""
-        if node.text and node.getchildren():
+        if node.text: # and node.getchildren():
             text = xml_unescape(node.text.strip())
 
         self.buffer = Gtk.TextBuffer()
@@ -388,11 +441,7 @@ class MultilineWidget(FieldWidget):
         self.widget.set_wrap_mode(Gtk.WrapMode.WORD)
 
         try:
-            # The mainapp class is not initialized when the unit tests are
-            # run so the config information is not available.
-            from . import mainapp
-            config = mainapp.get_mainapp().config
-            if config.getboolean("prefs", "check_spelling"):
+            if self.config.getboolean("prefs", "check_spelling"):
                 spell.prepare_TextBuffer(self.buffer)
         except AttributeError:
             pass
@@ -401,25 +450,23 @@ class MultilineWidget(FieldWidget):
         '''
         Make container
 
-        :returns: Gtk.Box object
+        :returns: Gtk.ScrolledWindow object
         '''
         scrollw = Gtk.ScrolledWindow()
         scrollw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrollw.add(self.widget)
         return scrollw
 
-        # pylint: disable=unreachable
-        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
+        # vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
+        # label = Gtk.Label.new(self.caption)
+        # vbox.pack_start(label, 0, 0, 0)
+        # vbox.pack_start(scrollw, 0, 0, 0)
 
-        label = Gtk.Label.new(self.caption)
-        vbox.pack_start(label, 0, 0, 0)
-        vbox.pack_start(scrollw, 0, 0, 0)
+        # label.show()
+        # vbox.show()
+        # scrollw.show()
 
-        label.show()
-        vbox.show()
-        scrollw.show()
-
-        return vbox
+        # return vbox
 
     def get_value(self):
         '''
@@ -444,19 +491,21 @@ class DateWidget(FieldWidget):
     Date Widget.
 
     :param node: ElementTree for node
+    :param config: Configuration object
     '''
 
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
-
-        try:
-            text = etree.tostring(node.children).strip()
-            (day, month, year) = text.split("-", 3)
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Formgui",
-                     "   : Datewidget __init__ exception: %s -%s-" %
-                     (type(err), err))
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
+        self.logger = logging.getLogger("DateWidget")
+        text = node.text
+        if text:
+            try:
+                (day, month, year) = text.split("-", 3)
+            except ValueError:
+                text = None
+                # self.logger.info("Datewidget __init__ exception",
+                #                  exc_info=True)
+        if not text:
             year = time.strftime("%Y")
             month = time.strftime("%b")
             day = time.strftime("%d")
@@ -492,28 +541,29 @@ class DateWidget(FieldWidget):
                              self.yearbox.get_active_text())
 
 
+# pylint: disable=too-many-instance-attributes
 class TimeWidget(FieldWidget):
     '''
     Time Widget.
 
     :param node: ElementTree of node
+    :param config: Configuration object
     '''
 
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
-
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
+        self.logger = logging.getLogger("TimeWidget")
+        text = ''
+        if node.text:
+            text = node.text.strip()
         try:
-            text = etree.tostring(node.children).strip()
+            # text = etree.tostring(node.children).strip()
+            # text = etree.tostring(children[0])
             (hours, minutes, seconds) = (int(x) for x in text.split(":", 3))
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Formgui",
-                     "   : Timewidget __init__ exception: %s -%s-" %
-                     (type(err), err))
+        except ValueError:
+            # self.logger.info("Timewidget __init__ exception", exc_info=True)
             try:
-                from . import mainapp
-                config = mainapp.get_mainapp().config
-                if config.getboolean("prefs", "useutc"):
+                if self.config.getboolean("prefs", "useutc"):
                     current_time = time.gmtime()
                 else:
                     current_time = time.localtime()
@@ -561,10 +611,12 @@ class NumericWidget(FieldWidget):
     Numeric Widget.
 
     :param node: ElementTree of node
+    :param config: Configuration object
     '''
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
 
+        self.logger = logging.getLogger("NumericWidget")
         limit = {}
         limit['min'] = 0
         limit['max'] = 1000000.0
@@ -577,17 +629,15 @@ class NumericWidget(FieldWidget):
                 found_count += 1
                 try:
                     limit[attrib] = float(value)
-                except ValueError as err:
-                    # Want to find out how this can happen
-                    printlog("Formgui",
-                             "   : NumericWidget __init__ %s was %s. (%s)" %
-                             (attrib, value, err))
-        try:
-            initial = float(etree.tostring(node.children))
-        except ValueError as err:
-            # Want to find out how this can happen
-            printlog("Formgui",
-                     "   : NumericWidget __init__ initial. (%s)" % err)
+                except ValueError:
+                    self.logger.debug("__init__ %s was %s.",
+                                      attrib, value, exc_info=True)
+        if node.text:
+            text = node.text.strip()
+            try:
+                initial = float(text)
+            except ValueError:
+                self.logger.debug("__init__ initial", exc_info=True)
 
         self.adj = Gtk.Adjustment.new(initial, limit['min'], limit['max'],
                                       1, 10, 0)
@@ -616,45 +666,45 @@ class ChoiceWidget(FieldWidget):
     Choice Widget
 
     :param node: ElementTree of node
+    :param config: Configuration object
     '''
+
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
+
+        self.logger = logging.getLogger("ChoiceWidget")
+        self.choices = []
+        self.default = None
+
+        children = node.getchildren()
+
+        for child in children:
+            self.parse_choice(child)
+
+        self.widget = make_choice(self.choices, False, self.default)
+        self.widget.show()
 
     def parse_choice(self, node):
         '''
         Parse choice.
 
-        :param node: ElementTree of node'''
-        if node.name != "choice":
+        :param node: ElementTree of node
+        '''
+        if node.tag != "choice":
             return
 
-        try:
-            content = xml_unescape(etree.tostring(node.children).strip())
-            self.choices.append(content)
-            for attrib, _value in node.items():
-                if attrib == 'set':
-                    self.default = content
-                    break
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Formgui",
-                     "   : ChoiceWidget/parse_choice Error: %s -%s-" %
-                     (type(err), err))
-            # pass
-
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
-
-        self.choices = []
-        self.default = None
-
-        child = node.children
-        while child:
-            if child.type == "element":
-                self.parse_choice(child)
-
-            child = child.next
-
-        self.widget = make_choice(self.choices, False, self.default)
-        self.widget.show()
+        if node.text:
+            try:
+                content = xml_unescape(node.text.strip())
+                self.choices.append(content)
+                for attrib, _value in node.items():
+                    if attrib == 'set':
+                        self.default = content
+                        break
+            # pylint: disable=broad-except
+            except Exception:
+                self.logger.info("parse_choice Error: %s -%s-", exc_info=True)
+                # pass
 
     def get_value(self):
         '''
@@ -670,15 +720,15 @@ class ChoiceWidget(FieldWidget):
         if not value:
             return
 
-        child = self.node.children
-        while child:
+        children = self.node.getchildren()
+        for child in children:
             if etree.tostring(child) == value:
                 if not child.hasProp("set"):
                     child.newProp("set", "y")
             else:
                 child.unsetProp("set")
 
-            child = child.next
+            # child = child.next
 
 
 class MultiselectWidget(FieldWidget):
@@ -688,28 +738,43 @@ class MultiselectWidget(FieldWidget):
     :param node: ElementTree node.
     '''
 
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
+
+        self.logger = logging.getLogger("MultiselectWidget")
+        self.choices = []
+        self.widget = self.make_selector()
+        self.widget.show()
+
+        children = node.getchildren()
+        # child = node.children
+        for child in children:
+            # if child.type == "element":
+            self.parse_choice(child)
+            # child = child.next
+
     def parse_choice(self, node):
         '''
         Parse choice.
 
         :param node: ElementTree
         '''
-        if node.name != "choice":
+        if node.tag != "choice":
             return
 
         do_set = False
         for attrib, value in node.items():
             if attrib == 'set':
                 do_set = value == 'y'
-        try:
-            content = xml_unescape(etree.tostring(node.children).strip())
+
+        #try:
+        if node.text:
+            content = xml_unescape(node.text.strip())
             self.store.append(row=(do_set, content))
-            self.choices.append(do_set, content)
+            self.choices.append((do_set, content))
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Formgui",
-                     "   : MultiselectWidget/parse_choice Error: %s -%s-" %
-                     (type(err), err))
+        #except Exception:
+        #    self.logger.info("parse_choice Error", exc_info=True)
 
     def toggle(self, _rend, path):
         '''
@@ -732,7 +797,7 @@ class MultiselectWidget(FieldWidget):
         '''
         self.store = Gtk.ListStore(GObject.TYPE_BOOLEAN,
                                    GObject.TYPE_STRING)
-        self.view = Gtk.TreeView(self.store)
+        self.view = Gtk.TreeView.new_with_model(self.store)
 
         rend = Gtk.CellRendererToggle()
         rend.connect("toggled", self.toggle)
@@ -747,19 +812,6 @@ class MultiselectWidget(FieldWidget):
         self.view.set_headers_visible(False)
 
         return self.view
-
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
-
-        self.choices = []
-        self.widget = self.make_selector()
-        self.widget.show()
-
-        child = node.children
-        while child:
-            if child.type == "element":
-                self.parse_choice(child)
-            child = child.next
 
     def make_container(self):
         '''
@@ -800,8 +852,9 @@ class MultiselectWidget(FieldWidget):
             vals[name] = setval
             iter_value = self.store.iter_next(iter_value)
 
-        child = self.node.children
-        while child:
+        # child = self.node.children
+        children = self.node.getchildren()
+        for child in children:
             choice = etree.tostring(child).strip()
             if choice not in list(vals.keys()):
                 vals[choice] = False
@@ -811,7 +864,7 @@ class MultiselectWidget(FieldWidget):
             else:
                 child.setProp("set", vals[choice] and "y" or "n")
 
-            child = child.next
+            # child = child.next
 
 
 class LabelWidget(FieldWidget):
@@ -819,10 +872,11 @@ class LabelWidget(FieldWidget):
     Label Widget.
 
     :param node: Element Tree
+    :param config: Configuration object
     '''
 
-    def __init__(self, node):
-        FieldWidget.__init__(self, node)
+    def __init__(self, node, config):
+        FieldWidget.__init__(self, node, config)
         self.nolabel = True
 
     def update_node(self):
@@ -849,6 +903,7 @@ class FormField():
     Form Field.
 
     :param field: Field
+    :param config: Configuration object
     '''
     widget_types = {
         "text" : TextWidget,
@@ -861,6 +916,15 @@ class FormField():
         "multiselect" : MultiselectWidget,
         "label" : LabelWidget,
     }
+
+    def __init__(self, field, config):
+        self.node = field
+        self.config = config
+        for attrib, value in field.items():
+            if attrib == 'id':
+                self.ident = value
+
+        self.build_gui()
 
     def set_editable(self, editable):
         '''
@@ -898,7 +962,7 @@ class FormField():
 
         wtype = self.widget_types[widget_type]
 
-        field = wtype(node)
+        field = wtype(node, config=self.config)
         field.text = node.text
         field.set_caption(caption)
         field.set_id(self.ident)
@@ -942,14 +1006,6 @@ class FormField():
 
         self.widget.show()
 
-    def __init__(self, field):
-        self.node = field
-        for attrib, value in field.items():
-            if attrib == 'id':
-                self.ident = value
-
-        self.build_gui()
-
     def get_widget(self):
         '''
         Get widget.
@@ -963,43 +1019,7 @@ class FormField():
         self.entry.update_node()
 
 
-class FormguiFileException(Exception):
-    '''Formgui File Exception'''
-
-
-class FormguiFileNotValid(FormguiFileException):
-    '''Form file is not valid Exception.'''
-
-
-class FormguiFileMultipleForms(FormguiFileException):
-    '''Form file has multiple forms Exception.'''
-
-
-class FormguiFileMultipleTitles(FormguiFileException):
-    '''Form file has multiple titles Exception.'''
-
-
-class FormguiFileMultipleLogos(FormguiFileException):
-    '''Form file has multiple logos Exception.'''
-
-
-class FormguiFileMultipleIds(FormguiFileException):
-    '''Form file has multiple Ids Exception.'''
-
-
-class FormguiFileMultipleAtts(FormguiFileException):
-    '''Form file has multiple Attachment Exception.'''
-
-
-class FormguiFileDuplicateAtt(FormguiFileException):
-    '''Duplicate Attachment Exception.'''
-
-
-class FormguiFileInvalidAtt(FormguiFileException):
-    '''Invalid Attachment Exception.'''
-
-
-# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-public-methods, too-many-instance-attributes
 class FormFile():
     '''
     Form File.
@@ -1008,6 +1028,7 @@ class FormFile():
     :raises: FormguiFormfileEmpty exception
     '''
     def __init__(self, filename):
+        self.logger = logging.getLogger("FormFile")
         self._filename = filename
         try:
             self.doc = etree.parse(self._filename)
@@ -1233,8 +1254,7 @@ class FormFile():
         :param value: Value to set
         '''
         els = self.__get_xpath("//form/field[@id='%s']/entry" % field_id)
-        printlog("Formgui",
-                 "   : Setting %s to %s (%i)" % (field_id, value, len(els)))
+        self.logger.info("Setting %s to %s (%i)", field_id, value, len(els))
         if len(els) == 1:
             multiline = False
             for attrib, _val in els[0].items():
@@ -1301,12 +1321,6 @@ class FormFile():
         atts = []
         els = self.__get_xpath("//form/att")
         for element in els:
-            print("-------- FormFile/get_attachments() ------------")
-            print(etree.tostring(element).strip())
-            if element.text:
-                print(element.text.strip())
-            else:
-                print('None')
             name = None
             for attrib, value in els[0].items():
                 if attrib == 'name':
@@ -1318,15 +1332,13 @@ class FormFile():
         return atts
 
     def get_attachment(self, name):
-        '''Get attachment'''
+        '''
+        Get attachment.
+
+        :param name: Name of attachment
+        :returns: Attachment data
+        '''
         els = self.__get_xpath("//form/att[@name='%s']" % name)
-        if els:
-            print("-------- FormFile/get_attachment -name (%s) ------------" % name)
-            print(etree.tostring(els[0]).strip())
-            if els[0].text:
-                print(els[0].text.strip())
-            else:
-                print('None')
         if len(els) == 1:
             data = etree.tostring(els[0])
             data = base64.b64decode(data)
@@ -1336,13 +1348,17 @@ class FormFile():
             "Internal Error: %i attachments named `%s'" % (len(els), name))
 
     def add_attachment(self, name, data):
-        '''Add attachment'''
+        '''
+        Add attachment.
+
+        :param name: Name of attachment
+        :param data: data of attachment
+        '''
         try:
             att = self.get_attachment(name)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Formgui" "    : FormFile/add_attachment (%s -%s-)",
-                     (type(err), err))
+        except Exception:
+            self.logger.info("add_attachment", exc_info=True)
             att = None
 
         if att is not None:
@@ -1350,13 +1366,6 @@ class FormFile():
                 "Already have an attachment named `%s'" % name)
 
         els = self.__get_xpath("//form")
-        if els:
-            print("-------- FormFile/add_attachment(%s) ------------" % name)
-            print(etree.tostring(els[0]).strip())
-            if els[0].text:
-                print(els[0].text.strip())
-            else:
-                print('None')
         if len(els) == 1:
             # attnode = els[0].newChild(None, "att", None)
             attnode = etree.Element('att')
@@ -1373,13 +1382,6 @@ class FormFile():
         :param name: Name of attachment
         '''
         els = self.__get_xpath("//form/att[@name='%s']" % name)
-        if els:
-            print("-------- FormFile/del_attachment(%s) ------------" % name)
-            print(etree.tostring(els[0]).strip())
-            if els[0].text:
-                print(els[0].text.strip())
-            else:
-                print('None')
         if len(els) == 1:
             els[0].unlinkNode()
 
@@ -1388,13 +1390,49 @@ class FormDialog(FormFile, Gtk.Dialog):
     '''
     Form Dialog.
 
-    :param _title: Title not used
+    :param _title: form title not used
     :param filename: Filename for form
-    :param buttons: Optional buttons
-    :param parent: Optional parent form
+    :param _buttons: list of button tuples, Unused
+    :param parent: parent widget, Default None
+    :param config: Configuration object
     '''
+
+    def __init__(self, _title, filename,
+                 _buttons=None, parent=None, config=None):
+        # self._buttons = (Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL,
+        #                 _("Save"), Gtk.ResponseType.OK)
+        #if buttons:
+        #    self._buttons += buttons
+
+        self.config = config
+        self.logger = logging.getLogger("FormDialog")
+        Gtk.Dialog.__init__(self, parent=parent)
+        FormFile.__init__(self, filename)
+
+        # self.logger = logging.getLogger("FormDialog")
+        self.process_fields(self.doc)
+        self.set_title(self.title_text)
+        self.attbox = None
+        self._srcbox = None
+        self._dstbox = None
+
+        try:
+            x = self.config.getint("state", "form_%s_x" % self.ident)
+            y = self.config.getint("state", "form_%s_y" % self.ident)
+        except NoOptionError:
+            self.logger.info("Unable to get form_%s_* from config",
+                             self.ident)
+            x = 300
+            y = 500
+
+        self.set_default_size(x, y)
+
     def save_to(self, filename):
-        '''Save to'''
+        '''
+        Save To.
+
+        :param filename: Filename to save to
+        '''
         for field in self.fields:
             field.update_node()
         FormFile.save_to(self, filename)
@@ -1404,16 +1442,15 @@ class FormDialog(FormFile, Gtk.Dialog):
         Process fields.
 
         :param doc: XML ElementTree
+        :raises: Exception on error
         '''
         fields = doc.xpath("//form/field")
         for field in fields:
             try:
-                self.fields.append(FormField(field))
+                self.fields.append(FormField(field, config=self.config))
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Formgui",
-                         "    : FormDialog/process_fields (%s -%s-)" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("process_fields", exc_info=True)
                 raise
 
     def export(self, outfile):
@@ -1432,7 +1469,9 @@ class FormDialog(FormFile, Gtk.Dialog):
         '''
         Run auto.
 
-        :param save_file: Filename to save, Default None'''
+        :param save_file: Filename to save, Default None
+        :returns: True if response was not Cancel
+        '''
         if not save_file:
             save_file = self._filename
 
@@ -1458,8 +1497,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             self.export(outfile)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Formgui",
-                     "    : FormFile/but_save (%s -%s-)" % (type(err), err))
+            self.logger.info("but_save", exc_info=True)
 
             ed = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
                                    parent=self)
@@ -1481,7 +1519,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         outfile.close()
         self.export(name)
 
-        printlog("Formgui", "   : Exported to temporary file: %s" % name)
+        self.logger.info("Exported to temporary file: %s", name)
         dplatform.get_platform().open_html_file(name)
 
     # pylint: disable=no-self-use
@@ -1496,44 +1534,54 @@ class FormDialog(FormFile, Gtk.Dialog):
                                   buffer.get_end_iter(), True)
         checkwidget.set_text("%i" % len(message.split()))
 
+    # pylint: disable=too-many-locals
     def build_routing_widget(self):
-        '''Build routing widget.'''
-        tab = Gtk.Table.new(2, 2, False)
+        '''
+        Build routing widget.
 
-        lab = Gtk.Label.new(_("Source Callsign"))
-        lab.show()
-        tab.attach(lab, 0, 1, 0, 1, 0, 0, 2, 5)
+        :returns: Gtk.Expander object
+        '''
+        grid = Gtk.Grid.new()
 
-        lab = Gtk.Label.new(_("Destination Callsign"))
-        lab.show()
-        tab.attach(lab, 0, 1, 1, 2, 0, 0, 2, 5)
+        src_label = Gtk.Label.new(_("Source Callsign"))
+        src_label.show()
 
         srcbox = Gtk.Entry()
         srcbox.set_text(self.get_path_src())
         srcbox.set_editable(False)
         srcbox.show()
         self._srcbox = srcbox
-        tab.attach(srcbox, 1, 2, 0, 1,
-                   Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL, 0)
+
+        dst_label = Gtk.Label.new(_("Destination Callsign"))
+        dst_label.show()
 
         dstbox = Gtk.Entry()
         dstbox.set_text(self.get_path_dst())
         dstbox.show()
         self._dstbox = dstbox
-        tab.attach(dstbox, 1, 2, 1, 2,
-                   Gtk.AttachOptions.EXPAND|Gtk.AttachOptions.FILL, 0)
 
-        exp = Gtk.Expander()
-        exp.set_label(_("Routing Information"))
-        exp.add(tab)
-        tab.show()
-        exp.set_expanded(True)
-        exp.show()
+        grid.attach(src_label, 0, 0, 1, 1)
 
-        return exp
+        grid.attach_next_to(srcbox, src_label, Gtk.PositionType.RIGHT, 1, 1)
+
+        grid.attach_next_to(dst_label, srcbox, Gtk.PositionType.RIGHT, 1, 1)
+
+        grid.attach_next_to(dstbox, dst_label, Gtk.PositionType.RIGHT, 1, 1)
+
+        expander = Gtk.Expander()
+        expander.set_label(_("Routing Information"))
+        expander.add(grid)
+        grid.show()
+        expander.set_expanded(True)
+        expander.show()
+        return expander
 
     def build_path_widget(self):
-        '''Build path widget.'''
+        '''
+        Build path widget.
+
+        :returns Gtk.Expander object
+        '''
         pathels = self.get_path()
 
         pathbox = Gtk.Entry()
@@ -1549,7 +1597,11 @@ class FormDialog(FormFile, Gtk.Dialog):
 
     # pylint: disable=too-many-locals, too-many-statements
     def build_att_widget(self):
-        '''Build attachment widget.'''
+        '''
+        Build attachment widget.
+
+        :returns: Gtk.Expander object
+        '''
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
         cols = [(GObject.TYPE_STRING, "KEY"),
@@ -1561,14 +1613,14 @@ class FormDialog(FormFile, Gtk.Dialog):
         self.attbox.show()
         scrollw = Gtk.ScrolledWindow()
         scrollw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrollw.add_with_viewport(self.attbox)
+        scrollw.add(self.attbox)
         scrollw.show()
 
         hbox.pack_start(scrollw, 1, 1, 1)
 
         def item_set(_box, key):
             natt = len(self.attbox.get_keys())
-            printlog("Formgui", "   : Item %s set: %i\n" % (key, natt))
+            self.logger.info("Item %s set: %i", key, natt)
             if natt:
                 msg = _("Attachments") + " (%i)" % natt
                 attexp.set_label("<span color='blue'>%s</span>" % msg)
@@ -1634,7 +1686,6 @@ class FormDialog(FormFile, Gtk.Dialog):
         attexp.add(hbox)
         attexp.show()
 
-
         atts = self.get_attachments()
         for name, size in atts:
             self.attbox.set_item(name, name, size)
@@ -1647,45 +1698,55 @@ class FormDialog(FormFile, Gtk.Dialog):
         Build toolbar.
 
         :param editable: Editable State
+        :returns: GtkToolbar object
         '''
-        tb = Gtk.Toolbar()
+        toolbar = Gtk.Toolbar()
 
         def close(_but, *_args):
-            printlog("Formgui", "   : Closing")
+            self.logger.info("build_toolbar Closing")
             if editable:
                 dialog = ask_for_confirmation("Close without saving?", self)
                 if not dialog:
                     return True
             width, height = self.get_size()
-            self._config.set("state", "form_%s_x" % self.ident, str(width))
-            self._config.set("state", "form_%s_y" % self.ident, str(height))
+            self.config.set("state", "form_%s_x" % self.ident, str(width))
+            self.config.set("state", "form_%s_y" % self.ident, str(height))
             self.response(Gtk.ResponseType.CLOSE)
             return False
+
         def save(_but):
             self.response(RESPONSE_SAVE)
+
         def send(_but):
             self.response(RESPONSE_SEND)
+
         def svia(_but):
             self.response(RESPONSE_SEND_VIA)
+
         def reply(_but):
             self.response(RESPONSE_REPLY)
+
         def delete(_but):
             self.response(RESPONSE_DELETE)
 
         # We have to get in the way of the RESPONSE_DELETE_EVENT signal
         # to be able to catch the save
         # http://faq.pygtk.org/index.py?req=show&file=faq10.013.htp
-        def reject_delete_response(dialog, response, *_args):
-            if response == Gtk.ResponseType.DELETE_EVENT:
-                dialog.emit_stop_by_name("response")
+        # WB8TYW
+        # This is deprecated for GTK3, commenting out until I can
+        # find out what the current practice is.
+        #def reject_delete_response(_dialog, response, *_args):
+        #    if response == Gtk.ResponseType.DELETE_EVENT:
+        #        # dialog.emit_stop_by_name("response")
+        #        self.logger.info('Deprecated emit_stop_by_name')
 
-        send_tip = "Place this message in the Outbox for sending"
-        svia_tip = "Place this message in the Outbox and send it directly " +\
-            "to a specific station for relay"
-        save_tip = "Save changes to this message"
-        prnt_tip = "View the printable version of this form"
-        rply_tip = "Compose a reply to this message"
-        dele_tip = "Delete this message"
+        send_tip = _("Place this message in the Outbox for sending")
+        svia_tip = _("Place this message in the Outbox and send it directly "
+                     "to a specific station for relay")
+        save_tip = _("Save changes to this message")
+        prnt_tip = _("View the printable version of this form")
+        rply_tip = _("Compose a reply to this message")
+        dele_tip = _("Delete this message")
 
         # pylint: disable=fixme
         # FIX-ME: This should be consistent and use a null string for
@@ -1708,28 +1769,32 @@ class FormDialog(FormFile, Gtk.Dialog):
 
         #self.connect("destroy", close)
         self.connect("delete-event", close)
-        self.connect("response", reject_delete_response)
+        # WB8TYW
+        # This causes 'a please stop doing this, deprecated' notice on GTK3
+        # Have not yet found out a replacement, so commenting out to see
+        # what changes.
+        # self.connect("response", reject_delete_response)
 
         button_index = 0
         for img, lab, tip, func in buttons:
             if not lab:
-                ti = Gtk.ToolButton.new(None, img)
+                tool_button = Gtk.ToolButton.new(None, img)
             else:
                 icon = Gtk.Image()
-                icon.set_from_pixbuf(self._config.ship_img(img))
+                icon.set_from_pixbuf(self.config.ship_img(img))
                 icon.show()
-                ti = Gtk.ToolButton.new(icon, lab)
-            ti.show()
+                tool_button = Gtk.ToolButton.new(icon, lab)
+            tool_button.show()
             try:
-                ti.set_tooltip_text(tip)
+                tool_button.set_tooltip_text(tip)
             except AttributeError:
                 pass
-            ti.connect("clicked", func)
-            tb.insert(ti, button_index)
+            tool_button.connect("clicked", func)
+            toolbar.insert(tool_button, button_index)
             button_index += 1
 
-        tb.show()
-        return tb
+        toolbar.show()
+        return toolbar
 
     # pylint: disable=too-many-branches, too-many-statements
     def build_gui(self, editable=True):
@@ -1747,37 +1812,38 @@ class FormDialog(FormFile, Gtk.Dialog):
         if self.logo_path:
             image = Gtk.Image()
             try:
-                base = self._config.get("settings", "form_logo_dir")
-                printlog("Formgui",
-                         "   : Logo path: %s" %
-                         os.path.join(base, self.logo_path))
+                base = self.config.get("settings", "form_logo_dir")
+                self.logger.info("Logo path: %s",
+                                 os.path.join(base, self.logo_path))
                 image.set_from_file(os.path.join(base, self.logo_path))
                 self.vbox.pack_start(image, 0, 0, 0)
                 image.show()
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Formgui",
-                         "   : Unable to load or display logo %s: %s -%s-" %
-                         (self.logo_path, type(err), err))
+            except Exception:
+                self.logger.info("Unable to load or display logo %s",
+                                 self.logo_path, exc_info=True)
         self.vbox.pack_start(tlabel, 0, 0, 0)
 
         self.vbox.pack_start(self.build_routing_widget(), 0, 0, 0)
 
-        #field_box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
-        field_box = Gtk.Table.new(len(self.fields), 2, False)
-        row = 0
+        # field_box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
+        # field_box = Gtk.Table.new(len(self.fields), 2, False)
+        field_grid = Gtk.Grid.new()
 
-        sw = Gtk.ScrolledWindow()
-        sw.set_policy(Gtk.PolicyType.NEVER,
-                      Gtk.PolicyType.AUTOMATIC)
-        sw.add_with_viewport(field_box)
-        field_box.show()
-        sw.show()
-        self.vbox.pack_start(sw, 1, 1, 1)
+        row = 0
+        col = 0
+        scrollw = Gtk.ScrolledWindow()
+        scrollw.set_policy(Gtk.PolicyType.NEVER,
+                           Gtk.PolicyType.AUTOMATIC)
+        scrollw.add(field_grid)
+        field_grid.show()
+        scrollw.show()
+        self.vbox.pack_start(scrollw, 1, 1, 1)
 
         msg_field = None
         chk_field = None
 
+        prev_widget = None
         for field in self.fields:
             if field.ident == "_auto_check":
                 chk_field = field
@@ -1786,11 +1852,12 @@ class FormDialog(FormFile, Gtk.Dialog):
             # pylint: disable=fixme
             elif field.ident == "_auto_senderX": # FIXME
                 if not field.entry.widget.get_text():
-                    call = self._config.get("user", "callsign")
+                    call = self.config.get("user", "callsign")
                     field.entry.widget.set_text(call)
                 field.entry.widget.set_property("editable", False)
             elif field.ident == "_auto_position":
                 if not field.entry.widget.get_text():
+                    self.logger.info("import . mainapp")
                     from . import mainapp # Dirty hack
                     pos = mainapp.get_mainapp().get_position()
                     field.entry.widget.set_text(pos.coordinates())
@@ -1799,70 +1866,60 @@ class FormDialog(FormFile, Gtk.Dialog):
             label.show()
             widget = field.get_widget()
             if field.entry.vertical:
-                field_box.attach(label, 0, 2, row, row+1,
-                                 Gtk.AttachOptions.SHRINK,
-                                 Gtk.AttachOptions.SHRINK)
+                # field_box.attach(label, 0, 2, row, row+1,
+                #                  Gtk.AttachOptions.SHRINK,
+                #                  Gtk.AttachOptions.SHRINK)
+                if prev_widget:
+                    field_grid.attach_next_to(label, prev_widget,
+                                              Gtk.PositionType.BOTTOM, col, 1)
+                else:
+                    field_grid.attach(label, col, row, 1, col)
                 row += 1
-                field_box.attach(widget, 0, 2, row, row+1)
+                widget.set_hexpand(True)
+                widget.set_vexpand(True)
+                field_grid.attach_next_to(widget, label,
+                                          Gtk.PositionType.BOTTOM, col, 1)
+                prev_widget = widget
             elif field.entry.nolabel:
-                field_box.attach(widget, 0, 2, row, row+1,
-                                 Gtk.AttachOptions.SHRINK,
-                                 Gtk.AttachOptions.SHRINK)
+                # field_box.attach(widget, 0, 2, row, row+1,
+                #                  Gtk.AttachOptions.SHRINK,
+                #                  Gtk.AttachOptions.SHRINK)
+                widget.set_hexpand(True)
+                widget.set_vexpand(True)
+                if prev_widget:
+                    field_grid.attach_next_to(widget, prev_widget,
+                                              Gtk.PositionType.BOTTOM, col, 1)
+                else:
+                    field_grid.attach(widget, col, row, 1, 1)
+                prev_widget = widget
             else:
-                field_box.attach(label, 0, 1, row, row+1,
-                                 Gtk.AttachOptions.SHRINK,
-                                 Gtk.AttachOptions.SHRINK, 5)
-                field_box.attach(widget, 1, 2, row, row+1, yoptions=0)
+                # field_box.attach(label, 0, 1, row, row+1,
+                #                  Gtk.AttachOptions.SHRINK,
+                #                  Gtk.AttachOptions.SHRINK, 5)
+                if prev_widget:
+                    field_grid.attach_next_to(label, prev_widget,
+                                              Gtk.PositionType.BOTTOM, 1, 1)
+                else:
+                    field_grid.attach(label, col, row, 1, 1)
+                prev_widget = label
+                # field_box.attach(widget, 1, 2, row, row+1, yoptions=0)
+                widget.set_hexpand(True)
+                field_grid.attach_next_to(widget, label,
+                                          Gtk.PositionType.RIGHT, 1, 1)
+                col += 1
             row += 1
+            col += 1
 
         self.vbox.pack_start(self.build_att_widget(), 0, 0, 0)
         self.vbox.pack_start(self.build_path_widget(), 0, 0, 0)
 
         if msg_field and chk_field:
-            mw = msg_field.entry.buffer
-            cw = chk_field.entry.widget
+            msg_widget = msg_field.entry.buffer
+            chk_widget = chk_field.entry.widget
 
-            mw.connect("changed", self.calc_check, cw)
+            msg_widget.connect("changed", self.calc_check, chk_widget)
 
         self.set_editable(editable)
-
-    def __init__(self, _title, filename, buttons=None, parent=None):
-        self._buttons = (Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL,
-                         _("Save"), Gtk.ResponseType.OK)
-        if buttons:
-            self._buttons += buttons
-
-        Gtk.Dialog.__init__(self, buttons=(), parent=parent)
-        FormFile.__init__(self, filename)
-
-        self.process_fields(self.doc)
-        self.set_title(self.title_text)
-        self.attbox = None
-        self._srcbox = None
-        self._dstbox = None
-
-        # If this is invoked by the unit test, the mainapp class has
-        # not been initialized, so does not have a config member.
-        from . import mainapp
-        try:
-            self._config = mainapp.get_mainapp().config
-        except AttributeError:
-            from . import config
-            self._config = config.DratsConfig(self)
-            # WB8TYW: This duplication needs to be removed later.
-            self.configure(self._config)
-        try:
-            x = self._config.getint("state", "form_%s_x" % self.ident)
-            y = self._config.getint("state", "form_%s_y" % self.ident)
-        except NoOptionError as err:
-            printlog("Formgui",
-                     "   : Unable to get form_%s_*: %s" % (self.ident, err))
-            x = 300
-            y = 500
-
-        self.set_default_size(x, y)
-
-        printlog("Formgui", "   : Form ID: %s" % self.ident)
 
     def update_dst(self):
         '''Update Destination.'''
@@ -1898,15 +1955,15 @@ class FormDialog(FormFile, Gtk.Dialog):
 
 
 def main():
-    '''Main program for unit testing'''
+    '''Main program for unit testing.'''
 
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               languages=["en"],
-                               fallback=True)
-    lang.install()
+    logging.basicConfig(level=logging.INFO)
 
+    logger = logging.getLogger("FormguiTest")
     current_info = None
+
+    from . import config
+    config_data = config.DratsConfig(None)
 
     def form_done(_dlg, response, info):
         act = "unknown"
@@ -1920,10 +1977,11 @@ def main():
             act = "Delete"
         elif response == RESPONSE_SEND_VIA:
             act = "Send-Via"
-        printlog("response: %d = %s" % (response, act))
-        printlog("info: %s" % info)
+        logger.info("response: %d = %s", response, act)
+        logger.info("info: %s", info)
 
-    form = FormDialog("Form", sys.argv[1])
+    form = FormDialog("Form", sys.argv[1], config=config_data)
+
     form.connect("response", form_done, current_info)
     form.run()
     form.destroy()
