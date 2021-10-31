@@ -3,6 +3,7 @@
 # pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import gettext
+import logging
 import os
 import time
 import shutil
@@ -50,8 +52,6 @@ from d_rats.utils import log_exception
 from d_rats import signals
 from d_rats import msgrouting
 # from d_rats import wl2k
-#importing printlog() wrapper
-from ..debug import printlog
 
 _FOLDER_CACHE = {}
 
@@ -87,6 +87,7 @@ class MessageFolderInfo():
     def __init__(self, folder_path):
         self._path = folder_path
 
+        self.logger = logging.getLogger("MessageFolderInfo")
         if folder_path in _FOLDER_CACHE:
             self._config = _FOLDER_CACHE[folder_path]
         else:
@@ -125,9 +126,8 @@ class MessageFolderInfo():
         try:
             return self._config.get(filename, prop)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("MainMsgs", " : _getprop: %s -%s-" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("getprop broad-except", exc_info=True)
             return _("Unknown")
 
     def get_msg_subject(self, filename):
@@ -312,7 +312,7 @@ class MessageFolderInfo():
         :param new_name: New name for path
         '''
         newpath = os.path.join(os.path.dirname(self._path), new_name)
-        printlog("MainMsgs", " : Renaming %s -> %s" % (self._path, newpath))
+        self.logger.info("Renaming %s -> %s", self._path, newpath)
         os.rename(self._path, newpath)
         self._path = newpath
 
@@ -334,13 +334,50 @@ class MessageInfo():
 
 
 class MessageFolders(MainWindowElement):
-    '''Message Folders'''
+    '''
+    Message Folders.
+
+    :param wtree: Window tree
+    :param config: Configuration object
+    '''
 
     __gsignals__ = {
         "user-selected-folder" : (GObject.SignalFlags.RUN_LAST,
                                   GObject.TYPE_NONE,
                                   (GObject.TYPE_STRING,))
         }
+
+    # MessageFolders
+    def __init__(self, wtree, config):
+        MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
+
+        self.logger = logging.getLogger("MessageFolders")
+        # pylint: disable=unbalanced-tuple-unpacking
+        folderlist, = self._getw("folderlist")
+
+        store = Gtk.TreeStore(GObject.TYPE_STRING, GObject.TYPE_OBJECT)
+        folderlist.set_model(store)
+        folderlist.set_headers_visible(False)
+        folderlist.enable_model_drag_dest([("text/d-rats_message", 0, 0)],
+                                          Gdk.DragAction.DEFAULT)
+        folderlist.connect("drag-data-received", self._dragged_to)
+        folderlist.connect("button_press_event", self._mouse_cb)
+        folderlist.connect_after("move-cursor", self._move_cursor)
+
+        col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
+        folderlist.append_column(col)
+
+        rnd = Gtk.CellRendererText()
+        #rnd.set_property("editable", True)
+        rnd.connect("edited", self._folder_rename, store)
+        col = Gtk.TreeViewColumn("", rnd, text=0)
+        folderlist.append_column(col)
+
+        self.folder_pixbuf = self._config.ship_img("folder.png")
+
+        self._ensure_default_folders()
+        for folder in self.get_folders():
+            self._add_folders(store, None, folder)
 
     def _folders_path(self):
         path = os.path.join(self._config.platform.config_dir(), "messages")
@@ -360,8 +397,7 @@ class MessageFolders(MainWindowElement):
             return info.create_subfolder(os.path.basename(name))
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("MainMsgs", " : _create_folder: %s -%s-" %
-                     (type(err), err))
+            self.logger.info("_create_folder: broad-except", exc_info=True)
             raise FolderError("Intermediate folder of %s does not exist %s" %
                               (name, err))
 
@@ -427,12 +463,13 @@ class MessageFolders(MainWindowElement):
         for folder in BASE_FOLDERS:
             try:
                 info = self._create_folder(root, folder)
-                printlog(info.subfolders())
+                self.logger.info("_ensure_default_folders %s",
+                                 info.subfolders())
             # pylint: disable=broad-except
-            except Exception as err:
+            except Exception:
                 # Possibly temp diagnostic until verify the exact exception.
-                printlog("MainMsgs", " : _ensure_default_folders: %s -%s-" %
-                         (type(err), err))
+                self.logger.info("_ensure_default_folders broad-except",
+                                 exc_info=True)
                 # pass
 
     def _add_folders(self, store, msg_iter, root):
@@ -480,8 +517,7 @@ class MessageFolders(MainWindowElement):
                 info.rename(new_text)
             # pylint: disable=broad-except
             except Exception as err:
-                printlog("MainMsgs", " : mh (rename): %s -%s-" %
-                         (type(err), err))
+                self.logger.info("mh (rename) broad-except", exc_info=True)
                 display_error("Unable to rename: %s -%s-" % (type(err), err))
                 return
 
@@ -498,9 +534,9 @@ class MessageFolders(MainWindowElement):
         try:
             (store, msg_iter) = view.get_selection().get_selected()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("MainMsgs", " : Unable to find selected: %s -%s-" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("_move_cursor - Unable to find selected",
+                             exc_info=True)
             return
 
         self.emit("user-selected-folder",
@@ -589,21 +625,18 @@ class MessageFolders(MainWindowElement):
 
         for record in msgs:
             fname, subj, msg_type, read, send, recp = record.split("\0")
-            printlog("MainMsgs",
-                     " : Dragged %s from %s into %s" %
-                     (fname, src_folder, dst_folder))
-            printlog("MainMsgs",
-                     " :   %s %s %s %s->%s" %
-                     (subj, msg_type, read, send, recp))
+            self.logger.info("_dragged_to Dragged %s from %s into %s",
+                             fname, src_folder, dst_folder)
+            self.logger.info("_dragged_to: %s %s %s %s->%s",
+                             subj, msg_type, read, send, recp)
 
             try:
                 dst.delete(os.path.basename(fname))
             # pylint: disable=broad-except
-            except Exception as err:
+            except Exception:
                 # Possibly temp diagnostic until we find the specific
                 # expected exceptions.
-                printlog("MainMsgs", " : _dragged_to: %s -%s-" %
-                         (type(err), err))
+                self.logger.info("_dragged_to: broad-exception", exc_info=True)
                 # pass
             newfn = dst.create_msg(os.path.basename(fname))
             shutil.copy(fname, newfn)
@@ -627,43 +660,12 @@ class MessageFolders(MainWindowElement):
             info.rename(new_text)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("MainMsgs", " : _folder_rename: %s -%s-" %
-                     (type(err), err))
+            self.logger.info("_folder_rename: broad-except", exc_info=True)
             display_error("Unable to rename: %s -%s-" % (type(err), err))
             return
 
         store.set(iter, 0, new_text)
 
-    # MessageFolders
-    def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        folderlist, = self._getw("folderlist")
-
-        store = Gtk.TreeStore(GObject.TYPE_STRING, GObject.TYPE_OBJECT)
-        folderlist.set_model(store)
-        folderlist.set_headers_visible(False)
-        folderlist.enable_model_drag_dest([("text/d-rats_message", 0, 0)],
-                                          Gdk.DragAction.DEFAULT)
-        folderlist.connect("drag-data-received", self._dragged_to)
-        folderlist.connect("button_press_event", self._mouse_cb)
-        folderlist.connect_after("move-cursor", self._move_cursor)
-
-        col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
-        folderlist.append_column(col)
-
-        rnd = Gtk.CellRendererText()
-        #rnd.set_property("editable", True)
-        rnd.connect("edited", self._folder_rename, store)
-        col = Gtk.TreeViewColumn("", rnd, text=0)
-        folderlist.append_column(col)
-
-        self.folder_pixbuf = self._config.ship_img("folder.png")
-
-        self._ensure_default_folders()
-        for folder in self.get_folders():
-            self._add_folders(store, None, folder)
 
 ML_COL_ICON = 0
 ML_COL_SEND = 1
@@ -676,7 +678,12 @@ ML_COL_RECP = 7
 
 
 class MessageList(MainWindowElement):
-    '''Message List'''
+    '''
+    Message List.
+
+    :param wtree: Window Tree Object.
+    :param config: Configuration object
+    '''
 
     __gsignals__ = {"prompt-send-form" : (GObject.SignalFlags.RUN_LAST,
                                           GObject.TYPE_NONE,
@@ -689,128 +696,12 @@ class MessageList(MainWindowElement):
                                      (GObject.TYPE_STRING,)),
                     }
 
-    def _folder_path(self, folder):
-        path = os.path.join(self._config.platform.config_dir(),
-                            "messages",
-                            folder)
-        if not os.path.isdir(path):
-            return None
-        else:
-            return path
-
-    def open_msg(self, filename, editable, call_back=None, cbdata=None):
-        '''
-        Open a message.
-
-        :param filename: Filename for message
-        :param editable: If message can be edited
-        :param call_back: Callback for message
-        :param cbdata: Call back data
-        :returns: Gtk.ResponseType
-        '''
-        if not msgrouting.msg_lock(filename):
-            display_error(_("Unable to open: message in use by another task"))
-            return Gtk.ResponseType.CANCEL
-
-        print("---------MessageList/open_msg")
-        parent = self._wtree.get_object("mainwindow")
-        form = formgui.FormDialog(_("Form"), filename, parent=parent)
-        form.configure(self._config)
-
-        def form_done(dlg, response, msg_info):
-            saveable_actions = [formgui.RESPONSE_SAVE,
-                                formgui.RESPONSE_SEND,
-                                formgui.RESPONSE_SEND_VIA,
-                                ]
-            dlg.hide()
-            dlg.update_dst()
-            filename = msg_info.filename
-            info = msg_info.info
-            if msgrouting.msg_is_locked(filename):
-                msgrouting.msg_unlock(filename)
-            if response in saveable_actions:
-                printlog("MainMsgs", " : Saving to %s" % filename)
-                dlg.save_to(filename)
-            else:
-                printlog("MainMsgs", " : Not saving")
-            dlg.destroy()
-            self.refresh(filename)
-            if call_back:
-                call_back(response, cbdata)
-            if response == formgui.RESPONSE_SEND:
-                self.move_message(info, filename, _("Outbox"))
-            elif response == formgui.RESPONSE_SEND_VIA:
-                filename = self.move_message(info, filename, _("Outbox"))
-                self.emit("prompt-send-form", filename)
-            elif response == formgui.RESPONSE_REPLY:
-                self.emit("reply-form", filename)
-            elif response == formgui.RESPONSE_DELETE:
-                self.emit("delete-form", filename)
-
-        form.build_gui(editable)
-        form.show()
-        msg_info = MessageInfo(filename, self.current_info)
-        form.connect("response", form_done, msg_info)
-        return Gtk.ResponseType.OK
-
-    def _open_msg(self, view, path, _col):
-        store = view.get_model()
-        msg_iter = store.get_iter(path)
-        path, = store.get(msg_iter, ML_COL_FILE)
-
-        print("---------MessageList/_open_msg")
-        def close_msg_cb(response, info):
-            if self.current_info == info:
-                msg_iter = self.iter_from_fn(path)
-                printlog("MainMsgs", " : Updating iter for close %s" % msg_iter)
-                if msg_iter:
-                    self._update_message_info(msg_iter)
-            else:
-                printlog("MainMsgs", " : Not current, not updating")
-
-        editable = "Outbox" in path or "Drafts" in path # Dirty hack
-        self.open_msg(path, editable, close_msg_cb, self.current_info)
-        self.current_info.set_msg_read(path, True)
-        msg_iter = self.iter_from_fn(path)
-        printlog("MainMsgs", " : Updating iter %s" % msg_iter)
-        if msg_iter:
-            self._update_message_info(msg_iter)
-
-    # pylint: disable=too-many-arguments
-    def _dragged_from(self, view, _ctx, sel, _info, _ts):
-        '''
-        Dragged from.
-
-        :param view: Gtk.Widget getting signal
-        :param _ctx: Gtk.DragContex value, unused
-        :param sel: Gtk.SelectionData containing the dragged data
-        :param _info: Information registered in the Gtk.TargetList, unused
-        :param _ts: Integer timestamp of when the data was requested
-        '''
-        store, paths = view.get_selection().get_selected_rows()
-
-        msgs = [os.path.dirname(store[paths[0]][ML_COL_FILE])]
-        for path in paths:
-            data = "%s\0%s\0%s\0%s\0%s\0%s" % (store[path][ML_COL_FILE],
-                                               store[path][ML_COL_SUBJ],
-                                               store[path][ML_COL_TYPE],
-                                               store[path][ML_COL_READ],
-                                               store[path][ML_COL_SEND],
-                                               store[path][ML_COL_RECP])
-            msgs.append(data)
-
-        data = "\x01".join(msgs)
-        byte_data = data.encode('ISO-8859-1')
-        result = sel.set(sel.get_target(), 0, byte_data)
-        print("----Dragged to")
-        print("   result = %s, -%s-", (result, byte_data))
-        GObject.idle_add(self.refresh)
-
     # MessageList
     # pylint: disable=too-many-statements
     def __init__(self, wtree, config):
         MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
 
+        self.logger = logging.getLogger("MessageList")
         # pylint: disable=unbalanced-tuple-unpacking
         msglist, = self._getw("msglist")
 
@@ -903,6 +794,123 @@ class MessageList(MainWindowElement):
         self.unread_pixbuf = self._config.ship_img("msg-markunread.png")
         self.current_info = None
 
+    def _folder_path(self, folder):
+        path = os.path.join(self._config.platform.config_dir(),
+                            "messages",
+                            folder)
+        if not os.path.isdir(path):
+            return None
+        return path
+
+    def open_msg(self, filename, editable, call_back=None, cbdata=None):
+        '''
+        Open a message.
+
+        :param filename: Filename for message
+        :param editable: If message can be edited
+        :param call_back: Callback for message
+        :param cbdata: Call back data
+        :returns: Gtk.ResponseType
+        '''
+        if not msgrouting.msg_lock(filename):
+            display_error(_("Unable to open: message in use by another task"))
+            return Gtk.ResponseType.CANCEL
+
+        parent = self._wtree.get_object("mainwindow")
+        form = formgui.FormDialog(_("Form"), filename,
+                                  config=self._config, parent=parent)
+        form.configure(self._config)
+
+        def form_done(dlg, response, msg_info):
+            saveable_actions = [formgui.RESPONSE_SAVE,
+                                formgui.RESPONSE_SEND,
+                                formgui.RESPONSE_SEND_VIA,
+                                ]
+            dlg.hide()
+            dlg.update_dst()
+            filename = msg_info.filename
+            info = msg_info.info
+            if msgrouting.msg_is_locked(filename):
+                msgrouting.msg_unlock(filename)
+            if response in saveable_actions:
+                self.logger.info("open_msg: Saving to %s", filename)
+                dlg.save_to(filename)
+            else:
+                self.logger.info("open_msg : Not saving")
+            dlg.destroy()
+            self.refresh(filename)
+            if call_back:
+                call_back(response, cbdata)
+            if response == formgui.RESPONSE_SEND:
+                self.move_message(info, filename, _("Outbox"))
+            elif response == formgui.RESPONSE_SEND_VIA:
+                filename = self.move_message(info, filename, _("Outbox"))
+                self.emit("prompt-send-form", filename)
+            elif response == formgui.RESPONSE_REPLY:
+                self.emit("reply-form", filename)
+            elif response == formgui.RESPONSE_DELETE:
+                self.emit("delete-form", filename)
+
+        form.build_gui(editable)
+        form.show()
+        msg_info = MessageInfo(filename, self.current_info)
+        form.connect("response", form_done, msg_info)
+        return Gtk.ResponseType.OK
+
+    def _open_msg(self, view, path, _col):
+        store = view.get_model()
+        msg_iter = store.get_iter(path)
+        path, = store.get(msg_iter, ML_COL_FILE)
+
+        def close_msg_cb(response, info):
+            if self.current_info == info:
+                msg_iter = self.iter_from_fn(path)
+                self.logger.info("_open_msg: Updating iter for close %s",
+                                 msg_iter)
+                if msg_iter:
+                    self._update_message_info(msg_iter)
+            else:
+                self.logger.info("_open_msg: Not current, not updating")
+
+        editable = "Outbox" in path or "Drafts" in path # Dirty hack
+        self.open_msg(path, editable, close_msg_cb, self.current_info)
+        self.current_info.set_msg_read(path, True)
+        msg_iter = self.iter_from_fn(path)
+        self.logger.info("_open_msg: Updating iter %s", msg_iter)
+        if msg_iter:
+            self._update_message_info(msg_iter)
+
+    # pylint: disable=too-many-arguments
+    def _dragged_from(self, view, _ctx, sel, _info, _ts):
+        '''
+        Dragged from.
+
+        :param view: Gtk.Widget getting signal
+        :param _ctx: Gtk.DragContex value, unused
+        :param sel: Gtk.SelectionData containing the dragged data
+        :param _info: Information registered in the Gtk.TargetList, unused
+        :param _ts: Integer timestamp of when the data was requested
+        '''
+        store, paths = view.get_selection().get_selected_rows()
+
+        msgs = [os.path.dirname(store[paths[0]][ML_COL_FILE])]
+        for path in paths:
+            data = "%s\0%s\0%s\0%s\0%s\0%s" % (store[path][ML_COL_FILE],
+                                               store[path][ML_COL_SUBJ],
+                                               store[path][ML_COL_TYPE],
+                                               store[path][ML_COL_READ],
+                                               store[path][ML_COL_SEND],
+                                               store[path][ML_COL_RECP])
+            msgs.append(data)
+
+        data = "\x01".join(msgs)
+        byte_data = data.encode('ISO-8859-1')
+        result = sel.set(sel.get_target(), 0, byte_data)
+        print("----Dragged to")
+        print("   result = %s, -%s-", (result, byte_data))
+        GObject.idle_add(self.refresh)
+
+
     def _update_message_info(self, msg_iter, force=False):
         fname, = self.store.get(msg_iter, ML_COL_FILE)
 
@@ -978,7 +986,7 @@ class MessageList(MainWindowElement):
         self.refresh()
 
     def delete_selected_messages(self):
-        '''Delete Selected Messages'''
+        '''Delete Selected Messages.'''
         # pylint: disable=unbalanced-tuple-unpacking
         msglist, = self._getw("msglist")
 
@@ -1005,14 +1013,12 @@ class MessageList(MainWindowElement):
         try:
             newfn = dest.create_msg(os.path.basename(path))
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             # Same folder, or duplicate message id
-            printlog("MainMsgs", " : move_message: %s -%s-" %
-                     (type(err), err))
-
+            self.logger.info("move_message: broad-except", exc_info=True)
             return path
 
-        printlog("MainMsgs", " : Moving %s -> %s" % (path, newfn))
+        self.logger.info("move_message Moving %s -> %s", path, newfn)
         shutil.copy(path, newfn)
         info.delete(path)
 
@@ -1064,6 +1070,27 @@ class MessagesTab(MainWindowTab):
         }
 
     _signals = __gsignals__
+
+    def __init__(self, wtree, config):
+        MainWindowTab.__init__(self, wtree, config, "msg", _("Messages"))
+
+        self.logger = logging.getLogger("MessagesTab")
+        self._init_toolbar()
+        self._folders = MessageFolders(wtree, config)
+        self._messages = MessageList(wtree, config)
+        self._messages.connect("prompt-send-form", self._snd_msg)
+        self._messages.connect("reply-form", self._rpl_msg)
+        self._messages.connect("delete-form", self._del_msg)
+
+        self._folders.connect("user-selected-folder",
+                              lambda x, y: self._messages.open_folder(y))
+        self._folders.select_folder(_("Inbox"))
+
+        iport = self._wtree.get_object("main_menu_importmsg")
+        iport.connect("activate", self._importmsg)
+
+        eport = self._wtree.get_object("main_menu_exportmsg")
+        eport.connect("activate", self._exportmsg)
 
     # pylint: disable=too-many-locals
     def _new_msg(self, _button, msgtype=None):
@@ -1135,7 +1162,7 @@ class MessagesTab(MainWindowTab):
                 return
 
             if len(sel) > 1:
-                printlog("MainMsgs", " : FIXME: Warn about multiple reply")
+                self.logger.info("_rpl_msg: FIXME: Warn about multiple reply")
                 return
 
             file_name = sel[0]
@@ -1161,16 +1188,16 @@ class MessagesTab(MainWindowTab):
                 else:
                     nform.set_field_value(d_field, oldval)
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             log_exception()
-            printlog("MainMsgs", " : Failed to do reply: %s -%s" %
-                     (type(err), err))
+            self.logger.info("_rpl_msg: Failed to do reply broad-except",
+                             exc_info=True)
             return
 
         if ";" in oform.get_path_dst():
             rpath = ";".join(reversed(oform.get_path()[:-1]))
-            printlog("MainMsgs",
-                     " : mainmsg : rpath: %s (%s)" % (rpath, oform.get_path()))
+            self.logger.info("_rpl_msg: rpath: %s (%s)",
+                             rpath, oform.get_path())
             nform.set_path_dst(rpath)
         else:
             nform.set_path_dst(oform.get_path_src())
@@ -1185,8 +1212,8 @@ class MessagesTab(MainWindowTab):
 
         def close_msg_cb(response, info):
             if self._messages.current_info == info:
-                printlog("MainMsgs", " : Respone was %i (%i)" %
-                         (response, Gtk.ResponseType.CANCEL))
+                self.logger.info("_rpl_msg: Response was %i (%i)",
+                                 response, Gtk.ResponseType.CANCEL)
                 if response in [Gtk.ResponseType.CANCEL,
                                 Gtk.ResponseType.CLOSE]:
                     info.delete(newfn)
@@ -1202,10 +1229,9 @@ class MessagesTab(MainWindowTab):
             try:
                 os.remove(file_name)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("MainMsgs",
-                         " : Unable to delete %s: %s -%s-" %
-                         (file_name, type(err), err))
+            except Exception:
+                self.logger.info("_del_msg: Unable to delete %s: %s",
+                                 file_name, 'broad-except', exc_info=True)
             self._messages.refresh()
         else:
             if self._messages.current_info.name() == _("Trash"):
@@ -1221,7 +1247,7 @@ class MessagesTab(MainWindowTab):
                 return
 
             if len(sel) > 1:
-                printlog("MainMsgs", " : FIXME: Warn about multiple send")
+                self.logger.info("_snd_msg: FIXME: Warn about multiple send")
                 return
 
             file_name = sel[0]
@@ -1282,7 +1308,7 @@ class MessagesTab(MainWindowTab):
             return
 
         if len(sel) > 1:
-            printlog("MainMsgs", " : FIXME: Warn about multiple send")
+            self.logger.info("_exportmsg: FIXME: Warn about multiple send")
             return
         if sel:
             return
@@ -1411,26 +1437,6 @@ class MessagesTab(MainWindowTab):
             toolbar.insert(item, count)
             count += 1
 
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "msg", _("Messages"))
-
-        self._init_toolbar()
-        self._folders = MessageFolders(wtree, config)
-        self._messages = MessageList(wtree, config)
-        self._messages.connect("prompt-send-form", self._snd_msg)
-        self._messages.connect("reply-form", self._rpl_msg)
-        self._messages.connect("delete-form", self._del_msg)
-
-        self._folders.connect("user-selected-folder",
-                              lambda x, y: self._messages.open_folder(y))
-        self._folders.select_folder(_("Inbox"))
-
-        iport = self._wtree.get_object("main_menu_importmsg")
-        iport.connect("activate", self._importmsg)
-
-        eport = self._wtree.get_object("main_menu_exportmsg")
-        eport.connect("activate", self._exportmsg)
-
     def refresh_if_folder(self, folder):
         '''
         Refresh if folder is current.
@@ -1452,15 +1458,15 @@ class MessagesTab(MainWindowTab):
         if file_name in files:
             sent = self._folders.get_folder(_("Sent"))
             newfn = sent.create_msg(os.path.basename(file_name))
-            printlog("MainMsgs", " : Moving %s -> %s" % (file_name, newfn))
+            self.logger.info("message_sent: Moving %s -> %s",
+                             file_name, newfn)
             shutil.copy(file_name, newfn)
             outbox.delete(file_name)
             self.refresh_if_folder(_("Outbox"))
             self.refresh_if_folder(_("Sent"))
         else:
-            printlog("MainMsgs",
-                     " : Form %s sent but not in outbox" %
-                     os.path.basename(file_name))
+            self.logger.info("message_sent: Form %s sent but not in outbox",
+                             os.path.basename(file_name))
 
     def get_shared_messages(self, _for_station):
         '''

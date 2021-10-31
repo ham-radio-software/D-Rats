@@ -2,6 +2,7 @@
 # pylint: disable=too-many-lines
 '''Form Builder'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,8 +20,10 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import ast
 import os
 import glob
+import logging
 import tempfile
 import shutil
 
@@ -29,15 +32,21 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
+if __name__ == "__main__":
+    import gettext
+    # pylint: disable=invalid-name
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               fallback=True)
+    lang.install()
+    _ = lang.gettext
+
+
 from d_rats import dplatform
 from .miscwidgets import make_choice
 from .formgui import FormDialog, FormFile, xml_escape
-# from . import formgui
 
 # py3 from . import mainapp
-
-# importing printlog() wrapper
-from .debug import printlog
 
 
 class FormBuilderException(Exception):
@@ -50,6 +59,43 @@ class DuplicateFormError(FormBuilderException):
 
 class FormElementEditor(Gtk.Dialog):
     '''Form Element Editor'''
+
+    def __init__(self):
+        Gtk.Dialog.__init__(self)
+
+        self.logger = logging.getLogger("FormElementEditor")
+        self.set_title(_("Edit form element"))
+        self.add_button(_("OK"), Gtk.ResponseType.OK)
+        self.add_button(_("CANCEL"), Gtk.ResponseType.CANCEL)
+        self.entries = {}
+
+        self.set_default_size(150, 150)
+
+        self.vals = {
+            "text"      : self.make_entry_editor("text"),
+            "multiline" : self.make_entry_editor("multiline"),
+            "date"      : self.make_null_editor("date"),
+            "time"      : self.make_null_editor("time"),
+            "numeric"   : self.make_entry_editor("numeric"),
+            "toggle"    : self.make_toggle_editor("toggle"),
+            "choice"    : self.make_choice_editor("choice"),
+            "multiselect": self.make_choice_editor("multiselect", False),
+            "label"     : self.make_null_editor("label"),
+            }
+
+        self.type_sel = make_choice(list(self.vals.keys()), False, "text")
+        self.type_sel.connect("changed", self.type_changed, None)
+        self.type_sel.show()
+        self.vals["text"].show()
+
+        self.ts_frame = Gtk.Frame.new(_("Field Type"))
+        self.ts_frame.show()
+        self.ts_frame.add(self.type_sel)
+
+        self.vbox.pack_start(self.ts_frame, 0, 0, 0)
+
+        for _t, widget in self.vals.items():
+            self.vbox.pack_start(widget, 1, 1, 1)
 
     def make_entry_editor(self, ident):
         '''
@@ -131,7 +177,7 @@ class FormElementEditor(Gtk.Dialog):
         '''
         sel = box.get_active_text()
 
-        printlog("Formbuilder", " : Selected: %s" % sel)
+        self.logger.info("type_changed Selected: %s", sel)
 
         for item_t, widget in self.vals.items():
             if item_t == sel:
@@ -139,47 +185,11 @@ class FormElementEditor(Gtk.Dialog):
             else:
                 widget.hide()
 
-    def __init__(self):
-        Gtk.Dialog.__init__(self,
-                            title="Edit form element",
-                            buttons=(_("OK"), Gtk.ResponseType.OK,
-                                     _("CANCEL"), Gtk.ResponseType.CANCEL))
-
-        self.entries = {}
-
-        self.set_default_size(150, 150)
-
-        self.vals = {
-            "text"      : self.make_entry_editor("text"),
-            "multiline" : self.make_entry_editor("multiline"),
-            "date"      : self.make_null_editor("date"),
-            "time"      : self.make_null_editor("time"),
-            "numeric"   : self.make_entry_editor("numeric"),
-            "toggle"    : self.make_toggle_editor("toggle"),
-            "choice"    : self.make_choice_editor("choice"),
-            "multiselect": self.make_choice_editor("multiselect", False),
-            "label"     : self.make_null_editor("label"),
-            }
-
-        self.type_sel = make_choice(list(self.vals.keys()), False, "text")
-        self.type_sel.connect("changed", self.type_changed, None)
-        self.type_sel.show()
-        self.vals["text"].show()
-
-        self.ts_frame = Gtk.Frame.new(_("Field Type"))
-        self.ts_frame.show()
-        self.ts_frame.add(self.type_sel)
-
-        self.vbox.pack_start(self.ts_frame, 0, 0, 0)
-
-        for _t, widget in self.vals.items():
-            self.vbox.pack_start(widget, 1, 1, 1)
-
     def get_initial_value(self):
         '''
         Get initial value.
 
-        :returns: Initial value as a string
+        :returns: Initial value as a string, or empty string
         '''
         sel = self.type_sel.get_active_text()
 
@@ -192,8 +202,7 @@ class FormElementEditor(Gtk.Dialog):
             return buffer.get_text(buffer.get_start_iter(), line_iter, True)
         if sel in "toggle":
             return str(self.entries[sel].get_active())
-        else:
-            return ""
+        return ""
 
     def set_initial_value(self, val):
         '''
@@ -208,14 +217,8 @@ class FormElementEditor(Gtk.Dialog):
             return
         if sel in "toggle":
             try:
-                # pylint: disable=eval-used
-                b_active = eval(val)
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("formbuilder",
-                         "   : FormElementEditor.set_initial_value " +
-                         "broad-except (%s -%s-)" %
-                         (type(err), err))
+                b_active = ast.literal_eval(val)
+            except ValueError:
                 b_active = False
             self.entries[sel].set_active(b_active)
 
@@ -223,7 +226,7 @@ class FormElementEditor(Gtk.Dialog):
         '''
         Get Options.
 
-        :returns: String of options
+        :returns: String of options or empty string
         '''
         sel = self.type_sel.get_active_text()
         if sel == "choice":
@@ -248,28 +251,16 @@ class FormElementEditor(Gtk.Dialog):
         sel = self.type_sel.get_active_text()
         if sel == "choice":
             try:
-                # pylint: disable=eval-used
-                val_list = eval(val)
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("formbuilder",
-                         "   : FormElementEditor.set_options choice " +
-                         "broad-except (%s -%s-)" %
-                         (type(err), err))
+                val_list = ast.literal_eval(val)
+            except ValueError:
                 return
 
             buffer = self.entries[sel].get_buffer()
             buffer.set_text("\n".join(val_list))
         elif sel == "multiselect":
             try:
-                # pylint: disable=eval-used
-                val_list = eval(val)
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("formbuilder",
-                         "   : FormElementEditor.set_initial_value " +
-                         "multi-select broad-except (%s -%s-)" %
-                         (type(err), err))
+                val_list = ast.literal_eval(val)
+            except ValueError:
                 return
 
             buffer = self.entries[sel].get_buffer()
@@ -294,7 +285,38 @@ class FormElementEditor(Gtk.Dialog):
 
 # pylint: disable=too-many-instance-attributes
 class FormBuilderGUI(Gtk.Dialog):
-    '''Form Builder GUI'''
+    '''
+    Form Builder GUI.
+
+    :param: config: Configuration object
+    '''
+
+    def __init__(self, config):
+        Gtk.Dialog.__init__(self)
+
+        self.config = config
+        self.logger = logging.getLogger("FormBuilderGUI")
+        self.set_title(_("Form builder"))
+        self.add_button(_("Save"), Gtk.ResponseType.OK)
+        self.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        self.xml = None
+        self.view = None
+        self.col_id = None
+        self.col_type = None
+        self.col_cap = None
+        self.col_value = None
+        self.col_opts = None
+        self.col_inst = None
+        self.store = None
+
+        self.vbox.pack_start(self.build_formprops(), 0, 0, 0)
+        self.vbox.pack_start(self.build_fieldeditor(), 1, 1, 1)
+
+        preview = Gtk.Button.new_with_label("Preview")
+        preview.connect("clicked", self.show_preview, None)
+        preview.show()
+
+        self.action_area.pack_start(preview, 0, 0, 0)
 
     def reorder(self, move_up):
         '''
@@ -314,11 +336,8 @@ class FormBuilderGUI(Gtk.Dialog):
             if target:
                 sel_list.swap(sel_iter, target)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormElementEditor.reorder " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("reorder broad-except", exc_info=True)
             return
 
     def but_move_up(self, _widget, _data=None):
@@ -354,9 +373,8 @@ class FormBuilderGUI(Gtk.Dialog):
 
         ivalue = dialog.get_initial_value()
 
-        printlog("Formbuilder", " : Type: %s" % dialog.get_type())
-        printlog("Formbuilder", " : Initial: %s" % ivalue)
-        printlog("Formbuilder", " : Opts: %s" % dialog.get_options())
+        self.logger.info("but_add Type: %s, Initial: %s Opts: %s",
+                         dialog.get_type(), ivalue, dialog.get_options())
 
         store_iter = self.store.append()
         self.store.set(store_iter,
@@ -380,11 +398,8 @@ class FormBuilderGUI(Gtk.Dialog):
             (sel_list, sel_iter) = self.view.get_selection().get_selected()
             sel_list.remove(sel_iter)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormElementEditor.buf_delete " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("buf_delete broad-except", exc_info=True)
             return
 
     def but_edit(self, _widget, _data=None):
@@ -401,11 +416,8 @@ class FormBuilderGUI(Gtk.Dialog):
                                                  self.col_value,
                                                  self.col_opts)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormElementEditor.buf_edit " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("buf_edit broad-except", exc_info=True)
             return
 
         dialog = FormElementEditor()
@@ -447,8 +459,10 @@ class FormBuilderGUI(Gtk.Dialog):
                                    GObject.TYPE_STRING,
                                    GObject.TYPE_STRING)
 
-        self.view = Gtk.TreeView(self.store)
-        self.view.set_rules_hint(True)
+        self.view = Gtk.TreeView.new_with_model(self.store)
+        # Deprecated with GTK 3.14, from the documentation this is supposed
+        # to be controlled by the theme.
+        # self.view.set_rules_hint(True)
         self.view.show()
 
         col_list = [(self.col_id, _("ID"), True),
@@ -477,6 +491,7 @@ class FormBuilderGUI(Gtk.Dialog):
 
         return scroll_window
 
+    # pylint: disable=too-many-locals
     def make_field_xml(self, model, _path, field_iter, _):
         '''
         Make Field XML
@@ -496,15 +511,14 @@ class FormBuilderGUI(Gtk.Dialog):
 
         if val:
             val = xml_escape(val)
-        printlog("Formbuilder", " : Field type: %s" % field_type)
+        self.logger.info("make_field_xml Field type: %s", field_type)
         cap_xml = "<caption>%s</caption>" % cap
         if field_type not in ["choice", "multiselect"] and val:
             ent_xml = "<entry type='%s'>%s</entry>" % (field_type, val)
         elif field_type == "choice":
             try:
-                printlog("Formbuilder", " : Opts: %s" % opts)
-                # pylint: disable=eval-used
-                opts_list = eval(opts)
+                self.logger.info("make_field_xml Opts: %s", opts)
+                opts_list = ast.literal_eval(opts)
 
                 ent_xml = "<entry type='%s'>" % field_type
                 for c_opt in opts_list:
@@ -517,16 +531,14 @@ class FormBuilderGUI(Gtk.Dialog):
 
                 ent_xml += "</entry>"
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Formbuilder",
-                         " : Exception parsing choice list: %s -%s-" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("Exception parsing choice list",
+                                 exc_info=True)
                 ent_xml = "<!-- Invalid list: %s -->" % opts
 
         elif field_type == "multiselect":
             try:
-                # pylint: disable=eval-used
-                opts_list = eval(opts)
+                opts_list = ast.literal_eval(opts)
 
                 ent_xml = "<entry type='%s'>" % field_type
                 for v_opt, c_opt in opts_list:
@@ -534,10 +546,9 @@ class FormBuilderGUI(Gtk.Dialog):
                     ent_xml += "<choice set='%s'>%s</choice>" % (setval, c_opt)
                 ent_xml += "</entry>"
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Formbuilder",
-                         " : Exception parsing choice list: %s -%s-" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("Exception parsing choice list",
+                                 exc_info=True)
                 ent_xml = "<!-- Invalid list: %s -->" % opts
         else:
             ent_xml = "<entry type='%s'/>" % field_type
@@ -546,7 +557,7 @@ class FormBuilderGUI(Gtk.Dialog):
                                                              cap_xml,
                                                              ent_xml)
 
-        printlog("Formbuilder", " : Field XML: %s\n\n" % field_xml)
+        self.logger.info("Field XML: %s\n\n", field_xml)
 
         self.xml += field_xml
 
@@ -632,8 +643,8 @@ class FormBuilderGUI(Gtk.Dialog):
         self.props = {}
 
         frame = Gtk.Frame.new(_("Form Properties"))
-        from . import mainapp # Hack to force import of mainapp
-        path = mainapp.get_mainapp().config.get("settings", "form_logo_dir")
+        # from . import mainapp # Hack to force import of mainapp
+        path = self.config.get("settings", "form_logo_dir")
         logos = []
         for fname in glob.glob(os.path.join(path, "*.*")):
             logos.append(fname.replace(path, "")[1:])
@@ -689,10 +700,9 @@ class FormBuilderGUI(Gtk.Dialog):
 
         dialog = FormDialog("Preview of form",
                             name,
+                            config=self.config,
                             parent=self)
-        from . import mainapp # Hack for this difficult case
-        config = mainapp.get_mainapp().config
-        dialog.configure(config)
+        dialog.configure(self.config)
         dialog.run()
         dialog.destroy()
         os.remove(name)
@@ -704,10 +714,9 @@ class FormBuilderGUI(Gtk.Dialog):
         :param widget: TextWidget to load the field from
         '''
         store_iter = self.store.append()
-        printlog("Formbuilder", " : Type: %s" % widget.type)
         if widget.type in ["choice", "multiselect"]:
-            opts = widget.choices
-            printlog("Opts for %s: %s" % (widget.type, opts))
+            opts_list = widget.choices
+            opts = str(opts_list)
         else:
             opts = None
         self.store.set(store_iter,
@@ -723,7 +732,7 @@ class FormBuilderGUI(Gtk.Dialog):
 
         :param filename: Filename to open
         '''
-        form = FormDialog("", filename)
+        form = FormDialog("", filename, config=self.config)
         self.props["ID"].set_text(form.ident)
         self.props["Title"].set_text(form.title_text)
         self.props["Logo"].get_child().set_text(form.logo_path or "")
@@ -734,36 +743,39 @@ class FormBuilderGUI(Gtk.Dialog):
 
         del form
 
-    def __init__(self):
-        Gtk.Dialog.__init__(self,
-                            title="Form builder",
-                            buttons=(_("Save"), Gtk.ResponseType.OK,
-                                     _("Cancel"), Gtk.ResponseType.CANCEL))
-
-        self.xml = None
-        self.view = None
-        self.col_id = None
-        self.col_type = None
-        self.col_cap = None
-        self.col_value = None
-        self.col_opts = None
-        self.col_inst = None
-        self.store = None
-
-        print("packing a dialog")
-        self.vbox.pack_start(self.build_formprops(), 0, 0, 0)
-        self.vbox.pack_start(self.build_fieldeditor(), 1, 1, 1)
-
-        print("setting up a preview")
-        preview = Gtk.Button.new_with_label("Preview")
-        preview.connect("clicked", self.show_preview, None)
-        preview.show()
-
-        self.action_area.pack_start(preview, 0, 0, 0)
-
 
 class FormManagerGUI():
-    '''Form Manager GUI'''
+    '''
+    Form Manager GUI.
+
+    :param directory: Form directory
+    :param config: Configuration object
+    '''
+
+    def __init__(self, directory, config):
+
+        self.logger = logging.getLogger("FormManagerGUI")
+        self.dir = directory
+        self.config = config
+
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
+
+        vbox.pack_start(self.make_list(), 1, 1, 1)
+        vbox.pack_start(self.make_buttons(), 0, 0, 0)
+
+        files = glob.glob(os.path.join(directory, "*.xml"))
+        for fname in files:
+            self.add_form(fname)
+
+        vbox.show()
+
+        self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        self.window.set_title("Form Manager")
+        self.window.set_default_size(275, 300)
+
+        self.window.add(vbox)
+
+        self.window.show()
 
     def add_form(self, filename):
         '''
@@ -778,11 +790,8 @@ class FormManagerGUI():
             title = form.title_text
             del form
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormManagerGui.add_form " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("add_form broad-except", exc_info=True)
             from . import utils
             utils.log_exception()
             ident = "broken"
@@ -791,8 +800,8 @@ class FormManagerGUI():
         form_iter = self.store.get_iter_first()
         while form_iter:
             form_id, = self.store.get(form_iter, self.col_id)
-            printlog("Formbuilder",
-                     " : Checking %s against %s" % (form_id, ident))
+            self.logger.info("add_form Checking %s against %s",
+                             form_id, ident)
             if form_id == ident:
                 raise DuplicateFormError("Cannot add duplicate form `%s'"
                                          % form_id)
@@ -813,7 +822,7 @@ class FormManagerGUI():
         :param _widget: Unused Widget
         :param _data: Unused Optional data, default None
         '''
-        dialog = FormBuilderGUI()
+        dialog = FormBuilderGUI(config=self.config)
         result_code = dialog.run()
         if result_code != Gtk.ResponseType.CANCEL:
             ident = dialog.props["ID"].get_text()
@@ -836,14 +845,11 @@ class FormManagerGUI():
             (but_list, but_iter) = self.view.get_selection().get_selected()
             (filename, _id) = but_list.get(but_iter, self.col_file, self.col_id)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormManagerGui.buf_edit " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("buf_edit broad-except", exc_info=True)
             return
 
-        dialog = FormBuilderGUI()
+        dialog = FormBuilderGUI(config=self.config)
         dialog.load_from_file(filename)
         result_code = dialog.run()
         if result_code != Gtk.ResponseType.CANCEL:
@@ -873,11 +879,8 @@ class FormManagerGUI():
             sel_list.remove(sel_iter)
             os.remove(sel_file)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormManagerGui.but_delete " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("but_delete broad-except", exc_info=True)
             return
 
     def but_close(self, _widget, _data=None):
@@ -905,10 +908,7 @@ class FormManagerGUI():
             form_id = self.add_form(fname)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("formbuilder",
-                     "   : FormManagerGui.but_import" + 
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+            self.logger.info("but_import broad-except", exc_info=True)
             dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
             dialog.set_markup("<big><b>Unable to add form</b></big>")
             dialog.format_secondary_text(str(err))
@@ -928,11 +928,8 @@ class FormManagerGUI():
             (but_list, but_iter) = self.view.get_selection().get_selected()
             (filename, _id) = but_list.get(but_iter, self.col_file, self.col_id)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("formbuilder",
-                     "   : FormManagerGui.but_export " +
-                     "broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("but_export broad-except", exc_info=True)
             return
 
         platform = dplatform.get_platform()
@@ -953,8 +950,10 @@ class FormManagerGUI():
         self.store = Gtk.ListStore(GObject.TYPE_STRING,
                                    GObject.TYPE_STRING,
                                    GObject.TYPE_STRING)
-        self.view = Gtk.TreeView(self.store)
-        self.view.set_rules_hint(True)
+        self.view = Gtk.TreeView.new_with_model(self.store)
+        # Deprecated with GTK 3.14, from the documentation this is supposed
+        # to be controlled by the theme.
+        # self.view.set_rules_hint(True)
         self.view.show()
 
         col_list = [(self.col_id, _("ID")),
@@ -1001,30 +1000,21 @@ class FormManagerGUI():
 
         return hbox
 
-    def __init__(self, directory):
-        self.dir = directory
 
-        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
+def main():
+    '''Form Builder Unit test.'''
 
-        vbox.pack_start(self.make_list(), 1, 1, 1)
-        vbox.pack_start(self.make_buttons(), 0, 0, 0)
+    from . import config
+    conf = config.DratsConfig(None)
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("FormbuilderTest")
 
-        files = glob.glob(os.path.join(directory, "*.xml"))
-        for fname in files:
-            self.add_form(fname)
-
-        vbox.show()
-
-        self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
-        self.window.set_title("Form Manager")
-        self.window.set_default_size(275, 300)
-
-        self.window.add(vbox)
-
-        self.window.show()
+    form_templates = "Form_Templates"
+    if not os.path.exists(form_templates):
+        os.mkdir(form_templates)
+    logger.info('Using %s for storage.', form_templates)
+    _form_manager = FormManagerGUI(form_templates, conf)
+    Gtk.main()
 
 if __name__ == "__main__":
-    # pylint: disable=invalid-name
-    mgr = FormManagerGUI("Form_Templates")
-
-    Gtk.main()
+    main()
