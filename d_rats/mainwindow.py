@@ -30,7 +30,7 @@ import subprocess
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from gi.repository import GObject
+from gi.repository import GLib
 
 if __name__ == "__main__":
     import gettext
@@ -154,7 +154,8 @@ class MainWindow(MainWindowElement):
             self.emit("show-map-station", call)
 
         def do_message_templates(_but):
-            _d = formbuilder.FormManagerGUI(self._config.form_source_dir())
+            _d = formbuilder.FormManagerGUI(self._config.form_source_dir(),
+                                            config=self._config)
 
         def do_ping(_but):
             station_list = self.emit("get-station-list")
@@ -357,7 +358,7 @@ class MainWindow(MainWindowElement):
 
         self.__window.show()
 
-        GObject.timeout_add(3000, self.__update_status)
+        GLib.timeout_add(3000, self.__update_status)
 
     def __update_status(self):
         # printlog("Mainwin", "  : updating status")
