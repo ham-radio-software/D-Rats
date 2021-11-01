@@ -239,7 +239,7 @@ def main():
 
     logging.basicConfig(level=logging.INFO)
 
-    logger = logging.getLogger("config_test")
+    logger = logging.getLogger("spell_test")
 
     spell = Spelling()
     result = spell.test()
