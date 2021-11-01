@@ -184,16 +184,12 @@ class ConnTestAssistant(Gtk.Assistant):
             self.__values[name] = spin_button.get_value_as_int()
             return False
 
-        height = 0
         grid = Gtk.Grid()
-        grid.set_column_spacing(3)
+        grid.set_column_spacing(5)
 
         for name, start_value, increment, max_value in gridspec:
             label = Gtk.Label.new(name + ":")
             label.show()
-            #              w    l  r  t    b      x opt
-            # table.attach(lab, 0, 1, row, row+1, Gtk.AttachOptions.SHRINK)
-
             spin_button = Gtk.SpinButton.new_with_range(increment,
                                                         max_value,
                                                         increment)
@@ -201,19 +197,13 @@ class ConnTestAssistant(Gtk.Assistant):
             spin_button.set_value(start_value)
             spin_button.connect("value-changed", set_value, name)
             spin_button.show()
-            if not height:
-                label_height = max(label.get_preferred_height())
-                sb_height = max(spin_button.get_preferred_height())
-                height = max(label_height, sb_height)
 
-            grid.attach(label, 0, row, 1, height)
+            grid.attach(label, 0, row, 1, 1)
             grid.attach_next_to(spin_button, label, Gtk.PositionType.RIGHT,
-                                1, height)
-
-            # table.attach(val, 1, 2, row, row+1, Gtk.AttachOptions.SHRINK)
+                                1, 1)
             set_value(spin_button, name)
 
-            row += height
+            row += 1
         return grid
 
     def make_gradmulti_settings(self):
@@ -222,7 +212,6 @@ class ConnTestAssistant(Gtk.Assistant):
 
         :returns: Gtk.Grid object
         '''
-        # table = Gtk.Table.new(8, 2, False)
         rows = [
             (_("Attempts per size"), 3.0, 1.0, 10),
             (_("Increment size"), 256, 128, 1024),
@@ -238,8 +227,6 @@ class ConnTestAssistant(Gtk.Assistant):
 
         :returns: Gtk.Grid object
         '''
-        # table = Gtk.Table.new(2, 2, False)
-
         rows = [
             (_("Packet size"), 256, 128, 4096),
             (_("Number of packets"), 10, 1, 60)]
@@ -273,60 +260,40 @@ class ConnTestAssistant(Gtk.Assistant):
         :returns: Gtk.Grid object
         '''
         grid = Gtk.Grid()
-        # table = Gtk.Table.new(3, 4, False)
+        grid.set_column_spacing(10)
 
-        col = 0
-        row = 0
-        height = 0
-        width = 0
+        grid_col = 0
         for i in ["", _("Sent"), _("Received"), _("Total")]:
             label = Gtk.Label.new(i)
 
             label.show()
-            if not height:
-                height = max(label.get_preferred_height())
-                grid.set_row_spacing(height)
-            label_width = (max(label.get_preferred_width()))
-            width = (max(width, label_width))
-
-            #           w    l    t  r-l+1  b - t + 1
-            grid.attach(label, col, 0, 2, 2)
-            #              w   l     r     t   b
-            # table.attach(lab, col, col+1, 0, 1)
-            col += 1
+            grid.attach(label, grid_col, 0, 1, 1)
+            grid_col += 1
 
         label = Gtk.Label.new(_("Packets"))
         label.show()
-        label_width = (max(label.get_preferred_width()))
-        width = (max(width, label_width))
 
-        grid.attach(label, 0, 1, 2, 2)
-        # table.attach(lab, 0, 1, 1, 2)
+        grid.attach(label, 0, 1, 1, 1)
 
         label = Gtk.Label.new(_("Bytes"))
         label.show()
-        label_width = (max(label.get_preferred_width()))
-        width = (max(width, label_width))
-        grid.set_column_spacing(width + 2)
-        grid.attach(label, 0, 2, 2, 2)
-        # table.attach(lab, 0, 1, 2, 3)
+        grid.attach(label, 0, 2, 1, 1)
 
         self.__stats_vals = {}
 
         spec = [("ps", "pr", "pt"),
                 ("bs", "br", "bt")]
 
-        _row = 1
+        grid_row = 1
         for row in spec:
-            _col = 1
+            grid_col = 1
             for col in row:
-                lab = Gtk.Label.new()
-                lab.show()
-                self.__stats_vals[col] = lab
-                grid.attach(lab, _col, _row, 2, 2)
-                #table.attach(lab, _col, _col+1, _row, _row+1)
-                _col += 1
-            _row += 1
+                label = Gtk.Label.new()
+                label.show()
+                self.__stats_vals[col] = label
+                grid.attach(label, grid_col, grid_row, 1, 1)
+                grid_col += 1
+            grid_row += 1
 
         grid.show()
         return grid
