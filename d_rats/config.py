@@ -934,23 +934,12 @@ class DratsPanel(Gtk.Grid):
     :param config: DratsConfig object
     '''
 
-    # INITIAL_ROWS = 13
-    # INITIAL_COLS = 2
-
     def __init__(self, config):
         Gtk.Grid.__init__(self)
-        # Gtk.Table.__init__(self, self.INITIAL_ROWS, self.INITIAL_COLS)
-        # self.set_column_spacing(1)
         self.config = config
         self.vals = []
 
-        #for _ in range(1, self.INITIAL_COLS):
-        #    self.insert_column()
         self.row = 0
-        # self.rows = 0
-        # self.rows = self.INITIAL_ROWS
-        #for _ in range(1, self.rows):
-        #    self.insert_row()
 
         self.logger = logging.getLogger("DratsPanel")
 
@@ -962,17 +951,11 @@ class DratsPanel(Gtk.Grid):
         :param title: Title for widget
         :param *args: Optional arguments
         '''
-        #if self.row+1 == self.rows:
-        #    self.rows += 1
-        #    self.logger.info("Resizing box to %i", self.rows)
-        #    self.insert_row()
 
         hbox = Gtk.Box.new(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
 
         label = Gtk.Label.new(title)
-        # Label seems to have a default width of 50.
         label.show()
-        label_height = max(label.get_preferred_height())
 
         for i in args:
             i.show()
@@ -986,17 +969,10 @@ class DratsPanel(Gtk.Grid):
                 hbox.pack_start(i, 0, 0, 0)
 
         hbox.show()
-        hbox_height = max(hbox.get_preferred_height())
-        height = max(label_height, hbox_height)
-        # table=attach(widget, left:0, right:1, top:row bottom:row+1)
-        # self.attach(lab, 0, 1, self.row, self.row+1,
-        #             Gtk.AttachOptions.SHRINK, Gtk.AttachOptions.SHRINK, 5)
-        self.attach(label, 0, self.row, 1, height)
-        # self.attach(hbox, 1, 2, self.row, self.row+1,
-        #            yoptions=Gtk.AttachOptions.SHRINK)
-        self.attach_next_to(hbox, label, Gtk.PositionType.RIGHT, 1, height)
+        self.attach(label, 0, self.row, 1, 1)
+        self.attach_next_to(hbox, label, Gtk.PositionType.RIGHT, 1, 1)
 
-        self.row += height
+        self.row += 1
 
     def message_group(self, title, *args):
         '''
@@ -1008,20 +984,8 @@ class DratsPanel(Gtk.Grid):
         if len(args) % 2:
             raise ConfigMessageGroupError("Need label,widget pairs")
 
-        # table = Gtk.Table.new(len(args)/2, 2, False)
         grid = Gtk.Grid.new()
-        # grid.self.insert_column()
-        # grid.self.insert_column()
-        # num_rows = len(args)/2
-        # if _ in range(1, num_rows):
-        #    grid.self.insert_row()
-        # grid.set_column_spacing(1)
         row = 0
-
-        # k = {"yoptions" : Gtk.AttachOptions.SHRINK,
-        #     "xoptions" : Gtk.AttachOptions.SHRINK,
-        #     "xpadding" : 10,
-        #     "ypadding" : 0}
 
         for i in range(0, len(args), 2):
             label = Gtk.Label.new(args[i])
@@ -1029,29 +993,19 @@ class DratsPanel(Gtk.Grid):
 
             label.show()
             widget.show()
-            label_height = max(label.get_preferred_height())
-            widget_height = max(widget.get_preferred_height())
-            row_height = max(label_height, widget_height)
-
-            # table.attach(label, 0, 1, row, row+1, **k)
-            grid.attach(label, 0, row, 2, label_height)
-            # table.attach(widget, 1, 2, row, row+1, **k)
+            grid.attach(label, 0, row, 2, 1)
             grid.attach_next_to(widget, label, Gtk.PositionType.RIGHT,
-                                1, widget_height)
-            row += row_height
+                                1, 1)
+            row += 1
 
-        # table.show()
         grid.show()
-        height = max(grid.get_preferred_height())
 
         frame = Gtk.Frame.new(title)
         frame.show()
-        # frame.add(table)
         frame.add(grid)
 
-        # self.attach(frame, 1, 2, self.row, self.row+1)
-        self.attach(frame, 1, self.row, 3, 2)
-        self.row += height
+        self.attach(frame, 1, self.row, 1, 1)
+        self.row += 1
 
 
 class DratsPrefsPanel(DratsPanel):
