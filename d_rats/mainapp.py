@@ -4,6 +4,7 @@
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 
+import logging
 import os
 import sys
 
@@ -35,7 +37,7 @@ import time
 import socket
 try:
     # pylint: disable=import-error
-    from commands import getstatusoutput
+    from commands import getstatusoutput # type: ignore
 except ModuleNotFoundError:
     pass
 
@@ -51,17 +53,25 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk          # to manage windows objects
 from gi.repository import GObject      # to manage multitasking
+from gi.repository import GLib
 
 #importing printlog() wrapper
 from .debug import printlog
 from . import dplatform
 
+if not '_' in locals():
+    _ = gettext.gettext
+
+logging.basicConfig(level=logging.INFO)
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("Mainapp")
+
 # pylint: disable=invalid-name
 debug_path = dplatform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
-    sys.stdout = open(debug_path, "w", 0)
+    sys.stdout = open(debug_path, "w")
     sys.stderr = sys.stdout
-    printlog("Mainapp", "  : Enabled debug log for Win32 systems")
+    module_logger.info("Enabled debug log for Win32 systems")
 else:
     try:
         os.unlink(debug_path)
@@ -69,7 +79,7 @@ else:
         pass
 
 # load the basic d-rats labels - it will load the localized translation later
-gettext.install("D-RATS")
+# gettext.install("D-RATS")
 
 # these modules are imported from the d_rats folder
 from . import mainwindow
@@ -138,7 +148,11 @@ def ping_file(filename):
     Ping file.
 
     checks if the file passed as parameter can be opened
-    :raises: MainappFileOpenError if unable to open file
+    :param filename: Filename to test open
+    :type filename: str
+    :returns: File data
+    :rtype: bytes
+    :raises: :class:`MainappFileOpenError` if unable to open file
     '''
     try:
         fhandle = NetFile(filename, "r")
@@ -157,6 +171,10 @@ def ping_exec(command):
     Ping exec
 
     Checks if the command passed as parameter can be opened
+
+    :param command: Command to try
+    :type command: str
+    :returns: Output of command
     :raises: MainappExecError if the ping fails.
     '''
     scmd, ocmd = getstatusoutput(command)
@@ -166,23 +184,34 @@ def ping_exec(command):
 
 
 class CallList():
-    '''Call List'''
+    '''Call List.'''
 
     def __init__(self):
+        self.logger = logging.getLogger("CallList")
         self.clear()
 
     def clear(self):
-        '''Clear call list data'''
+        '''Clear call list data.'''
         self.data = {}
 
     def set_call_pos(self, call, pos):
-        '''Set call position'''
+        '''
+        Set call position.
+
+        :param call: Call sign
+        :param pos: Position
+        '''
         (call_time, _) = self.data.get(call, (0, None))
 
         self.data[call] = (call_time, pos)
 
     def set_call_time(self, call, tset=None):
-        '''Set call time'''
+        '''
+        Set call time.
+
+        :param call: Callsign
+        :param tset: Time to set
+        '''
         if tset is None:
             tset = time.time()
 
@@ -191,7 +220,12 @@ class CallList():
         self.data[call] = (tset, pos)
 
     def get_call_pos(self, call):
-        '''Get call position'''
+        '''
+        Get call position.
+
+        :param call: Call sigh
+        :returns: Position
+        '''
         (_, pos) = self.data.get(call, (0, None))
         return pos
 
@@ -213,11 +247,9 @@ class CallList():
         try:
             del self.data[call]
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             # broad/bare exceptions make debugging harder
-            printlog("Mainapp",
-                     "   : CallList/remove broad-except (%s -%s-)" %
-                     (type(err), err))
+            self.logger.info("remove had broad-except", exc_info=True)
             raise
             # pass
 
@@ -229,6 +261,123 @@ class MainApp():
 
     :param __args: Not used, Ignored
     '''
+
+    #pylint: disable=too-many-statements
+    def __init__(self, **_args):
+        self.logger = logging.getLogger("MainApp")
+        self.handlers = {
+            "status" : self.__status,
+            "user-stop-session" : self.__user_stop_session,
+            "user-cancel-session" : self.__user_cancel_session,
+            "user-send-form" : self.__user_send_form,
+            "user-send-file" : self.__user_send_file,
+            "rpc-send-form" : self.__user_send_form,
+            "rpc-send-file" : self.__user_send_file,
+            "user-send-chat" : self.__user_send_chat,
+            "incoming-chat-message" : self.__incoming_chat_message,
+            "outgoing-chat-message" : self.__outgoing_chat_message,
+            "get-station-list" : self.__get_station_list,
+            "get-message-list" : self.__get_message_list,
+            "submit-rpc-job" : self.__submit_rpc_job,
+            "event" : self.__event,
+            "notice" : False,
+            "config-changed" : self.__config_changed,
+            "show-map-station" : self.__show_map_station,
+            "ping-station" : self.__ping_station,
+            "ping-station-echo" : self.__ping_station_echo,
+            "ping-request" : self.__ping_request,
+            "ping-response" : self.__ping_response,
+            "incoming-gps-fix" : self.__incoming_gps_fix,
+            "station-status" : self.__station_status,
+            "get-current-status" : self.__get_current_status,
+            "get-current-position" : self.__get_current_position,
+            "session-status-update" : self.__session_status_update,
+            "session-started" : self.__session_started,
+            "session-ended" : self.__session_ended,
+            "file-received" : self.__file_received,
+            "form-received" : self.__form_received,
+            "file-sent" : self.__file_sent,
+            "form-sent" : self.__form_sent,
+            "get-chat-port" : self.__get_chat_port,
+            "trigger-msg-router" : self.__trigger_msg_router,
+            "register-object" : self.__register_object,
+            }
+
+        # pylint: disable=global-statement
+        global MAINAPP
+        MAINAPP = self
+
+        self.comm = None
+        self.smgr = {}
+        self.seen_callsigns = CallList()
+        self.position = None
+        self.mail_threads = {}
+        self.__unused_pipes = {}
+        self.__pipes = {}
+        self.pop3srv = None
+        self.msgrouter = None
+        self.plugsrv = None
+        self.config = config.DratsConfig(self)
+        self._refresh_lang()
+
+        self._announce_self()
+
+        message = _("Since this is your first time running D-RATS, " +
+                    "you will be taken directly to the configuration " +
+                    "dialog.  At a minimum, put your callsign in the " +
+                    "box and click 'Save'.  You will be connected to " +
+                    "the ratflector initially for testing.")
+
+        # if user callsign is not present, ask the user to fill in the
+        # basic info
+        while self.config.get("user", "callsign") == "":
+            dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
+            dialog.set_markup(message)
+            dialog.run()
+            dialog.destroy()
+            if not self.config.show():
+                raise MainappConfigCanceled("User canceled configuration")
+            message = _("You must enter a callsign to continue")
+
+        # load position from config
+        self.logger.info("load position from config file")
+        self.gps = self._static_gps()
+
+        # create map instance
+        self.logger.info("create map window object-----")
+        self.map = mapdisplay.MapWindow(self.config)
+        self.map.set_title("D-RATS Map Window - map in use: %s" %
+                           self.config.get("settings", "maptype"))
+        self.map.connect("reload-sources", lambda m: self._load_map_overlays())
+        self.logger.info("create map window object: connect object-----")
+        self.__connect_object(self.map)
+
+        self.logger.info("query local gps device to see our current position")
+        pos = self.get_position()
+        self.map.set_center(pos.latitude, pos.longitude)
+        self.map.set_zoom(14)
+        self.__map_point = None
+
+        self.logger.info("load main window with self config")
+        self.mainwindow = mainwindow.MainWindow(self.config)
+
+        self.logger.info("connect main window")
+        self.__connect_object(self.mainwindow)
+        self.logger.info("connect tabs")
+        for tab in self.mainwindow.tabs.values():
+            self.__connect_object(tab)
+
+        self.logger.info("invoke config refresh")
+        self.refresh_config()
+        self._load_map_overlays()
+
+        if self.config.getboolean("prefs", "dosignon") and self.chat_session:
+            self.logger.info("going online")
+            msg = self.config.get("prefs", "signon")
+            status = station_status.STATUS_ONLINE
+            for port in self.smgr:
+                self.chat_session(port).advertise_status(status, msg)
+        GLib.timeout_add(3000, self._refresh_location)
 
     def callback_gps(self, lat, lng, station="", comments=""):
         '''
@@ -253,43 +402,40 @@ class MainApp():
                   '"comments": "%s","timestamp": "%s"  }' \
                   % (flat, flng, station, comments,
                      strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-        printlog("Mainapp", "   : preparing our gpsfix in JSON :", message)
+        self.logger.info("preparing our gpsfix in JSON :%s", message)
 
         try:
             # create an AF_INET, STREAM socket (TCP)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except socket.error as err:
-            printlog("Mainapp",
-                     "   :  Failed to create socket. Error code: %s " % err)
+        except socket.error:
+            self.logger.info("Failed to create socket.", exc_info=True)
             raise
-        printlog("Mainapp", "  :  Socket Created")
+        self.logger.info("Socket Created")
 
         # Connect to remote server
-        printlog("Mainapp", "   :  Connecting to: ",
-                 mapserver_ip, ":", mapserver_port)
+        self.logger.info("Connecting to: %s:%s",
+                         mapserver_ip, mapserver_port)
         try:
             # create an AF_INET, STREAM socket (TCP)
             sock.connect((mapserver_ip, mapserver_port))
 
-            printlog("Mainapp", "   : message to send:", message)
+            self.logger.info("message to send: %s", message)
             try:
                 # Set the whole string
                 sock.sendall(message)
                 sock.close()
-            except socket.error as err:
+            except socket.error:
                 # Send failed
-                printlog("Mainapp",
-                         "   :  Send failed of:", message, "(%s)" % err)
+                self.logger.info("Send failed of: %s", message, exc_info=True)
                 sys.exit()
 
-            printlog("Mainapp", "    :  Message sent successfully")
+            self.logger.info("Message sent successfully")
 
-        except socket.error as err:
-            printlog("Mainapp",
-                     "    :  Failed to create socket. Error code: %s" % err)
+        except socket.error:
+            self.logger.info("Failed to create socket.", exc_info=True)
             sock.close()
             sock = None
-        printlog("Mainapp", "   :  Socket Created")
+        self.logger.info("Socket Created")
 
     # pylint: disable=no-self-use
     def setup_autoid(self):
@@ -303,6 +449,8 @@ class MainApp():
         Stop communications.
 
         :param portid: Port id for communications
+        :returns: True if all communication is stopped.
+        :rtype: bool
         '''
         if portid in self.smgr:
             smgr, scomm = self.smgr[portid]
@@ -331,26 +479,24 @@ class MainApp():
                 sport = int(sport)
                 dport = int(dport)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mainapp   ",
-                         ": Failed to parse TCP forward config %s: (%s -%s-)" %
-                         (forward, type(err), err))
+            except Exception:
+                self.logger.info("Failed to parse TCP forward config %s:",
+                                 forward, exc_info=True)
                 # return
                 # broad/bare exceptions make debugging harder
-                raise err
+                raise
 
             try:
                 sconn.create_socket_listener(sport, dport, station)
-                printlog("Mainapp",
-                         "   : Started socket listener %i:%i@%s" %
-                         (sport, dport, station))
+                self.logger.info("Started socket listener %i:%i@%s",
+                                 sport, dport, station)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mainapp   ",
-                         ": Failed to start socket listener %i:%i@%s: %s -%s-" %
-                         (sport, dport, station, type(err), err))
+            except Exception:
+                self.logger.info(
+                    "Failed to start socket listener %i:%i@%s:",
+                    sport, dport, station, exc_info=True)
                 # broad/bare exceptions make debugging harder
-                raise err
+                raise
 
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     def start_comms(self, portid):
@@ -358,9 +504,10 @@ class MainApp():
         Start communications.
 
         :param portid: Port ID for communications
-        :raises: MainappPortStartedError if the port can not be started
+        :raises: :class:`MainappPortStartedError`: if the port can not
+                 be started
         '''
-        printlog("Mainapp", "   : Starting Comms")
+        self.logger.info("Starting Comms")
         # load from the "ports" config the line related to portid
         spec = self.config.get("ports", portid)
         try:
@@ -370,12 +517,12 @@ class MainApp():
             dosniff = (dosniff == "True")  # means traffic sniffing to be active
             raw = (raw == "True")          # means raw to be active
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   : Failed to parse portspec %s: (%s -%s-)" %
-                     (spec, type(err), err))
+        except Exception:
+            self.logger.info("Start_comms: Failed to parse portspec %s",
+                             spec, exc_info=True)
             log_exception()
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
             # return
 
         if not enb:
@@ -384,17 +531,17 @@ class MainApp():
                 del self.smgr[name]
             return
 
-        printlog("Mainapp", "   : Starting port %s (%s)" % (portid, name))
+        self.logger.info("start_comms: Starting port %s (%s)", portid, name)
 
         call = self.config.get("user", "callsign")
 
         if port in self.__unused_pipes:
             path = self.__unused_pipes[port]
             del self.__unused_pipes[port]
-            printlog("Mainapp",
-                     "   : Re-using path %s for port %s" % (path, port))
+            self.logger.info("start_comms: Re-using path %s for port %s",
+                             path, port)
         elif port.startswith("tnc-ax25:"):
-            printlog("Mainapp", "   : Port %s as tnc-ax25" %  port)
+            self.logger.info("start_comms: Port %s as tnc-ax25", port)
             _tnc, _port, tncport, path = port.split(":")
             path = path.replace(";", ",")
             _port = "%s:%s" % (_port, tncport)
@@ -406,7 +553,7 @@ class MainApp():
             path = comm.SocketDataPath(("127.0.0.1", 20003, call, None))
         elif port.startswith("agwpe:"):
             path = comm.AGWDataPath(port, 0.5)
-            printlog("Mainapp", "   : Opening AGW: %s" % path)
+            self.logger.info("start_comms: Opening AGW: %s", path)
         elif ":" in port:
             try:
                 (_mode, host, sport) = port.split(":")
@@ -531,14 +678,14 @@ class MainApp():
     def check_comms_status(self):
         '''Check communication statuses.'''
         # added in 0.3.10
-        printlog("Mainapp", "   : Check ports status ")
-        printlog("Mainapp", "   : Ports expected to be already started:")
+        self.logger.info(
+            "check_comms_status: Ports expected to be already started:")
         for portid in self.smgr:
             printlog("Mainapp", "   : %s" % portid)
 
-        printlog("Mainapp", "   : Checking all Ports from config:")
+        self.logger.info("check_comms_status: Checking all Ports from config:")
         for portid in self.config.options("ports"):
-            printlog("Mainapp", "   : portid %s" % portid)
+            self.logger.info("check_comms_status: portid %s", portid)
 
             # load from the "ports" config the line related to portid
             spec = self.config.get("ports", portid)
@@ -550,24 +697,26 @@ class MainApp():
                                                 # active
                 raw = (raw == "True")           # means raw to be active
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mainapp",
-                         "   : Failed to parse portspec %s: (%s -%s-)" %
-                         (spec, type(err), err))
+            except Exception:
+                self.logger.info(
+                    "check_comms_status: Failed to parse portspec %s: %s",
+                    spec, "broad-except", exc_info=True)
                 log_exception()
                 # broad/bare exceptions make debugging harder
-                raise err
+                raise
                 # return
 
             if name in self.__pipes:
-                printlog("Mainapp", "   : Port %s already started!" % name)
+                self.logger.info("check_comms_status: Port %s already started!",
+                                 name)
             else:
-                printlog("Mainapp", "   : Port %s not started" % name)
+                self.logger.info("check_comms_status: Port %s not started",
+                                 name)
 
     def check_stations_status(self):
         '''Check stations status.'''
         # added in 0.3.10
-        printlog("Mainapp", "   : Check stations")
+        self.logger.info("Check stations Status")
         # pylint: disable=no-member
         station_list = self.emit("get-station-list")
         stations = []
@@ -575,16 +724,17 @@ class MainApp():
             stations += [str(x) for x in portlist]
             # pylint: disable=no-member
             station, port = prompt_for_station(stations, self._config)
-            printlog("Mainapp",
-                     "   : Stations %s resulting on port %s" % station, port)
+            self.logger.info(
+                "check_stations_status: Stations %s resulting on port %s",
+                station, port)
 
     def _refresh_comms(self):
-        '''Refresh communications'''
+        '''Refresh communications.'''
         delay = False
-        printlog("Mainapp", "   : refreshing comms")
+        self.logger.info("refresh comms")
 
         for portid in list(self.smgr):
-            printlog("Mainapp", "   : Stopping %s" % portid)
+            self.logger.info("_refresh_comms: Stopping %s", portid)
             if self.stop_comms(portid):
                 if sys.platform == "win32":
                     # Wait for windows to let go the serial port
@@ -594,12 +744,13 @@ class MainApp():
             time.sleep(0.25)
 
         for portid in self.config.options("ports"):
-            printlog("Mainapp", "   : Re-Starting %s" % portid)
+            self.logger.info("_refresh_comms: Re-Starting %s", portid)
             self.start_comms(portid)
 
         for spec, path in self.__unused_pipes.items():
-            printlog("Mainapp",
-                     "   : Path %s for port %s no longer needed" % (path, spec))
+            self.logger.info(
+                "_refresh_comms: Path %s for port %s no longer needed",
+                path, spec)
             path.disconnect()
 
         self.__unused_pipes = {}
@@ -610,7 +761,12 @@ class MainApp():
         # self.check_stations_status()
 
     def _static_gps(self):
-        '''Static GPS Coordinates'''
+        '''
+        Static GPS Coordinates.
+
+        :returns: GPS coordinates
+        :rtype: :class:`StaticGPSSource`
+        '''
         # initialize the variables to store our local position data fetched
         # from configuration
         lat = 0.0
@@ -627,36 +783,36 @@ class MainApp():
             mapserver_active = self.config.get("settings", "mapserver_active")
 
         # pylint: disable=broad-except
-        except Exception as err:
-            import traceback
-            traceback.print_exc(file=sys.stdout)
-            printlog("Mainapp", "   : Invalid static position: (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            # import traceback
+            # traceback.print_exc(file=sys.stdout)
+            self.logger.info(
+                "_static_gps: Invalid static position: broad-except",
+                err_info=True, stack_info=True)
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
-        printlog("Mainapp",
-                 "   : Configuring the Static position: %s,%s" % (lat, lon))
+        self.logger.info("_static_gps: Configuring the Static position: %s,%s",
+                         lat, lon)
 
         # Call the mapserver to update our position sweeper
         if mapserver_active == "True":
-            printlog("Mainapp",
-                     "   : Mapserver active:", mapserver_active,
-                     "call: ", call)
-            self.callback_gps(lat, lon, call, "altitude: "+alt)
+            self.logger.info("_static_gps: Mapserver active: %s ca;; %s",
+                             mapserver_active, call)
+            self.callback_gps(lat, lon, call, "altitude: " + alt)
         else:
-            printlog("Mainapp",
-                     "   : Mapserver not active: %s, call:; %s" %
-                     (mapserver_active, call))
+            self.logger.info(
+                "_static_gps: Mapserver not active: %s, call: %s",
+                mapserver_active, call)
         return gps.StaticGPSSource(lat, lon, alt)
 
     def _refresh_gps(self):
-        '''Refresh gps'''
+        '''Refresh gps.'''
         port = self.config.get("settings", "gpsport")
         rate = self.config.getint("settings", "gpsportspeed")
         enab = self.config.getboolean("settings", "gpsenabled")
 
-        printlog('Mainapp', "   : GPS: %s on %s@%i" % (enab, port, rate))
+        self.logger.info("_refresh_gps : GPS: %s on %s@%i", enab, port, rate)
 
         if enab:
             if self.gps:
@@ -674,7 +830,7 @@ class MainApp():
             self.gps = self._static_gps()
 
     def _refresh_mail_threads(self):
-        '''Refresh mail threads'''
+        '''Refresh mail threads.'''
         for key, value in self.mail_threads.items():
             value.stop()
             del self.mail_threads[key]
@@ -687,9 +843,9 @@ class MainApp():
             try:
                 mthread = emailgw.PeriodicAccountMailThread(self.config, acct)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mainapp", "   : Refresh mail threads: (%s -%s-)" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("Refresh mail threads: broad-except",
+                                 exc_info=True)
                 log_exception()
                 # broad/bare exceptions make debugging harder
                 # raise err
@@ -704,12 +860,13 @@ class MainApp():
                 smtpsrv.start()
                 self.mail_threads["SMTPSRV"] = smtpsrv
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   : Unable to start SMTP server: (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info(
+                "_refresh_mail_threads: Unable to start SMTP server: %s",
+                "broad-except", exc_info=True)
             log_exception()
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
         try:
             if self.config.getboolean("settings", "msg_pop3_server"):
@@ -717,14 +874,16 @@ class MainApp():
                 pop3srv.start()
                 self.mail_threads["POP3SRV"] = pop3srv
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   : Unable to start POP3 server: %s" % err)
+        except Exception:
+            self.logger.info(
+                "_refresh_mail_threads: Unable to start POP3 server: %s",
+                "broad-except", exc_info=True)
             log_exception()
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
     def _refresh_lang(self):
-        '''Refresh Language'''
+        '''Refresh Language.'''
         # load the localized labels
         locales = {"English" : "en",
                    "German" : "de",
@@ -732,34 +891,38 @@ class MainApp():
                    "Dutch" : "nl",
                    }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        printlog("Mainapp", "   : Loading locale `%s'" % locale)
+        self.logger.info("_refresh_lang: Loading locale `%s'", locale)
 
         localedir = os.path.join(dplatform.get_platform().source_dir(),
                                  "locale")
-        printlog("Mainapp", "   : Locale dir is: %s" % localedir)
+        self.logger.info("_refresh_lang: Locale dir is: %s", localedir)
 
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
 
         try:
+            # pylint: disable=global-statement
+            global _
             lang = gettext.translation("D-RATS",
                                        localedir=localedir,
                                        languages=[locale])
             lang.install()
-            Gtk.glade.bindtextdomain("D-RATS", localedir)
-            Gtk.glade.textdomain("D-RATS")
-        except LookupError as err:
-            printlog("Mainapp", "   : Unable to load language `%s' (%s)" %
-                     (locale, err))
+            _ = lang.gettext
+
+            # Gtk.glade.bindtextdomain("D-RATS", localedir)
+            # Gtk.glade.textdomain("D-RATS")
+        except LookupError:
+            self.logger.info("_refresh_lang: Unable to load language `%s'",
+                             locale, exc_info=True)
             gettext.install("D-RATS")
-        except IOError as err:
-            printlog("Mainapp",
-                     "   : Unable to load translation for %s: (%s)" %
-                     (locale, err))
+            _ = gettext.gettext
+        except IOError:
+            self.logger.info("_refresh_lang: Unable to load translation for %s",
+                             locale, exc_info=True)
             gettext.install("D-RATS")
 
     def _load_map_overlays(self):
-        '''Load Map Overlays'''
+        '''Load Map Overlays.'''
         self.stations_overlay = None
 
         self.map.clear_map_sources()
@@ -773,14 +936,18 @@ class MainApp():
                 # pylint: disable=not-callable
                 sources = stype.enumerate(self.config)
             # pylint: disable=broad-except
-            except Exception as err:
+            except TypeError:
+                self.logger.info("_load_map_overlays not working for python3",
+                                 exc_info=True)
+                sources = []
+            except Exception:
                 from . import utils
                 utils.log_exception()
-                printlog("Mainapp",
-                         "   : Failed to load source type %s (%s -%s-)" %
-                         (stype, type(err), err))
+                self.logger.info(
+                    "_load_map_overlays: Failed to load source type %s: %s",
+                    stype, "broad-except", exc_info=True)
                 # broad/bare exceptions make debugging harder
-                raise err
+                raise
                 # continue
 
             for sname in sources:
@@ -789,13 +956,13 @@ class MainApp():
                     source = stype.open_source_by_name(self.config, sname)
                     self.map.add_map_source(source)
                 # pylint: disable=broad-except
-                except Exception as err:
+                except Exception:
                     log_exception()
-                    printlog("Mainapp",
-                             "   : Failed to load map source %s: (%s -%s-)" %
-                             (source.get_name(), type(err), err))
+                    self.logger.info(
+                        "_load_map_overlays: Failed to load map source %s: %s",
+                        source.get_name(), "broad-except", exc_info=True)
                     # broad/bare exceptions make debugging harder
-                    raise err
+                    raise
                 if sname == _("Stations"):
                     self.stations_overlay = source
 
@@ -804,15 +971,11 @@ class MainApp():
                                  "static_locations",
                                  _("Stations") + ".csv")
             try:
+                # python 3 can be set to not raise this error
                 os.makedirs(os.path.dirname(fname))
-            # pylint: disable=broad-except
-            except Exception as err:
-                # broad/bare exceptions make debugging harder
-                printlog("Mainapp",
-                         "   : _load_map_overlays broad-except (%s -%s-)" %
-                         (type(err), err))
-                raise err
-                # pass
+            except OSError as err:
+                if err.errno != 17:  # File or directory exists
+                    raise
             open(fname, "w").close()
             self.stations_overlay = map_sources.MapFileSource(_("Stations"),
                                                               "Static Overlay",
@@ -820,7 +983,7 @@ class MainApp():
 
     def refresh_config(self):
         '''Refresh config.'''
-        printlog("Mainapp", "   : Refreshing config...")
+        self.logger.info("Refreshing config...")
 
         _call = self.config.get("user", "callsign")
         gps.set_units(self.config.get("user", "units"))
@@ -831,8 +994,13 @@ class MainApp():
         self._refresh_map()
 
     def _refresh_map(self):
-        '''Refresh Map'''
-        printlog("Mainapp", "   : reconfigure Mapwindow with new map")
+        '''
+        Refresh Map.
+
+        :returns: True
+        :rtype: bool
+        '''
+        self.logger.info("_refresh_map: reconfigure Mapwindow with new map")
 
         # setup of the url for retrieving the map tiles depending
         # on the preference
@@ -870,7 +1038,12 @@ class MainApp():
         return True
 
     def _refresh_location(self):
-        '''Refresh Position'''
+        '''
+        Refresh Position.
+
+        :returns: True
+        :rtype: bool
+        '''
         fix = self.get_position()
 
         if not self.__map_point:
@@ -890,13 +1063,12 @@ class MainApp():
             comment = self.config.get("settings", "default_gps_comment")
             fix.APRSIcon = gps.dprs_to_aprs(comment)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   :  refresh position error (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("_refresh_location broad-except", exc_info=True)
             log_exception()
             fix.APRSIcon = "\\?"
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
         self.__map_point.set_icon_from_aprs_sym(fix.APRSIcon)
 
         self.stations_overlay.add_point(self.__map_point)
@@ -906,9 +1078,17 @@ class MainApp():
 
     # pylint: disable=too-many-arguments
     def __chat(self, src, dst, data, incoming, port):
-        ''' Chat internal
+        '''
+        Chat internal.
 
-            Here we manage the chat messages both incoming and outgoing
+        Here we manage the chat messages both incoming and outgoing
+
+        :param src: Source
+        :param dst: Destination
+        :param data: Chat data
+        :param incoming: True if message is incoming
+        :type incoming: bool
+        :param port: Radio port
         '''
         if self.plugsrv:
             self.plugsrv.incoming_chat_message(src, dst, data)
@@ -949,26 +1129,44 @@ class MainApp():
 # ---------- STANDARD SIGNAL HANDLERS --------------------
 
     def __status(self, _obj, status):
-        '''status internal'''
+        '''
+        status internal.
+
+        :param _obj: Unused
+        :param status: Status
+        '''
         self.mainwindow.set_status(status)
 
     def __user_stop_session(self, _obj, sid, port, force=False):
-        '''User Stop Session'''
-        printlog("Mainapp",
-                 "   : User did stop session %i (force=%s)" % (sid, force))
+        '''
+        User Stop Session.
+
+        :param _obj: Unused
+        :param sid: Session ID
+        :param port: Radio port
+        :param force: True to force session stop
+        :type force: bool
+        '''
+        self.logger.info("User did stop session %i (force=%s)", sid, force)
         try:
             smgr, _sc = self.smgr[port]
             session = smgr.sessions[sid]
             session.close(force)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   : Session `%i' not found: (%s -%s-)" %
-                     (sid, type(err), err))
+        except Exception:
+            self.logger.info("__user_stop_session: Session `%i' not found",
+                             sid, exc_info=True)
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
     def __user_cancel_session(self, obj, sid, port):
-        '''User Cancel Session'''
+        '''
+        User Cancel Session.
+
+        :param obj: Widget
+        :param sid: Session ID
+        :param port: Radio port
+        '''
         self.__user_stop_session(obj, sid, port, True)
 
     # pylint: disable=too-many-arguments
@@ -986,15 +1184,31 @@ class MainApp():
 
     # pylint: disable=too-many-arguments
     def __user_send_file(self, _obj, station, port, fname, sname):
-        '''User Send File'''
+        '''
+        User Send File.
+
+        :param _obj: Unused
+        :param station: Station
+        :param port: Radio Port
+        :param fname: Filename
+        :param sname: Session Name
+        '''
         self.sc(port).send_file(station, fname, sname)
 
     # pylint: disable=too-many-arguments
     def __user_send_chat(self, _obj, station, port, msg, raw):
-        '''User send Chat
+        '''
+        User send Chat.
 
-           This event is generated by pluginsrv/send_chat function while
-           listening from the arriving messages
+        This event is generated by pluginsrv/send_chat function while
+        listening from the arriving messages
+
+        :param _obj: unused
+        :param station: Station
+        :param port: Radio port
+        :param msg: Chat message
+        :param raw: True if raw mode
+        :type raw: bool
         '''
         if raw:
             self.chat_session(port).write_raw(msg)
@@ -1003,7 +1217,15 @@ class MainApp():
 
     # pylint: disable=too-many-arguments
     def __incoming_chat_message(self, _obj, src, dst, data, port=None):
-        '''Incoming Chat Message'''
+        '''
+        Incoming Chat Message.
+
+        :param _obj: Unused
+        :param src: Source
+        :param dst: Destination
+        :param data: Chat message data
+        :param port: Radio port, Default None
+        '''
         if dst not in ["CQCQCQ", self.config.get("user", "callsign")]:
             # This is not destined for us
             return
@@ -1011,7 +1233,15 @@ class MainApp():
 
     # pylint: disable=too-many-arguments
     def __outgoing_chat_message(self, _obj, src, dst, data, port=None):
-        '''Outgoing Chat Message'''
+        '''
+        Outgoing Chat Message.
+
+        :param _obj: Unused
+        :param src: Source
+        :param dst: Destination
+        :param data: Chat data
+        :param port: Radio port
+        '''
         self.__chat(src, dst, data, False, port)
 
     def __get_station_list(self, _obj):
@@ -1020,7 +1250,8 @@ class MainApp():
 
         Used to get a dict of currently known stations indexed
         by the radio port the station was associated with.
-        :param obj: Unused object passed to handler
+
+        :param _obj: Unused object passed to handler
         :returns: Dict of station objects
         '''
         stations = {}
@@ -1038,38 +1269,87 @@ class MainApp():
         return stations
 
     def __get_message_list(self, _obj, station):
-        '''Get Message List'''
+        '''
+        Get Message List.
+
+        :param _obj: Unused
+        :param station: Station
+        :returns: Message list
+        '''
         return self.mainwindow.tabs["messages"].get_shared_messages(station)
 
     def __submit_rpc_job(self, _obj, job, port):
-        '''Submit RPC Job'''
+        '''
+        Submit RPC Job.
+
+        :param _obj: Unused
+        :param job: job
+        :param port: Radio Port
+        '''
         self.rpc_session(port).submit(job)
 
     def __event(self, _obj, event):
-        '''Event'''
+        '''
+        Event.
+
+        :param _obj: Unused
+        :param event: Event
+        '''
         self.mainwindow.tabs["event"].event(event)
 
     def __config_changed(self, _obj):
-        '''Config Changed'''
+        '''
+        Config Changed.
+
+        :param _obj: Unused
+        '''
         self.refresh_config()
 
     def __show_map_station(self, _obj, _station):
-        '''Show Map of Stations'''
-        printlog("Mainapp", "   : Showing Map Window")
+        '''
+        Show Map of Station.
+
+        :param _obj: Unused
+        :param _station: Unused
+        '''
+        self.logger.info("Showing Map Window")
         self.map.show()
 
     def __ping_station(self, _obj, station, port):
-        '''Ping Station'''
+        '''
+        Ping Station.
+
+        :param _obj: Unused
+        :param station: Station
+        :param port: Radio port
+        '''
         self.chat_session(port).ping_station(station)
 
     def __ping_station_echo(self, _obj, station, port,
                             data, callback, cb_data):
-        '''Ping Station Echo'''
+        '''
+        Ping Station Echo.
+
+        :param _obj: Unused
+        :param station: Remote station
+        :param port: Radio Port
+        :param data: Ping data
+        :param callback: Callback function
+        :param cb_data: Callback data
+        '''
         self.chat_session(port).ping_echo_station(station, data,
                                                   callback, cb_data)
 
     def __ping_request(self, _obj, src, dst, data, port):
-        '''Ping Request'''
+        '''
+        Ping Request.
+
+        :param _obj: unused
+        :param src: Source
+        :param dst: Destination
+        :param data: Ping data
+        :param port: Radio Port
+        '''
         msg = "%s pinged %s [%s]" % (src, dst, port)
         if data:
             msg += " (%s)" % data
@@ -1078,14 +1358,29 @@ class MainApp():
         self.mainwindow.tabs["event"].event(event)
 
     def __ping_response(self, _obj, src, dst, data, port):
-        '''Ping Response'''
+        '''
+        Ping Response.
+
+        :param _obj: Unused
+        :param src: Source
+        :param dst: Destination
+        :param data: Ping data
+        :param port: Radio port
+        '''
         msg = "%s replied to ping from %s with: %s [%s]" % (src, dst,
                                                             data, port)
         event = main_events.PingEvent(None, msg)
         self.mainwindow.tabs["event"].event(event)
 
     def __incoming_gps_fix(self, _obj, fix, port):
-        '''Incoming GPS Fix'''
+        '''
+        Incoming GPS Fix.
+
+        :param _obj: Unused
+        :param fix: GPS fix information
+        :param port: Radio Port
+        :return: Map source
+        '''
         tstation = self.mainwindow.tabs["event"].last_event_time(fix.station)
         if (time.time() - tstation) > 300:
             self.mainwindow.tabs["event"].finalize_last(fix.station)
@@ -1102,17 +1397,19 @@ class MainApp():
                 return maps
 
             try:
-                printlog(("Mainapp   :  Creating a map source for %s" % station))
+                self.logger.info(
+                    "__incoming_gps_fix:  Creating a map source for %s",
+                    station)
                 # pylint: disable=not-callable
                 maps = map_sources.MapFileSource.open_source_by_name(
                     self.config, station, True)
             # pylint: disable=broad-except
-            except Exception as err:
+            except Exception:
                 # Unable to create or add so use "Stations" overlay
-                printlog("Mainapp", "   : source for station (%s -%s-)" %
-                         (type(err), err))
+                self.logger.info("source for station broad-except",
+                                 exc_info=True)
                 # broad/bare exceptions make debugging harder
-                raise err
+                raise
                 # return self.stations_overlay
 
             self.map.add_map_source(maps)
@@ -1133,7 +1430,8 @@ class MainApp():
                                        fix.comment)
         if fix.APRSIcon is None:
             point.set_icon_from_aprs_sym('\\?')
-            printlog("Mainapp", "   : APRSIcon missing - forced to: \\? ")
+            self.logger.info(
+                "__incoming_gps_fix: APRSIcon missing - forced to: \\? ")
         else:
             point.set_icon_from_aprs_sym(fix.APRSIcon)
 
@@ -1146,36 +1444,45 @@ class MainApp():
             mapserver_active = self.config.get("settings", "mapserver_active")
 
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             import traceback
             traceback.print_exc(file=sys.stdout)
-            printlog("Mainapp", "   : Invalid static position: (%s -%s-)" %
-                     (type(err), err))
+            self.logger.info(
+                "__incoming_gps_fix: Invalid static position: broad-except",
+                exc_info=True)
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
         # Send captured position to the mapserver to update our position sweeper
         if mapserver_active == "True":
-            printlog("Mainapp",
-                     "   : Export to external mapserver active: %s"
-                     " -- sending gps fix" % mapserver_active)
+            self.logger.info("__incoming_gps_fix:"
+                             " Export to external mapserver active: %s"
+                             " -- sending gps fix",
+                             mapserver_active)
             # self.callback_gps(lat, lon, call, "altitude: "+alt)
             self.callback_gps(fix.latitude, fix.longitude, station=fix.station,
                               comments="altitude: " + str(fix.altitude))
         else:
-            printlog("Mainapp",
-                     "   : Export to external mapserver not active: %s" %
-                     mapserver_active)
+            self.logger.info(
+                "__incoming_gps_fix:"
+                " Export to external mapserver not active: %s",
+                mapserver_active)
         return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)
 
     def __station_status(self, _obj, sta, stat, msg, port):
-        '''Station Status'''
+        '''
+        Station Status.
+
+        :param _obj: Unused
+        :param sta: Station
+        :param stat: Status
+        :param port: Radio Port
+        '''
         self.mainwindow.tabs["stations"].saw_station(sta, port, stat, msg)
         try:
             status = station_status.get_status_msgs()[stat]
         except KeyError:
-            printlog("Mainapp", "    : Invalid station_status of %d." %
-                     stat)
+            self.logger.info("Invalid station_status of %d.", stat)
             status = "code %d" % stat
 
         event = main_events.Event(None,
@@ -1187,7 +1494,13 @@ class MainApp():
         self.mainwindow.tabs["event"].event(event)
 
     def __get_current_status(self, _obj, _port):
-        '''Get Current Status'''
+        '''
+        Get Current Status.
+
+        :param _obj: Unused
+        :port _port: Unused
+        :returns: status
+        '''
         return self.mainwindow.tabs["stations"].get_status()
 
     def __get_current_position(self, _obj, station):
@@ -1196,7 +1509,10 @@ class MainApp():
 
         :param _obj: Unused object that emitted signal
         :param station: Station to get position of
-        :raises: MainappStationNotFound if the station is not found
+        :type station: str
+        :returns: GPS Position
+        :rtype: :class:`GPSPosition`
+        :raises: :class:`MainappStationNotFound`: if the station is not found
         '''
         if station is None:
             return self.get_position()
@@ -1212,27 +1528,49 @@ class MainApp():
         raise MainappStationNotFound("Station not found")
 
     def __session_started(self, _obj, id_name, msg, port):
-        '''Session Started Internal
+        '''
+        Session Started Internal.
 
-           Don't register Chat, RPC, Sniff
+        Don't register Chat, RPC, Sniff
+        :param _obj: Unused
+        :param id_name: Id name
+        :param msg: Message
+        :param port: Radio Port
+        :returns: event widget
+        :rtype: :class:`SessionEvent`
         '''
         if id_name and id_name <= 3:
             return None
         if id_name == 0:
             msg = "Port connected"
 
-        printlog("Mainapp", "   : [SESSION %i]: %s" % (id_name, msg))
+        self.logger.info("Session Started In: [SESSION %i]: %s", id_name, msg)
 
         event = main_events.SessionEvent(id_name, port, msg)
         self.mainwindow.tabs["event"].event(event)
         return event
 
     def __session_status_update(self, obj, id_name, msg, port):
-        '''Session Status Update'''
+        '''
+        Session Status Update.
+
+        :param obj: Object for status
+        :param id_name: Id name
+        :param msg: Message
+        :param port: Radio Port
+        '''
         self.__session_started(obj, id_name, msg, port)
 
     def __session_ended(self, obj, id_name, msg, restart_info, port):
-        '''Session Ended'''
+        '''
+        Session Ended.
+
+        :param obj: unused
+        :param id_name: Id Name
+        :param msg: Message
+        :param restart_info: Restart information
+        :param port: Radio port, default=None
+        '''
         # Don't register Control, Chat, RPC, Sniff
         if id_name <= 4:
             return
@@ -1249,11 +1587,17 @@ class MainApp():
 
     # pylint: disable=too-many-locals
     def __form_received(self, _obj, id_name, fname, port=None):
-        '''Form Received'''
+        '''
+        Form Received.
+
+        :param _obj: Unused
+        :param id_name: Id name
+        :param fname: Form name
+        :param port: Radio port, default None'''
         if port:
             id_name = "%s_%s" % (id_name, port)
 
-        printlog("Mainapp", "   : [NEWFORM %s]: %s" % (id_name, fname))
+        self.logger.info("__form_received: [NEWFORM %s]: %s", id_name, fname)
         ffile = formgui.FormFile(fname)
 
         msg = '%s "%s" %s %s' % (_("Message"),
@@ -1272,12 +1616,13 @@ class MainApp():
         bounce = "@" in src and "@" in dst
         isseen = myc in ffile.get_path()[:-1]
 
-        printlog("Mainapp", "   : Decision: " + \
-            "fwd:%s " % fwd_on + \
-            "sendable:%s " % is_dst + \
-            "next:%s " % nextst + \
-            "bounce:%s " % bounce + \
-            "seen:%s " % isseen)
+        self.logger.info("__form_received: Decision: "
+                         "fwd:%s "
+                         "sendable:%s "
+                         "next:%s "
+                         "bounce:%s "
+                         "seen:%s ",
+                         fwd_on, is_dst, nextst, bounce, isseen)
 
         if fwd_on and is_dst and not bounce and not isseen:
             msg += " (%s %s)" % (_("forwarding to"), nextst)
@@ -1295,7 +1640,14 @@ class MainApp():
         self.mainwindow.tabs["event"].event(event)
 
     def __file_received(self, _obj, id_name, fname, port=None):
-        '''File Received'''
+        '''
+        File Received.
+
+        :param _obj: Unused
+        :param id_name: id_name
+        :param fname: File name
+        :param port: Radio port, default None
+        '''
         if port:
             id_name = "%s_%s" % (id_name, port)
         _fn = os.path.basename(fname)
@@ -1306,11 +1658,18 @@ class MainApp():
         self.mainwindow.tabs["event"].event(event)
 
     def __form_sent(self, _obj, id_name, fname, port=None):
-        '''Form Sent'''
+        '''
+        Form Sent.
+
+        :param _obj: Unused
+        :param id_name: id_name
+        :param fname: Form name
+        :param port: Radio port, default None
+        '''
         self.msgrouter.form_xfer_done(fname, port, False)
         if port:
             id_name = "%s_%s" % (id_name, port)
-        printlog("Mainapp", "   : [FORMSENT %s]: %s" % (id_name, fname))
+        self.logger.info("[FORMSENT %s]: %s", id_name, fname)
         event = main_events.FormEvent(id, _("Message Sent"))
         event.set_as_final()
 
@@ -1318,10 +1677,17 @@ class MainApp():
         self.mainwindow.tabs["event"].event(event)
 
     def __file_sent(self, _obj, id_name, fname, port=None):
-        '''File sent'''
+        '''
+        File sent.
+
+        :param _obj: Unused
+        :param id_name: id name
+        :param fname: File name
+        :param port: Radio port, default None
+        '''
         if port:
             id_name = "%s_%s" % (id_name, port)
-        printlog("Mainapp   : [FILESENT %s]: %s" % (id_name, fname))
+        self.logger.info("[FILESENT %s]: %s", id_name, fname)
         _fn = os.path.basename(fname)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Sent"))
         event = main_events.FileEvent(id_name, msg)
@@ -1330,11 +1696,21 @@ class MainApp():
         self.mainwindow.tabs["event"].event(event)
 
     def __get_chat_port(self, _obj):
-        '''Get Chat Port'''
+        '''
+        Get Chat Port.
+
+        :param _obj: Unused
+        :returns: port used for chat
+        '''
         return self.mainwindow.tabs["chat"].get_selected_port()
 
     def __trigger_msg_router(self, _obj, account):
-        '''Trigger msg router'''
+        '''
+        Trigger message router.
+
+        :param _obj: Unused
+        :param account: Email account
+        '''
         if not account:
             self.msgrouter.trigger()
         elif account == "@WL2K":
@@ -1349,13 +1725,18 @@ class MainApp():
             mthread.start()
 
     def __register_object(self, _parent, obj):
-        '''Register Object'''
+        '''Register Object.'''
         self.__connect_object(obj)
 
 # ------------ END SIGNAL HANDLERS ----------------
 
     def __connect_object(self, obj, *args):
-        '''Connect Object'''
+        '''
+        Connect Object to handler.
+
+        :param obj: object to connect
+        :param `*args`: Variable arguments
+        '''
         # pylint: disable=protected-access
         for signal in obj._signals.keys():
             handler = self.handlers.get(signal, None)
@@ -1367,141 +1748,25 @@ class MainApp():
                 try:
                     obj.connect(signal, handler, *args)
                 # pylint: disable=broad-except
-                except Exception as err:
-                    printlog("Mainapp",
-                             "   : Failed to attach signal %s (%s -%s-)" %
-                             (signal, type(err), err))
+                except Exception:
+                    self.logger.info(
+                        "__connect_object: Failed to attach signal %s :%s",
+                        signal, "broad-except", exc_info=True)
                     raise
 
     def _announce_self(self):
         '''Announce self.'''
-        printlog("Mainapp",
-                 "   : D-RATS v%s starting at %s" %
-                 (version.DRATS_VERSION, time.asctime()))
-        printlog("Mainapp", "   : %s " % dplatform.get_platform())
-
-    def __init__(self, **_args):
-        self.handlers = {
-            "status" : self.__status,
-            "user-stop-session" : self.__user_stop_session,
-            "user-cancel-session" : self.__user_cancel_session,
-            "user-send-form" : self.__user_send_form,
-            "user-send-file" : self.__user_send_file,
-            "rpc-send-form" : self.__user_send_form,
-            "rpc-send-file" : self.__user_send_file,
-            "user-send-chat" : self.__user_send_chat,
-            "incoming-chat-message" : self.__incoming_chat_message,
-            "outgoing-chat-message" : self.__outgoing_chat_message,
-            "get-station-list" : self.__get_station_list,
-            "get-message-list" : self.__get_message_list,
-            "submit-rpc-job" : self.__submit_rpc_job,
-            "event" : self.__event,
-            "notice" : False,
-            "config-changed" : self.__config_changed,
-            "show-map-station" : self.__show_map_station,
-            "ping-station" : self.__ping_station,
-            "ping-station-echo" : self.__ping_station_echo,
-            "ping-request" : self.__ping_request,
-            "ping-response" : self.__ping_response,
-            "incoming-gps-fix" : self.__incoming_gps_fix,
-            "station-status" : self.__station_status,
-            "get-current-status" : self.__get_current_status,
-            "get-current-position" : self.__get_current_position,
-            "session-status-update" : self.__session_status_update,
-            "session-started" : self.__session_started,
-            "session-ended" : self.__session_ended,
-            "file-received" : self.__file_received,
-            "form-received" : self.__form_received,
-            "file-sent" : self.__file_sent,
-            "form-sent" : self.__form_sent,
-            "get-chat-port" : self.__get_chat_port,
-            "trigger-msg-router" : self.__trigger_msg_router,
-            "register-object" : self.__register_object,
-            }
-
-        # pylint: disable=global-statement
-        global MAINAPP
-        MAINAPP = self
-
-        self.comm = None
-        self.smgr = {}
-        self.seen_callsigns = CallList()
-        self.position = None
-        self.mail_threads = {}
-        self.__unused_pipes = {}
-        self.__pipes = {}
-        self.pop3srv = None
-        self.msgrouter = None
-        self.plugsrv = None
-        self.config = config.DratsConfig(self)
-        self._refresh_lang()
-
-        self._announce_self()
-
-        message = _("Since this is your first time running D-RATS, " +
-                    "you will be taken directly to the configuration " +
-                    "dialog.  At a minimum, put your callsign in the " +
-                    "box and click 'Save'.  You will be connected to " +
-                    "the ratflector initially for testing.")
-
-        # if user callsign is not present, ask the user to fill in the
-        # basic info
-        while self.config.get("user", "callsign") == "":
-            dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
-            dialog.set_markup(message)
-            dialog.run()
-            dialog.destroy()
-            if not self.config.show():
-                raise MainappConfigCanceled("User canceled configuration")
-            message = _("You must enter a callsign to continue")
-
-        # load position from config
-        printlog("Mainapp", "   : load position from config file")
-        self.gps = self._static_gps()
-
-        # create map instance
-        printlog("Mainapp", "   : create map window object-----")
-        self.map = mapdisplay.MapWindow(self.config)
-        self.map.set_title("D-RATS Map Window - map in use: %s" %
-                           self.config.get("settings", "maptype"))
-        self.map.connect("reload-sources", lambda m: self._load_map_overlays())
-        printlog("Mainapp",
-                 "   : create map window object: connect object-----")
-        self.__connect_object(self.map)
-
-        printlog("Mainapp",
-                 "   : query local gps device to see our current position")
-        pos = self.get_position()
-        self.map.set_center(pos.latitude, pos.longitude)
-        self.map.set_zoom(14)
-        self.__map_point = None
-
-        printlog("Mainapp", "   : load main window with self config")
-        self.mainwindow = mainwindow.MainWindow(self.config)
-
-        printlog("Mainapp", "   : connect main window")
-        self.__connect_object(self.mainwindow)
-        printlog("Mainapp", "   : connect tabs")
-        for tab in self.mainwindow.tabs.values():
-            self.__connect_object(tab)
-
-        printlog("Mainapp", "   : invoke config refresh")
-        self.refresh_config()
-        self._load_map_overlays()
-
-        if self.config.getboolean("prefs", "dosignon") and self.chat_session:
-            printlog("Mainapp", "   : going online")
-            msg = self.config.get("prefs", "signon")
-            status = station_status.STATUS_ONLINE
-            for port in self.smgr:
-                self.chat_session(port).advertise_status(status, msg)
-        GObject.timeout_add(3000, self._refresh_location)
+        self.logger.info("D-RATS v%s starting at %s on %s",
+                         version.DRATS_VERSION,
+                         time.asctime(),
+                         dplatform.get_platform())
 
     def get_position(self):
         '''
         Get position.
 
         :returns: Position
+        :rtype: GPSPosition
         '''
         pos = self.gps.get_position()
         pos.set_station(self.config.get("user", "callsign"))
@@ -1509,12 +1774,11 @@ class MainApp():
             pos.set_station(self.config.get("user", "callsign"),
                             self.config.get("settings", "default_gps_comment"))
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             # broad/bare exceptions make debugging harder
-            printlog("Mainapp",
-                     "   : get_position broad-except (%s -%s-)" %
-                     (type(err), err))
-            raise err
+            self.logger.info("get_position broad-except (%s -%s-)",
+                             exc_info=True)
+            raise
             # pass
         return pos
 
@@ -1535,12 +1799,12 @@ class MainApp():
             try:
                 _routeto, station, port = line.split()
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mainapp",
-                         "   : Line %i of %s not valid (%s, %s)" %
-                         (lno, routes, type(err), err))
+            except Exception:
+                self.logger.info(
+                    "load_static_routes: Line %i of %s not valid: %s",
+                    lno, routes, "broad-except", exc_info=True)
                 # broad/bare exceptions make debugging harder
-                raise err
+                raise
                 # continue
 
             self.mainwindow.tabs["stations"].saw_station(station.upper(), port)
@@ -1555,7 +1819,7 @@ class MainApp():
                             "*",
                             ".lock*")
         for lock in glob.glob(path):
-            printlog(("Mainapp   : Removing stale message lock %s" % lock))
+            self.logger.info("Removing stale message lock %s", lock)
             os.remove(lock)
 
     def main(self):
@@ -1572,31 +1836,28 @@ class MainApp():
                 needupd = \
                     (os.path.getmtime(form) > os.path.getmtime(user_fname))
             # pylint: disable=broad-except
-            except Exception as err:
+            except Exception:
                 needupd = True
                 # broad/bare exceptions make debugging harder
-                printlog("Mainapp", "   : main Exception %s -%s- thrown." %
-                         (type(err), err))
+                self.logger.info("main broad-exception thrown.", exc_info=True)
                 raise
             if not os.path.exists(user_fname) or needupd:
-                printlog("Mainapp",
-                         "   : Installing dist form %s -> %s" %
-                         (fname, user_fname))
+                self.logger.info("Installing dist form %s -> %s",
+                                 fname, user_fname)
                 try:
                     shutil.copyfile(form, user_fname)
                 # pylint: disable=broad-except
-                except Exception as err:
-                    printlog("Mainapp   :  FAILED: %s -%s-" %
-                             (type(err), err))
+                except Exception:
+                    self.logger.info("Copyfile FAILED: broad-except",
+                                     exc_info=True)
                     # broad/bare exceptions make debugging harder
-                    raise err
+                    raise
 
         self.clear_all_msg_locks()
 
         if self.config.options("ports") and \
                 self.config.has_option("settings", "port"):
-            printlog("Mainapp",
-                     "   : Migrating single-port config to multi-port")
+            self.logger.info("Migrating single-port config to multi-port")
 
             port = self.config.get("settings", "port")
             rate = self.config.get("settings", "rate")
@@ -1619,8 +1880,8 @@ class MainApp():
             self.__connect_object(self.plugsrv.get_proxy())
             self.plugsrv.serve_background()
 
-        except socket.error as err:
-            printlog("Mainapp", "   : Unable to start plugin server: %s" % err)
+        except socket.error:
+            self.logger.info("Unable to start plugin server:", exc_info=True)
             self.plugsrv = None
             raise
 
@@ -1631,28 +1892,26 @@ class MainApp():
             self.__connect_object(self.msgrouter)
             self.msgrouter.start()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   : main Exception %s -%s- thrown." %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("main broad exception thrown.", exc_info=True)
             log_exception()
             self.msgrouter = None
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
         # LOAD THE MAIN WINDOW
-        printlog("Mainapp", "   : load the main window")
+        self.logger.info("load the main window")
         try:
             Gtk.main()
         except KeyboardInterrupt:
             pass
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mainapp", "   : Got exception on close: (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("Got broad-exception on close", exc_info=True)
             # broad/bare exceptions make debugging harder
-            raise err
+            raise
 
-        printlog("Mainapp", "   : Saving config...")
+        self.logger.info("Saving config...")
         self.config.save()
 
         if self.config.getboolean("prefs", "dosignoff") and self.smgr:
@@ -1669,5 +1928,6 @@ def get_mainapp():
     Get mainapp.
 
     :returns: MAINAPP
+    :rtype: :class:`MainApp`
     '''
     return MAINAPP
