@@ -1,7 +1,9 @@
 '''Comm Module.'''
+# pylint: disable=too-many-lines
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import socket
 import time
 import struct
@@ -14,9 +16,6 @@ import serial
 
 from . import utils
 from . import agw
-
-#importing printlog() wrapper
-from .debug import printlog
 
 # Needed for python2+python3 support
 if sys.version_info[0] < 3:
@@ -88,7 +87,8 @@ def kiss_send_frame(frame, port=0):
     buf = struct.pack("BB", FEND, cmd) + frame + struct.pack("B", FEND)
 
     if TNC_DEBUG:
-        printlog("Comm", "        : [TNC] Sending:")
+        logger = logging.getLogger("comm:kiss_send_frame")
+        logger.info("[TNC] Sending:")
         utils.hexprintlog(buf)
 
     return buf
@@ -118,6 +118,7 @@ def kiss_recv_frame(buf):
     data = ""
     inframe = False
 
+    logger = logging.getLogger("comm:kiss_recv_frame")
     _buf = ""
     _lst = "0" # Make sure we don't choke trying to ord() this
     for char in buf:
@@ -136,23 +137,21 @@ def kiss_recv_frame(buf):
             elif ord(char) == TFESC:
                 _buf += chr(FESC)
             else:
-                printlog("Comm",
-                         "        : [TNC] Bad escape of 0x%x" % ord(char))
+                logger.info("[TNC] Bad escape of 0x%x", ord(char))
                 break
         elif inframe:
             _buf += char
         else:
-            printlog("Comm",
-                     "        : [TNC] Out-of-frame garbage: 0x%x" % ord(char))
+            logger.info("[TNC] Out-of-frame garbage: 0x%x", ord(char))
         _lst = char
 
     if TNC_DEBUG:
-        printlog("Comm", "        : [TNC] Data:")
+        logger.info("[TNC] Data:")
         utils.hexprintlog(data)
 
     if not inframe and _buf:
         # There was not a partial frame started at the end of the data
-        printlog("Comm", "        : [TNC] Dumping non-frame data trailer")
+        logger.info("[TNC] Dumping non-frame data trailer")
         utils.hexprintlog(_buf)
         _buf = ""
 
@@ -167,6 +166,7 @@ class TNCSerial(serial.Serial):
     :param kwargs: Key word arguments
     '''
     def __init__(self, **kwargs):
+        self.logger = logging.getLogger("TNCSerial")
         if "tncport" in list(kwargs.keys()):
             self.__tncport = kwargs["tncport"]
             del kwargs["tncport"]
@@ -202,20 +202,18 @@ class TNCSerial(serial.Serial):
         :returns: Read frame data
         '''
         if size != 1024:
-            printlog("Comm",
-                     "        : Buffer is %i, expected to be 1024." % size)
+            self.logger.info("read: Buffer is %i, expected to be 1024.", size)
         if self.__buffer:
-            printlog("Comm",
-                     "        : Buffer is %i before read" % len(self.__buffer))
+            self.logger.info("read: Buffer is %i before read",
+                             len(self.__buffer))
         self.__buffer += serial.Serial.read(self, 1024)
 
         framedata = ""
         if kiss_buf_has_frame(self.__buffer):
             framedata, self.__buffer = kiss_recv_frame(self.__buffer)
         elif not self.__buffer:
-            printlog("Comm",
-                     "     : [TNC] Buffer partially-filled (%i b)" %
-                     len(self.__buffer))
+            self.logger.info("read: [TNC] Buffer partially-filled (%i b)",
+                             len(self.__buffer))
 
         return framedata
 
@@ -231,18 +229,18 @@ class SWFSerial(serial.Serial):
     __swf_debug = False
 
     def __init__(self, **kwargs):
-        printlog("Comm", "        : Software XON/XOFF control initialized")
+        self.logger = logging.getLogger("SWFSerial")
+        self.logger.info("Software XON/XOFF control initialized")
         try:
             serial.Serial.__init__(self, **kwargs)
-        except TypeError as err:
+        except TypeError:
             if "writeTimeout" in kwargs:
                 del kwargs["writeTimeout"]
                 serial.Serial.__init__(self, **kwargs)
             else:
-                printlog("Comm",
-                         "      : Unknown TypeError from Serial.__init__: %s" %
-                         err)
-                raise err
+                self.logger.info("Unknown TypeError from Serial.__init__:",
+                                 exc_info=True)
+                raise
 
         self.state = True
         self.xoff_limit = 15
@@ -265,18 +263,17 @@ class SWFSerial(serial.Serial):
         char = serial.Serial.read(self, 1)
         if char == ASCII_XOFF:
             if self.__swf_debug:
-                printlog("Comm", "      : ************* Got XOFF")
+                self.logger.info("is_xon: ************* Got XOFF")
             self.state = False
         elif char == ASCII_XON:
             if self.__swf_debug:
-                printlog("Comm", "        : ------------- Got XON")
+                self.logger.info("is_xon ------------- Got XON")
             self.state = True
         elif len(char) == 1:
-            printlog("Comm",
-                     "        : Aiee! Read a non-XOFF char: 0x%02x `%s`" %
-                     (ord(char), char))
+            self.logger.info("is_xon: Aiee! Read a non-XOFF char: 0x%02x `%s`",
+                             ord(char), char)
             self.state = True
-            printlog("Comm", "        : Assuming IXANY behavior")
+            self.logger.info("is_xon: Assuming IXANY behavior")
 
         return self.state
 
@@ -285,24 +282,23 @@ class SWFSerial(serial.Serial):
         pos = 0
         while pos < len(data):
             if self.__swf_debug:
-                printlog("Comm",
-                         "        : Sending %i-%i of %i" %
-                         (pos, pos+chunk, len(data)))
+                self.logger.info("_write: Sending %i-%i of %i",
+                                 pos, pos+chunk, len(data))
             serial.Serial.write(self, data[pos:pos+chunk])
             self.flush()
             pos += chunk
             start = time.time()
             while not self.is_xon():
                 if self.__swf_debug:
-                    printlog("Comm",
-                             "      : We're XOFF, waiting: %s" % self.state)
+                    self.logger.info("_write: We're XOFF, waiting: %s",
+                                     self.state)
                 time.sleep(0.01)
 
                 if (time.time() - start) > self.xoff_limit:
-                    #printlog("XOFF for too long, breaking loop!")
-                    #raise DataPathIOError("Write error (flow)")
-                    printlog("Comm",
-                             "        : XOFF for too long, assuming XON")
+                    # self.logger.info(
+                    #     "_write: XOFF for too long, breaking loop!")
+                    # raise DataPathIOError("Write error (flow)")
+                    self.logger.info("_write: XOFF for too long, assuming XON")
                     self.state = True
 
     def write(self, data):
@@ -412,6 +408,7 @@ class AGWDataPath(DataPath):
     '''
     def __init__(self, pathspec, timeout=0):
         DataPath.__init__(self, pathspec, timeout)
+        self.logger = logging.getLogger("AGWDataPath")
 
         _agw, self._addr, self._port = pathspec.split(":")
         self._agw = None
@@ -426,9 +423,9 @@ class AGWDataPath(DataPath):
             self._agw = agw.AGWConnection(self._addr, int(self._port),
                                           self.timeout)
             self._agw.enable_raw()
-        except Exception as err:
-            printlog("Comm", "        : AGWPE exception on connect: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("connect: AGWPE broad-exception on connect",
+                             exc_info=True)
             raise DataPathNotConnectedError("Unable to connect to AGWPE")
 
     def disconnect(self):
@@ -496,6 +493,7 @@ class SerialDataPath(DataPath):
 
     def __init__(self, pathspec, timeout=0.25):
         DataPath.__init__(self, pathspec, timeout)
+        self.logger = logging.getLogger("SerialDataPath")
 
         (self.port, self.baud) = pathspec
         self._serial = None
@@ -513,9 +511,9 @@ class SerialDataPath(DataPath):
                                      writeTimeout=self.timeout,
                                      xonxoff=0)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Comm", "        : Serial exception on connect: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("connect: Serial broad-exception on connect",
+                             exc_info=True)
             raise DataPathNotConnectedError("Unable to open serial port")
 
     def disconnect(self):
@@ -548,9 +546,9 @@ class SerialDataPath(DataPath):
         try:
             data = self._serial.read(size)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Comm", "        : Serial read exception: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("read: Serial read broad-exception",
+                             exc_info=True)
             utils.log_exception()
             raise DataPathIOError("Failed to read from serial port")
 
@@ -576,9 +574,9 @@ class SerialDataPath(DataPath):
         try:
             self._serial.write(buf)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Comm", "        : Serial write exception: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("write: Serial write broad-exception:",
+                             exc_info=True)
             utils.log_exception()
             raise DataPathIOError("Failed to write to serial port")
 
@@ -599,7 +597,16 @@ class SerialDataPath(DataPath):
 
 
 class TNCDataPath(SerialDataPath):
-    '''TNC Data Path.'''
+    '''
+    TNC Data Path.
+
+    :param pathspec: Path to serial device
+    :param timeout: Time out in seconds, default 0.25
+    '''
+
+    def __init__(self, pathspec, timeout=0.25):
+        SerialDataPath.__init__(self, pathspec, timeout)
+        self.logger = logging.getLogger("TNCDataPath")
 
     def connect(self):
         '''Connect.'''
@@ -616,9 +623,9 @@ class TNCDataPath(SerialDataPath):
                                      timeout=self.timeout,
                                      writeTimeout=self.timeout*10,
                                      xonxoff=0)
-        except Exception as err:
-            printlog(("Comm      : TNC exception on connect: (%s) %s" %
-                      (type(err), err)))
+        except Exception:
+            self.logger.info("connect: TNC broad-exception on connect",
+                             exc_info=True)
             utils.log_exception()
             raise DataPathNotConnectedError("Unable to open serial port")
 
@@ -688,6 +695,7 @@ class TNCAX25DataPath(TNCDataPath):
     :param kwargs: Key word arguments
     '''
     def __init__(self, pathspec, **kwargs):
+        # self.logger = logging.getLogger("TNCAX25DataPath")
         (port, rate, self.__call, self.__path) = pathspec
 
         self.__buffer = ""
@@ -722,7 +730,7 @@ class TNCAX25DataPath(TNCDataPath):
         fcs = compute_fcs(hdr + buf)
         data = hdr + buf + struct.pack(">H", fcs)
 
-        #printlog("Transmitting AX.25 Frame:")
+        # self.logger.info("write: Transmitting AX.25 Frame:")
         #utils.hexprintlog(data)
         TNCDataPath.write(self, data)
 
@@ -753,7 +761,7 @@ class SocketDataPath(DataPath):
     '''
     def __init__(self, pathspec, timeout=0.25):
         DataPath.__init__(self, pathspec, timeout)
-
+        self.logger = logging.getLogger("SocketDataPath")
         self._socket = None
 
         if isinstance(pathspec, socket.socket):
@@ -809,9 +817,9 @@ class SocketDataPath(DataPath):
                 code, string = line.split(" ", 1)
                 code = int(code)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Comm", "        : Error parsing line '%s': (%s) %s" %
-                         (line, type(err), err))
+            except Exception:
+                self.logger.info("getline: broad-exception parsing line '%s'",
+                                 line, exc_info=True)
                 raise DataPathNotConnectedError("Conversation error")
 
             return code, string
@@ -819,47 +827,51 @@ class SocketDataPath(DataPath):
         try:
             count, line = getline(self._socket)
         except DataPathNotConnectedError:
-            printlog("Comm",
-                     "        : Assuming an old-school ratflector for now")
+            self.logger.info(
+                "getline: Assuming an old-school ratflector for now")
             return
 
         if count == 100:
-            printlog("Comm", "      : Host does not require authentication")
+            self.logger.info("getline: Host does not require authentication")
             return
         if count != 101:
             raise DataPathNotConnectedError("Unknown response code %i" % count)
 
-        printlog("Comm", "      : Doing authentication")
-        printlog("Comm", "      : Sending username: %s" % self.call)
+        self.logger.info("getline: Doing authentication")
+        self.logger.info("getline: Sending username: %s", self.call)
         self._socket.send("USER %s\r\n" % self.call)
 
         count, line = getline(self._socket)
         if count == 200:
-            printlog("Comm",
-                     "      : Host did not require a password")
+            self.logger.info("getline: Host did not require a password")
         elif count != 102:
             raise DataPathNotConnectedError("User rejected username")
 
-        printlog("Comm",
-                 "      : Sending password: %s" % ("*" * len(self.passwd)))
+        self.logger.info("getline: Sending password: %s",
+                         "*" * len(self.passwd))
         self._socket.send("PASS %s\r\n" % self.passwd)
 
         count, line = getline(self._socket)
-        printlog("Comm", "      : Host responded: %i %s" % (count, line))
+        self.logger.info("getline : Host responded: %i %s", count, line)
         if count != 200:
             raise DataPathNotConnectedError("Authentication failed: %s" % line)
 
     def connect(self):
         '''Connect.'''
+        # pylint: disable=broad-except
         try:
-            printlog("Comm: connection to %s %s" % (self.host, self.port))
+            self.logger.info("connection to %s %s", self.host, self.port)
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket.connect((self.host, self.port))
             self._socket.settimeout(self.timeout)
-        # pylint: disable=broad-except
+
+        except (BlockingIOError, socket.error) as err:
+            self.logger.debug("Socket failed to connect", exc_info=True)
+            self._socket = None
+            raise DataPathNotConnectedError("Unable to connect (%s)" % err)
         except Exception as err:
-            printlog("Comm", "      : Socket connect failed: (%s) %s" %
-                     (type(err), err))
+            self.logger.info("Socket connect broad-exception", exc_info=True)
+
             self._socket = None
             raise DataPathNotConnectedError("Unable to connect (%s)" % err)
 
@@ -898,9 +910,7 @@ class SocketDataPath(DataPath):
                 else:
                     continue
             except Exception as err:
-                printlog("Comm",
-                         "     :Read Generic Exception (%s) %s" %
-                         (type(err), err))
+                self.logger.info("read: broad-exception", exc_info=True)
                 raise DataPathIOError("Socket error: %s" % err)
 
             if inp == b'':
@@ -939,9 +949,8 @@ class SocketDataPath(DataPath):
             # except Exception as err:
             #    # Best practice is to trap the specific exceptions that
             #    # are known to occur.
-            #    printlog("Comm/SocketDatapath",
-            #             "     :Generic Exception read_all_waiting %s %s" %
-            #             (type(err), err))
+            #    self.logger.info("read_all_waiting: broad-exception",
+            #                     exc_info=True)
             #    break
             if not data_read:
                 raise DataPathIOError("Socket disconnected: %s")
@@ -956,22 +965,22 @@ class SocketDataPath(DataPath):
         :param buf: Buffer to write
         '''
         ba_buf = buf
-        print('comm/write type(buf) = %s' % type(buf))
-        print("buf = %s" % buf)
-        print('version is %s' % sys.version_info[0])
-        print("is string = -%s- " % isinstance(buf, str))
+        # print('comm/write type(buf) = %s' % type(buf))
+        # print("buf = %s" % buf)
+        # print('version is %s' % sys.version_info[0])
+        # print("is string = -%s- " % isinstance(buf, str))
         if sys.version_info[0] > 2 and isinstance(buf, str):
             # python3 hack
-            print("python3 convert hack")
+            # print("python3 convert hack")
             ba_buf = buf.encode('utf-8', 'replace')
-            print("  type(ba_buf) %s" % type(ba_buf))
-        print("ba_buf = %s" % ba_buf)
+            # print("  type(ba_buf) %s" % type(ba_buf))
+        # print("ba_buf = %s" % ba_buf)
         try:
             self._socket.sendall(ba_buf)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Comm", "      : Write - Socket write failed: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("write: Socket write broad-except",
+                             exc_info=True)
             raise DataPathIOError("Socket write failed")
 
     def is_connected(self):
@@ -991,10 +1000,11 @@ class SocketDataPath(DataPath):
 
     def __str__(self):
         try:
-            addr, port = self._socket.getpeername()
-            return "[NET %s:%i]" % (addr, port)
+            if self._socket:
+                addr, port = self._socket.getpeername()
+                return "[NET %s:%i]" % (addr, port)
+            return "[NET closed]"
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Comm", "      : __str__ Generic exception: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info(" __str__ broad-exception:", exc_info=True)
             return "[NET closed]"
