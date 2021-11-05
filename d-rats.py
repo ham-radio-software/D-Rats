@@ -22,6 +22,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import sys
 import os
+import logging
 import gettext
 
 # pylint: disable=deprecated-module
@@ -33,16 +34,20 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
+# pylint: disable=invalid-name
+lang = gettext.translation("D-RATS",
+                           localedir="./locale",
+                           fallback=True)
+lang.install()
+_ = lang.gettext
+
 from d_rats.dplatform import get_platform
 #importing print() wrapper
-from d_rats.debug import printlog
 
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
 #import module to have spelling correction in chat and email applications
 from d_rats import utils, spell
-
-_ = gettext.gettext
 
 spell.get_spell().test()
 
@@ -52,8 +57,20 @@ IGNORE_ALL = False
 # to "ignore/ignore all" the exceptions
 
 
+logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                    datefmt="%m/%d/%Y %H:%M:%S",
+                    level=logging.INFO)
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("D-Rats")
+
 def handle_exception(exctyp, value, tb):
-    '''handle exception'''
+    '''
+    Handle Exception.
+
+    :param exctyp: Exception type,
+    :param value: Exception value
+    :param tb: Traceback
+    '''
 
     # this eventually starts the initial window with the list of errors and the
     # buttons to open log or ignore errors
@@ -74,7 +91,8 @@ def handle_exception(exctyp, value, tb):
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
 
-    printlog("D-Rats", "---- GUI Exception ----\n%s\n---- End ----\n" % trace)
+    module_logger.info("---- GUI Exception ----\n%s\n---- End ----\n",
+                       stack_info=True)
 
     msg = """
 <b><big>D-RATS has encountered an error.</big></b>
@@ -97,9 +115,9 @@ possible.
 
     while True:
         response = utils.make_error_dialog(msg, trace,
-                                    Gtk.ButtonsType.NONE,
-                                    Gtk.MessageType.ERROR,
-                                    extra=extra)
+                                           Gtk.ButtonsType.NONE,
+                                           Gtk.MessageType.ERROR,
+                                           extra=extra)
         if response == Gtk.ResponseType.CANCEL:
             sys.exit(1)
         if response == Gtk.ResponseType.CLOSE:
@@ -113,7 +131,7 @@ possible.
 
 
 def install_excepthook():
-    '''install excepthook'''
+    '''install Excepthook.'''
     # saves away the original value of sys.excepthook
     # pylint: disable=global-variable-undefined
     global original_excepthook
@@ -124,7 +142,7 @@ def install_excepthook():
 
 
 def uninstall_excepthook():
-    '''Uninstall Excepthook'''
+    '''Uninstall Excepthook.'''
     # restores the original value of sys.excepthook
     # pylint: disable=global-variable-undefined
     global original_excepthook
@@ -132,7 +150,13 @@ def uninstall_excepthook():
 
 
 def ignore_exception(_exctyp, _value, _tb):
-    '''ignore exception'''
+    '''
+    Ignore exception.
+
+    :param _exctype: Exception type, unused
+    :param _value: Exception Value, unused
+    :param _tb: Traceback, unused
+    '''
     return
 #-------------- main d-rats module -----------------
 # --- def set_defaults(self):---
@@ -157,8 +181,10 @@ def main():
                    help="Enable profiling")
     (opts, _args) = ops.parse_args()
 
+    # Eventually this will be a config option/command line
+    logging.basicConfig(level=logging.INFO)
     if opts.config:
-        printlog("D-Rats", "    : re-config option found -- Reconfigure D-rats")
+        module_logger.info("main: re-config option found -- Reconfigure D-rats")
         get_platform(opts.config)
 
     # import the D-Rats main application
@@ -167,18 +193,15 @@ def main():
     # stores away the value of sys.excepthook
     install_excepthook()
 
-    # import libxml2
-    # libxml2.debugMemory(1)
-
     # create the mainapp with the basic options
     app = mainapp.MainApp(safe=opts.safe)
 
-    printlog("D-Rats", "    : reloading app\n\n")
+    module_logger.info("main: reloading app\n\n")
     # finally let's open the default application triggering it differently if
     # we want to profile it (which is running the app under profile control to
     # see what happens)
     if opts.profile:
-        printlog("D-Rats     : Executing with cprofile")
+        module_logger.info("main: Executing with cprofile")
         import cProfile
         cProfile.run('app.main()')
     else:
