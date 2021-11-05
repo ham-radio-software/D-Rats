@@ -26,7 +26,8 @@ from __future__ import print_function
 import os
 import random
 import logging
-import six.moves.configparser # type: ignore
+from six.moves import configparser # type: ignore
+# import six.moves.configparser # type: ignore
 from six.moves import range # type: ignore
 
 import gi
@@ -36,7 +37,7 @@ from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 from gi.repository import GObject
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
     # pylint: disable=invalid-name
     lang = gettext.translation("D-RATS",
@@ -155,7 +156,7 @@ _DEF_SETTINGS = {
     "keyformapurllandscape": "?apikey=5a1a4a79354244a38707d83969fd88a2",
 
     # GPS
-    "default_gps_comment" : "BN  *20",     # default icon for our station in
+    "default_gps_comment" : "BN",          # default icon for our station in
                                            # the map and gpsfixes
     "map_marker_bgcolor": "yellow",        # background color for markers in
                                            # the map window
@@ -818,7 +819,7 @@ class DratsListConfigWidget(DratsConfigWidget):
     def __init__(self, config, section):
         try:
             DratsConfigWidget.__init__(self, config, section, None)
-        except six.moves.configparser.NoOptionError:
+        except configparser.NoOptionError:
             pass
         self.listw = None
         self.logger = logging.getLogger("DratsListConfigWidget")
@@ -2415,7 +2416,7 @@ class DratsConfigUI(Gtk.Dialog):
 
 
 # pylint: disable=too-many-ancestors
-class DratsConfig(six.moves.configparser.ConfigParser):
+class DratsConfig(configparser.ConfigParser):
     '''
     D-Rats Configuration.
 
@@ -2424,7 +2425,7 @@ class DratsConfig(six.moves.configparser.ConfigParser):
     '''
 
     def __init__(self, _mainapp, _safe=False):
-        six.moves.configparser.ConfigParser.__init__(self)
+        configparser.ConfigParser.__init__(self)
 
         self.platform = dplatform.get_platform()
         self.filename = self.platform.config_file("d-rats.config")
@@ -2505,12 +2506,12 @@ class DratsConfig(six.moves.configparser.ConfigParser):
         :param key: Key in section
         :returns: Boolean value'''
         try:
-            return six.moves.configparser.ConfigParser.getboolean(self,
+            return configparser.ConfigParser.getboolean(self,
                                                                   sec, key)
         # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("Failed to get boolean: %s/%s", sec, key,
-                             exc_info=True)
+        except configparser.NoOptionError:
+            #self.logger.info("Failed to get boolean: %s/%s", sec, key,
+            #                 exc_info=True)
             return False
 
     # pylint: disable=arguments-differ
@@ -2521,8 +2522,7 @@ class DratsConfig(six.moves.configparser.ConfigParser):
         :param sec: Section of parameter file
         :param key: Key in section
         :returns: integer value.'''
-        return int(float(six.moves.configparser.ConfigParser.get(self,
-                                                                 sec, key)))
+        return int(float(configparser.ConfigParser.get(self, sec, key)))
 
     def form_source_dir(self):
         '''
@@ -2584,7 +2584,7 @@ def main():
     # mm: fn = "/home/dan/.d-rats/d-rats.config"
     filename = "d-rats.config"
 
-    parser = six.moves.configparser.ConfigParser()
+    parser = configparser.ConfigParser()
     parser.read(filename)
     parser.widgets = []
 
