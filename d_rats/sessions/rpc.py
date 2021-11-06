@@ -21,7 +21,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import time
 import datetime
-import gettext
+import logging
 import os
 import glob
 import sys
@@ -29,6 +29,7 @@ import sys
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
+from gi.repository import GLib
 
 from d_rats import ddt2, signals, emailgw, wl2k
 
@@ -38,10 +39,12 @@ from d_rats.ui import main_events
 from d_rats.sessions import base, stateless
 from d_rats.version import DRATS_VERSION
 from d_rats.utils import log_exception
-# importing printlog() wrapper
-from d_rats.debug import printlog
 
-_ = gettext.gettext
+
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
 ASCII_FS = "\x1C"
 ASCII_GS = "\x1D"
 ASCII_RS = "\x1E"
@@ -91,7 +94,9 @@ def encode_dict(source):
     Encode Dictionary into a string.
 
     :param source: Source Dictionary
-    :returns: encoded string
+    :type source: dict
+    :returns: encoded data
+    :rtype: string
     '''
     elements = []
 
@@ -118,10 +123,11 @@ def encode_dict(source):
 
 def decode_dict(string):
     '''
-    Decode into Dictionary
+    Decode into Dictionary.
 
-    :param string: String
-    :returns: Dictionary for Message
+    :param string: Encoded string
+    :returns: Decoded data
+    :rtype: dict
     '''
     result = {}
     if not string:
@@ -150,7 +156,9 @@ class RPCJob(GObject.GObject):
     RPC Job Parent Class.
 
     :param dest: Destintion of job
+    :type dest: str
     :param desc: Description of job
+    :type desc: str
     '''
     __gsignals__ = {
         "state-change" : (GObject.SIGNAL_RUN_LAST,
@@ -230,7 +238,14 @@ class RPCJob(GObject.GObject):
 
 
 class RPCFileListJob(RPCJob):
-    '''RPC File List Job.'''
+    '''
+    RPC File List Job.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def set_file_list(self, file_list):
         '''
@@ -261,7 +276,14 @@ class RPCFileListJob(RPCJob):
 
 
 class RPCFormListJob(RPCJob):
-    '''RPC Form List Job.'''
+    '''
+    RPC Form List Job.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     # pylint: disable=no-self-use
     def get_form_list(self):
@@ -283,7 +305,13 @@ class RPCFormListJob(RPCJob):
 
 
 class RPCPullFileJob(RPCJob):
-    '''RPC Pull File Job'''
+    '''RPC Pull File Job.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def set_file(self, filename):
         '''
@@ -312,7 +340,14 @@ class RPCPullFileJob(RPCJob):
 
 
 class RPCDeleteFileJob(RPCJob):
-    '''RPC Delete File Job.'''
+    '''
+    RPC Delete File Job.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def set_file(self, filename):
         '''
@@ -357,7 +392,14 @@ class RPCDeleteFileJob(RPCJob):
 
 
 class RPCPullFormJob(RPCJob):
-    '''RPC Pull Form Job.'''
+    '''
+    RPC Pull Form Job.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def set_form(self, form):
         '''
@@ -386,7 +428,14 @@ class RPCPullFormJob(RPCJob):
 
 
 class RPCPositionReport(RPCJob):
-    '''RPC Position Report.'''
+    '''
+    RPC Position Report.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def set_station(self, station):
         '''
@@ -416,7 +465,14 @@ class RPCPositionReport(RPCJob):
 
 
 class RPCGetVersion(RPCJob):
-    '''RPC Get Version.'''
+    '''
+    RPC Get Version.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def do(self, rpcactions):
         '''
@@ -429,7 +485,14 @@ class RPCGetVersion(RPCJob):
 
 
 class RPCCheckMail(RPCJob):
-    '''RPC Check Mail.'''
+    '''
+    RPC Check Mail.
+
+    :param dest: Destintion of job
+    :type dest: str
+    :param desc: Description of job
+    :type desc: str
+    '''
 
     def do(self, rpcactions):
         '''
@@ -484,6 +547,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
     def __init__(self, *args, **kwargs):
         GObject.GObject.__init__(self)
 
+        self.logger = logging.getLogger("RPCSession")
         try:
             self.__rpcactions = kwargs["rpcactions"]
             del kwargs["rpcactions"]
@@ -497,7 +561,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
         self.__t_retry = 30
         self.__enabled = True
 
-        GObject.timeout_add(1000, self.__worker)
+        GLib.timeout_add(1000, self.__worker)
 
         self.handler = self.incoming_data
 
@@ -546,9 +610,8 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
         return frame
 
     def __job_state(self, job, state, _result, ident):
-        printlog("RPC",
-                 "       : Job state: %s for %i: %s" %
-                 (state, ident, _result))
+        self.logger.info("__job_state: Job state: %s for %i: %s",
+                         state, ident, _result)
 
         if state == "running":
             return
@@ -566,11 +629,10 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
         if frame.type == self.T_RPCREQ:
             try:
                 job = self.__decode_rpccall(frame)
-            except UnknownRPCCall as err:
-                printlog("RPC",
-                         "       : incoming data : unable to execute" +
-                         " RPC from %s: %s" %
-                         (frame.s_station, err))
+            except UnknownRPCCall:
+                self.logger.info("incoming data : unable to execute"
+                                 " RPC from %s",
+                                 frame.s_station, exc_info=True)
                 return
 
             job.connect("state-change", self.__job_state, frame.seq)
@@ -584,22 +646,19 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
                 del self.__jobs[frame.seq]
                 job.set_state("complete", decode_dict(frame.data))
             else:
-                printlog("RPC",
-                         "       : incoming data : Unknown job %i" %
-                         frame.seq)
+                self.logger.info("incoming data : Unknown job %i", frame.seq)
 
         else:
-            printlog("RPC",
-                     "       : incoming data : Unknown RPC frame type %i" %
-                     frame.type)
+            self.logger.info("incoming data : Unknown RPC frame type %i",
+                             frame.type)
 
     def __send_job(self, job, ident):
-        printlog("RPC", "       : Sending job `%s' to %s" %
-                 (job.get_desc(), job.get_dest()))
+        self.logger.info("Sending job `%s' to %s",
+                         job.get_desc(), job.get_dest())
         frame = self.__job_to_frame(job, ident)
         job.frame = frame
         self._sm.outgoing(self, frame)
-        printlog("RPC", "       : Job sent")
+        self.logger.info("Job sent")
 
     def __worker(self):
         for ident, (time_stamp, att, job) in self.__jobs.items():
@@ -607,8 +666,8 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
                 # Reset timer until the block is sent
                 self.__jobs[ident] = (time.time(), att, job)
             elif (time.time() - time_stamp) > self.__t_retry:
-                printlog("RPC",
-                         "       : Cancelling job %i due to timeout" % ident)
+                self.logger.info("worker: Cancelling job %i due to timeout",
+                                 ident)
                 del self.__jobs[ident]
                 job.set_state("timeout")
 
@@ -651,6 +710,7 @@ class RPCActionSet(GObject.GObject):
     _signals = __gsignals__
 
     def __init__(self, config, port):
+        self.logger = logging.getLogger("RPCActionSet")
         self.__config = config
         self.__port = port
 
@@ -658,7 +718,7 @@ class RPCActionSet(GObject.GObject):
 
     def __proxy_emit(self, signal):
         def handler(_obj, *args):
-            printlog("RPC", "       : Proxy emit %s: %s" % (signal, args))
+            self.logger.info("Proxy emit %s: %s", signal, args)
             GObject.idle_add(self.emit, signal, *args)
 
         return handler
@@ -669,13 +729,16 @@ class RPCActionSet(GObject.GObject):
         RPC Position Report.
 
         :param job: Job request is for
+        :type job: :class:`RPCPositionReport`
+        :returns: Result
+        :rtype: dict
         '''
         result = {}
         mycall = self.__config.get("user", "callsign")
         rqcall = job.get_station()
 
-        printlog("RPC", "       : Position request for `%s'" % rqcall)
-        printlog("RPC", "       : Self=%s" % format(self))
+        self.logger.info("Position request for `%s'", rqcall)
+        self.logger.info("Position Report: Self=%s", format(self))
 
         if rqcall in (mycall, "."):
             rqcall = None
@@ -689,10 +752,11 @@ class RPCActionSet(GObject.GObject):
             result["msg"] = fix.to_APRS(symtab=symtab, symbol=symbol)
 
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("RPC",
-                     "       : Case KO : Exception while getting" +
-                     " position of %s: (%s -%s-)" % (rqcall, type(err), err))
+        except Exception:
+            self.logger.info("RPC_pos_report: Case KO :"
+                             "broad-exception while getting"
+                             " position of %s",
+                             rqcall, exc_type=True)
             log_exception()
             fix = None
             result["rc"] = "False"
@@ -700,11 +764,11 @@ class RPCActionSet(GObject.GObject):
 
         if fix:
             # sending the position to transport // but this is broken!!
-            printlog("RPC", "       : port is           : %s" % self.__port)
-            printlog("RPC", "       : fix is            : %s" % fix)
-            printlog("RPC",
-                     "       : fix in NMEA GGA is: %s" % fix.to_NMEA_GGA())
-            printlog("RPC", "       : fix in APRS is: %s" % result)
+            self.logger.info("RPC_pos_report: port is : %s", self.__port)
+            self.logger.info("RPC_pos_report: fix is: %s", fix)
+            self.logger.info("RPC_pos_report: fix in NMEA GGA is: %s",
+                             fix.to_NMEA_GGA())
+            self.logger.info("RPC_pos_report: fix in APRS is: %s", result)
 
             self.emit("user-send-chat",
                       "CQCQCQ",
@@ -718,6 +782,9 @@ class RPCActionSet(GObject.GObject):
         RPC File List.
 
         :param job: Job request is for
+        :param type: :class:`RPCFileListJob`
+        :returns: result
+        :rtype: dict
         '''
         result = {}
 
@@ -751,6 +818,9 @@ class RPCActionSet(GObject.GObject):
         RPC Form List
 
         :param job: Job request is for
+        :type job: :class:`RPCFormListJob`
+        :returns: result
+        :rtype: dict
         '''
         result = {}
         forms = self.emit("get-message-list", "CQCQCQ")
@@ -771,6 +841,9 @@ class RPCActionSet(GObject.GObject):
         RPC File Pull.
 
         :param job: Job request is for
+        :type job: :class:`RPCPullFileJob`
+        :returns: result
+        :rtype: dict
         '''
         result = {}
 
@@ -780,7 +853,7 @@ class RPCActionSet(GObject.GObject):
 
         download_dir = self.__config.get("prefs", "download_dir")
         path = os.path.join(download_dir, job.get_file())
-        printlog("RPC", "       : Remote requested %s" % path)
+        self.logger.info("RPC_file_pll: Remote requested %s", path)
         if os.path.exists(path):
             result["rc"] = "OK"
             self.emit("rpc-send-file",
@@ -800,6 +873,9 @@ class RPCActionSet(GObject.GObject):
         RPC File Delete.
 
         :param job: Job request is for
+        :type job: :class:`RPCDeleteFileJob`
+        :returns: Result
+        :rtype: dict
         '''
         result = {}
 
@@ -808,9 +884,9 @@ class RPCActionSet(GObject.GObject):
             permlist = _permlist.upper().split(",")
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("RPC    : RPC_file_delete",
-                     "upper().split() broad except %s -%s-" %
-                     (type(err), err))
+            self.logger.info("RPC_file_delete:"
+                             " upper().split() broad-exception",
+                             exc_info=True)
             result["rc"] = "Access list not properly configured"
             return result
 
@@ -838,9 +914,9 @@ class RPCActionSet(GObject.GObject):
             result["rc"] = "File %s deleted" % job.get_file()
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("RPC    : RPC_file_delete",
-                     "os.remove %s broad except %s -%s-" %
-                     (path, type(err), err))
+            self.logger.info("RPC_file_delete"
+                             "os.remove %s broad exception",
+                             path, exc_info=True)
             result["rc"] = "Unable to delete %s: %s" % (job.get_file(), err)
         return result
 
@@ -850,6 +926,9 @@ class RPCActionSet(GObject.GObject):
         RPC form pull.
 
         :param job: Job request is for
+        :rtype: RPCPullFormJob
+        :returns: result
+        :rtype: dict
         '''
         result = {}
 
@@ -878,6 +957,9 @@ class RPCActionSet(GObject.GObject):
         RPC Get Version.
 
         :param job: Job request is for
+        :type job: :class:`RPCGetVersion`
+        :returns: Result of call
+        :rtype: dict
         '''
         result = {}
 
@@ -894,7 +976,7 @@ class RPCActionSet(GObject.GObject):
                 Gtk.MICRO_VERSION)
         except ImportError:
             result["pygtkver"] = result["gtkver"] = "Unknown"
-            printlog("RPC", "       : RPC_get_version: %s" % result)
+            self.logger.info("RPC_get_version: %s", result)
 
         return result
 
@@ -904,6 +986,9 @@ class RPCActionSet(GObject.GObject):
         RPC Check Mail.
 
         :param job: Job request is for
+        :type job: :class:`RPCCheckMail`
+        :returns: result
+        :rtype: dict
         '''
         def check_done(_mail_thread, success, message, job):
             result = {"rc"  : success and "0" or "-1",
