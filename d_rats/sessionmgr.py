@@ -2,6 +2,7 @@
 '''Session Manager'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,20 +20,19 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import time
 import threading
 # import os
 # import struct
 # import socket
-from six.moves import range
+from six.moves import range # type: ignore
 
 from . import transport
 # from .ddt2 import DDT2EncodedFrame
 
 from .sessions import base, control, stateful, stateless
 # from .sessions import file, form, sock, sniff
-# importing printlog() wrapper
-from .debug import printlog
 
 
 # pylint: disable=too-many-instance-attributes
@@ -40,34 +40,13 @@ class SessionManager():
     '''
     Session Manager.
 
-    :param pipe:
+    :param pipe: pipe for connection
+    :param station: Call sign for session
+    :type station: str
     '''
 
-    def set_comm(self, pipe, **kwargs):
-        '''
-        Set Comm
-
-        :param pipe: pipe for communication
-        :param station: Station for connection
-        :param kwargs: Key word arguments
-        '''
-        self.pipe = pipe
-        if self.tport:
-            self.tport.disable()
-
-        self.tport = transport.Transporter(self.pipe,
-                                           inhandler=self.incoming,
-                                           **kwargs)
-
-    def set_call(self, callsign):
-        '''
-        Set callsign
-
-        :param callsign: Set the callsign
-        '''
-        self.station = callsign
-
     def __init__(self, pipe, station, **kwargs):
+        self.logger = logging.getLogger("SessionManager")
         self.pipe = self.tport = None
         self.station = station
 
@@ -87,11 +66,36 @@ class SessionManager():
 
         self._stations_heard = {}
 
+    def set_comm(self, pipe, **kwargs):
+        '''
+        Set Comm
+
+        :param pipe: pipe for communication
+        :param kwargs: Key word arguments
+        '''
+        self.pipe = pipe
+        if self.tport:
+            self.tport.disable()
+
+        self.tport = transport.Transporter(self.pipe,
+                                           inhandler=self.incoming,
+                                           **kwargs)
+
+    def set_call(self, callsign):
+        '''
+        Set callsign
+
+        :param callsign: Set the callsign
+        :type callsign: str
+        '''
+        self.station = callsign
+
     def get_heard_stations(self):
         '''
         Get Heard Stations
 
-        :returns: Dict of stations heard
+        :returns: Stations heard
+        :rtype: dict
         '''
         return dict(self._stations_heard)
 
@@ -100,6 +104,7 @@ class SessionManager():
         Manual Heard Station
 
         :param station: Station to update
+        :type station: str
         '''
         self._stations_heard[station] = time.time()
 
@@ -108,46 +113,47 @@ class SessionManager():
         Fire Session call back.
 
         :param session: Session for call back
+        :type session: :class:`Session`
         :param reason: Reason for callback
         '''
         for function, data in self.session_cb.items():
             try:
                 function(data, reason, session)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Sessionmgr",
-                         ": Exception in session CB: %s -%s-" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("fire_session_cb: broad-exception",
+                                 exc_info=True)
 
     def register_session_cb(self, function, data):
         '''
         Register Session Call Back.
 
         :param function: Function to call back
+        :type function: function
         :param data: Data for call back function
         '''
         self.session_cb[function] = data
 
-        for _item, session in self.sessions.items():
+        for _item, session in self.sessions.copy().items():
             self.fire_session_cb(session, "new,existing")
 
     def shutdown(self, force=False):
         '''
         Shutdown Session
 
-        :param force: Optional True to force a shutdown
+        :param force: force the shutdown, Default False
+        :type force: bool
         '''
         if force:
             self.tport.disable()
 
         # pylint: disable=protected-access
-        if self.control._id in self.sessions:
+        if self.control._id in list(self.sessions):
             # pylint: disable=protected-access
             del self.sessions[self.control._id]
 
-        for session in self.sessions.values():
-            printlog("Sessionmgr",
-                     ": Stopping session `%s'" % session.name)
+        for session in self.sessions.copy().values():
+            self.logger.info("shutdown: Stopping session `%s'", session.name)
             session.close(force)
 
         if not force:
@@ -174,13 +180,14 @@ class SessionManager():
                 frame.d_station != self.station and \
                 frame.session != 1:
             # Not CQ, not us, and not chat
-            printlog("Sessionmgr",
-                     ": Received frame for station `%s'" % frame.d_station)
+            self.logger.info("incoming:"
+                             "Received frame for station `%s'",
+                             frame.d_station)
             return
         if frame.s_station == self.station:
             # Either there is another station using our callsign, or
             # this packet arrived back at us due to a loop
-            printlog("Sessionmgr", ": Received looped frame")
+            self.logger.info("incoming: Received looped frame")
             return
         #
         #mmmmmm
@@ -192,18 +199,19 @@ class SessionManager():
         #           "$$Msg,IZ000,,0011D,%s" % d, True)
 
         if not frame.session in self.sessions:
-            printlog("Sessionmgr",
-                     ": Incoming frame for unknown session `%i'" %
-                     frame.session)
+            # print("sessionmgr, sessions = %s" % self.sessions)
+            # print("sessionmgr, frame.session=%s" % frame.session)
+            self.logger.info("Incoming frame for unknown session `%i'",
+                             frame.session)
             return
 
         session = self.sessions[frame.session]
 
         # pylint: disable=protected-access
         if not session.stateless and session._st != frame.s_station:
-            printlog("Sessionmgr",
-                     ": Received frame from invalid station `%s' "
-                     "(expecting `%s'" % (frame.s_station, session._st))
+            self.logger.info("incoming: Received frame from invalid"
+                             " station `%s' expecting `%s'",
+                             frame.s_station, session._st)
             return
 
         if session.handler:
@@ -212,17 +220,18 @@ class SessionManager():
             session.inq.enqueue(frame)
             session.notify()
 
-        printlog("Sessionmgr",
-                 ": Received block %i:%i for session `%s'" %
-                 (frame.seq, frame.type, session.name))
+        self.logger.info("incoming: Received block %i:%i for session `%s'",
+                         frame.seq, frame.type, session.name)
 
     def outgoing(self, session, block):
         '''
-        Outgoing
+        Outgoing.
 
         :param session: Session to use
+        :type session: :class:`Session`
         :param block: Block for sending
         '''
+
         self.last_frame = time.time()
 
         if not block.d_station:
@@ -245,7 +254,7 @@ class SessionManager():
         self._sid_lock.acquire()
         if self._sid_counter >= 255:
             for ident in range(0, 255):
-                if ident not in list(self.sessions.keys()):
+                if ident not in list(self.sessions):
                     self._sid_counter = ident
         else:
             ident = self._sid_counter
@@ -260,7 +269,8 @@ class SessionManager():
         if ident is None:
             # pylint: disable=fixme
             # FIXME
-            printlog("Sessionmgr", ": No free slots?  I can't believe it!")
+            self.logger.info(
+                "_register_session: No free slots?  I can't believe it!")
 
         # pylint: disable=protected-access
         session._sm = self
@@ -286,19 +296,24 @@ class SessionManager():
         try:
             del self.sessions[ident]
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Sessionmgr:",
-                     "No session %s to deregister (%s)" % (ident, err))
+        except Exception:
+            self.logger.info("_deregister_session:"
+                             "No session %s to deregister (%s)",
+                             ident, "broad-exception", exc_info=True)
 
     def start_session(self, name, dest=None, cls=None, **kwargs):
         '''
         Start Session
 
         :param name: Name of session
+        :type name: str
         :param dest: Optional Destination of session
+        :type dest: str
         :param cls: Optional Session class
+        :type cls: :class:`Session`
         :param kwargs: Optional Key word arguments
-        :returns: session object
+        :returns: session that was started
+        :rtype: :class:`Session`
         '''
         if not cls:
             if dest:
@@ -331,9 +346,11 @@ class SessionManager():
         Stop Session
 
         :param session: Session to stop
+        :type session: :class:`Session`
         :returns: True if session is found and stopped
+        :rtype: bool
         '''
-        for ident, s_item in self.sessions.items():
+        for ident, s_item in self.sessions.copy().items():
             if s_item.name == s_item.name:
                 self.tport.flush_blocks(ident)
                 if session.get_state() != base.ST_CLSD:
@@ -353,10 +370,10 @@ class SessionManager():
         try:
             del self.sessions[ident]
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Sessionmgr",
-                     ": Unable to deregister session (%s -%s-)",
-                     (type(err), err))
+        except Exception:
+            self.logger.info("end_session:"
+                             "Unable to deregister session broad-exception",
+                             exc_info=True)
 
     def get_session(self, rid=None, rst=None, lid=None):
         '''
@@ -364,13 +381,15 @@ class SessionManager():
 
         :param rid: Optional receive ID
         :param rst: Optional rst value
-        :param lid: Optional lid values
-        :returns: Session object? or None
+        :param lid: Optional lid value
+        :returns: Session that matches request
+        :rtype: :class:`Session`
         '''
         if not (rid or rst or lid):
-            printlog("Sessionmgr", ": get_station() with no selectors!")
+            self.logger.info("get_session: with no selectors!")
             return None
 
+        # print("sessionmgr/get_session rid:%s rst:%s lid:%s" % (rid, rst, lid))
         for session in self.sessions.values():
             # pylint: disable=protected-access
             if rid and session._rs != rid:
@@ -386,6 +405,7 @@ class SessionManager():
 
             return session
 
+        # print("sessionmgr/get_session values=%s" % self.sessions.values())
         return None
 
 def main():
@@ -396,6 +416,10 @@ def main():
     import sys
     from . import sessions
 
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+    logger = logging.getLogger("SessionMgr")
     # if sys.argv[1] == "KI4IFW":
     #     p = comm.SerialDataPath(("/dev/ttyUSB0", 9600))
     # else:
@@ -409,7 +433,7 @@ def main():
                                         cls=sessions.chat.ChatSession)
 
     def call_back(_data, _args):
-        printlog("Sessionmgr", ": ---------[ CHAT DATA ]------------")
+        logger.info(" ---------[ CHAT DATA ]------------")
 
     # pylint: disable=no-member
     session.register_cb(call_back)
@@ -423,14 +447,14 @@ def main():
         session2.send_file("inputdialog.py")
     else:
         def h_call_back(_data, reason, session):
-            printlog(("Sessionmgr: Session CB: %s" % reason))
+            logger.info("Session CB: %s", reason)
             if reason == "new,in":
-                printlog("Sessionmgr", ": Receiving file")
+                logger.info("Receiving file")
                 thread = threading.Thread(target=session.recv_file,
                                           args=("/tmp",))
                 thread.setDaemon(True)
                 thread.start()
-                printlog("Sessionmgr", ": Done")
+                logger.info("Done")
 
         session_mgr.register_session_cb(h_call_back, None)
 
@@ -438,9 +462,8 @@ def main():
         while True:
             time.sleep(30)
     # pylint: disable=broad-except
-    except Exception as err:
-        printlog("Sessionmgr",
-                 ": ------- Closing (%s -%s-)" % (type(err), err))
+    except Exception:
+        logger.info("------- Closing --------", exc_info=True)
 
     session_mgr.shutdown()
 
