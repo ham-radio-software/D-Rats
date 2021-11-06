@@ -21,7 +21,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import gettext
 import logging
 import os
 import time
@@ -55,7 +54,10 @@ from d_rats import msgrouting
 
 _FOLDER_CACHE = {}
 
-_ = gettext.gettext
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
 BASE_FOLDERS = [_("Inbox"), _("Outbox"), _("Sent"), _("Trash"), _("Drafts")]
 
 
@@ -71,7 +73,10 @@ def mkmsgid(callsign):
     '''
     Generate a message id for a callsign.
 
-    :returns: Message id string
+    :param callsign: Callsign of station
+    :rtype: str
+    :returns: Message id
+    :rtype: str
     '''
     r_num = random.SystemRandom().randint(0, 100000)
     return "%s.%x.%x" % (callsign, int(time.time()) - 1114880400, r_num)
@@ -82,6 +87,7 @@ class MessageFolderInfo():
     Message Folder Info.
 
     :param folder_path: Folder to operate on
+    :type folder_path: str
     '''
 
     def __init__(self, folder_path):
@@ -105,9 +111,11 @@ class MessageFolderInfo():
         file_handle.close()
 
     def name(self):
-        '''Folder Name.
+        '''
+        Folder Name.
 
         :returns: Current Folder name
+        :rtype: str
         '''
         return os.path.basename(self._path)
 
@@ -135,7 +143,9 @@ class MessageFolderInfo():
         Get message subject.
 
         :param filename: Filename for message
+        :type filename: str
         :returns: Subject of message
+        :rtype: str
         '''
         return self._getprop(filename, "subject")
 
@@ -144,7 +154,9 @@ class MessageFolderInfo():
         Set message subject.
 
         :param filename: Filename for message
+        :type filename: str
         :param subject: Subject for message
+        :type subject: str
         '''
         self._setprop(filename, "subject", subject)
 
@@ -153,7 +165,9 @@ class MessageFolderInfo():
         Get message type.
 
         :param filename: Filename for message
+        :type filename: str
         :returns: Message Type
+        :rtype: str
         '''
         return self._getprop(filename, "type")
 
@@ -162,7 +176,9 @@ class MessageFolderInfo():
         Set message type.
 
         :param filename: Filename for message
+        :type filename: str
         :param msg_type: Type of message
+        :type msg_type: str
         '''
         self._setprop(filename, "type", msg_type)
 
@@ -171,7 +187,9 @@ class MessageFolderInfo():
         Get message read status.
 
         :param filename: Filename for message
+        :type filename: str
         :returns: True if message has been read
+        :rtype: bool
         '''
         val = self._getprop(filename, "read")
         return val == "True"
@@ -181,7 +199,9 @@ class MessageFolderInfo():
         Set message read status.
 
         :param filename: Filename of message
-        :param read: Boolean that is true for message read
+        :type filename: str
+        :param read: True for message to be marked read
+        :type read: bool
         '''
         self._setprop(filename, "read", str(read))
 
@@ -190,7 +210,9 @@ class MessageFolderInfo():
         Get the message sender.
 
         :param filename: Filename of message
+        :type filename: str
         :returns: Sender of message
+        :rtype: str
         '''
         return self._getprop(filename, "sender")
 
@@ -199,7 +221,9 @@ class MessageFolderInfo():
         Set message sender.
 
         :param filename: Filename for message
+        :type filename: str
         :param sender: Sender of message
+        :type sender: str
         '''
         self._setprop(filename, "sender", sender)
 
@@ -208,7 +232,9 @@ class MessageFolderInfo():
         Get the message recipient
 
         :param filename: Filename for message
+        :type filename: str
         :returns: Message recipient
+        :rtype: str
         '''
         return self._getprop(filename, "recip")
 
@@ -217,7 +243,9 @@ class MessageFolderInfo():
         Set the message recipient.
 
         :param filename: Filename for message
+        :type filename: str
         :param recip: Recipient
+        :type recip: str
         '''
         self._setprop(filename, "recip", recip)
 
@@ -225,7 +253,8 @@ class MessageFolderInfo():
         '''
         Get the subfolders.
 
-        :returns: List of MessageFolderInfo objects for the subfolders
+        :returns: subfolders of folder
+        :rtype: list of :class:`MessageFolderInfo`
         '''
         info = []
 
@@ -240,9 +269,10 @@ class MessageFolderInfo():
 
     def files(self):
         '''
-        Get a list of files contained in this folder.
+        List files.
 
-        :returns: List of files
+        :returns: files in the folder.
+        :rtype: list of str
         '''
         file_list = glob(os.path.join(self._path, "*"))
         return [x_file for x_file in file_list
@@ -250,10 +280,12 @@ class MessageFolderInfo():
 
     def get_subfolder(self, name):
         '''
-        Get a MessageFolderInfo object representing a named subfolder.
+        Get subfolder information.
 
         :param name: Subfolder name
-        :returns: MessageFolderInfo object
+        :type name: str
+        :returns: Subfolder information
+        :rtype: :class:`MessageFolderInfo`
         '''
         for folder in self.subfolders():
             if folder.name() == name:
@@ -266,9 +298,16 @@ class MessageFolderInfo():
         Create a subfolder by name
 
         :param name: Subfolder name
+        :type name: str
+        :returns: subfolder information
+        :rtype: :class:`MessageFolderInfo`
         '''
         path = os.path.join(self._path, name)
-        os.mkdir(path)
+        try:
+            os.mkdir(path)
+        except OSError as err:
+            if err.errno != 17:  # File or directory exists
+                raise
         return MessageFolderInfo(path)
 
     def delete_self(self):
@@ -283,8 +322,13 @@ class MessageFolderInfo():
         '''
         Create a message.
 
+        Store the message name in the users configuration data
+
         :param name: Name for message path
-        :raises: DuplicateSectionError if the section exists
+        :type name: str
+        :returns: Path for message
+        :rtype: str
+        :raises: DuplicateSectionError if the section already exists
         '''
         exists = os.path.exists(os.path.join(self._path, name))
         try:
@@ -300,6 +344,7 @@ class MessageFolderInfo():
         Delete a file.
 
         :param filename: filename to delete
+        :type filename: str
         '''
         filename = os.path.basename(filename)
         self._config.remove_section(filename)
@@ -310,6 +355,7 @@ class MessageFolderInfo():
         Rename path
 
         :param new_name: New name for path
+        :type new_name: str
         '''
         newpath = os.path.join(os.path.dirname(self._path), new_name)
         self.logger.info("Renaming %s -> %s", self._path, newpath)
@@ -325,7 +371,9 @@ class MessageInfo():
     '''Message information.
 
     :param filename: Filename of message
-    :param info: MessageFolderInfo for filename
+    :type filename: str
+    :param info: Information about the message
+    :type info: :class:`MessageFolderInfo`
     '''
 
     def __init__(self, filename, info):
@@ -338,7 +386,8 @@ class MessageFolders(MainWindowElement):
     Message Folders.
 
     :param wtree: Window tree
-    :param config: Configuration object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     __gsignals__ = {
@@ -380,6 +429,12 @@ class MessageFolders(MainWindowElement):
             self._add_folders(store, None, folder)
 
     def _folders_path(self):
+        '''
+        Folders Path.
+
+        :returns: The folder path
+        :rtype: str
+        '''
         path = os.path.join(self._config.platform.config_dir(), "messages")
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -387,34 +442,51 @@ class MessageFolders(MainWindowElement):
 
     # pylint: disable=no-self-use
     def _create_folder(self, root, name):
+        '''
+        Create folder.
+
+        :param root: Parent directory
+        :type root: :class:`MessageFolderInfo`
+        :param name: Folder name
+        :type name: str
+        :raises: :class:`FolderError` if folder can not be created
+        :returns: Message folder info for child directory
+        :rtype: :class:`MessageFolderInfo`
+        '''
+        # python3 can create directory and parent directories in one call.
         info = root
-        for element in name.split(os.sep)[:-1]:
-            info = info.get_subfolder(element)
+        for dir_element in name.split(os.sep)[:-1]:
+            info = info.get_subfolder(dir_element)
             if not info:
                 break
 
         try:
             return info.create_subfolder(os.path.basename(name))
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("_create_folder: broad-except", exc_info=True)
-            raise FolderError("Intermediate folder of %s does not exist %s" %
-                              (name, err))
+        except OSError as err:
+            if err.errno != 17:  # File or directory exists
+                raise FolderError(
+                    "Intermediate folder of %s does not exist %s" %
+                    (name, err))
 
     def create_folder(self, name):
         '''
         Create a folder.
 
+        Does not appear to be called anywhere.
+
         :param name: Folder name
-        :raises FolderError if folder can not be created
+        :type name: str
+        :raises: :class:`FolderError` if folder cannot be created
         '''
         root = MessageFolderInfo(self._folders_path())
-        return self._create_folder(root, name)
+        self._create_folder(root, name)
 
     def get_folders(self):
         '''
         Get Folders.
-        :returns: MessageFolderInfo object
+
+        :returns: Message folders infomation
+        :rtype: list of :class:`MessageFolderInfo`
         '''
         return MessageFolderInfo(self._folders_path()).subfolders()
 
@@ -423,6 +495,9 @@ class MessageFolders(MainWindowElement):
         Get Folder by name.
 
         :param name: Folder name
+        :type name: str
+        :returns: Message folder information
+        :rtype: :class:`MessageFolderInfo`
         '''
         return MessageFolderInfo(os.path.join(self._folders_path(), name))
 
@@ -441,7 +516,9 @@ class MessageFolders(MainWindowElement):
 
         i.e. Inbox/Subfolder
         NB: Subfolders currently not supported.
-        :param folder: Folder to select
+
+        :param folder: Folder name to select
+        :type folder: str
         '''
         # pylint: disable=unbalanced-tuple-unpacking
         view, = self._getw("folderlist")
@@ -596,24 +673,25 @@ class MessageFolders(MainWindowElement):
         '''
         Dragged to.
 
-        :param view: Gtk.Widget getting signal
-        :param _ctx: Gtk.DragContex value, unused
+        :param view: Widget getting signal
+        :type view: GTK.Widget
+        :param _ctx: Context value, unused
+        :type: ctx: Gtk.DragContex
         :param x_coord: Horizontal coordinate of destintation
         :param y_coord: Vertical coordinate of destination
-        :param sel: Gtk.SelectionData containing the dragged data
+        :param sel: Selection containing the dragged data
+        :type sel: Gtk.SelectionData
         :param _info: Information registered in the Gtk.TargetList, unused
-        :param _ts: Integer timestamp of when the data was requested
+        :param _ts: timestamp of when the data was requested, unused
         '''
         (path, _place) = view.get_dest_row_at_pos(x_coord, y_coord)
 
         text = sel.get_text()
-        print('--- dragged_to')
-        print('  text = -%s-' % text)
         byte_data = sel.get_data()
-        data = byte_data.decode('ISO-8859-1').split("\x01")
-        msgs = data[1:]
+        text = byte_data.decode('ISO-8859-1').split("\x01")
+        msgs = text[1:]
 
-        src_folder = data[0]
+        src_folder = text[0]
         dst_folder = self._get_folder_by_iter(view.get_model(),
                                               view.get_model().get_iter(path))
 
@@ -696,7 +774,6 @@ class MessageList(MainWindowElement):
                                      (GObject.TYPE_STRING,)),
                     }
 
-    # MessageList
     # pylint: disable=too-many-statements
     def __init__(self, wtree, config):
         MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
@@ -807,10 +884,13 @@ class MessageList(MainWindowElement):
         Open a message.
 
         :param filename: Filename for message
+        :type filename: str
         :param editable: If message can be edited
+        :type editable: bool
         :param call_back: Callback for message
         :param cbdata: Call back data
-        :returns: Gtk.ResponseType
+        :returns: response
+        :rtype: Gtk.ResponseType
         '''
         if not msgrouting.msg_lock(filename):
             display_error(_("Unable to open: message in use by another task"))
@@ -885,11 +965,14 @@ class MessageList(MainWindowElement):
         '''
         Dragged from.
 
-        :param view: Gtk.Widget getting signal
-        :param _ctx: Gtk.DragContex value, unused
-        :param sel: Gtk.SelectionData containing the dragged data
+        :param view: Widget getting signal
+        :type view: Gtk.Widget
+        :param _ctx: Context value, unused
+        :type _ctx: Gtk.DragContex
+        :param sel: Selection containing the dragged data
+        :type sel: Gtk.SelectionData
         :param _info: Information registered in the Gtk.TargetList, unused
-        :param _ts: Integer timestamp of when the data was requested
+        :param _ts: timestamp of when the data was requested, unused
         '''
         store, paths = view.get_selection().get_selected_rows()
 
@@ -905,9 +988,7 @@ class MessageList(MainWindowElement):
 
         data = "\x01".join(msgs)
         byte_data = data.encode('ISO-8859-1')
-        result = sel.set(sel.get_target(), 0, byte_data)
-        print("----Dragged to")
-        print("   result = %s, -%s-", (result, byte_data))
+        sel.set(sel.get_target(), 0, byte_data)
         GObject.idle_add(self.refresh)
 
 
@@ -944,6 +1025,7 @@ class MessageList(MainWindowElement):
         Iterate from file name.
 
         :param file_name: File Name to lookup
+        :type file_name: str
         :returns: Iterated file name with each call
         '''
         fn_iter = self.store.get_iter_first()
@@ -959,7 +1041,8 @@ class MessageList(MainWindowElement):
         '''
         Refresh the current folder or optional filename.
 
-        :params file_name: Optional filename.
+        :param file_name: File name, default None
+        :type file_name: str
         '''
         if file_name is None:
             self.store.clear()
@@ -978,9 +1061,10 @@ class MessageList(MainWindowElement):
 
     def open_folder(self, path):
         '''
-        Open a folder by path
+        Open a folder by path.
 
         :param path: Folder to open
+        :type path: str
         '''
         self.current_info = MessageFolderInfo(self._folder_path(path))
         self.refresh()
@@ -1006,8 +1090,11 @@ class MessageList(MainWindowElement):
 
         :param info: Message information
         :param path: Source folder
+        :type path: str
         :param new_folder: Destination Folder
-        :returns: The new_folder on success, the source folder on failure
+        :type new_folder: str
+        :returns: The new folder name on success, the source folder on failure
+        :rtype: str
         '''
         dest = MessageFolderInfo(self._folder_path(new_folder))
         try:
@@ -1031,7 +1118,8 @@ class MessageList(MainWindowElement):
         '''
         Move selected messages into folder.
 
-        :params folder: Destination folder
+        :param folder: Destination folder
+        :type folder: str
         '''
         for msg in self.get_selected_messages():
             self.move_message(self.current_info, msg, folder)
@@ -1041,6 +1129,7 @@ class MessageList(MainWindowElement):
         Get selected messages.
 
         :returns: List of selected messages
+        :rtype: list
         '''
         # pylint: disable=unbalanced-tuple-unpacking
         msglist, = self._getw("msglist")
@@ -1058,7 +1147,8 @@ class MessagesTab(MainWindowTab):
     Messages Tab.
 
     :param wtree: Object for tree
-    :param config: Config settings object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     __gsignals__ = {
@@ -1442,6 +1532,7 @@ class MessagesTab(MainWindowTab):
         Refresh if folder is current.
 
         :param folder: Folder name to refresh
+        :type folder: str
         '''
         self._notice()
         if self._messages.current_info.name() == folder:
@@ -1451,7 +1542,8 @@ class MessagesTab(MainWindowTab):
         '''
         Mark a message sent.
 
-        :param file_name:
+        :param file_name: Filename
+        :type file_name: str
         '''
         outbox = self._folders.get_folder(_("Outbox"))
         files = outbox.files()
@@ -1473,7 +1565,8 @@ class MessagesTab(MainWindowTab):
         Get Shared Messages for a destination.
 
         :param for_station:  Destination Station (Currently ignored)
-        :returns: list of (title, stamp, filename) forms des
+        :returns: list of messages for the destination
+        :rtype: List of tuple (title, stamp, filename)
         '''
         shared = _("Inbox")
         path = os.path.join(self._config.platform.config_dir(), "messages")
