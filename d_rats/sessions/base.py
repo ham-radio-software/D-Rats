@@ -45,11 +45,14 @@ class SessionClosedError(BaseSessionException):
     '''Session Closed Error.'''
 
 
-class Session():
+# Need to inherit from object for python2 compatibility
+# pylint: disable=useless-object-inheritance
+class Session(object):
     '''
     Session.
 
     :param name: Name of session
+    :type name: str
     '''
     _sm = None
     _id = None
@@ -75,7 +78,9 @@ class Session():
         '''
         Send blocks.
 
+        Can not find anything using this.
         :param blocks: List of blocks to send
+        :type blocks: list of :class:`DDT2EncodedFrame`
         '''
         for block in blocks:
             self._sm.outgoing(self, block)
@@ -84,17 +89,19 @@ class Session():
         '''
         Receive blocks.
 
-        :returns: list of blocks received.
+        :returns: blocks received.
+        :rtype: list of :class:`DDT2EncodedFrame`
         '''
         return self.inq.dequeue_all()
 
     def close(self, force=False):
         '''
-        Close
+        Close.
 
         :param force: True if forcing a close
+        :type force: bool
         '''
-        print("Base      : Got close request")
+        # print("Base      : Got close request")
         if force:
             self.state = ST_CLSD
 
@@ -105,13 +112,14 @@ class Session():
         '''Notify.'''
 
     def read(self):
-        '''Read'''
+        '''Read.'''
 
     def write(self, dest="CQCQCQ"):
         '''
         Write.
 
         :param dest: Destination callsign, default='CQCQCQ'
+        :type dest: str
         '''
 
     def set_state(self, state):
@@ -119,7 +127,9 @@ class Session():
         Set state
 
         :param state: State to set
+        :type state: int
         :returns: False if state is not legal to set
+        :rtype: bool
         '''
         if state not in [ST_OPEN, ST_CLSD, ST_SYNC]:
             return False
@@ -134,6 +144,7 @@ class Session():
         Get state.
 
         :returns: state
+        :rtype: int
         '''
         return self.state
 
@@ -142,7 +153,9 @@ class Session():
         Wait for state change.
 
         :param timeout: default=None
+        :type timeout: float
         :returns: Current state
+        :rtype: int:
         '''
         before = self.state
 
@@ -156,6 +169,7 @@ class Session():
         Get station.
 
         :returns station
+        :rtype: str
         '''
         return self._st
 
@@ -164,5 +178,6 @@ class Session():
         Get name.
 
         :returns: name
+        :rtype: str
         '''
         return self.name
