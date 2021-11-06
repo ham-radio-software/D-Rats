@@ -264,7 +264,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     # Each class should have their own logger.
-    logger = logging.getLogger("config_test")
+    logger = logging.getLogger("geocode_ui_test")
 
     import sys
     logger.info("sys.path=%s", sys.path)
