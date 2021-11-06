@@ -2,6 +2,7 @@
 '''Main Stations'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import gettext
+import logging
 import time
 import os
 
@@ -27,6 +28,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
+from gi.repository import GLib
 
 from d_rats.ui.main_common import MainWindowTab
 from d_rats.ui import main_events
@@ -38,10 +40,11 @@ from d_rats import image
 from d_rats import miscwidgets
 from d_rats import inputdialog
 from d_rats import utils
-# importing printlog() wrapper
-from ..debug import printlog
 
-_ = gettext.gettext
+
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 
 # pylint: disable=too-many-locals
@@ -49,7 +52,8 @@ def prompt_for_account(config):
     '''
     Prompt for account.
 
-    :param config: Config object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
     accounts = {}
     for section in config.options("incoming_email"):
@@ -108,7 +112,13 @@ def prompt_for_account(config):
 
 
 class StationsList(MainWindowTab):
-    '''Stations List'''
+    '''
+    Stations List.
+
+    :param wtree: Window object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    '''
 
     __gsignals__ = {
         "event" : signals.EVENT,
@@ -123,6 +133,115 @@ class StationsList(MainWindowTab):
 
     _signals = __gsignals__
 
+    # pylint: disable=too-many-statements
+    def __init__(self, wtree, config):
+        MainWindowTab.__init__(self, wtree, config, "main")
+
+        self.logger = logging.getLogger("StationsList")
+        self.__smsg = None
+
+        # pylint: disable=unbalanced-tuple-unpacking
+        _frame, self.__view, = self._getw("stations_frame", "stations_view")
+
+        self.__status = None
+        store = Gtk.ListStore(GObject.TYPE_STRING,  # Station
+                              GObject.TYPE_INT,     # Timestamp
+                              GObject.TYPE_STRING,  # Message
+                              GObject.TYPE_INT,     # Status
+                              GObject.TYPE_STRING,  # Status message
+                              GObject.TYPE_STRING)  # Port
+        store.set_sort_column_id(1, Gtk.SortType.DESCENDING)
+        self.__view.set_model(store)
+
+        try:
+            self.__view.set_tooltip_column(2)
+        except AttributeError:
+            self.logger.info("This version of GTK is too old;"
+                             " disabling station tooltips")
+
+        self.__view.connect("button_press_event", self._mouse_cb)
+
+        def render_call(_col, rend, model, stn_iter, _data):
+            call, time_stamp, status = model.get(stn_iter, 0, 1, 3)
+            sec = time.time() - time_stamp
+
+            hour = 3600
+            day = (hour*24)
+
+            if sec < 60:
+                msg = call
+            elif sec < hour:
+                msg = "%s (%im)" % (call, (sec / 60))
+            elif sec < day:
+                msg = "%s (%ih %im)" % (call, sec / 3600, (sec % 3600) / 60)
+            else:
+                msg = "%s (%id %ih)" % (call, sec / day, (sec % day) / 3600)
+
+            if status == station_status.STATUS_ONLINE:
+                color = "blue"
+            elif status == station_status.STATUS_UNATTENDED:
+                color = "#CC9900"
+            elif status == station_status.STATUS_OFFLINE:
+                color = "grey"
+            else:
+                color = "black"
+
+            rend.set_property("markup", "<span color='%s'>%s</span>" % (color,
+                                                                        msg))
+
+        renderer = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Stations"), renderer, text=0)
+        col.set_cell_data_func(renderer, render_call)
+        self.__view.append_column(col)
+
+        self.__calls = []
+        self._update_station_count()
+
+        # pylint: disable=unbalanced-tuple-unpacking
+        status, msg = self._getw("stations_status", "stations_smsg")
+
+        try:
+            tool_txt = _("This is the state other stations will "
+                         "see when requesting your status")
+            status.set_tooltip_text(tool_txt)
+            msg.set_tooltip_text(tool_txt)
+        except AttributeError:
+            pass
+
+        def set_status(call_back):
+            '''
+            Set Status.
+
+            :param call_back: call_back to run when setting status
+            '''
+            self.__status = call_back.get_active_text()
+            self._config.set("state", "status_state", self.__status)
+        def set_smsg(e_message):
+            '''
+            Set smsg
+
+            :param e_message: Message to set
+            '''
+            self.__smsg = e_message.get_text()
+            self._config.set("state", "status_msg", self.__smsg)
+
+        for station in sorted(station_status.get_status_msgs().values()):
+            if station not in [_("Unknown"), _("Offline")]:
+                status.append_text(station)
+
+        status.connect("changed", set_status)
+        msg.connect("changed", set_smsg)
+
+        prev_status = self._config.get("state", "status_state")
+        if not utils.combo_select(status, prev_status):
+            utils.combo_select(status,
+                               station_status.get_status_msgs().values()[0])
+        msg.set_text(self._config.get("state", "status_msg"))
+        set_status(status)
+        set_smsg(msg)
+
+        GLib.timeout_add(30000, self._update)
+
     def _expire(self):
         now = time.time()
         ttl = self._config.getint("settings", "expire_stations")
@@ -130,13 +249,16 @@ class StationsList(MainWindowTab):
             return
 
         store = self.__view.get_model()
+        if not store:
+            self.logger.info("_expire: python3 fails here.")
+            return
         stn_iter = store.get_iter_first()
         while stn_iter:
             station, stamp = store.get(stn_iter, 0, 1)
             if (now - stamp) > (ttl * 60):
-                printlog("MainStation",
-                         ": Expired station %s (%i minutes since heard)" %
-                         (station, (now - stamp) / 60))
+                self.logger.info("_expire: Expired station %s "
+                                 "(%i minutes since heard)",
+                                 station, (now - stamp) / 60)
                 self.__calls.remove(station)
                 self._update_station_count()
                 if not store.remove(stn_iter):
@@ -163,7 +285,7 @@ class StationsList(MainWindowTab):
             stn_iter = model.iter_next(stn_iter)
 
         if action == "ping":
-            printlog("MainStation", ": executing ping")
+            self.logger.info("_mh: executing ping")
             # pylint: disable=fixme
             # FIXME: Use the port we saw the user on
             self.emit("ping-station", station, port)
@@ -182,8 +304,7 @@ class StationsList(MainWindowTab):
 
         # asking positions to remote stations
         elif action == "reqpos":
-            printlog("MainStation",
-                     ": executing position request to: %s" % station)
+            self.logger.info("_mh: executing position request to: %s", station)
             job = rpc.RPCPositionReport(station, "Position Request")
 
             def log_result(_job, _state, result):
@@ -198,9 +319,8 @@ class StationsList(MainWindowTab):
                 else:
                     # result_code == "OK":
                     event = main_events.Event(None, result)
-                    printlog("MainStation",
-                             ": result returned: %s" % str(result))
-                    printlog("MainStation", ": event returned: %s" % event)
+                    self.logger.info("_mh: result returned: %s", str(result))
+                    self.logger.info("_mh: event returned: %s", event)
             job.set_station(station)
             job.connect("state-change", log_result)
 
@@ -213,19 +333,19 @@ class StationsList(MainWindowTab):
             self.__calls = []
             self._update_station_count()
         elif action == "pingall":
-            printlog("MainStation", ": executing ping all")
+            self.logger.info("_mh: executing ping all")
             stationlist = self.emit("get-station-list")
-            for port in stationlist:
-                printlog("MainStation",": Doing CQCQCQ ping on port %s" % port)
-                self.emit("ping-station", "CQCQCQ", port)
+            for station_radio_port in stationlist:
+                self.logger.info("_mh: Doing CQCQCQ ping on port %s",
+                                 station_radio_port)
+                self.emit("ping-station", "CQCQCQ", station_radio_port)
         elif action == "reqposall":
-            printlog("MainStation",
-                     ": requesting position to all known stations")
+            self.logger.info("_mh: requesting position to all known stations")
             job = rpc.RPCPositionReport("CQCQCQ", "Position Request")
             job.set_station(".")
             stationlist = self.emit("get-station-list")
-            for port in stationlist.keys():
-                self.emit("submit-rpc-job", job, port)
+            for station_radio_port in stationlist.keys():
+                self.emit("submit-rpc-job", job, station_radio_port)
         elif action == "sendfile":
             fname = self._config.platform.gui_open_file()
             if not fname:
@@ -247,9 +367,8 @@ class StationsList(MainWindowTab):
                         job.get_dest(),
                         result.get("version", "Unknown"),
                         result.get("os", "Unknown"))
-                    printlog("MainStation",
-                             ": Station %s reports version info: %s" %
-                             (job.get_dest(), result))
+                    self.logger.info("_mh: Station %s reports version info: %s",
+                                     job.get_dest(), result)
 
                 else:
                     msg = "No version response from %s" % job.get_dest()
@@ -278,8 +397,7 @@ class StationsList(MainWindowTab):
         elif action == "qrz":
             import webbrowser
             callsign = station.split("-")
-            printlog("MainStation",
-                     ": looking on QRZ.com for %s " % callsign[0])
+            self.logger.info("_mh: looking on QRZ.com for %s ", callsign[0])
             webbrowser.open('https://www.qrz.com/lookup?callsign=%s' %
                             callsign[0], new=2)
 
@@ -353,114 +471,6 @@ class StationsList(MainWindowTab):
         menu = self._make_station_menu(station, port)
         menu.popup(None, None, None, None, event.button, event.time)
 
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "main")
-
-        self.__smsg = None
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        _frame, self.__view, = self._getw("stations_frame", "stations_view")
-
-        self.__status = None
-        store = Gtk.ListStore(GObject.TYPE_STRING,  # Station
-                              GObject.TYPE_INT,     # Timestamp
-                              GObject.TYPE_STRING,  # Message
-                              GObject.TYPE_INT,     # Status
-                              GObject.TYPE_STRING,  # Status message
-                              GObject.TYPE_STRING)  # Port
-        store.set_sort_column_id(1, Gtk.SortType.DESCENDING)
-        self.__view.set_model(store)
-
-        try:
-            self.__view.set_tooltip_column(2)
-        except AttributeError:
-            printlog("MainStation",
-                     ": This version of GTK is old; disabling station tooltips")
-
-        self.__view.connect("button_press_event", self._mouse_cb)
-
-        def render_call(_col, rend, model, stn_iter, _data):
-            call, time_stamp, status = model.get(stn_iter, 0, 1, 3)
-            sec = time.time() - time_stamp
-
-            hour = 3600
-            day = (hour*24)
-
-            if sec < 60:
-                msg = call
-            elif sec < hour:
-                msg = "%s (%im)" % (call, (sec / 60))
-            elif sec < day:    
-                msg = "%s (%ih %im)" % (call, sec / 3600, (sec % 3600) / 60)
-            else:
-                msg = "%s (%id %ih)" % (call, sec / day, (sec % day) / 3600)
-
-            if status == station_status.STATUS_ONLINE:
-                color = "blue"
-            elif status == station_status.STATUS_UNATTENDED:
-                color = "#CC9900"
-            elif status == station_status.STATUS_OFFLINE:
-                color = "grey"
-            else:
-                color = "black"
-
-            rend.set_property("markup", "<span color='%s'>%s</span>" % (color,
-                                                                        msg))
-
-        renderer = Gtk.CellRendererText()
-        col = Gtk.TreeViewColumn(_("Stations"), renderer, text=0)
-        col.set_cell_data_func(renderer, render_call)
-        self.__view.append_column(col)
-
-        self.__calls = []
-        self._update_station_count()
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        status, msg = self._getw("stations_status", "stations_smsg")
-
-        try:
-            status.set_tooltip_text(_("This is the state other stations will " +
-                                      "see when requesting your status"))
-            msg.set_tooltip_text(_("This is the message other stations will " +
-                                   "see when requesting your status"))
-        except AttributeError:
-            pass
-
-        def set_status(call_back):
-            '''
-            Set Status.
-
-            :param call_back: call_back to run when setting status
-            '''
-            self.__status = call_back.get_active_text()
-            self._config.set("state", "status_state", self.__status)
-
-        def set_smsg(e_message):
-            '''
-            Set smsg
-
-            :param e_message: Message to set
-            '''
-            self.__smsg = e_message.get_text()
-            self._config.set("state", "status_msg", self.__smsg)
-
-        for station in sorted(station_status.get_status_msgs().values()):
-            if station not in [_("Unknown"), _("Offline")]:
-                status.append_text(station)
-
-        status.connect("changed", set_status)
-        msg.connect("changed", set_smsg)
-
-        prev_status = self._config.get("state", "status_state")
-        if not utils.combo_select(status, prev_status):
-            utils.combo_select(status,
-                               station_status.get_status_msgs().values()[0])
-        msg.set_text(self._config.get("state", "status_msg"))
-        set_status(status)
-        set_smsg(msg)
-
-        GObject.timeout_add(30000, self._update)
-
     def _update_station_count(self):
         # pylint: disable=unbalanced-tuple-unpacking
         hdr, = self._getw("stations_header")
@@ -474,9 +484,12 @@ class StationsList(MainWindowTab):
         Saw Station.
 
         :param station: Station seen
-        :param port: Port station seen on
+        :type station: str
+        :param port: Radio port station seen on
+        :type port: str
         :param status: Optional station status
         :param smsg: Optional Station message
+        :type smsg: str
         '''
         status_changed = False
 
@@ -537,6 +550,7 @@ class StationsList(MainWindowTab):
         Get Station Status.
 
         :returns: Station status
+        :rtype: tuple
         '''
         sval = station_status.get_status_vals()[self.__status]
 
@@ -546,13 +560,13 @@ class StationsList(MainWindowTab):
         '''
         Get Stations.
 
-        :returns: List of stations
+        :returns: known stations
+        :rtype list of :class:`Station`
         '''
         stations = []
         store = self.__view.get_model()
         if not store:
-            printlog("MainStation",
-                     ": Failed to get station model store.")
+            self.logger.info("get_station: Failed to get station model store.")
             return stations
 
         stn_iter = store.get_iter_first()
