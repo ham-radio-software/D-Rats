@@ -275,6 +275,7 @@ def load_portspec(wtree, portspec, info, name):
     :param portspec: Port specification object
     :param info: Port information
     :param name: Port name
+    :type name: str
     '''
     namewidget = wtree.get_object("name")
     namewidget.set_text(name)
@@ -319,7 +320,9 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     :param portspec: portspec object, default None
     :param info: Port information, default None
     :param pname: Port name, default None
-    :returns: portspec object or a tuple of (None, None, None)
+    :type pname: str
+    :returns: portspec or (None, None, None)
+    :rtype: tuple
     '''
     wtree = Gtk.Builder()
     path = os.path.join(dplatform.get_platform().source_dir(),
@@ -451,6 +454,7 @@ def disable_by_combo(combo, map_var):
 
     :param combo: combo object
     :param map_ver: Dictionary map
+    :type map_ver: dict
     '''
     # Expects a map like:
     # map = {
@@ -472,6 +476,7 @@ class AddressLookup(Gtk.Button):
     Lookup Latitude and Longitude.
 
     :param caption: Caption for lookup
+    :type caption: str
     :param latw: Latitude
     :param lonw: Longitude
     :param window: Window object, default=None
@@ -484,6 +489,14 @@ class AddressLookup(Gtk.Button):
 
     # pylint: disable=arguments-differ
     def clicked(self, _me, latw, lonw, window):
+        '''
+        Clicked.
+
+        :param _me: Unused
+        :param latw: latitude
+        :param latw: Longitude
+        :param window: Parent window
+        '''
         assistant = geocode_ui.AddressAssistant()
         if assistant.geocoders:
             assistant.set_transient_for(window)
@@ -499,10 +512,14 @@ class DratsConfigWidget(Gtk.Box):
     '''
     D-rats configuration Widget.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     :param sec: Config file section
+    :type sec: str
     :param name: Name of configuration
+    :type name: str
     :param have_revert: Flag if reverting is allowed, default False
+    :type have_revert: bool
     '''
 
     def __init__(self, config, sec, name, have_revert=False):
@@ -586,7 +603,9 @@ class DratsConfigWidget(Gtk.Box):
         Add Text Entry Box.
 
         :param limit: limit value, default 0
+        :type limit: int
         :param hint: Text hint, default None
+        :type hint: str
         '''
         def changed(entry):
             if entry.get_text() == hint:
@@ -612,6 +631,7 @@ class DratsConfigWidget(Gtk.Box):
         Add upper case text entry.
 
         :param limit: Limit of text, default 0
+        :type limit: int
         '''
         def changed(entry):
             self.value = entry.get_text().upper()
@@ -631,6 +651,7 @@ class DratsConfigWidget(Gtk.Box):
         Add a password entry.
 
         :param limit: Limit default 0
+        :type limit: int
         '''
         def changed(entry):
             self.value = entry.get_text()
@@ -646,18 +667,22 @@ class DratsConfigWidget(Gtk.Box):
 
         self.pack_start(entry, 1, 1, 1)
 
-    # pylint: disable=dangerous-default-value
-    def add_combo(self, choices=[], editable=False, size=80):
+    def add_combo(self, choices=None, editable=False, size=80):
         '''
         Add a combo box.
 
-        :param choices: List of choices, default []
-        :pram editable: Flag for editable, defult False
+        :param choices: Choices, default None
+        :type choices: list of str
+        :param editable: Flag for editable, defult False
+        :type editable: bool
         :param size: Size of combo box, default 80
+        :type size: int
         '''
         def changed(box):
             self.value = box.get_active_text()
 
+        if not choices:
+            choices = []
         if self.value not in choices:
             choices.append(self.value)
 
@@ -674,6 +699,7 @@ class DratsConfigWidget(Gtk.Box):
         Add boolean button.
 
         :param label: Label for button, default None
+        :type label: str
         '''
         if label is None:
             label = _("Enabled")
@@ -721,6 +747,7 @@ class DratsConfigWidget(Gtk.Box):
         :param max_val: Maximum value
         :param increment: Increment for adjustments
         :param digits: Number of digits, default 0
+        :type digits: int
         '''
 
         def value_changed(srcbox):
@@ -812,8 +839,10 @@ class DratsListConfigWidget(DratsConfigWidget):
     '''
     D-Rats List Configuration Widget.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     :param section: Section of configuration file
+    :type section: str
     '''
 
     def __init__(self, config, section):
@@ -829,9 +858,12 @@ class DratsListConfigWidget(DratsConfigWidget):
         '''
         Convert Types.
 
-        :param coltypes: List of column types
-        :param values: list of values to convert
-        :returns: list of converted value
+        :param coltypes: Column types
+        :type coltypes: list
+        :param values: Values to convert
+        :type values: list
+        :returns: Converted value
+        :rtype: list
         '''
         newvals = []
 
@@ -932,7 +964,8 @@ class DratsPanel(Gtk.Grid):
     '''
     D-Rats Configuration Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -950,6 +983,7 @@ class DratsPanel(Gtk.Grid):
 
         set information for a widget.
         :param title: Title for widget
+        :type title: str
         :param *args: Optional arguments
         '''
 
@@ -980,6 +1014,7 @@ class DratsPanel(Gtk.Grid):
         Message Group.
 
         :param title: title of message group
+        :type title: str
         :param *args: Optional arguments
         '''
         if len(args) % 2:
@@ -1013,7 +1048,8 @@ class DratsPrefsPanel(DratsPanel):
     '''
     D-Rats Preferences Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1083,7 +1119,8 @@ class DratsPathsPanel(DratsPanel):
     '''
     D-Rats Paths Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config, _window):
@@ -1107,7 +1144,8 @@ class DratsMapPanel(DratsPanel):
     '''
     D-Rats MAP Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param _window: Unused
     '''
 
@@ -1164,7 +1202,8 @@ class DratsGPSPanel(DratsPanel):
     '''
     D-rats GPS Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     :param _window: Unused
     '''
 
@@ -1233,6 +1272,7 @@ class DratsGPSExportPanel(DratsPanel):
     D-Rats GPS Export Panel.
 
     :param config: DratsConfig object
+    :type config: :class:`DratsConfig`
     :param _window: unused
     '''
 
@@ -1257,7 +1297,8 @@ class DratsAppearancePanel(DratsPanel):
     '''
     D-Rats Appearance Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1313,7 +1354,8 @@ class DratsChatPanel(DratsPanel):
     '''
     D-Rats Chat Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1362,7 +1404,8 @@ class DratsSoundPanel(DratsPanel):
     '''
     D-Rats Sound Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1385,7 +1428,8 @@ class DratsRadioPanel(DratsPanel):
     '''
     D-Rats Radio Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     INITIAL_ROWS = 3
@@ -1431,14 +1475,13 @@ class DratsRadioPanel(DratsPanel):
         Make View.
 
         :param _title: Title of view, Unused
+        :type _title: str
         :param *widgets: Widgets to place in view
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
         widgets[0].show()
         widget_height = max(widgets[0].get_preferred_height())
         self.attach(widgets[0], 0, 0, 3, widget_height)
-
-
 
         if len(widgets) > 1:
             box = Gtk.Box.new(orientation=Gtk.Orientation.HORIZONTAL,
@@ -1462,6 +1505,7 @@ class DratsRadioPanel(DratsPanel):
         Button Add.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: list widget object
         '''
         name, port, info = prompt_for_port()
@@ -1474,6 +1518,7 @@ class DratsRadioPanel(DratsPanel):
         Button Modify.
 
         :param _button: Unused
+        :type: _button: :class:`Gtk.Button`
         :param list_widget: list widget object
         '''
         values = list_widget.get_item(list_widget.get_selected())
@@ -1488,6 +1533,7 @@ class DratsRadioPanel(DratsPanel):
         Button remove.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: list widget object
         '''
         list_widget.del_item(list_widget.get_selected())
@@ -1498,7 +1544,8 @@ class DratsTransfersPanel(DratsPanel):
     '''
     D-Rats Transfers Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1542,7 +1589,8 @@ class DratsMessagePanel(DratsPanel):
     '''
     D-Rats Message Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     # pylint: disable=too-many-locals,too-many-statements
@@ -1665,7 +1713,8 @@ class DratsTCPPanel(DratsPanel):
         Make View.
 
         set information for a widget.
-        :param title: Title for widget
+        :param _title: Title for widget, Unused
+        :type _title: str
         :param *args: Optional arguments
         '''
 
@@ -1696,6 +1745,7 @@ class DratsTCPPanel(DratsPanel):
         Button Remove.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
         list_widget.del_item(list_widget.get_selected())
@@ -1707,6 +1757,7 @@ class DratsTCPPanel(DratsPanel):
 
         :param fields: Fields object
         :returns: dict of fields
+        :rtype: dict
         '''
         field_dialog = inputdialog.FieldDialog()
         for n_field, t_field in fields:
@@ -1744,7 +1795,8 @@ class DratsTCPOutgoingPanel(DratsTCPPanel):
     '''
     D-Rats TCP Outgoing Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1769,6 +1821,7 @@ class DratsTCPOutgoingPanel(DratsTCPPanel):
         Button Add.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
         values = self.prompt_for([(_("Local Port"), int),
@@ -1787,7 +1840,8 @@ class DratsTCPIncomingPanel(DratsTCPPanel):
     '''
     D-Rats TCP Incoming Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1811,6 +1865,7 @@ class DratsTCPIncomingPanel(DratsTCPPanel):
         Button Add.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Widget`
         :param list_widget: widget for button
         '''
         values = self.prompt_for([(_("Port"), int),
@@ -1828,7 +1883,8 @@ class DratsOutEmailPanel(DratsPanel):
     '''
     D-Rats Out Email Panel
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -1878,7 +1934,8 @@ class DratsInEmailPanel(DratsPanel):
     '''
     D-Rats In Email Panel.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     INITIAL_ROWS = 2
@@ -1923,12 +1980,13 @@ class DratsInEmailPanel(DratsPanel):
 
         self.make_view(_("Incoming Accounts"), val, add, edit, rem)
 
-    def make_view(self, title, *widgets):
+    def make_view(self, _title, *widgets):
         '''
         Make View.
 
-        set information for a widget.
-        :param title: Title for widget
+        set information for a widget
+        :param _title: Title for widget
+        :type _title: str
         :param *args: Optional arguments
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
@@ -1959,6 +2017,7 @@ class DratsInEmailPanel(DratsPanel):
         Button remove.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
         list_widget.del_item(list_widget.get_selected())
@@ -1970,6 +2029,7 @@ class DratsInEmailPanel(DratsPanel):
 
         :param fields: Fields for account dialog
         :returns: Dict containing account information
+        :rtype: dict:
         '''
         dlg = inputdialog.FieldDialog()
         for n_field, t_field, d_field in fields:
@@ -2024,6 +2084,7 @@ class DratsInEmailPanel(DratsPanel):
         Button Add.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
         fields = [(_("Server"), str, ""),
@@ -2053,6 +2114,7 @@ class DratsInEmailPanel(DratsPanel):
         Button Edit.
 
         :param _button: Unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
         vals = list_widget.get_item(list_widget.get_selected())
@@ -2084,8 +2146,10 @@ class DratsInEmailPanel(DratsPanel):
         '''
         Convert 018 Values.
 
-        :param config: Configuration object
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
         :param section: Section to convert
+        :type section: str
         '''
         if not config.has_section(section):
             return
@@ -2106,7 +2170,8 @@ class DratsEmailAccessPanel(DratsPanel):
     '''
     D-Rats Email Access Panel.
 
-    :param config: DratsConfig object
+    :param config: configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     INITIAL_ROWS = 2
@@ -2141,12 +2206,13 @@ class DratsEmailAccessPanel(DratsPanel):
 
         self.make_view(_("Email Access"), val, add, edit, rem)
 
-    def make_view(self, title, *widgets):
+    def make_view(self, _title, *widgets):
         '''
         Make View.
 
         set information for a widget.
-        :param title: Title for widget
+        :param _title: Title for widget, Unused
+        :type _title: str
         :param *args: Optional arguments
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
@@ -2177,6 +2243,7 @@ class DratsEmailAccessPanel(DratsPanel):
         Button Remove.
 
         :param _button: Button widget unused
+        :type _button: :class:`Gtk.Button`
         :param list_widget: Listing widget
         '''
         list_widget.del_item(list_widget.get_selected())
@@ -2187,6 +2254,7 @@ class DratsEmailAccessPanel(DratsPanel):
 
         :param fields: Fields for entry
         :returns: Dictionary of fields or None
+        :rtype: dict
         '''
         dlg = inputdialog.FieldDialog()
         for n_field, t_field, d_field in fields:
@@ -2235,7 +2303,8 @@ class DratsEmailAccessPanel(DratsPanel):
         '''
         Button Add.
 
-        :param _button: Button widget, not used
+        :param _button: widget, not used
+        :type _button: :class:`Gtk.Button`
         :param list_widget: List widget
         '''
         fields = [(_("Callsign"), str, ""),
@@ -2255,6 +2324,7 @@ class DratsEmailAccessPanel(DratsPanel):
         Button Edit.
 
         :param _button: Button widget, not used
+        :type _button: :class:`Gtk.Button`
         :param list_widget: List widget
         '''
         vals = list_widget.get_item(list_widget.get_selected())
@@ -2277,8 +2347,10 @@ class DratsConfigUI(Gtk.Dialog):
     '''
     D-Rats Configuration UI.
 
-    :param config: DratsConfig object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     :param parent: Parent object, default None
+    :type parent: :class:`Gtk.Widget`
     '''
 
     def __init__(self, config, parent=None):
@@ -2506,8 +2578,7 @@ class DratsConfig(configparser.ConfigParser):
         :param key: Key in section
         :returns: Boolean value'''
         try:
-            return configparser.ConfigParser.getboolean(self,
-                                                                  sec, key)
+            return configparser.ConfigParser.getboolean(self, sec, key)
         # pylint: disable=broad-except
         except configparser.NoOptionError:
             #self.logger.info("Failed to get boolean: %s/%s", sec, key,
