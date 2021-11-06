@@ -1,7 +1,8 @@
 #!/usr/bin/python
-'''Main Common'''
+'''Main Common.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,9 +28,22 @@ from d_rats import inputdialog, miscwidgets
 
 STATION_REGEX = "^[A-Z0-9- /_]+$"
 
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
 
 def ask_for_confirmation(question, parent=None):
-    '''Ask for Confirmation'''
+    '''
+    Ask for Confirmation.
+
+    :param question: Question for user.
+    :type question: str
+    :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Widget`
+    :returns: True if confirmation is selected.
+    :rtype: bool
+    '''
     dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.YES_NO,
                                parent=parent,
                                message_format=question)
@@ -40,7 +54,16 @@ def ask_for_confirmation(question, parent=None):
 
 
 def display_error(message, parent=None):
-    '''Display Error'''
+    '''
+    Display Error.
+
+    :param message: Message to display
+    :type message: str
+    :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Widget`
+    :returns: True if user clicks OK button
+    :rtype: bool
+    '''
     dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
                                parent=parent,
                                message_format=message)
@@ -51,9 +74,19 @@ def display_error(message, parent=None):
 
 
 # pylint: disable=too-many-locals
-def prompt_for_station(_station_list, config, parent=None):
-    '''Prompt for Station'''
-    station_list = [str(x) for x in _station_list]
+def prompt_for_station(station_list, config, parent=None):
+    '''
+    Prompt for Station.
+
+    :param station_list: List of station objects
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Widget`
+    :returns: station_text and port_text
+    :rtype: tuple of (str, str)
+    '''
+    station_string_list = [str(x) for x in station_list]
     port_list = []
     for i in config.options("ports"):
         enb, port, _rate, _sniff, _raw, name = config.get("ports", i).split(",")
@@ -61,15 +94,15 @@ def prompt_for_station(_station_list, config, parent=None):
             port_list.append(name)
 
     defsta = defprt = ""
-    if station_list:
-        defsta = str(station_list[0])
+    if station_string_list:
+        defsta = str(station_string_list[0])
     if port_list:
         defprt = port_list[0]
 
     port_list.sort()
-    station_list.sort()
+    station_string_list.sort()
 
-    station = miscwidgets.make_choice(station_list, True, defsta)
+    station = miscwidgets.make_choice(station_string_list, True, defsta)
     port = miscwidgets.make_choice(port_list, False, defprt)
 
     dialog = inputdialog.FieldDialog(title=_("Enter destination"),
@@ -100,7 +133,18 @@ def prompt_for_station(_station_list, config, parent=None):
 
 
 def prompt_for_string(message, parent=None, orig=""):
-    '''Prompt for String'''
+    '''
+    Prompt for String.
+
+    :param message: Prompt for the message
+    :type message: str
+    :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Widget`
+    :param orig: Default or original text, default ""
+    :type orig: str
+    :returns: Entered text or None
+    :rtype: str
+    '''
     dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK_CANCEL,
                                parent=parent,
                                message_format=message)
@@ -118,7 +162,14 @@ def prompt_for_string(message, parent=None, orig=""):
 
 
 def set_toolbar_buttons(config, toolbar):
-    '''Set Toolbar Buttons'''
+    '''
+    Set Toolbar Buttons.
+
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param toolbar: Toolbar object
+    :type toolbar: :class:`Gtk.Toolbar`
+    '''
     tbsize = config.get("prefs", "toolbar_button_size")
     if tbsize == _("Default"):
         toolbar.unset_style()
@@ -132,7 +183,19 @@ def set_toolbar_buttons(config, toolbar):
 
 
 class MainWindowElement(GObject.GObject):
-    '''Main Window Element'''
+    '''
+    Main Window Element.
+
+    :param wtree: Widget for a tree of widget objects
+    :type wtree: :class:`Gtk.Widget`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param prefix: Prefix for the widget name lookups
+    :param prefix: str
+    :param label: Label text for the widget, default None.
+    :type label: str
+    '''
+
     def __init__(self, wtree, config, prefix, label=None):
         self._prefix = prefix
         self._label = label
@@ -151,16 +214,21 @@ class MainWindowElement(GObject.GObject):
         return tuple(widgets)
 
     def reconfigure(self):
-        '''Reconfigure'''
+        '''Reconfigure.'''
 
 
 class MainWindowTab(MainWindowElement):
     '''
-    Main Window Tab
+    Main Window Tab.
 
     :param wtree: Window object
-    :param config: Config object
+    :type wtree: :class:`Gtk.Widget`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     :param prefix: Prefix for lookups
+    :type prefix: str
+    :param label: text label for widget, default None
+    :type label: str
     '''
 
     def __init__(self, wtree, config, prefix, label=None):
@@ -178,15 +246,15 @@ class MainWindowTab(MainWindowElement):
                 self._tablabel = self._notebook.get_tab_label(self._menutab)
 
     def reconfigure(self):
-        '''Reconfigure'''
+        '''Reconfigure.'''
 
     def selected(self):
-        '''Selected'''
+        '''Selected.'''
         self._selected = True
         self._unnotice()
 
     def deselected(self):
-        '''Deselected'''
+        '''Deselected.'''
         self._selected = False
 
     def _notice(self):
