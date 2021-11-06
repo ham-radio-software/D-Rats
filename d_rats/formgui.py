@@ -1018,9 +1018,10 @@ class FormField():
         '''Update node.'''
         self.entry.update_node()
 
-
+# Need to inherit from object here for python2 compatibility
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
-class FormFile():
+# pylint: disable=useless-object-inheritance
+class FormFile(object):
     '''
     Form File.
 
