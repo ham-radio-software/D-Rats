@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gettext
+import logging
 import os
 import time
 from glob import glob
@@ -27,6 +27,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GdkPixbuf
 from gi.repository import Gtk
 from gi.repository import GObject
+from gi.repository import GLib
 
 from d_rats.ui.main_common import MainWindowTab
 from d_rats.ui.main_common import ask_for_confirmation, set_toolbar_buttons
@@ -36,11 +37,13 @@ from d_rats import image
 from d_rats import utils
 from d_rats import signals
 from d_rats import inputdialog
-#importing printlog() wrapper
-from ..debug import printlog
 
 
-_ = gettext.gettext
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
+
 THROB_IMAGE = "throbber.gif"
 REMOTE_HINT = _("Enter remote callsign")
 
@@ -50,7 +53,8 @@ class FileView():
 
     :param view: view object
     :param path: path to view files on
-    :param config: configuration file object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
     def __init__(self, view, path, config):
         self._view = view
@@ -109,7 +113,17 @@ class FileView():
 
 
 class LocalFileView(FileView):
-    '''Local File View'''
+    '''
+    Local File View.
+
+    :param view: view object
+    :param path: path to view files on
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    '''
+    def __init__(self, view, path, config):
+        FileView.__init__(self, view, path, config)
+        self.logger = logging.getLogger("LocalFileV")
 
     def refresh(self):
         '''Refresh'''
@@ -118,7 +132,7 @@ class LocalFileView(FileView):
         for file in files:
             if os.path.isdir(file):
                 continue
-            printlog("Mainfiles", " : Adding local file `%s'" % file)
+            self.logger.info("refresh: Adding local file `%s'", file)
             try:
                 stat = os.stat(file)
                 time_stamp = stat.st_mtime
@@ -126,17 +140,29 @@ class LocalFileView(FileView):
                 name = os.path.basename(file)
                 self._store.append((self._file_icon, name, size, time_stamp))
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mainfiles", "  : Failed to add local file: %s" % err)
+            except Exception:
+                self.logger.info("refresh : Failed to add local file: %s",
+                                 "broad-except", exc_info=True)
 
 
 class RemoteFileView(FileView):
-    '''Remote File View'''
+    '''
+    Remote File View.
+
+    :param view: view object
+    :param path: path to view files on
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    '''
+
+    def __init__(self, view, path, config):
+        FileView.__init__(self, view, path, config)
+        self.logger = logging.getLogger("RemoteFileV")
 
     # pylint: disable=too-many-locals
     def _file_list_cb(self, job, state, result):
         if state != "complete":
-            printlog("Mainfiles", "  : Incomplete job")
+            self.logger.info("_file_list_cb : Incomplete job")
             return
 
         unit_decoder = {u"B" : 0,
@@ -151,23 +177,26 @@ class RemoteFileView(FileView):
                 size = 0
                 try:
                     size = int(size_str)
-                except ValueError as err:
-                    printlog("Mainfiles",
-                             "  : Unable to parse file size: %s" %err)
+                except ValueError:
+                    self.logger.info("_file_list_cb:"
+                                     " Unable to parse file size",
+                                     exc_info=True)
                 try:
                     units_str = units.decode('utf-8', 'replace')
                     size <<= unit_decoder[units_str]
-                except KeyError as err:
-                    printlog("Mainfiles",
-                             "  : Unable to parse file size units: %s" % err)
+                except KeyError:
+                    self.logger.info("_file_list_cb:"
+                                     " Unable to parse file size units:",
+                                     exc_info=True)
                     size = 0
                 try:
                     stamp = "%s %s" % (file_date, file_time)
                     time_stamp = time.mktime(
                         time.strptime(stamp, "(%Y-%m-%d %H:%M:%S)"))
-                except (OverflowError, ValueError) as err:
-                    printlog("Mainfiles",
-                             "  : Unable to parse file time info: %s" % err)
+                except (OverflowError, ValueError):
+                    self.logger.info("_file_list_cb:"
+                                     " Unable to parse file time info: %s",
+                                     exc_info=True)
                     time_stamp = time.time()
 
                 self._store.append((self._file_icon, key, size, time_stamp))
@@ -175,7 +204,12 @@ class RemoteFileView(FileView):
                 self._store.append((self._file_icon, key, 0, 0))
 
     def refresh(self):
-        '''Refresh'''
+        '''
+        Refresh.
+
+        :returns: Job information
+        :rtype: :class:`RPCFileListJob`
+        '''
         self._store.clear()
 
         job = rpc.RPCFileListJob(self.get_path(), "File list request")
@@ -185,7 +219,15 @@ class RemoteFileView(FileView):
 
 
 class FilesTab(MainWindowTab):
-    '''Files Tab'''
+    '''
+    Files Tab.
+
+    :param view: view object
+    :param path: path to view files on
+    :type path: str
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    '''
 
     __gsignals__ = {
         "event" : signals.EVENT,
@@ -197,6 +239,38 @@ class FilesTab(MainWindowTab):
         }
 
     _signals = __gsignals__
+
+    def __init__(self, wtree, config):
+        MainWindowTab.__init__(self, wtree, config, "files", _("Files"))
+        self.logger = logging.getLogger("FilesTab")
+
+        # pylint: disable=unbalanced-tuple-unpacking
+        lview, rview = self._getw("local_list", "remote_list")
+
+        self._setup_file_view(lview)
+        self._setup_file_view(rview)
+
+        # pylint: disable=fixme
+        # TODO
+        # Not sure how to make this work for GTK+ ComboBox
+        # Can live with out a hint while debuging
+        stations, = self._getw("sel_station")
+        stn_entry = stations.get_child()
+        utils.set_entry_hint(stn_entry, REMOTE_HINT)
+
+        _ddir = self._config.get("prefs", "download_dir")
+
+        self._local = LocalFileView(lview, None, self._config)
+
+        self._remote = None
+        rview.set_sensitive(False)
+
+        self._init_toolbar()
+        self._stop_throb()
+
+        self.__selected = False
+
+        self.reconfigure()
 
     def _emit(self, *args):
         GObject.idle_add(self.emit, *args)
@@ -493,42 +567,12 @@ class FilesTab(MainWindowTab):
     def _get_ssel(self):
         return self._getw("sel_station", "sel_port")
 
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "files", _("Files"))
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        lview, rview = self._getw("local_list", "remote_list")
-
-        self._setup_file_view(lview)
-        self._setup_file_view(rview)
-
-        # pylint: disable-fix-me
-        # TODO
-        # Not sure how to make this work for GTK+ ComboBox
-        # Can live with out a hint while debuging
-        stations, = self._getw("sel_station")
-        stn_entry = stations.get_child()
-        utils.set_entry_hint(stn_entry, REMOTE_HINT)
-
-        _ddir = self._config.get("prefs", "download_dir")
-
-        self._local = LocalFileView(lview, None, self._config)
-
-        self._remote = None
-        rview.set_sensitive(False)
-
-        self._init_toolbar()
-        self._stop_throb()
-
-        self.__selected = False
-
-        self.reconfigure()
-
     def file_sent(self, name):
         '''
         Mark a file as sent.
 
         :param name: File name that was sent
+        :type name: str
         '''
         file_name = os.path.basename(name)
         if self._remote and file_name in self._remote.outstanding:
@@ -537,20 +581,20 @@ class FilesTab(MainWindowTab):
             self._remote.add_explicit(file_name, size, time.time())
 
     def reconfigure(self):
-        '''Reconfigure'''
+        '''Reconfigure.'''
         self._local.set_path(self._config.get("prefs", "download_dir"))
         self._local.refresh()
 
     def selected(self):
-        '''Selected'''
+        '''Selected.'''
         MainWindowTab.selected(self)
         self.__selected = True
         # pylint: disable=unbalanced-tuple-unpacking
         ssel, psel = self._get_ssel()
         self._refresh_calls(ssel, psel)
-        GObject.timeout_add(1000, self._refresh_calls, ssel, psel)
+        GLib.timeout_add(1000, self._refresh_calls, ssel, psel)
 
     def deselected(self):
-        '''Deselected'''
+        '''Deselected.'''
         MainWindowTab.deselected(self)
         self.__selected = False
