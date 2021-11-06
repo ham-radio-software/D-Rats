@@ -1835,12 +1835,8 @@ class MainApp():
             try:
                 needupd = \
                     (os.path.getmtime(form) > os.path.getmtime(user_fname))
-            # pylint: disable=broad-except
-            except Exception:
+            except FileNotFoundError:
                 needupd = True
-                # broad/bare exceptions make debugging harder
-                self.logger.info("main broad-exception thrown.", exc_info=True)
-                raise
             if not os.path.exists(user_fname) or needupd:
                 self.logger.info("Installing dist form %s -> %s",
                                  fname, user_fname)
@@ -1918,7 +1914,11 @@ class MainApp():
             msg = self.config.get("prefs", "signoff")
             status = station_status.STATUS_OFFLINE
             for port in self.smgr:
-                self.chat_session(port).advertise_status(status, msg)
+                port_session = self.chat_session(port)
+                if port_session:
+                    port_session.advertise_status(status, msg)
+                else:
+                    self.logger.info("main: python3 crashed here.")
 
             time.sleep(2) # HACK
 
