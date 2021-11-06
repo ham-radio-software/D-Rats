@@ -3,6 +3,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,9 +21,9 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import os
 import sys
-import gettext
 import glob
 try:
     # pylint: disable=import-error
@@ -35,14 +36,10 @@ import six.moves.urllib.parse # type: ignore
 import six.moves.urllib.error # type: ignore
 from six.moves import range # type: ignore
 
-#importing printlog() wrapper
-if not __package__:
-    def printlog(arg1, *args):
-        print(arg1, *args)
-else:
-    from .debug import printlog
 
-_ = gettext.gettext
+if '_' not in locals():
+    import gettext
+    _ = gettext.gettext
 
 
 def find_me():
@@ -50,14 +47,24 @@ def find_me():
     return sys.modules["d_rats.dplatform"].__file__
 
 
+class PlatformException(Exception):
+    '''Generic Platform exception.'''
+
+
+class NotConnectedError(PlatformException):
+    '''Not connected Error.'''
+
+
 class Platform():
     '''
     Platform.
 
     :param basepath: Base path of platform configuration file
+    :type basepath: str
     '''
 
     def __init__(self, basepath):
+        self.logger = logging.getLogger("Platform")
         self._base = basepath
         self._source_dir = os.path.abspath(".")
         self._connected = True
@@ -75,6 +82,7 @@ class Platform():
         Config Directory.
 
         :returns: configuration directory
+        :rtype: str
         '''
         return self._base
 
@@ -83,6 +91,7 @@ class Platform():
         Source Directory.
 
         :returns: source directory
+        :rtype: str
         '''
         return self._source_dir
 
@@ -91,6 +100,7 @@ class Platform():
         Log Directory
 
         :returns: Log directory
+        :rtype: str
         '''
         logdir = os.path.join(self.config_dir(), "logs")
         if not os.path.isdir(logdir):
@@ -104,7 +114,9 @@ class Platform():
         Filter Filename.
 
         :param filename: filename passed in
+        :type filename: str
         :returns: filename passed in adjusted for platform if needed
+        :rtype str:
         '''
         return filename
 
@@ -113,7 +125,9 @@ class Platform():
         Log file.
 
         :param filename: filename template
+        :type filename: str
         :returns: Log file path
+        :rtype: str
         '''
         filename = self.filter_filename(filename + ".txt").replace(" ", "_")
         return os.path.join(self.log_dir(), filename)
@@ -123,24 +137,27 @@ class Platform():
         Config File.
 
         :returns: Configuration file path
+        :rtype str:
         '''
         return os.path.join(self.config_dir(),
                             self.filter_filename(filename))
 
-    def open_text_file(self, path):
+    def open_text_file(self, _path):
         '''
         Open Text File.
 
-        :param path: Path to file
+        :param _path: Path to file
+        :type _path: str
         :raises: NotImplementedError
         '''
         raise NotImplementedError("The base class can't do that")
 
-    def open_html_file(self, path):
+    def open_html_file(self, _path):
         '''
         Open HTML File
 
-        :param path: Path to file
+        :param _path: Path to file
+        :type _path: str
         :raises: NotImplementedError
         '''
         raise NotImplementedError("The base class can't do that")
@@ -151,6 +168,7 @@ class Platform():
         List Serial Ports.
 
         :returns: empty list
+        :rtype: list
         '''
         return []
 
@@ -160,6 +178,7 @@ class Platform():
         Default Directory.
 
         :returns: '.'
+        :rtype: str
         '''
         return "."
 
@@ -169,7 +188,9 @@ class Platform():
         GUI Open File.
 
         :param start_dir: Directory to start in, default None
+        :type start_dir: str
         :returns: Filename or None
+        :rtype: str
         '''
         import gi
         gi.require_version("Gtk", "3.0")
@@ -198,8 +219,11 @@ class Platform():
         GUI Save File.
 
         :param start_dir: Directory to start in, default None
+        :type start_dir: str
         :param default_name: Default filename, default None
+        :type default_name: str
         :returns: Filename to save or None
+        :rtype: str
         '''
         import gi
         gi.require_version("Gtk", "3.0")
@@ -231,7 +255,9 @@ class Platform():
         Gui Select Directory.
 
         :param start_dir: Directory to start in, default None
+        :type start_dir: str
         :returns: Directory selected or None
+        :rtype: str
         '''
         import gi
         gi.require_version("Gtk", "3.0")
@@ -262,6 +288,7 @@ class Platform():
         OS Version String.
 
         :returns: "Unknown Operating System"
+        :rtype: str
         '''
         return "Unknown Operating System"
 
@@ -270,7 +297,10 @@ class Platform():
         Run Sync.
 
         :param command: Command to run and wait for
-        :returns: Tuple of 0, and data read.'''
+        :type command: str
+        :returns: Command standard output in second member of tuple
+        :rtype: tuple
+        '''
         pipe = subprocess.Popen(command, stdout=subprocess.PIPE)
         data = pipe.stdout.read()
 
@@ -281,18 +311,21 @@ class Platform():
         Retrieve URL.
 
         :param url: Url to retrieve if connected.
-        :raises: Exception if not connected
+        :type url: str
+        :raises: :class:`NotConnectedError`: if not connected
+        :returns: Data from URL
         '''
         if self._connected:
             return six.moves.urllib.request.urlretrieve(url)
 
-        raise Exception("Not connected")
+        raise NotConnectedError("Not connected")
 
     def set_connected(self, connected):
         '''
         Set Connected.
 
         :param connected: New connected state
+        :type connected: bool
         '''
         self._connected = connected
 
@@ -303,9 +336,9 @@ class Platform():
 
         Reports sound is unsupported for this platform to log.
         :param _soundfile: Sound file to use
+        :type _soundfile: str
         '''
-        printlog("dPlatform",
-                 " : Sound is unsupported on this platform!")
+        self.logger.info("play_sound: Sound is unsupported on this platform!")
 
 
 class UnixPlatform(Platform):
@@ -314,9 +347,11 @@ class UnixPlatform(Platform):
 
     :param basepath: Path to store the configuration file,
                      default "~/.d-rats-ev"
+    :type basepath: str
     '''
 
     def __init__(self, basepath):
+        self.logger = logging.getLogger("UnixPlatform")
         if not basepath:
             basepath = os.path.abspath(os.path.join(self.default_dir(),
                                                     ".d-rats-ev"))
@@ -331,6 +366,7 @@ class UnixPlatform(Platform):
         Source Directory.
 
         :returns: source directory path
+        :rtype: str
         '''
         if "site-packages" in find_me():
             return "/usr/share/d-rats"
@@ -345,6 +381,7 @@ class UnixPlatform(Platform):
         Default Directory.
 
         :returns: Default directory path
+        :rtype: str
         '''
         return os.path.abspath(os.getenv("HOME"))
 
@@ -354,7 +391,9 @@ class UnixPlatform(Platform):
         Filter Filename.
 
         :param filename: Source filename
+        :type filename: str
         :returns: filename adjusted for platform
+        :rtype: str
         '''
         return filename.replace("/", "")
 
@@ -364,26 +403,27 @@ class UnixPlatform(Platform):
         if pid1 == 0:
             pid2 = os.fork()
             if pid2 == 0:
-                printlog("dPlatform", " : Exec'ing %s" % str(args))
+                self.logger.info("Exec'ing %s", str(args))
                 os.execlp(args[0], *args)
             else:
                 sys.exit(0)
         else:
             os.waitpid(pid1, 0)
-            printlog("dPlatform", " : Exec child exited")
+            self.logger.info("Exec child exited")
 
     def open_text_file(self, path):
         '''
         Open Text File for editing.
 
         :param path: Path to text file
+        :type path: str
         '''
         # pylint: disable=fixme
         # todo gedit to be moved as parameter in config
-        printlog("dPlatform", " : received order to open in gedit %s s" % path)
-        printlog("dPlatform",
-                 " : if after this message your linux box crashes, " +
-                 "please install gedit")
+        self.logger.info("open_text_file: received order"
+                         " to open in gedit %s s", path)
+        self.logger.info("If after this message your linux box crashes, "
+                         "please install gedit")
         self._unix_doublefork_run("gedit", path)
 
     def open_html_file(self, path):
@@ -391,21 +431,22 @@ class UnixPlatform(Platform):
         Open HTML file in Firefox.
 
         :param path: Path of file to open
+        :type path: str
         '''
         # pylint: disable=fixme
-        # todo gedit to be moved as parameter in config
-        printlog("dPlatform",
-                 " : received order to open in firefox %s s" % path)
-        printlog("dPlatform",
-                 " : if after this message your linux box crashes, " +
-                 "please install firefox")
+        # todo browser to be moved as parameter in config
+        self.logger.info("open_html_file:"
+                         " received order to open in firefox %s", path)
+        self.logger.info("If after this message your linux box crashes, "
+                         "please install firefox")
         self._unix_doublefork_run("firefox", path)
 
     def list_serial_ports(self):
         '''
         List Serial Ports.
 
-        :returns a list of serial ports
+        :returns: The serial ports
+        :rtype: list of str
         '''
         return sorted(glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*"))
 
@@ -414,17 +455,18 @@ class UnixPlatform(Platform):
         OS Version String.
 
         :returns: a version string for the OS
+        :rtype: str
         '''
+        # There should be a more portable way to get the version string.
         try:
             issue = open("/etc/issue.net", "r")
             ver = issue.read().strip()
             issue.close()
             ver = "%s - %s" % (os.uname()[0], ver)
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("dPlatform",
-                     " broad-exception handled (%s) %s" %
-                     (type(err), err))
+        except IOError as err:
+            if err.errno == 2: # No such file or directory
+                # Linux use of this file seems to be deprecated.
+                pass
             ver = " ".join(os.uname())
         return ver
 
@@ -433,6 +475,7 @@ class UnixPlatform(Platform):
         Run Sync.
 
         :param command: Command to run.
+        :type command: str
         '''
         return commands.getstatusoutput(command)
 
@@ -441,6 +484,7 @@ class UnixPlatform(Platform):
         Play Sound.
 
         :param soundfile: Sound file to try.
+        :rtype: str
         '''
         import ossaudiodev
         import sndhdr
@@ -448,21 +492,20 @@ class UnixPlatform(Platform):
         try:
             (file_type, rate, channels, _f, bits) = sndhdr.what(soundfile)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("dPlatform",
-                     " : Unable to determine sound header of %s: (%s) %s" %
-                     (soundfile, type(err), err))
+        except Exception:
+            self.logger.info("play_sound: Unable to determine"
+                             "sound header of %s: broad-exception",
+                             soundfile, exc_info=True)
             return
 
         if file_type != "wav":
-            printlog("dPlatform",
-                     " : Unable to play non-wav file %s" % soundfile)
+            self.logger.info("play_sound: Unable to play non-wav file %s",
+                             soundfile)
             return
 
         if bits != 16:
-            printlog("dPlatform",
-                     " : Unable to support strange non-16-bit audio (%i)" %
-                     bits)
+            self.logger.info("play_sound: Unable to support strange"
+                             "non-16-bit audio (%i)", bits)
             return
 
         dev = None
@@ -478,10 +521,9 @@ class UnixPlatform(Platform):
 
             dev.close()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("dPlatform",
-                     " : Error playing sound %s: (%s) %s" %
-                     (soundfile, type(err), err))
+        except Exception:
+            self.logger.info("play_sound: Error playing sound %s: %s",
+                             soundfile, "broad-exception", exc_info=True)
 
         if dev:
             dev.close()
@@ -492,12 +534,14 @@ class MacOSXPlatform(UnixPlatform):
     Mac OSX Platform.
 
     :param basepath: path to the configuration directory
+    :type basepath: str
     '''
 
     def __init__(self, basepath):
+        self.logger = logging.getLogger("MacOSXPlatform")
         # We need to make sure DISPLAY is set
         if "DISPLAY" not in os.environ:
-            printlog("dPlatform", " :Forcing DISPLAY for MacOS")
+            self.logger.info("Forcing DISPLAY for MacOS")
             os.environ["DISPLAY"] = ":0"
 
         os.environ["PANGO_RC_FILE"] = "../Resources/etc/pango/pangorc"
@@ -509,6 +553,7 @@ class MacOSXPlatform(UnixPlatform):
         Open HTML File.
 
         :param path: file to open
+        :type path: str
         '''
         self._unix_doublefork_run("open", path)
 
@@ -517,6 +562,7 @@ class MacOSXPlatform(UnixPlatform):
         Open Text File for edit.
 
         :param path: Path to textfile
+        :type path: str
         '''
         macos_textedit = "/Applications/TextEdit.app/Contents/MacOS/TextEdit"
         self._unix_doublefork_run(macos_textedit, path)
@@ -525,7 +571,8 @@ class MacOSXPlatform(UnixPlatform):
         '''
         List Serial Ports.
 
-        :returns: list of serial port names
+        :returns: serial port names
+        :rtype: list of str
         '''
         keyspan = glob.glob("/dev/cu.KeySerial*")
         prolific = glob.glob("/dev/tty.usbserial*")
@@ -537,6 +584,7 @@ class MacOSXPlatform(UnixPlatform):
         OS Version String.
 
         :returns: "MacOS X"
+        :rtype: str
         '''
         return "MacOS X"
 
@@ -545,6 +593,7 @@ class MacOSXPlatform(UnixPlatform):
         Source Directory.
 
         :returns: source directory
+        :rtype: str
         '''
         if "site-packages" in find_me():
             return "../Resources"
@@ -556,9 +605,11 @@ class Win32Platform(Platform):
     Win32 Platform.
 
     :param basepath, default is "%APPDATA%\\D-RATS-EV"
+    :type basepath: str
     '''
 
     def __init__(self, basepath=None):
+        self.logger = logging.getLogger("Win32Platform")
         if not basepath:
             appdata = os.getenv("APPDATA")
             if not appdata:
@@ -575,6 +626,7 @@ class Win32Platform(Platform):
         Default Directory.
 
         :returns: default directory
+        :rtype: str
         '''
         return os.path.abspath(
             os.path.join(os.getenv("USERPROFILE"), "Desktop"))
@@ -584,7 +636,9 @@ class Win32Platform(Platform):
         Filter Filename.
 
         :param filename: filename to use
+        :type filename: str
         :returns: filename filtered for platform.
+        :rtype: str
         '''
         for char in "/\\:*?\"<>|":
             filename = filename.replace(char, "")
@@ -596,6 +650,7 @@ class Win32Platform(Platform):
         Open Text File for editing.
 
         :param path: path of file to open
+        :type path: str
         '''
         subprocess.Popen(["notepad", path])
 
@@ -604,6 +659,7 @@ class Win32Platform(Platform):
         Open Html File in explorer.
 
         :param path: Path to file
+        :type path: str
         '''
         subprocess.Popen(["explorer", path])
 
@@ -612,13 +668,14 @@ class Win32Platform(Platform):
         List Serial Ports.
 
         :returns: List of serial ports
+        :rtype: list of str
         '''
         # pylint: disable=import-error
         try:
             import win32file # type: ignore
-        except ImportError as err:
-            printlog("dPlatform",
-                     " : failed to load win32file %s" % err)
+        except ImportError:
+            self.logger.info("list_serial_ports: failed to load win32file %s",
+                             exc_info=True)
 
             return []
         import win32con # type: ignore
@@ -640,20 +697,21 @@ class Win32Platform(Platform):
                 win32file.CloseHandle(port)
                 port = None
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("dPlatform",
-                         " Broad-exception ignored (%s) %s" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("list_serial_ports: Broad-exception",
+                                 exc_info=True)
                 # pass
 
         return ports
 
     def gui_open_file(self, start_dir=None):
         '''
-        GUI open file
+        GUI open file.
 
         :param start_dir: Directory to start in, default None
+        :type start_dir: str
         :returns: Filename to open or none.
+        :rtype: str
         '''
         # pylint: disable=import-error
         import win32gui # type: ignore
@@ -661,9 +719,9 @@ class Win32Platform(Platform):
         try:
             fname, _, _ = win32gui.GetOpenFileNameW()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("dPlatform", " : Failed to get filename: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("gui_open_file: Failed to get filename: %s",
+                             "broad-exception", exc_info=True)
             return None
 
         return str(fname)
@@ -673,8 +731,11 @@ class Win32Platform(Platform):
         GUI Save File.
 
         :param start_dir: directory to start in, default None
+        :type default_name: str
         :param default_name: Default name of file, default None.
+        :type default_name: str
         :returns: filename to save to or None
+        :rtype: str
         '''
         # pylint: disable=import-error
         import win32gui # type: ignore
@@ -682,9 +743,9 @@ class Win32Platform(Platform):
         try:
             fname, _, _ = win32gui.GetSaveFileNameW(File=default_name)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("dPlatform", " : Failed to get filename: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("gui_save_file: Failed to get filename: %s",
+                             "broad-exception", exc_info=True)
             return None
 
         return str(fname)
@@ -694,7 +755,9 @@ class Win32Platform(Platform):
         GUI Select Dir.
 
         :param start_dir: directory to start in, default None
+        :type start_dir: str
         :returns: selected diretory or None
+        :rtype: str
         '''
         # pylint: disable=import-error
         from win32com.shell import shell # type: ignore
@@ -703,9 +766,9 @@ class Win32Platform(Platform):
             pidl, _, _ = shell.SHBrowseForFolder()
             fname = shell.SHGetPathFromIDList(pidl)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("dPlatform", " : failed to get directory: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("gui_select_dir: failed to get directory %s",
+                             "broad-exception", exc_info=True)
             return None
 
         return str(fname)
@@ -715,13 +778,14 @@ class Win32Platform(Platform):
         Os Version String.
 
         :returns: Platform version string
+        :rtype: str
         '''
         # pylint: disable=import-error, unused-import
         try:
             import win32file # type: ignore
-        except ImportError as err:
-            printlog("dPlatform",
-                     " : failed to load win32file %s" % err)
+        except ImportError:
+            self.logger.info("os_version_string: Failed to load win32file",
+                             exc_info=True)
             return "Windows Unknown."
         #platform: try to identify windows version
         vers = {"11.0": "Windows 11",
@@ -744,6 +808,7 @@ class Win32Platform(Platform):
         Play Sound.
 
         :param soundfile: file to play sound from
+        :type soundfile: str
         '''
         # pylint: disable=import-error
         import winsound
@@ -767,7 +832,8 @@ def get_platform(basepath=None):
     Get Platform.
 
     :param basepath: configuration file path, default None
-    :returns: platform object
+    :returns: platform information
+    :rtype: :class:`Platform`
     '''
 
     # pylint: disable=global-statement
@@ -781,19 +847,24 @@ def get_platform(basepath=None):
 
 def do_test():
     '''Unit Test.'''
-    __pform = get_platform()
 
-    printlog("dPlatform", " : Config dir: %s" % __pform.config_dir())
-    printlog("dPlatform", " : Default dir: %s" % __pform.default_dir())
-    printlog("dPlatform", " : Log file (foo): %s" % __pform.log_file("foo"))
-    printlog("dPlatform", " : Serial ports: %s" % __pform.list_serial_ports())
-    printlog("dPlatform", " : OS Version: %s" % __pform.os_version_string())
- #  __pform.open_text_file("d-rats.py")
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
 
- #   printlog("dPlatform"," : Open file: %s" % __pform.gui_open_file())
- #   printlog("dPlatform"," : ",
- #            "Save file: %s" % __pform.gui_save_file(default_name="Foo.txt"))
- #   printlog("dPlatform"," : Open folder: %s" % __pform.gui_select_dir("/tmp"))
+    logger = logging.getLogger("dplatform")
+    pform = get_platform()
+
+    logger.info("Config dir: %s", pform.config_dir())
+    logger.info("Default dir: %s", pform.default_dir())
+    logger.info("Log file (foo): %s", pform.log_file("foo"))
+    logger.info("Serial ports: %s", pform.list_serial_ports())
+    logger.info("OS Version: %s", pform.os_version_string())
+ #  pform.open_text_file("d-rats.py")
+
+ #   logger.info("Open file: %s", pform.gui_open_file())
+ #   logger.info("Save file: %s", pform.gui_save_file(default_name="Foo.txt"))
+ #   logger.info("Open folder: %s", pform.gui_select_dir("/tmp"))
 
 
 if __name__ == "__main__":
