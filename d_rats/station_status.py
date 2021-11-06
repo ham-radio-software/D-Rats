@@ -2,6 +2,7 @@
 '''Station Status'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gettext
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
-_ = gettext.gettext
 STATUS_MAX = 9
 STATUS_MIN = 0
 
@@ -40,6 +42,7 @@ def get_status_msgs():
     Get Status Messages
 
     :returns: Status Message
+    :rtype: dict
     '''
     data = {}
     for key, value in __STATUS_MSGS.items():
@@ -52,6 +55,7 @@ def get_status_vals():
     Get status value.
 
     :returns: Status value data
+    :rtype: dict
     '''
     data = {}
     for key, value in __STATUS_MSGS.items():
@@ -63,44 +67,49 @@ class Station:
     '''
     Station
 
-    :param callsign: String containing callsign of station.
+    :param callsign: Callsign of station.
+    :type callsign: str
     '''
     def __init__(self, callsign):
         self.__call = callsign
-        self.__heard = 0
-        self.__port = ""
+        self.__heard_time = 0
+        self.__radio_port = ""
 
     def set_heard(self, heard):
         '''
-        Set Heard
+        Set Heard time
 
         :param heard: Heard information
+        :type heard: float
         '''
-        self.__heard = heard
+        self.__heard_time = heard
 
     def get_heard(self):
         '''
-        Get Heard
+        Get Heard time.
 
-        :returns: Heard information
+        :returns: Last heard time
+        :rtype: float
         '''
-        return self.__heard
+        return self.__heard_time
 
     def set_port(self, port):
         '''
         Set Radio Port.
 
         :param port: Radio Port
+        :type port: str
         '''
-        self.__port = port
+        self.__radio_port = port
 
     def get_port(self):
         '''
         Get Port.
 
         :returns: Radio port for Station
+        :rtype: str
         '''
-        return self.__port
+        return self.__radio_port
 
     def __str__(self):
         return self.__call
