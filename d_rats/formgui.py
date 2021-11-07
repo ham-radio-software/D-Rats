@@ -154,7 +154,9 @@ def xml_escape(string):
     XML escape.
 
     :param string: String to add XML escapes
+    :type: str
     :returns: String with data escaped to add to XML element
+    :rtype: str
     '''
     data = {}
     for char, esc in XML_ESCAPES:
@@ -172,7 +174,9 @@ def xml_unescape(string):
     XML unescape.
 
     :param string: string containing XML
+    :type string: str
     :returns: string with excapes replaced with original text
+    :rtype: str
     '''
     data = {}
     for char, esc in XML_ESCAPES:
@@ -210,7 +214,7 @@ def xml_unescape(string):
 
 # pylint: disable=too-few-public-methods
 class FormWriter():
-    '''Form Writer'''
+    '''Form Writer.'''
 
     # pylint: disable=no-self-use
     def write(self, formxml, outfile):
@@ -218,7 +222,9 @@ class FormWriter():
         Write.
 
         :param formxml: String with form in XML
+        :type formxml: str
         :param outfile: File to write out
+        :type outfile: str
         '''
         doc = etree.fromstring(formxml)
         doc.write(outfile, pretty_print=True)
@@ -229,7 +235,9 @@ class HTMLFormWriter(FormWriter):
     HTML Form Writer.
 
     :param form_type: String for type of form
+    :type form_type: str
     :param xsl_dir: Directory path for xsl file
+    :type xsl_dir: str
     '''
 
     def __init__(self, form_type, xsl_dir):
@@ -242,8 +250,10 @@ class HTMLFormWriter(FormWriter):
         '''
         Write Document.
 
-        :param doc: ElementTree document
+        :param doc: Form document
+        :type doc: :class:`ElementTree`
         :param outfile: File name to write
+        :type outfile: str
         '''
         self.logger.info("Writing to %s", outfile)
         styledoc = etree.parse(self.xslpath)
@@ -255,8 +265,10 @@ class HTMLFormWriter(FormWriter):
         '''
         Write String.
 
-        :param doc: ElementTree document
-        :returns: element written as a string.
+        :param doc: Form Document
+        :type doc: :class:`ElementTree`
+        :returns: element written as a string
+        :rtype: str
         '''
         styledoc = etree.parse(self.xslpath)
         style_sheet = etree.XSLT(styledoc)
@@ -264,12 +276,15 @@ class HTMLFormWriter(FormWriter):
         return etree.tostring(result, pretty_print=True).decode()
 
 
+# pylint: disable=too-many-instance-attributes
 class FieldWidget():
     '''
     Field Widget.
 
-    :param node: Element Tree for node
-    :param config: Configuration object
+    :param node: Form data elements
+    :type node: :class:ElementTree
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -287,6 +302,7 @@ class FieldWidget():
         Set caption.
 
         :param caption: Caption to set
+        :type caption: str
         '''
         self.caption = caption
 
@@ -303,6 +319,7 @@ class FieldWidget():
         Make Container.
 
         :returns: widget object
+        :rtype: :class:`Gtk.Widget`
         '''
         return self.widget
 
@@ -311,6 +328,7 @@ class FieldWidget():
         Get widget.
 
         :returns: Widget of container
+        :rtype: :class:`Gtk.Widget`
         '''
         return self.make_container()
 
@@ -341,6 +359,7 @@ class FieldWidget():
         Set editable.
 
         :param editable: Boolean for editable status
+        :type editable: bool
         '''
         if self.widget:
             self.widget.set_sensitive(editable)
@@ -354,8 +373,10 @@ class TextWidget(FieldWidget):
     '''
     Text Widget.
 
-    :param node: ElementTree for node
-    :param config: Configuration object
+    :param node: Form data for text
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -375,6 +396,7 @@ class TextWidget(FieldWidget):
         Get value.
 
         :returns: text
+        :rtype: str
         '''
         return self.widget.get_text()
 
@@ -383,6 +405,7 @@ class TextWidget(FieldWidget):
         Set value.
 
         :param value: Text to set
+        :type value: str
         '''
         self.widget.set_text(value)
 
@@ -391,8 +414,10 @@ class ToggleWidget(FieldWidget):
     '''
     Toggle Widget.
 
-    :param node: ElementTree for node
-    :param config: Configuration object
+    :param node: Form data for toggling
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -413,7 +438,8 @@ class ToggleWidget(FieldWidget):
         '''
         Get value.
 
-        :returns: string for boolean state of widget
+        :returns: Boolean state in text
+        :rtype: str
         '''
         return str(self.widget.get_active())
 
@@ -422,7 +448,10 @@ class MultilineWidget(FieldWidget):
     '''
     Multi Line Widget
 
-    :param node: ElementTree for node
+    :param node: Form multiline text data
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -450,7 +479,8 @@ class MultilineWidget(FieldWidget):
         '''
         Make container
 
-        :returns: Gtk.ScrolledWindow object
+        :returns: Scrolled Window Widget
+        :rtype: :class:`GtkScrolledWindow`
         '''
         scrollw = Gtk.ScrolledWindow()
         scrollw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -472,7 +502,8 @@ class MultilineWidget(FieldWidget):
         '''
         Get value.
 
-        :returns: string containing multiple lines
+        :returns: Multiple lines of text
+        :rtype: str
         '''
         return self.buffer.get_text(self.buffer.get_start_iter(),
                                     self.buffer.get_end_iter(), True)
@@ -481,7 +512,8 @@ class MultilineWidget(FieldWidget):
         '''
         Set value.
 
-        :param value: String containing multiple lines
+        :param value: Multiple lines of text
+        :type text: str
         '''
         self.buffer.set_text(value)
 
@@ -490,8 +522,10 @@ class DateWidget(FieldWidget):
     '''
     Date Widget.
 
-    :param node: ElementTree for node
-    :param config: Configuration object
+    :param node: Form data for date
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -534,7 +568,8 @@ class DateWidget(FieldWidget):
         '''
         Get value.
 
-        :returns: string containing date
+        :returns: Text date
+        :rtype: str
         '''
         return "%s-%s-%s" % (self.daybox.get_active_text(),
                              self.monthbox.get_active_text(),
@@ -546,8 +581,10 @@ class TimeWidget(FieldWidget):
     '''
     Time Widget.
 
-    :param node: ElementTree of node
-    :param config: Configuration object
+    :param node: Form data for time
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -600,6 +637,7 @@ class TimeWidget(FieldWidget):
         Get value.
 
         :returns: Time value in string format
+        :rtype: str
         '''
         return "%.0f:%02.0f:%02.0f" % (self.hour_a.get_value(),
                                        self.min_a.get_value(),
@@ -610,8 +648,10 @@ class NumericWidget(FieldWidget):
     '''
     Numeric Widget.
 
-    :param node: ElementTree of node
-    :param config: Configuration object
+    :param node: Form data for numeric data
+    :type: node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
@@ -649,7 +689,9 @@ class NumericWidget(FieldWidget):
         '''
         Get value.
 
-        :returns: String containing a floating point value'''
+        :returns: floating point value as text
+        :rtype: str
+        '''
         return "%.0f" % self.adj.get_value()
 
     def set_value(self, value):
@@ -665,8 +707,10 @@ class ChoiceWidget(FieldWidget):
     '''
     Choice Widget
 
-    :param node: ElementTree of node
-    :param config: Configuration object
+    :param node: Form data for a choice
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -688,7 +732,8 @@ class ChoiceWidget(FieldWidget):
         '''
         Parse choice.
 
-        :param node: ElementTree of node
+        :param node: Node of form data
+        :type node: :class:`ElementTree`
         '''
         if node.tag != "choice":
             return
@@ -711,6 +756,7 @@ class ChoiceWidget(FieldWidget):
         Get value.
 
         :returns: value text
+        :rtype: str
         '''
         return self.widget.get_active_text()
 
@@ -735,7 +781,10 @@ class MultiselectWidget(FieldWidget):
     '''
     Multi Selection Widget
 
-    :param node: ElementTree node.
+    :param node: Field data node
+    :type node: :class:`ElementTree`
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -757,7 +806,8 @@ class MultiselectWidget(FieldWidget):
         '''
         Parse choice.
 
-        :param node: ElementTree
+        :param node: node data
+        :type node: :class:`ElementTree`
         '''
         if node.tag != "choice":
             return
@@ -793,7 +843,8 @@ class MultiselectWidget(FieldWidget):
         '''
         Make selector.
 
-        :returns: Gtk.TreeView
+        :returns: Selection widget
+        :rtype: :class:`Gtk.TreeView`
         '''
         self.store = Gtk.ListStore(GObject.TYPE_BOOLEAN,
                                    GObject.TYPE_STRING)
@@ -817,7 +868,8 @@ class MultiselectWidget(FieldWidget):
         '''
         Make container
 
-        :returns: Gtk.Box object
+        :returns: Container widget
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
@@ -840,6 +892,7 @@ class MultiselectWidget(FieldWidget):
         Get value
 
         :returns: empty string
+        :rtype: str
         '''
         return ""
 
@@ -872,7 +925,8 @@ class LabelWidget(FieldWidget):
     Label Widget.
 
     :param node: Element Tree
-    :param config: Configuration object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, node, config):
@@ -887,7 +941,8 @@ class LabelWidget(FieldWidget):
         '''
         Make container.
 
-        :returns: Gtk.Label widget
+        :returns: Label
+        :rtype: :class:`Gtk.Label`
         '''
         widget = Gtk.Label()
         widget.set_markup("<b><span color='blue'>%s</span></b>" % self.caption)
@@ -903,7 +958,8 @@ class FormField():
     Form Field.
 
     :param field: Field
-    :param config: Configuration object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
     widget_types = {
         "text" : TextWidget,
@@ -930,7 +986,8 @@ class FormField():
         '''
         Set editable.
 
-        :param editable: Boolean editable state
+        :param editable: Editable state
+        :type editable: bool
         '''
         self.entry.set_editable(editable)
 
@@ -940,7 +997,8 @@ class FormField():
         Get caption string/
 
         :param node: ElementTree
-        :returns: Caption string or "".
+        :returns: Caption or "".
+        :rtype: str
         '''
         if node.text:
             return node.text.strip()
@@ -953,6 +1011,7 @@ class FormField():
         :param node: ElementTree for entry
         :param caption: Caption for entry
         :returns: Field widget
+        :rtype: :class:`Gtk.Widget`
         '''
         widget_type = None
         for attrib, value in node.items():
@@ -973,6 +1032,7 @@ class FormField():
         Build GUI.
 
         :param _editable: Not used
+        :type _editable: bool
         '''
         self.caption = None
         self.entry = None
@@ -1011,6 +1071,7 @@ class FormField():
         Get widget.
 
         :returns: Gtk Object
+        :rtype: :class:`Gtk.Widget`
         '''
         return self.widget
 
@@ -1045,7 +1106,8 @@ class FormFile(object):
         '''
         Configure the form source directory.
 
-        :param config: Config object
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
         '''
         self.xsl_dir = config.form_source_dir()
 
@@ -1395,7 +1457,8 @@ class FormDialog(FormFile, Gtk.Dialog):
     :param filename: Filename for form
     :param _buttons: list of button tuples, Unused
     :param parent: parent widget, Default None
-    :param config: Configuration object
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, _title, filename,
