@@ -2,6 +2,7 @@
 '''Misc Widgets'''
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +20,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import os
 
 from six.moves import range # type:ignore
@@ -30,8 +32,6 @@ from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
 
-#importing printlog() wrapper
-from .debug import printlog
 from . import dplatform
 
 
@@ -113,6 +113,24 @@ class KeyedListWidget(Gtk.Box):
                       GObject.TYPE_NONE,
                       (GObject.TYPE_STRING,)),
         }
+
+    def __init__(self, columns):
+        Gtk.Box.__init__(self, True, 0)
+
+        self.logger = logging.getLogger("KeyedListWidget")
+        self.columns = columns
+
+        types = tuple([x for x, y in columns])
+
+        self.__store = Gtk.ListStore(*types)
+        self.__view = Gtk.TreeView.new_with_model(self.__store)
+
+        self.pack_start(self.__view, 1, 1, 1)
+
+        self.__toggle_connected = False
+
+        self._make_view()
+        self.__view.show()
 
     def _toggle(self, _rend, path, colnum):
         if self.__toggle_connected:
@@ -207,6 +225,7 @@ class KeyedListWidget(Gtk.Box):
 
         :param key: Key for item to delete
         :returns: True if item is deleted
+        :rtype: bool
         '''
         iter_val = self.__store.get_iter_first()
         while iter:
@@ -225,6 +244,7 @@ class KeyedListWidget(Gtk.Box):
 
         :param key
         :returns: True if key is present
+        :rtype: bool
         '''
         return self.get_item(key) is not None
 
@@ -238,9 +258,10 @@ class KeyedListWidget(Gtk.Box):
             (store, iter_val) = self.__view.get_selection().get_selected()
             return store.get(iter_val, 0)[0]
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("MscWidget",
-                     ": Unable to find selected: (%s) %s" % (type(err), err))
+        except Exception:
+            self.logger.info("get_selected:"
+                             " Unable to find selected: broad-exception",
+                             exc_info=True)
             return None
 
     def select_item(self, key):
@@ -249,6 +270,7 @@ class KeyedListWidget(Gtk.Box):
 
         :param key: Key to select
         :returns: True if item selected
+        :rtype: bool
         '''
         if key is None:
             sel = self.__view.get_selection()
@@ -281,42 +303,30 @@ class KeyedListWidget(Gtk.Box):
 
         return keys
 
-    def __init__(self, columns):
-        Gtk.Box.__init__(self, True, 0)
-
-        self.columns = columns
-
-        types = tuple([x for x, y in columns])
-
-        self.__store = Gtk.ListStore(*types)
-        self.__view = Gtk.TreeView(self.__store)
-
-        self.pack_start(self.__view, 1, 1, 1)
-
-        self.__toggle_connected = False
-
-        self._make_view()
-        self.__view.show()
-
     # pylint: disable=arguments-differ
-    def connect(self, signame, *args):
+    def connect(self, signame, handler, *args):
         '''
         Connect.
 
         :param signame: Signal name
+        :type str:
+        :param handler: Handler function
+        :type handler: function
         :param *args: Arguments for signal
         '''
         if signame == "item-toggled":
             self.__toggle_connected = True
 
-        Gtk.Box.connect(self, signame, *args)
+        Gtk.Box.connect(self, signame, handler, *args)
 
     def set_editable(self, column, _is_editable):
         '''
         Set Editable.
 
         :param column: Set column to change
+        :type column: int
         :param _is_editable: Not used
+        :type _is_editable: bool
         '''
         _col = self.__view.get_column(column)
         # rend = col.get_cell_renderers()[0]
@@ -328,6 +338,7 @@ class KeyedListWidget(Gtk.Box):
         '''
         Set Sort Column.
         :param column: Column to sort on
+        :type column: int
         :param _value: Unused
         '''
         self.__view.get_model().set_sort_column_id(column,
@@ -335,11 +346,15 @@ class KeyedListWidget(Gtk.Box):
 
     def set_resizable(self, column, resizable, ellipsize=False):
         '''
-        Set Resizable.
+        Set Resizable and Ellipse Mode.
 
-        :param column: Column data
+        :param column: Column
+        :type column: int
         :param resizable: Resizable setting
-        :param ellipsize: Default False
+        :type resizable: bool
+        :param ellipsize: Ellipsize Mode, True for Omit characters at end.
+                          Default false
+        :type: bool
         '''
         col = self.__view.get_column(column)
         col.set_resizable(resizable)
@@ -353,7 +368,8 @@ class KeyedListWidget(Gtk.Box):
         '''
         Set Expander.
 
-        :param colum: Column data
+        :param colum: Column
+        :type column: int
         '''
         col = self.__view.get_column(column)
         self.__view.set_expander_column(col)
@@ -362,7 +378,8 @@ class KeyedListWidget(Gtk.Box):
         '''
         Set Password.
 
-        :param column: Column data
+        :param column: Column
+        :type column: int
         '''
         def render_password(_foo, rend, model, iter_val, _data):
             val = model.get(iter_val, column+1)[0]
@@ -378,8 +395,9 @@ class ListWidget(Gtk.Box):
     '''
     List Widget Box.
 
-    :param columns: Columns for box
-    :param parent: Is parrent, defalt True
+    :param columns: Columns for Widget
+    :type: list of tuple
+    :param parent: Is parent, default True
     '''
     __gsignals__ = {
         "click-on-list" : (GObject.SignalFlags.RUN_LAST,
@@ -392,12 +410,30 @@ class ListWidget(Gtk.Box):
 
     store_type = Gtk.ListStore
 
+    def __init__(self, columns, parent=True):
+        Gtk.Box.__init__(self)
+
+        self.logger = logging.getLogger("ListWidget")
+        col_types = tuple([x for x, y in columns])
+        self._ncols = len(col_types)
+
+        self._store = self.store_type(*col_types)
+        self._view = None
+        self.make_view(columns)
+
+        self._view.show()
+        if parent:
+            self.pack_start(self._view, 1, 1, 1)
+
+        self.toggle_cb = []
+
     def mouse_cb(self, view, event_button):
         '''
         Mouse Callback.
 
         :param view: view object
-        :param event: Gdk.EventButton
+        :param event: Mouse button event
+        :type event: :class:`Gdk.EventButton`
         '''
         event = Gdk.Event.new(event_button.type)
         # https://lazka.github.io/pgi-docs/Gdk-3.0/classes/Event.html
@@ -419,10 +455,10 @@ class ListWidget(Gtk.Box):
         '''
         Make View.
 
-        :param columns: tuple of (type, String)
-        :raises: MakeViewColumnError if unknown column type
+        :param columns: column data
+        :raises: :class:`MakeViewColumnError` if unknown column type
         '''
-        self._view = Gtk.TreeView(self._store)
+        self._view = Gtk.TreeView.new_with_model(self._store)
 
         for col_type, col in columns:
             if col.startswith("__"):
@@ -449,22 +485,6 @@ class ListWidget(Gtk.Box):
 
         self._view.connect("button_press_event", self.mouse_cb)
 
-    def __init__(self, columns, parent=True):
-        Gtk.Box.__init__(self)
-
-        col_types = tuple([x for x, y in columns])
-        self._ncols = len(col_types)
-
-        self._store = self.store_type(*col_types)
-        self._view = None
-        self.make_view(columns)
-
-        self._view.show()
-        if parent:
-            self.pack_start(self._view, 1, 1, 1)
-
-        self.toggle_cb = []
-
     def packable(self):
         '''
         Packable.
@@ -477,7 +497,7 @@ class ListWidget(Gtk.Box):
         '''
         Add Item.
 
-        :raises: AddItemError if not enough values
+        :raises: :class:`AddItemColumnError` if not enough values
         '''
         if len(vals) != self._ncols:
             raise AddItemColumnError("Need %i columns" % self._ncols)
@@ -503,7 +523,8 @@ class ListWidget(Gtk.Box):
         '''
         Remove Item.
 
-        :raises: DelItemError if not enough vals
+        :param *vals: Items to remove
+        :raises: :class:`DelItemError` if not enough vals
         '''
         if len(vals) != self._ncols:
             raise DelItemError("Need %i columns" % self._ncols)
@@ -514,15 +535,16 @@ class ListWidget(Gtk.Box):
             (lst, iter_val) = self._view.get_selection().get_selected()
             lst.remove(iter_val)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("MscWidget",
-                     ": Unable to remove selected: (%s) %s" % (type(err), err))
+        except Exception:
+            self.logger.info("remove_selected: Unable to remove:"
+                             "broad-exception", exc_info=True)
 
     def get_selected(self, take_default=False):
         '''
         Get Selected.
 
         :param take_default: Default False
+        :type take_default: bool
         :returns: Selected value
         '''
         (lst, iter_val) = self._view.get_selection().get_selected()
@@ -537,6 +559,7 @@ class ListWidget(Gtk.Box):
 
         :param delta: Delta to move
         :returns: True if move successful
+        :rtype: bool
         '''
         (lst, iter_val) = self._view.get_selection().get_selected()
 
@@ -550,10 +573,8 @@ class ListWidget(Gtk.Box):
             elif delta < 0:
                 target = lst.get_iter(pos+1)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("miscwidgets.ListWidget.move_selected",
-                     ": Generic exception suppressed: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("move_selected: broad-exception", exc_info=True)
             return False
 
         if target:
@@ -567,7 +588,8 @@ class ListWidget(Gtk.Box):
         '''
         Get Values.
 
-        :return: List of values
+        :returns: List of values
+        :rtype: list
         '''
         lst = []
 
@@ -580,6 +602,7 @@ class ListWidget(Gtk.Box):
         Set Values.
 
         :param lst: List of values
+        :type lst: List
         '''
         self._store.clear()
 
@@ -592,11 +615,19 @@ class TreeWidget(ListWidget):
     Tree Widget.
 
     :param columns: Columns for Widget
+    :type: list of tuple
     :param key: Key for widget
     :param parent: Is a parent, default True
+    :type parent: true
     '''
 
     store_type = Gtk.TreeStore
+
+    def __init__(self, columns, key, parent=True):
+        ListWidget.__init__(self, columns, parent)
+
+        self.logger = logging.getLogger("TreeWidget")
+        self._key = key
 
     def _toggle(self, _render, path, column):
         # pylint: disable=unsubscriptable-object
@@ -612,11 +643,6 @@ class TreeWidget(ListWidget):
 
         for callback in self.toggle_cb:
             callback(parent, *vals)
-
-    def __init__(self, columns, key, parent=True):
-        ListWidget.__init__(self, columns, parent)
-
-        self._key = key
 
     def _add_item(self, piter, *vals):
         args = []
@@ -651,8 +677,8 @@ class TreeWidget(ListWidget):
 
         :param parent: Parent of item
         :param vals: Optional vals for item
-        :raises: AddItemColumnError if not enough columns
-        :raises: AddItemParentError if parent not found
+        :raises: :class:`AddItemColumnError` if not enough columns
+        :raises: :class:`AddItemParentError` if parent not found
         '''
         if len(vals) != self._ncols:
             raise AddItemColumnError("Need %i columns" % self._ncols)
@@ -679,7 +705,7 @@ class TreeWidget(ListWidget):
         elif isinstance(vals, tuple):
             self._add_item(parent, *vals)
         else:
-            printlog("MscWidget", ": Unknown type: %s" % vals)
+            self.logger.info("_set_values: Unknown type: %s", vals)
 
     # pylint: disable=arguments-differ
     def set_values(self, vals):
@@ -734,7 +760,7 @@ class TreeWidget(ListWidget):
 
         :param parent: parent of object
         :param key: key of item to delete
-        :raises: DelItemError if item is not found
+        :raises: :class:`DelItemError` if item is not found
         '''
         iter_val = self._iter_of(key,
                                  self._store.iter_children(
@@ -750,8 +776,8 @@ class TreeWidget(ListWidget):
 
         :param parent: Parent of object
         :param key: Key for item
+        :raises: :class:`GetItemError` when item not found
         :returns: Returned item
-        :raises: GetItemError when item not found
         '''
         iter_val = self._iter_of(key,
                                  self._store.iter_children(
@@ -767,7 +793,7 @@ class TreeWidget(ListWidget):
 
         :param parent: Parent of item
         :param *vals: Optional vals
-        :raises: SetItemError if item is not found
+        :raises: :class:`SetItemError` if item is not found
         '''
         iter_val = self._iter_of(vals[self._key],
                                  self._store.iter_children(
@@ -792,11 +818,13 @@ class ProgressDialog(Gtk.Window):
     Progress Dialog Window.
 
     :param title: Title for window
-    :param parent: Parent object, default None
+    :type title: str
+    :param parent: Is a parent Window
+    :type parent: bool
     '''
 
     def __init__(self, title, parent=None):
-        Gtk.Window.__init__(self, Gtk.WindowType.TOPLEVEL)
+        Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
         self.set_modal(True)
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.set_title(title)
@@ -826,6 +854,7 @@ class ProgressDialog(Gtk.Window):
         Set Text.
 
         :parm text: Text to set
+        :type text: str
         '''
         self.label.set_text(text)
         self.queue_draw()
@@ -838,6 +867,7 @@ class ProgressDialog(Gtk.Window):
         Set Fraction.
 
         :param frac: Fraction to set
+        :type frac: float
         '''
         self.pbar.set_fraction(frac)
         self.queue_draw()
@@ -855,8 +885,10 @@ class LatLonEntry(Gtk.Entry):
     def __init__(self, *args):
         Gtk.Entry.__init__(self, *args)
 
+        self.logger = logging.getLogger("LatLonEntry")
         self.connect("changed", self.format)
 
+    # pylint: disable=no-self-use
     def format(self, entry):
         '''
         Format entry text.
@@ -883,22 +915,27 @@ class LatLonEntry(Gtk.Entry):
 
         entry.set_text(string)
 
+    # pylint: disable=no-self-use
     def parse_dd(self, string):
         '''
-        Parse Decimal Degrees.
+        Parse Decimal Degree string.
 
-        :param string: String with decimal Degrees
-        :returns: Float with degrees
+        :param string: text with decimal Degrees
+        :type: string: str
+        :returns: Numeric coordinate value
+        :rtype: float
         '''
         return float(string)
 
     # pylint: disable=no-self-use
     def parse_dm(self, string):
         '''
-        Parse Degrees Minutes.
+        Parse Degrees Minutes string.
 
-        :param string: String with Degrees and Minutes
-        :returns: Float with degrees and minutes
+        :param string: Text with Degrees and Minutes
+        :type string: str
+        :returns: Degrees and minutes
+        :rtype: float
         '''
         string = string.strip()
         string = string.replace('  ', ' ')
@@ -910,13 +947,16 @@ class LatLonEntry(Gtk.Entry):
 
         return degrees + (minutes / 60.0)
 
+    # pylint: disable=no-self-use
     def parse_dms(self, string):
         '''
-        Parse Degrees Minutes Seconds.
+        Parse Degrees Minutes Seconds from string.
 
-        :param string: String with Degrees Minutes and Seconds
-        :returns: Float with Degrees Minutes and Seconds
-        :raises: LatLongEntryParseDMSError on parsing error.
+        :param string: Text with Degrees Minutes and Seconds
+        :type string: str
+        :raises: :class:`LatLongEntryParseDMSError` on parsing error.
+        :returns: Degrees Minutes and Seconds
+        :rtype: float
         '''
         string = string.replace(u"\u00b0", " ")
         string = string.replace('"', ' ')
@@ -953,33 +993,24 @@ class LatLonEntry(Gtk.Entry):
 
     def value(self):
         '''
-        Value.
+        Coordinate Value.
 
-        :raises: LatLongEntryValueError for invalid values.
+        :raises: :class:`LatLongEntryValueError` for invalid values.
+        :returns: Coordinate value from widget
+        :rtype: float
         '''
         string = self.get_text()
 
-        # pylint: disable=broad-except
         try:
             return self.parse_dd(string)
-        except Exception as err:
-            printlog("miscwidgets.LatLonEntry.value",
-                     ": Generic exception suppressed: (%s) %s" %
-                     (type(err), err))
+        except ValueError:
             try:
                 return self.parse_dm(string)
-            except Exception as err:
-                printlog("miscwidgets.LatLonEntry.validate-2",
-                         ": Generic exception suppressed: (%s) %s" %
-                         (type(err), err))
-
+            except ValueError:
                 try:
                     return self.parse_dms(string)
-                except Exception as err:
-                    printlog("MscWidget", ": DMS: %s" % err)
-                    printlog("miscwidgets.LatLonEntry.validate-3",
-                             ": Generic exception suppressed: (%s) %s" %
-                             (type(err), err))
+                except LatLongEntryParseDMSError:
+                    pass
 
         raise LatLongEntryValueError("Invalid format")
 
@@ -988,15 +1019,12 @@ class LatLonEntry(Gtk.Entry):
         Validate.
 
         :Returns: True if validates
+        :rtype: bool
         '''
         try:
             self.value()
             return True
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("miscwidgets.LatLonEntry.validate",
-                     ": Generic exception suppressed: (%s) %s" %
-                     (type(err), err))
+        except LatLongEntryValueError:
             return False
 
 
@@ -1004,13 +1032,20 @@ class YesNoDialog(Gtk.Dialog):
     '''
     Yes No Dialog.
 
+     Does not appear to be currently used.
     :param title: Dialog title, Default ''
-    :param parent: Parent object, default None
-    :param buttons: Buttons, Default None
+    :type title: str
+    :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Widget`
+    :param buttons: list of (button, response) tuples, Default None
     '''
 
     def __init__(self, title="", parent=None, buttons=None):
-        Gtk.Dialog.__init__(self, title=title, parent=parent, buttons=buttons)
+        Gtk.Dialog.__init__(self, parent=parent)
+        self.set_title(title)
+        if buttons:
+            for button, response in buttons:
+                self.add_button(button, response)
 
         self._label = Gtk.Label.new("")
         self._label.show()
@@ -1022,6 +1057,7 @@ class YesNoDialog(Gtk.Dialog):
         Set Text.
 
         :param text: Text to set
+        :type text: str
         '''
         self._label.set_text(text)
 
@@ -1032,8 +1068,10 @@ def make_choice(options, editable=True, default=None):
 
     :param options: options
     :param editable: Default True
+    :type editable: bool
     :param default: Default None
     '''
+    logger = logging.getLogger("make_choice")
     if editable:
         sel = Gtk.ComboBoxText.new_with_entry()
     else:
@@ -1047,11 +1085,8 @@ def make_choice(options, editable=True, default=None):
             idx = options.index(default)
             sel.set_active(idx)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("miscwidgets.make_choice",
-                     ": Generic exception suppressed: (%s) %s" %
-                     (type(err), err))
-
+        except Exception:
+            logger.info("broad-exception suppressed", exc_info=True)
             # pass
 
     return sel
@@ -1062,18 +1097,40 @@ class FilenameBox(Gtk.Box):
     File Name Box.
 
     :params find_dir: Find directory, default False
+    :type find_dir; bool
     :param types: types, default []
+    :type types: list
     '''
     __gsignals__ = {
         "filename-changed" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE, ()),
         }
+
+    def __init__(self, find_dir=False, types=None):
+        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 0)
+
+        if types:
+            self.types = types
+        else:
+            self.types = []
+
+        self.filename = Gtk.Entry()
+        self.filename.show()
+        self.pack_start(self.filename, 1, 1, 1)
+
+        browse = Gtk.Button.new_with_label("...")
+        browse.show()
+        self.pack_start(browse, 0, 0, 0)
+
+        self.filename.connect("changed", self.do_changed)
+        browse.connect("clicked", self.do_browse, find_dir)
 
     def do_browse(self, _dummy, directory):
         '''
         Do Browse.
 
         :param _dummy: unused
-        :param direcory: Directory
+        :param directory: Is a directory
+        :type directory: bool
         '''
         if self.filename.get_text():
             start = os.path.dirname(self.filename.get_text())
@@ -1095,30 +1152,12 @@ class FilenameBox(Gtk.Box):
         '''
         self.emit("filename_changed")
 
-    def __init__(self, find_dir=False, types=None):
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 0)
-
-        if types:
-            self.types = types
-        else:
-            self.types = []
-
-        self.filename = Gtk.Entry()
-        self.filename.show()
-        self.pack_start(self.filename, 1, 1, 1)
-
-        browse = Gtk.Button.new_with_label("...")
-        browse.show()
-        self.pack_start(browse, 0, 0, 0)
-
-        self.filename.connect("changed", self.do_changed)
-        browse.connect("clicked", self.do_browse, find_dir)
-
     def set_filename(self, fname):
         '''
         Set Filename.
 
         :param fname: File name
+        :type fname: str
         '''
         self.filename.set_text(fname)
 
@@ -1126,7 +1165,8 @@ class FilenameBox(Gtk.Box):
         '''
         Get Filename.
 
-        :returns: String with filename
+        :returns: Filename
+        :rtype: str
         '''
         return self.filename.get_text()
 
@@ -1135,6 +1175,7 @@ class FilenameBox(Gtk.Box):
         Set Mutable.
 
         :param mutable: Set mutable property
+        :type mutable: bool
         '''
         self.filename.set_sensitive(mutable)
 
@@ -1146,6 +1187,7 @@ def make_pixbuf_choice(options, default=None):
     :param options: Options
     :param default: Default is None
     :returns: GtkBox object
+    :rtype: :class:`Gtk.Box`
     '''
     store = Gtk.ListStore(Gdk.Pixbuf, GObject.TYPE_STRING)
     box = Gtk.ComboBox.new_with_model(store)
@@ -1173,7 +1215,13 @@ def make_pixbuf_choice(options, default=None):
 
 def test():
     '''Unit Test'''
-    win = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+    logger = logging.getLogger("MiscWidgets")
+
+    win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
     lst = ListWidget([(GObject.TYPE_STRING, "Foo"),
                       (GObject.TYPE_BOOLEAN, "Bar")])
 
@@ -1184,16 +1232,17 @@ def test():
     win.add(lst)
     win.show()
 
-    win1 = ProgressDialog("foo")
+    win1 = ProgressDialog("ProgessBar")
+    win1.set_fraction(0.25)
     win1.show()
 
-    win2 = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+    win2 = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
     lle = LatLonEntry()
     lle.show()
     win2.add(lle)
     win2.show()
 
-    win3 = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+    win3 = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
     lst = TreeWidget([(GObject.TYPE_STRING, "Id"),
                       (GObject.TYPE_STRING, "Value")],
                      1)
@@ -1208,9 +1257,9 @@ def test():
 
     def print_val(entry):
         if entry.validate():
-            printlog("MscWidget", ": Valid: %s" % entry.value())
+            logger.info("Valid: %s", entry.value())
         else:
-            printlog("MscWidget", ": Invalid")
+            logger.info("Invalid")
     lle.connect("activate", print_val)
 
     lle.set_text("45 13 12")
@@ -1220,7 +1269,7 @@ def test():
     except KeyboardInterrupt:
         pass
 
-    printlog(lst.get_values())
+    logger.info(lst.get_values())
 
 if __name__ == "__main__":
     test()
