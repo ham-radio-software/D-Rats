@@ -1,6 +1,8 @@
 #!/usr/bin/python
+'''ReqObject.'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +19,8 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-#importing printlog() wrapper
-from .debug import printlog
+
+import logging
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -27,15 +29,26 @@ from gi.repository import GObject
 
 from . import miscwidgets
 
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
+
 class RequestRemoteObjectUI(Gtk.Dialog):
-    def __init__(self, rpcsession, station, parent=None):
-        Gtk.Dialog.__init__(self,
-                            title="Request remote object",
-                            buttons=("Retrieve", Gtk.ResponseType.OK,
-                                     Gtk.ButtonsType.CANCEL,
-                                     Gtk.ResponseType.CANCEL),
-                            parent=parent)
-        
+    '''
+    Request Remote Object UI.
+
+    :param _rpcsession: Unused
+    :param _station: Unused
+    :param _parent: parent widget, default None
+    '''
+    def __init__(self, _rpcsession, _station, parent=None):
+        Gtk.Dialog.__init__(self, parent=parent)
+
+        self.logger = logging.getLogger("RequestRemoteObjectUI")
+        self.set_title(_("Request remote object"))
+        self.add_button(_("Retrieve"), Gtk.ResponseType.OK)
+        self.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
         self.__list = miscwidgets.KeyedListWidget(\
             [(GObject.TYPE_STRING, "_ID"),
              (GObject.TYPE_STRING, "Name"),
@@ -43,22 +56,35 @@ class RequestRemoteObjectUI(Gtk.Dialog):
         self.__list.set_resizable(0, True)
         self.__list.show()
 
-        sw = Gtk.ScrolledWindow()
-        sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        sw.add_with_viewport(self.__list)
-        sw.show()
+        scrollw = Gtk.ScrolledWindow()
+        scrollw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrollw.add(self.__list)
+        scrollw.show()
 
-        self.vbox.pack_start(sw, 1, 1, 1)
+        self.vbox.pack_start(scrollw, 1, 1, 1)
 
         self.set_default_size(400, 400)
 
     def set_objects(self, objlist):
+        '''
+        Set Objects.
+
+        :param objlist: objects to set
+        :type objlist: list
+        '''
         for name, info in objlist:
             self.__list.set_item(name, name, info)
 
     def get_selected_item(self):
+        '''
+        Get Selected Item.
+
+        :returns: Selected item
+        '''
         try:
             return self.__list.get_item(self.__list.get_selected())[1]
-        except Exception as e:
-            printlog(("ReqObj    : Unable to get selected item: %s" % e))
+        # pylint: disable=broad-except
+        except Exception:
+            self.logger.info("get_selected_item: Unable to get selected item"
+                             " broad-exception", exc_info=True)
             return None
