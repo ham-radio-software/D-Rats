@@ -21,8 +21,8 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import sys
-
 import os
 import time
 import subprocess
@@ -32,14 +32,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GLib
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               languages=["en"],
-                               fallback=True)
-    lang.install()
+    _ = gettext.gettext
 
 from d_rats.ui.main_messages import MessagesTab
 from d_rats.ui.main_chat import ChatTab
@@ -60,10 +55,15 @@ from d_rats.version import \
 
 from d_rats import formbuilder
 from d_rats import signals
-from .debug import printlog
+
 
 class MainWindow(MainWindowElement):
-    '''MainWindow'''
+    '''
+    MainWindow.
+
+    :param config: Configuration object
+    :type config: :class:`DratsConfig`
+    '''
 
     __gsignals__ = {
         "config-changed" : signals.CONFIG_CHANGED,
@@ -74,6 +74,67 @@ class MainWindow(MainWindowElement):
         "get-chat-port" : signals.GET_CHAT_PORT,
         }
     _signals = __gsignals__
+
+    def __init__(self, config):
+        self.logger = logging.getLogger("MainWindow")
+        wtree = Gtk.Builder()
+        file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
+        wtree.add_from_file(file_name)
+        # wtree = Gtk.glade.XML(config.ship_obj_fn("ui/mainwindow.glade"),
+        #                       "mainwindow", "D-RATS")
+        MainWindowElement.__init__(self, wtree, config, "")
+        self.__window = self._wtree.get_object("mainwindow")
+        self._tabs = self._wtree.get_object("main_tabs")
+        self._tabs.connect("switch-page", self._tab_switched)
+        self.tabs = {}
+        self.__last_status = 0
+        self.tabs["chat"] = ChatTab(wtree, config)
+        self.tabs["messages"] = MessagesTab(wtree, config)
+        self.tabs["event"] = EventTab(wtree, config)
+        self.tabs["files"] = FilesTab(wtree, config)
+        self.tabs["stations"] = StationsList(wtree, config)
+        for label, tab in self.tabs.items():
+            tab.connect("notice", self._maybe_blink, label)
+        self._current_tab = "messages"
+        in_color = "incomingcolor"
+        cpr = COPYRIGHT
+
+        # pylint: disable=protected-access
+        self.tabs["chat"]._display_line("D-RATS v%s" % DRATS_VERSION, True,
+                                        in_color)
+        # pylint: disable=protected-access
+        self.tabs["chat"]._display_line(cpr, True, in_color)
+        # pylint: disable=protected-access
+        self.tabs["chat"]._display_line("", True)
+
+        self.__window.connect("destroy", self._destroy)
+        self.__window.connect("delete_event", self._delete)
+        self.__window.connect("focus-in-event", self._got_focus)
+
+        self._connect_menu_items(self.__window)
+
+        height = self._config.getint("state", "main_size_x")
+        width = self._config.getint("state", "main_size_y")
+        if self._config.getboolean("state", "main_maximized"):
+            self.__window.maximize()
+            self.__window.set_default_size(height, width)
+        else:
+            self.__window.resize(height, width)
+
+        try:
+            # Pylance can not detect this import on a linux system.
+            import gtkmacintegration # type: ignore
+            mbar = self._wtree.get_object("menubar1")
+            mbar.hide()
+            gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
+            gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
+            self.logger.info("Enabled OSX menubar integration")
+        except ImportError:
+            pass
+
+        self.__window.show()
+
+        GLib.timeout_add(3000, self.__update_status)
 
     def _delete(self, window, _event):
         if self._config.getboolean("prefs", "confirm_exit"):
@@ -91,8 +152,8 @@ class MainWindow(MainWindowElement):
         if maximized:
             self._config.set("state", "main_maximized", maximized)
         if not maximized:
-            self._config.set("state", "main_size_x", width)
-            self._config.set("state", "main_size_y", height)
+            self._config.set("state", "main_size_x", str(width))
+            self._config.set("state", "main_size_y", str(height))
 
         Gtk.main_quit()
 
@@ -168,8 +229,8 @@ class MainWindow(MainWindowElement):
 
         def do_conninet(but):
             self._config.set("state", "connected_inet", but.get_active())
-            printlog("Mainwin",
-                     "  : change on connection status to %s" % but.get_active())
+            self.logger.info("do_conninet: change on connection status to %s",
+                             but.get_active())
 
         def do_showpane(but, pane):
             self._config.set("state", "sidepane_visible", but.get_active())
@@ -184,6 +245,7 @@ class MainWindow(MainWindowElement):
             #xxxxx
             wtree = Gtk.Builder()
             wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
+            wtree.set_translation_domain("D-RATS")
             #wtree = Gtk.glade.XML(c.ship_obj_fn("ui/mainwindow.glade"),
             #                      "dquery_dialog", "D-RATS")
             dlg = wtree.get_object("dquery_dialog")
@@ -217,7 +279,7 @@ class MainWindow(MainWindowElement):
                 args.append("./d-rats_repeater")
             else:
                 args.append("d-rats_repeater")
-            printlog("Mainwin", "  : Running proxy: %s" % str(args))
+            self.logger.info("do_proxy: Running proxy: %s", str(args))
             _p = subprocess.Popen(args)
 
         menu_quit = self._wtree.get_object("main_menu_quit")
@@ -298,68 +360,6 @@ class MainWindow(MainWindowElement):
         # got focus"
         self.__window.set_urgency_hint(False)
 
-    def __init__(self, config):
-        # init"
-        # from . import mainapp
-        wtree = Gtk.Builder()
-        file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
-        wtree.add_from_file(file_name)
-        # wtree = Gtk.glade.XML(config.ship_obj_fn("ui/mainwindow.glade"),
-        #                       "mainwindow", "D-RATS")
-        MainWindowElement.__init__(self, wtree, config, "")
-        self.__window = self._wtree.get_object("mainwindow")
-        self._tabs = self._wtree.get_object("main_tabs")
-        self._tabs.connect("switch-page", self._tab_switched)
-        self.tabs = {}
-        self.__last_status = 0
-        self.tabs["chat"] = ChatTab(wtree, config)
-        self.tabs["messages"] = MessagesTab(wtree, config)
-        self.tabs["event"] = EventTab(wtree, config)
-        self.tabs["files"] = FilesTab(wtree, config)
-        self.tabs["stations"] = StationsList(wtree, config)
-        for label, tab in self.tabs.items():
-            tab.connect("notice", self._maybe_blink, label)
-        self._current_tab = "messages"
-        in_color = "incomingcolor"
-        cpr = COPYRIGHT
-
-        # pylint: disable=protected-access
-        self.tabs["chat"]._display_line("D-RATS v%s" % DRATS_VERSION, True,
-                                        in_color)
-        # pylint: disable=protected-access
-        self.tabs["chat"]._display_line(cpr, True, in_color)
-        # pylint: disable=protected-access
-        self.tabs["chat"]._display_line("", True)
-
-        self.__window.connect("destroy", self._destroy)
-        self.__window.connect("delete_event", self._delete)
-        self.__window.connect("focus-in-event", self._got_focus)
-
-        self._connect_menu_items(self.__window)
-
-        height = self._config.getint("state", "main_size_x")
-        width = self._config.getint("state", "main_size_y")
-        if self._config.getboolean("state", "main_maximized"):
-            self.__window.maximize()
-            self.__window.set_default_size(height, width)
-        else:
-            self.__window.resize(height, width)
-
-        try:
-            # Pylance can not detect this import on a linux system.
-            import gtkmacintegration # type: ignore
-            mbar = self._wtree.get_object("menubar1")
-            mbar.hide()
-            gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
-            gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
-            printlog("Mainwin", "  : Enabled OSX menubar integration")
-        except ImportError:
-            pass
-
-        self.__window.show()
-
-        GLib.timeout_add(3000, self.__update_status)
-
     def __update_status(self):
         # printlog("Mainwin", "  : updating status")
         if (time.time() - self.__last_status) > 30:
@@ -370,7 +370,12 @@ class MainWindow(MainWindowElement):
         return True
 
     def set_status(self, msg):
-        '''set status'''
+        '''
+        Set status.
+
+        :param msg: Status message
+        :type msg: str
+        '''
         status_bar = self._wtree.get_object("statusbar")
         call_bar = self._wtree.get_object("callbar")
 
@@ -387,7 +392,14 @@ class MainWindow(MainWindowElement):
 
 
 def main():
-    '''Unit test main module'''
+    '''Unit test main module.'''
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+    # pylint: disable=invalid-name
+    logger = logging.getLogger("MainWindow")
+
     wtree = Gtk.Builder()
     wtree.add_from_file("ui/mainwindow.glade")
     #wtree = Gtk.glade.XML("ui/mainwindow.glade", "mainwindow")
@@ -396,7 +408,7 @@ def main():
     conf = config.DratsConfig(None)
 
     def test(_chat, station, msg):
-        printlog("Mainwin", "  : %s->%s" % (station, msg))
+        logger.info("%s->%s", station, msg)
 
     chat = ChatTab(wtree, conf)
     chat.connect("user-send-chat", test)
