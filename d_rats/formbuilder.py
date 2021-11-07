@@ -32,14 +32,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
 
 
 from d_rats import dplatform
@@ -102,7 +97,9 @@ class FormElementEditor(Gtk.Dialog):
         Make Entry Editor
 
         :param ident: Identification for widget
-        :returns: Gtk.Frame object
+        :type ident: str
+        :returns: Entry editor widget
+        :rtype: :class:`Gtk.Frame`
         '''
         entry = Gtk.Entry()
         entry.show()
@@ -120,7 +117,9 @@ class FormElementEditor(Gtk.Dialog):
         Make Null Editor.
 
         :param _ident: Unused
-        :returns: GTK.Label object
+        :type _ident: str
+        :returns: Label object
+        :rtype: :class:`Gtk.Label`
         '''
         return Gtk.Label.new("(There are no options for this type)")
 
@@ -129,7 +128,9 @@ class FormElementEditor(Gtk.Dialog):
         Make Toggle Editor.
 
         :param ident: Identity to give widget
-        :returns: GTK.Frame object
+        :type ident: str
+        :returns: Toggle edit widget
+        :rtype: :class:`Gtk.Frame`
         '''
         check_button = Gtk.CheckButton.new_with_label(_("True"))
         check_button.show()
@@ -146,8 +147,11 @@ class FormElementEditor(Gtk.Dialog):
         Make Choice Editor
 
         :param ident: Identity for form
+        :type ident: str
         :param single: Single option
-        :returns: GTK.Frame object
+        :type single: bool
+        :returns: Choice editor widget
+        :rtype: :class:`Gtk.Frame`
         '''
         self._choice_buffer = Gtk.TextBuffer()
         entry = Gtk.TextView.new_with_buffer(self._choice_buffer)
@@ -173,6 +177,7 @@ class FormElementEditor(Gtk.Dialog):
         Type Changed.
 
         :param box: Box object
+        :type box: :class:`Gtk.Box`
         :param _data: Unused
         '''
         sel = box.get_active_text()
@@ -190,6 +195,7 @@ class FormElementEditor(Gtk.Dialog):
         Get initial value.
 
         :returns: Initial value as a string, or empty string
+        :rtype: str
         '''
         sel = self.type_sel.get_active_text()
 
@@ -227,6 +233,7 @@ class FormElementEditor(Gtk.Dialog):
         Get Options.
 
         :returns: String of options or empty string
+        :rtype: str
         '''
         sel = self.type_sel.get_active_text()
         if sel == "choice":
@@ -247,6 +254,7 @@ class FormElementEditor(Gtk.Dialog):
         Set Options.
 
         :param val: string containing options
+        :type val: str
         '''
         sel = self.type_sel.get_active_text()
         if sel == "choice":
@@ -270,7 +278,8 @@ class FormElementEditor(Gtk.Dialog):
         '''
         Get Form Type.
 
-        :returns: String with form type
+        :returns: Form type
+        :rtype: str
         '''
         return self.type_sel.get_active_text()
 
@@ -278,7 +287,8 @@ class FormElementEditor(Gtk.Dialog):
         '''
         Set Form Type.
 
-        :param form_type: Form type to set active
+        :param form_type: Form type
+        :type form_type: str
         '''
         self.type_sel.set_active(list(self.vals.keys()).index(form_type))
 
@@ -289,6 +299,7 @@ class FormBuilderGUI(Gtk.Dialog):
     Form Builder GUI.
 
     :param: config: Configuration object
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, config):
@@ -323,6 +334,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Reorder
 
         :param move_up: True to move up, False to move down
+        :type move_up: bool
         '''
         try:
             (sel_list, sel_iter) = self.view.get_selection().get_selected()
@@ -342,27 +354,30 @@ class FormBuilderGUI(Gtk.Dialog):
 
     def but_move_up(self, _widget, _data=None):
         '''
-        Button Move Up
+        Button Move Up.
 
         :param _widget: Unused
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused
         '''
         self.reorder(True)
 
     def but_move_down(self, _widget, _data=None):
         '''
-        Button Move Down
+        Button Move Down.
 
         :param _widget: Unused
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused
         '''
         self.reorder(False)
 
     def but_add(self, _widget, _data=None):
         '''
-        Button Add
+        Button Add.
 
         :param _widget: Unused
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused
         '''
         dialog = FormElementEditor()
@@ -389,9 +404,10 @@ class FormBuilderGUI(Gtk.Dialog):
 
     def but_delete(self, _widget, _data=None):
         '''
-        Button Delete
+        Button Delete.
 
         :param _widget: Unused
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused
         '''
         try:
@@ -404,9 +420,10 @@ class FormBuilderGUI(Gtk.Dialog):
 
     def but_edit(self, _widget, _data=None):
         '''
-        Button Edit
+        Button Edit.
 
         :param _widget: Unused
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused
         '''
         try:
@@ -417,7 +434,7 @@ class FormBuilderGUI(Gtk.Dialog):
                                                  self.col_opts)
         # pylint: disable=broad-except
         except Exception:
-            self.logger.info("buf_edit broad-except", exc_info=True)
+            self.logger.info("buf_edit broad-exception", exc_info=True)
             return
 
         dialog = FormElementEditor()
@@ -434,7 +451,16 @@ class FormBuilderGUI(Gtk.Dialog):
         dialog.destroy()
 
     def ev_edited(self, _r, path, new_text, colnum):
-        '''EV Edited'''
+        '''
+        EV Edited.
+
+        :param _r: Unused
+        :param path: path data
+        :param new_text: New text for edit
+        :type new_text: str
+        :param colnum: Column Number
+        :type colnum: int
+        '''
         ev_iter = self.store.get_iter(path)
 
         self.store.set(ev_iter, colnum, new_text)
@@ -443,7 +469,8 @@ class FormBuilderGUI(Gtk.Dialog):
         '''
         Build Display
 
-        :returns: Gtk.ScrolledWindow object for display
+        :returns: Scrolled window display
+        :rtype: :class:`Gtk.ScrolledWindow`
         '''
         self.col_id = 0
         self.col_type = 1
@@ -494,7 +521,7 @@ class FormBuilderGUI(Gtk.Dialog):
     # pylint: disable=too-many-locals
     def make_field_xml(self, model, _path, field_iter, _):
         '''
-        Make Field XML
+        Make Field XML.
 
         :param model: model object
         :param _path: Unused
@@ -566,6 +593,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Get Form XML
 
         :returns: XML representation of form
+        :rtype: str
         '''
         ident = self.props["ID"].get_text()
         title = self.props["Title"].get_text()
@@ -584,6 +612,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Build Buttons
 
         :returns: Box object with buttons
+        :rtype: :class:`Gtk.Box`
         '''
         box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         box.set_homogeneous(True)
@@ -611,8 +640,10 @@ class FormBuilderGUI(Gtk.Dialog):
         Make Field
 
         :param caption: Caption for field
+        :type caption: str
         :param choices: Optional Choices
-        :returns: Gtk.Box object with field.
+        :returns: Box object with field.
+        :rtype: :class:`Gtk.Box`
         '''
         box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
@@ -639,6 +670,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Build Form Properties.
 
         :returns: Frame for form
+        :rtype: :class:`Gtk.Frame`
         '''
         self.props = {}
 
@@ -671,6 +703,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Build Field Editor.
 
         :returns: Frame from editor.
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new(_("Form Elements"))
 
@@ -689,6 +722,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Show Preview.
 
         :param _widget: Unused Widget to preview
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused Optional data
         '''
         file_descriptor, name = tempfile.mkstemp()
@@ -712,6 +746,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Load field
 
         :param widget: TextWidget to load the field from
+        :type widget: :class:`Gtk.Widget`
         '''
         store_iter = self.store.append()
         if widget.type in ["choice", "multiselect"]:
@@ -731,6 +766,7 @@ class FormBuilderGUI(Gtk.Dialog):
         Load from file.
 
         :param filename: Filename to open
+        :type filename: str
         '''
         form = FormDialog("", filename, config=self.config)
         self.props["ID"].set_text(form.ident)
@@ -749,7 +785,9 @@ class FormManagerGUI():
     Form Manager GUI.
 
     :param directory: Form directory
+    :type directory: str
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     '''
 
     def __init__(self, directory, config):
@@ -782,6 +820,7 @@ class FormManagerGUI():
         Add form.
 
         :param filename: Filename for form
+        :type filename: str
         :returns: form id
         '''
         try:
@@ -820,6 +859,7 @@ class FormManagerGUI():
         Button new.
 
         :param _widget: Unused Widget
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused Optional data, default None
         '''
         dialog = FormBuilderGUI(config=self.config)
@@ -870,6 +910,7 @@ class FormManagerGUI():
         Button delete.
 
         :param _widget: Unused Widget
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused Optional data, default None
         '''
         try:
@@ -888,6 +929,7 @@ class FormManagerGUI():
         Button close.
 
         :param _widget: Unused Widget
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused Optional data, default None
         '''
         self.window.destroy()
@@ -897,6 +939,7 @@ class FormManagerGUI():
         Button import.
 
         :param _widget: Unused Widget
+        :type _widget: :class:`Gtk.Widget`
         :param _data: Unused Optional data, default None
         '''
         platform = dplatform.get_platform()
@@ -929,7 +972,7 @@ class FormManagerGUI():
             (filename, _id) = but_list.get(but_iter, self.col_file, self.col_id)
         # pylint: disable=broad-except
         except Exception:
-            self.logger.info("but_export broad-except", exc_info=True)
+            self.logger.info("but_export broad-exception", exc_info=True)
             return
 
         platform = dplatform.get_platform()
@@ -939,9 +982,10 @@ class FormManagerGUI():
 
     def make_list(self):
         '''
-        Make List
+        Make List.
 
-        :returns: Scroll Window
+        :returns: Scrolled Window widget
+        :rtype: :class:`Gtk.ScrolledWindow`
         '''
         self.col_id = 0
         self.col_title = 1
@@ -978,6 +1022,7 @@ class FormManagerGUI():
         Make buttons
 
         :returns: Box object
+        :rtype: :class:`Gtk.Box`
         '''
         button_list = [(_("New"), self.but_new),
                        (_("Edit"), self.but_edit),
