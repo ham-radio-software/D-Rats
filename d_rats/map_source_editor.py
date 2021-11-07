@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Map Source Editor.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -17,86 +18,55 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-#importing print() wrapper
-from .debug import printlog
 
+import logging
 import os
 import shutil
-from glob import glob
+# from glob import glob
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
 from . import map_sources
 from . import miscwidgets
 from . import utils
 
-class EditorInitCancel(Exception):
-    pass
 
-class MapSourcesEditor(object):
-    def _add(self, button, typesel):
-        t = typesel.get_active_text()
+class MapSourceEditorException(Exception):
+    '''Generic Map Source Editor Exception.'''
 
-        try:
-            et, _st = SOURCE_TYPES[t]
-            e = et(self.__config)
-        except EditorInitCancel:
-            return
 
-        r = e.run()
-        if r == Gtk.ResponseType.OK:
-            e.save()
-            self.__store.append((t, e.get_source().get_name(), e))
-        e.destroy()
+class EditorInitCancel(MapSourceEditorException):
+    '''Editor Init Cancel.'''
 
-    def _rem(self, button):
-        (model, iter) = self.__view.get_selection().get_selected()
 
-        e, = self.__store.get(iter, 2)
-        e.delete()
+class GladeFileOpenError(MapSourceEditorException):
+    '''Glade File Open Error.'''
 
-        model.remove(iter)
 
-    def _edit(self, button):
-        (_model, iter) = self.__view.get_selection().get_selected()
+class MapSourcesEditor():
+    '''
+    Map Sourced Editor.
 
-        e, = self.__store.get(iter, 2)
-        e.run()
-        e.save()
-        e.destroy()
-
-    def _setup_view(self):
-        self.__store = Gtk.ListStore(GObject.TYPE_STRING,
-                                     GObject.TYPE_STRING,
-                                     GObject.TYPE_PYOBJECT)
-        self.__view.set_model(self.__store)
-
-        c = Gtk.TreeViewColumn(_("Type"), Gtk.CellRendererText(), text=0)
-        self.__view.append_column(c)
-
-        c = Gtk.TreeViewColumn(_("Name"), Gtk.CellRendererText(), text=1)
-        self.__view.append_column(c)
-
-    def _setup_typesel(self, wtree):
-        choice = miscwidgets.make_choice(list(SOURCE_TYPES.keys()),
-                                         False,
-                                         "Static")
-        choice.show()
-        box = wtree.get_object("srcs_ctrlbox")
-        box.pack_end(choice, 1, 1, 1)
-
-        return choice
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    '''
 
     def __init__(self, config):
-        fn = config.ship_obj_fn("ui/mainwindow.glade")
-        if not os.path.exists(fn):
-            printlog(fn)
-            raise Exception("Unable to load UI file")
+        self.logger = logging.getLogger("MapSourcesEditor")
+        filename = config.ship_obj_fn("ui/mainwindow.glade")
+        if not os.path.exists(filename):
+            self.logger.info("Could not open %s", filename)
+            raise GladeFileOpenError("Unable to load UI file")
         wtree = Gtk.Builder()
-        wtree.add_from_file(fn)
+        wtree.add_from_file(filename)
+        wtree.set_translation_domain("D-RATS")
         #wtree = Gtk.glade.XML(fn, "srcs_dialog", "D-RATS")
 
         self.__config = config
@@ -121,27 +91,99 @@ class MapSourcesEditor(object):
                     self.__store.append((stype,
                                          sed.get_source().get_name(),
                                          sed))
+                # pylint: disable=broad-except
                 except Exception:
                     utils.log_exception()
-                    printlog("Mapsrcedit",": Failed to open source %s:%s" % (stype, key))
+                    self.logger.info("Failed to open source %s:%s; %s",
+                                  stype, key, "broad-exception", exc_info=True)
+    def _add(self, _button, typesel):
+        text = typesel.get_active_text()
+
+        try:
+            element_type, _st = SOURCE_TYPES[text]
+            element = element_type(self.__config)
+        except EditorInitCancel:
+            return
+
+        response = element.run()
+        if response == Gtk.ResponseType.OK:
+            element.save()
+            self.__store.append((text, element.get_source().get_name(), element))
+        element.destroy()
+
+    def _rem(self, _button):
+        (model, sel_iter) = self.__view.get_selection().get_selected()
+
+        element, = self.__store.get(sel_iter, 2)
+        element.delete()
+
+        model.remove(iter)
+
+    def _edit(self, _button):
+        (_model, sel_iter) = self.__view.get_selection().get_selected()
+
+        element, = self.__store.get(sel_iter, 2)
+        element.run()
+        element.save()
+        element.destroy()
+
+    def _setup_view(self):
+        self.__store = Gtk.ListStore(GObject.TYPE_STRING,
+                                     GObject.TYPE_STRING,
+                                     GObject.TYPE_PYOBJECT)
+        self.__view.set_model(self.__store)
+
+        col = Gtk.TreeViewColumn(_("Type"), Gtk.CellRendererText(), text=0)
+        self.__view.append_column(col)
+
+        col = Gtk.TreeViewColumn(_("Name"), Gtk.CellRendererText(), text=1)
+        self.__view.append_column(col)
+
+    # pylint: disable=no-self-use
+    def _setup_typesel(self, wtree):
+        choice = miscwidgets.make_choice(list(SOURCE_TYPES.keys()),
+                                         False,
+                                         "Static")
+        choice.show()
+        box = wtree.get_object("srcs_ctrlbox")
+        box.pack_end(choice, 1, 1, 1)
+
+        return choice
 
     def run(self):
+        '''
+        Run.
+
+        :returns: Result from dialog.run
+        '''
         return self.__dialog.run()
 
     def destroy(self):
+        '''Destroy.'''
         self.__dialog.destroy()
 
-class MapSourceEditor(object):
+
+class MapSourceEditor():
+    '''
+    Map Source Editor.
+
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param source: Map source,
+    :type source: :class:`MapSource`
+    '''
+
     def __init__(self, config, source):
+        self.logger = logging.getLogger("MapSourceEditor")
         self._config = config
         self.__source = source
 
-        fn = config.ship_obj_fn("ui/mainwindow.glade")
-        if not os.path.exists(fn):
-            printlog(fn)
-            raise Exception("Unable to load UI file")
+        filename = config.ship_obj_fn("ui/mainwindow.glade")
+        if not os.path.exists(filename):
+            self.logger.info("Could not open %s", filename)
+            raise GladeFileOpenError("Unable to load UI file")
         self._wtree = Gtk.Builder()
-        self._wtree.add_from_file(fn)
+        self._wtree.add_from_file(filename)
         #self._wtree = Gtk.glade.XML(fn, "src_dialog", "D-RATS")
 
         self.__dialog = self._wtree.get_object("src_dialog")
@@ -150,41 +192,78 @@ class MapSourceEditor(object):
         self._name.set_text(source.get_name())
 
     def get_source(self):
+        '''
+        Get Source.
+
+        :returns: Map Source
+        :rtype: :class:`MapSource`
+        '''
         return self.__source
 
     def get_name(self):
+        '''
+        Name.
+
+        :returns: Name of MapSource
+        :rtype: str
+        '''
         return self._name.get_text()
 
     def name_editable(self, editable):
+        '''
+        Name Editable.
+
+        :param editable: Enable to be editable
+        :type editable: bool
+        '''
         self._name.set_sensitive(editable)
 
     def run(self):
+        '''
+        Run.
+
+        :returns: Result from dialog.run()
+        '''
         return self.__dialog.run()
 
     def destroy(self):
+        '''Destroy.'''
         self.__dialog.hide()
 
     def delete(self):
-        pass
+        '''Delete.'''
+        #pass
 
     def save(self):
-        pass
+        '''Save.'''
+        # pass
+
 
 class StaticMapSourceEditor(MapSourceEditor):
+    '''
+    Static Map Source Editor.
+
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param source: Map source,
+                   default from static_locations in configuration data
+    :type source: :class:`MapSource`
+    '''
+
     def __init__(self, config, source=None):
         if not source:
-            fn = config.platform.gui_open_file()
-            if not fn:
+            filename = config.platform.gui_open_file()
+            if not filename:
                 raise EditorInitCancel()
 
-            nfn = os.path.join(config.platform.config_file("static_locations"),
-                               os.path.basename(fn))
-            shutil.copy(fn, nfn)
-            fn = nfn
+            new_fn = os.path.join(config.platform.config_file("static_locations"),
+                                  os.path.basename(filename))
+            shutil.copy(filename, new_fn)
+            filename = new_fn
 
-            source = map_sources.MapFileSource(os.path.basename(nfn),
+            source = map_sources.MapFileSource(os.path.basename(new_fn),
                                                "Static Source",
-                                               nfn)
+                                               new_fn)
 
         MapSourceEditor.__init__(self, config, source)
 
@@ -202,8 +281,19 @@ class StaticMapSourceEditor(MapSourceEditor):
     def save(self):
         self.get_source().save()
 
+
 class RiverMapSourceEditor(MapSourceEditor):
+    '''
+    River Map Source Editor.
+
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param source: Map source,
+                   default "Rivers", "NWIS Rivers"
+    :type source: :class:`MapSource`
+    '''
     def __init__(self, config, source=None):
+        self.logger = logging.getLogger("RiverMapSourceEditor")
         if not source:
             source = map_sources.MapUSGSRiverSource("Rivers", "NWIS Rivers")
             name_editable = True
@@ -213,7 +303,7 @@ class RiverMapSourceEditor(MapSourceEditor):
         MapSourceEditor.__init__(self, config, source)
 
         box = self._wtree.get_object("src_vbox")
-        
+
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         hbox.show()
 
@@ -232,25 +322,41 @@ class RiverMapSourceEditor(MapSourceEditor):
         self.name_editable(name_editable)
 
     def delete(self):
-        id = self.get_source().packed_name()
+        '''Delete.'''
+        ident = self.get_source().packed_name()
         try:
-            self._config.remove_option("rivers", id)
-            self._config.remove_option("rivers", "%s.label" % id)
-        except Exception as e:
-            log_exception()
-            printlog("Mapsrcedit",": Error deleting rivers/%s: %s" % (id, e))
+            self._config.remove_option("rivers", ident)
+            self._config.remove_option("rivers", "%s.label" % ident)
+        # pylint: disable=broad-except
+        except Exception:
+            utils.log_exception()
+            self.logger.info("Error deleting rivers/%s broad-except",
+                             ident, exc_info=True)
 
     def save(self):
+        '''Save.'''
         if not self._config.has_section("rivers"):
             self._config.add_section("rivers")
         self.get_source().set_name(self.get_name())
-        id = self.get_source().packed_name()
-        self._config.set("rivers", id, self.__sites.get_text())
-        self._config.set("rivers", "%s.label" % id,
+        ident = self.get_source().packed_name()
+        self._config.set("rivers", ident, self.__sites.get_text())
+        self._config.set("rivers", "%s.label" % ident,
                          self.get_source().get_name())
 
+
 class BuoyMapSourceEditor(MapSourceEditor):
+    '''
+    Buoy Map Source Editor.
+
+    :param config: Configuration data
+    :type config: :class:`DratsConfig`
+    :param source: Map source,
+                   default "Buoys", "NBDC Rivers"
+    :type source: :class:`MapSource`
+    '''
+
     def __init__(self, config, source=None):
+        self.logger = logging.getLogger("BuoyMapSourceEditor")
         if not source:
             source = map_sources.MapNBDCBuoySource("Buoys", "NBDC Rivers")
             name_editable = True
@@ -260,7 +366,7 @@ class BuoyMapSourceEditor(MapSourceEditor):
         MapSourceEditor.__init__(self, config, source)
 
         box = self._wtree.get_object("src_vbox")
-        
+
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         hbox.show()
 
@@ -279,22 +385,26 @@ class BuoyMapSourceEditor(MapSourceEditor):
         self.name_editable(name_editable)
 
     def delete(self):
-        id = self.get_source().packed_name()
+        '''Delete.'''
+        ident = self.get_source().packed_name()
         try:
-            self._config.remove_option("buoys", id)
-            self._config.remove_option("buoys", "%s.label" % id)
-        except Exception as e:
-            log_exception()
-            printlog("Mapsrcedit",": Error deleting buoys/%s: %s" % (id, e))
+            self._config.remove_option("buoys", ident)
+            self._config.remove_option("buoys", "%s.label" % ident)
+        # pylint: disable=broad-except
+        except Exception:
+            utils.log_exception()
+            self.logger.info("Error deleting buoys/%s: broad-exception",
+                             ident, exc_info=True)
 
 
     def save(self):
+        '''Save.'''
         if not self._config.has_section("buoys"):
             self._config.add_section("buoys")
         self.get_source().set_name(self.get_name())
-        id = self.get_source().packed_name()
-        self._config.set("buoys", id, self.__sites.get_text())
-        self._config.set("buoys", "%s.label" % id,
+        ident = self.get_source().packed_name()
+        self._config.set("buoys", ident, self.__sites.get_text())
+        self._config.set("buoys", "%s.label" % ident,
                          self.get_source().get_name())
 
 
@@ -303,4 +413,3 @@ SOURCE_TYPES = {
     "NWIS River" : (RiverMapSourceEditor, map_sources.MapUSGSRiverSource),
     "NBDC Buoy" : (BuoyMapSourceEditor, map_sources.MapNBDCBuoySource),
     }
-
