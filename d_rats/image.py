@@ -1,12 +1,19 @@
+'''image.py'''
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import tempfile
 import os
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
 
 from . import inputdialog
 from . import miscwidgets
@@ -31,7 +38,13 @@ SIZES = [
 
 
 def update_image(filename, dlg):
-    '''Update Image'''
+    '''
+    Update Image.
+
+    :param dlg: Dialog widget
+    :type dlg: :class:`Gtk.Widget`
+    '''
+    logger = logging.getLogger("update_image")
     reqsize = dlg.size.get_active_text()
     if "x" in reqsize:
         _h, _w = reqsize.split("x")
@@ -54,7 +67,7 @@ def update_image(filename, dlg):
                                "resized_" + base + ".jpg")
     resized.save(dlg.resized, quality=dlg.quality)
 
-    print("Saved to %s" % dlg.resized)
+    logger.info("Saved to %s", dlg.resized)
 
     file_handle = open(dlg.resized)
     file_handle.seek(0, 2)
@@ -66,13 +79,31 @@ def update_image(filename, dlg):
 
 
 def set_quality(_scale, _event, value, dlg):
-    '''Set Quality'''
+    '''
+    Set Quality.
+
+    :param _scale: Unused
+    :param _event: Unused
+    :param value: Quality value to set
+    :param dlg: Dialog to update
+    :type dlg: :class:`Gtk.Dialog`
+    '''
     dlg.quality = int(value)
     dlg.update()
 
 
 def build_image_dialog(filename, image, dialog_parent=None):
-    '''Build Image Dialog'''
+    '''
+    Build Image Dialog.
+
+    :param filename: Filename for image
+    :type filename: str
+    :param image: Image
+    :param dialog_parent: Parent widget
+    :type dialog_parent: :class:`Gtk.Widget`
+    :returns: Field Dialog
+    :rtype: :class:`FieldDialog`
+    '''
     dialog = inputdialog.FieldDialog(title="Send Image",
                                      parent=dialog_parent)
 
@@ -97,7 +128,7 @@ def build_image_dialog(filename, image, dialog_parent=None):
     dialog.preview = Gtk.Image()
     dialog.preview.show()
     scrollw = Gtk.ScrolledWindow()
-    scrollw.add_with_viewport(dialog.preview)
+    scrollw.add(dialog.preview)
     scrollw.set_size_request(320, 320)
     dialog.add_field(_("Preview"), scrollw, full=True)
 
@@ -114,7 +145,14 @@ def build_image_dialog(filename, image, dialog_parent=None):
 
 
 def send_image(filename, dialog_parent=None):
-    '''Send Image'''
+    '''
+    Send Image.
+
+    :param dialog_parent: Parent widget, Default None
+    :type dialog_parent: :class:`Gtk.Widget`
+    :returns: Path to temporary image file
+    :rtype: str
+    '''
     try:
         from PIL import Image, UnidentifiedImageError
     except ImportError:
@@ -145,24 +183,32 @@ def send_image(filename, dialog_parent=None):
 
 
 def main():
-    '''Main for Unit testing'''
+    '''Main for Unit testing.'''
+
     import sys
 
-    import gettext
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+    logger = logging.getLogger("image")
+
+    # pylint: disable=global-statement
+    global _
     lang = gettext.translation("D-RATS",
                                localedir="./locale",
                                languages=["en"],
                                fallback=True)
     lang.install()
+    _ = lang.gettext
 
     try:
         temp_file = send_image(sys.argv[1])
         if temp_file:
-            print("sent_image_name %s" % temp_file)
+            logger.info("sent_image_name %s", temp_file)
         else:
-            print('send_image returned None!')
+            logger.info('send_image returned None!')
     except IndexError:
-        print("Image filename required!")
+        logger.info("Image filename required!")
 
 if __name__ == "__main__":
     main()
