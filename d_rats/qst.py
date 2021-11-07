@@ -35,14 +35,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
 
 # import linecache   #Works ok on python but not on Windows
 
@@ -88,7 +83,9 @@ def do_dprs_calculator(initial=""):
     Do DPRS Calculator.
 
     :param initial: initial string, default ""
+    :type initial: str
     :returns: DPRS string with Checksum
+    :rtype: str
     '''
     def ev_sym_changed(iconsel, oversel, icons):
         oversel.set_sensitive(icons[iconsel.get_active()][1][0] == "\\")
@@ -153,8 +150,11 @@ class QSTText(GObject.GObject):
     QST Text.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     __gsignals__ = {
@@ -178,6 +178,7 @@ class QSTText(GObject.GObject):
         Do QST.
 
         :returns: QST String
+        :rtype: str
         '''
         return self.text
 
@@ -192,8 +193,11 @@ class QSTExec(QSTText):
     QST Exec.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -205,6 +209,7 @@ class QSTExec(QSTText):
         do QST
 
         :returns: QST String
+        :rtype: str
         '''
         size_limit = self.config.getint("settings", "qst_size_limit")
         pform = dplatform.get_platform()
@@ -216,11 +221,15 @@ class QSTExec(QSTText):
 
 
 class QSTFile(QSTText):
-    '''QST File.
+    '''
+    QST File.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -229,9 +238,10 @@ class QSTFile(QSTText):
 
     def do_qst(self):
         '''
-        do QST
+        do QST.
 
         :returns: QST String or None
+        :rtype: str
         '''
         size_limit = self.config.getint("settings", "qst_size_limit")
         try:
@@ -251,11 +261,14 @@ class QSTFile(QSTText):
 
 class QSTGPS(QSTText):
     '''
-    QST GPS
+    QST GPS.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -270,7 +283,7 @@ class QSTGPS(QSTText):
 
     def set_fix(self, fix):
         '''
-        Set Fix
+        Set Fix.
 
         :param fix: Fix to add.
         '''
@@ -281,6 +294,7 @@ class QSTGPS(QSTText):
         do QST
 
         :returns: QST String
+        :rtype: str
         '''
         if not self.fix:
             # from . import mainapp #hack
@@ -300,9 +314,10 @@ class QSTGPSA(QSTGPS):
 
     def do_qst(self):
         '''
-        do QST
+        do QST.
 
         :returns: QST String
+        :rtype: str
         '''
         if not self.fix:
             # from . import mainapp #hack
@@ -328,9 +343,10 @@ class QSTWX(QSTGPS):
 
     def do_qst(self):
         '''
-        do QST
+        do QST.
 
         :returns: QST String
+        :rtype: str
         '''
 #  This is working on python but not on Windows
 #        linecache.checkcache(self.text)
@@ -366,8 +382,11 @@ class QSTThreadedText(QSTText):
     QST Threaded Text.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -390,6 +409,7 @@ class QSTThreadedText(QSTText):
                          "%s%s" % (self.prefix, msg), self.key)
 
     def fire(self):
+        '''Fire.'''
         if self.thread:
             self.logger.info("QST thread still running, not starting another")
             return
@@ -406,8 +426,11 @@ class QSTRSS(QSTThreadedText):
     QST RSS.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -421,6 +444,7 @@ class QSTRSS(QSTThreadedText):
         Do QST.
 
         :returns: QST String
+        :rtype: str
         '''
         rss = feedparser.parse(self.text)
 
@@ -452,8 +476,11 @@ class QSTCAP(QSTThreadedText):
     QST CAP.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -478,6 +505,7 @@ class QSTCAP(QSTThreadedText):
         do QST.
 
         :returns: QST String
+        :rtype: str
         '''
         if self.last_date is None:
             self.determine_starting_item()
@@ -505,11 +533,15 @@ class QSTCAP(QSTThreadedText):
 
 
 class QSTWeatherWU(QSTThreadedText):
-    '''QST Weather WU
+    '''
+    QST Weather WU.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -519,11 +551,15 @@ class QSTWeatherWU(QSTThreadedText):
 
 
 class QSTOpenWeather(QSTThreadedText):
-    '''QST Open Weather.
+    '''
+    QST Open Weather.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -532,7 +568,12 @@ class QSTOpenWeather(QSTThreadedText):
 
     # pylint: disable=too-many-statements
     def do_qst(self):
-        '''Do QST.'''
+        '''
+        Do QST.
+
+        :returns: Qst text
+        :rtype: str
+        '''
         import urllib
         import json
         weath = ""
@@ -699,11 +740,15 @@ class QSTOpenWeather(QSTThreadedText):
 
 
 class QSTStation(QSTGPSA):
-    '''QST Station.
+    '''
+    QST Station.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param content: QST Content
+    :type content: str
     :param key: Name for QST
+    :type key: str
     '''
 
     def __init__(self, config, content, key):
@@ -716,6 +761,7 @@ class QSTStation(QSTGPSA):
         Get Map Source for name.
 
         :param name: Name of map source
+        :type name: str
         :returns: The map source for name or None
         '''
         from . import mainapp # Hack to force mainapp load
@@ -733,6 +779,7 @@ class QSTStation(QSTGPSA):
 
         :param source: Source to look up station in
         :param station: Station to look up
+        :type station: src
         :returns: Point for station or None
         '''
         for point in source.get_points():
@@ -742,7 +789,12 @@ class QSTStation(QSTGPSA):
         return None
 
     def do_qst(self):
-        '''Do QST/'''
+        '''
+        Do QST.
+
+        :returns: QST test
+        :rtype: str
+        '''
         try:
             (group, station) = self.text.split("::", 1)
         # pylint: disable=broad-except
@@ -774,7 +826,12 @@ class QSTStation(QSTGPSA):
 
 
 class QSTEditWidget(Gtk.Box):
-    '''QST Edit Widget.'''
+    '''
+    QST Edit Widget.
+
+    :param *a: :class:`Gtk.Box` arguments
+    :param **k: :class: `Gtk.Box` Keyword arguments
+    '''
 
     def __init__(self, *a, **k):
         Gtk.Box.__init__(self, *a, **k)
@@ -783,16 +840,18 @@ class QSTEditWidget(Gtk.Box):
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
 
     def from_qst(self, content):
         '''
-        From QST
+        From QST.
 
         :param content: Content from QST
+        :type content: str
         '''
 
     def __str__(self):
@@ -806,6 +865,7 @@ class QSTEditWidget(Gtk.Box):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
 
 
@@ -838,17 +898,19 @@ class QSTTextEditWidget(QSTEditWidget):
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         return str(self)
 
     def from_qst(self, content):
         '''
-        From QST
+        From QST.
 
         :param content: Content from QST
+        :type content: str
         '''
         self.__tb.set_text(content)
 
@@ -857,6 +919,7 @@ class QSTTextEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return str(self)
 
@@ -891,6 +954,7 @@ class QSTFileEditWidget(QSTEditWidget):
         To QST
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         return self.__fn.get_filename()
 
@@ -899,6 +963,7 @@ class QSTFileEditWidget(QSTEditWidget):
         From QST
 
         :param content: Content from QST
+        :type content: str
         '''
         self.__fn.set_filename(content)
 
@@ -907,6 +972,7 @@ class QSTFileEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return self.__fn.get_filename()
 
@@ -941,6 +1007,7 @@ class QSTWXFileEditWidget(QSTEditWidget):
         To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         return self.__fn.get_filename()
 
@@ -949,6 +1016,7 @@ class QSTWXFileEditWidget(QSTEditWidget):
         From QST.
 
         :param content: Content from QST
+        :type content: str
         '''
         self.__fn.set_filename(content)
 
@@ -957,6 +1025,7 @@ class QSTWXFileEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return self.__fn.get_filename()
 
@@ -1026,17 +1095,19 @@ class QSTGPSEditWidget(QSTEditWidget):
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         return self.__msg.get_text()
 
     def from_qst(self, content):
         '''
-        From QST
+        From QST.
 
         :param content: Content from QST
+        :type content: str
         '''
         self.__msg.set_text(content)
 
@@ -1045,6 +1116,7 @@ class QSTGPSEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return self.__msg.get_text()
 
@@ -1085,17 +1157,19 @@ class QSTRSSEditWidget(QSTEditWidget):
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         return self.__url.get_text()
 
     def from_qst(self, content):
         '''
-        From QST
+        From QST.
 
         :param content: Content from QST
+        :type content: str
         '''
         self.__url.set_text(content)
 
@@ -1108,6 +1182,7 @@ class QSTRSSEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return self.__url.get_text()
 
@@ -1182,9 +1257,10 @@ class QSTStationEditWidget(QSTEditWidget):
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         if not self.__group.get_active_text():
             return None
@@ -1198,13 +1274,14 @@ class QSTStationEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return "%s::%s" % (self.__group.get_active_text(),
                            self.__station.get_active_text())
 
 
 class QSTWUEditWidget(QSTEditWidget):
-    '''QST WU Edit Widget'''
+    '''QST WU Edit Widget.'''
 
     label_text = _("Enter an Open Weather station name:")
 
@@ -1232,18 +1309,20 @@ class QSTWUEditWidget(QSTEditWidget):
 
     def to_qst(self):
         '''
-        To QST
+        To QST.
 
         :returns: Returns the QST text
+        :rtype: str
         '''
         return "%s/%s" % (self.__type.get_active_text(),
                           self.__station.get_text())
 
     def from_qst(self, content):
         '''
-        From QST
+        From QST.
 
         :param content: Content from QST
+        :type content: str
         '''
         try:
             t_qst, s_qst = content.split("/", 2)
@@ -1261,6 +1340,7 @@ class QSTWUEditWidget(QSTEditWidget):
         To Human.
 
         :returns: Human readable QST
+        :rtype: str
         '''
         return self.to_qst()
 
@@ -1271,8 +1351,11 @@ class QSTEditDialog(Gtk.Dialog):
     QST Edit Dialog.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param ident: Identification for dialog
+    :type ident: str
     :param parent: Parent widget
+    :type parent: :class:`Gtk.Widget`
     '''
 
     def __init__(self, config, ident, parent=None):
@@ -1364,7 +1447,7 @@ class QSTEditDialog(Gtk.Dialog):
         return hbox
 
     def save(self):
-        '''save'''
+        '''save.'''
         if not self._config.has_section(self._ident):
             self._config.add_section(self._ident)
             self._config.set(self._ident, "enabled", "True")
@@ -1380,6 +1463,7 @@ def get_qst_class(typestr):
     Get qst class.
 
     :param typestr: Type String for class
+    :type typestr: str
     :returns: The QST class
     '''
     classes = {
