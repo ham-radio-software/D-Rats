@@ -39,12 +39,7 @@ from gi.repository import GObject
 
 if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
 
 from . import utils
 from . import miscwidgets
