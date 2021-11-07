@@ -44,8 +44,6 @@ except ModuleNotFoundError:
 import glob
 import shutil
 # import datetime
-# gettext module provides message translation and catalog management
-import gettext
 
 # import serial
 
@@ -59,8 +57,6 @@ from gi.repository import GLib
 from .debug import printlog
 from . import dplatform
 
-if not '_' in locals():
-    _ = gettext.gettext
 
 logging.basicConfig(level=logging.INFO)
 # pylint: disable=invalid-name
@@ -108,6 +104,10 @@ from .utils import NetFile, log_exception, run_gtk_locked
 from .utils import init_icon_maps
 from .sessions import rpc, chat, sniff
 
+# gettext module provides message translation and catalog management
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 # lets init the basic functions of the mainapp module
 init_icon_maps()
@@ -150,9 +150,9 @@ def ping_file(filename):
     checks if the file passed as parameter can be opened
     :param filename: Filename to test open
     :type filename: str
+    :raises: :class:`MainappFileOpenError` if unable to open file
     :returns: File data
     :rtype: bytes
-    :raises: :class:`MainappFileOpenError` if unable to open file
     '''
     try:
         fhandle = NetFile(filename, "r")
@@ -174,8 +174,8 @@ def ping_exec(command):
 
     :param command: Command to try
     :type command: str
-    :returns: Output of command
     :raises: MainappExecError if the ping fails.
+    :returns: Output of command
     '''
     scmd, ocmd = getstatusoutput(command)
     if scmd:
@@ -199,6 +199,7 @@ class CallList():
         Set call position.
 
         :param call: Call sign
+        :type call: str
         :param pos: Position
         '''
         (call_time, _) = self.data.get(call, (0, None))
@@ -210,7 +211,9 @@ class CallList():
         Set call time.
 
         :param call: Callsign
+        :type call: str
         :param tset: Time to set
+        :type tset: float
         '''
         if tset is None:
             tset = time.time()
@@ -223,27 +226,52 @@ class CallList():
         '''
         Get call position.
 
-        :param call: Call sigh
+        :param call: Call sign
+        :type call: str
         :returns: Position
         '''
         (_, pos) = self.data.get(call, (0, None))
         return pos
 
     def get_call_time(self, call):
-        '''Get call time'''
+        '''
+        Get call time.
+
+        :param call: Call sign
+        :type call: str
+        :returns: Time call sign was heard
+        :rtype: float
+        '''
         (call_time, _) = self.data.get(call, (0, None))
         return call_time
 
     def list(self):
-        '''List Calls'''
+        '''
+        List Calls.
+
+        :returns: Known call signs
+        :rtype: list of str
+        '''
         return list(self.data.keys())
 
     def is_known(self, call):
-        '''Is known call'''
+        '''
+        Is known call.
+
+        :param call: Callsign to lookup
+        :type call: str
+        :returns: If call sign is known
+        :rtype: bool
+        '''
         return call in self.data
 
     def remove(self, call):
-        '''Remove call'''
+        '''
+        Remove call.
+
+        :param call: Call sign
+        :type call: str
+        '''
         try:
             del self.data[call]
         # pylint: disable=broad-except
@@ -440,7 +468,7 @@ class MainApp():
     # pylint: disable=no-self-use
     def setup_autoid(self):
         '''setup autoid.'''
-        # WB8TYW: This appears to do nothing
+        # WB8TYW: This appears to do nothing and is not used.
         # pylint: disable=unused-variable
         idtext = "(ID)"
 
@@ -1252,7 +1280,8 @@ class MainApp():
         by the radio port the station was associated with.
 
         :param _obj: Unused object passed to handler
-        :returns: Dict of station objects
+        :returns: station objects
+        :rtype: dict
         '''
         stations = {}
         for port, (_sm, _sc) in self.smgr.items():
@@ -1380,6 +1409,7 @@ class MainApp():
         :param fix: GPS fix information
         :param port: Radio Port
         :return: Map source
+        :rtype: :class:`StaticGPSSource`
         '''
         tstation = self.mainwindow.tabs["event"].last_event_time(fix.station)
         if (time.time() - tstation) > 300:
@@ -1510,9 +1540,9 @@ class MainApp():
         :param _obj: Unused object that emitted signal
         :param station: Station to get position of
         :type station: str
+        :raises: :class:`MainappStationNotFound`: if the station is not found
         :returns: GPS Position
         :rtype: :class:`GPSPosition`
-        :raises: :class:`MainappStationNotFound`: if the station is not found
         '''
         if station is None:
             return self.get_position()
@@ -1766,7 +1796,7 @@ class MainApp():
         Get position.
 
         :returns: Position
-        :rtype: GPSPosition
+        :rtype: :class:`GPSPosition`
         '''
         pos = self.gps.get_position()
         pos.set_station(self.config.get("user", "callsign"))
