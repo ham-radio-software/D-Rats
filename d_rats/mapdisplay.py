@@ -21,9 +21,9 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import os
 # import sys
-import gettext
 import math
 import time
 # import random
@@ -53,9 +53,12 @@ from gi.repository import GLib
 gi.require_version("PangoCairo", "1.0")
 from gi.repository import PangoCairo
 
-#py3 from . import mainapp
-#importing printlog() wrapper
-from .debug import printlog
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
+# py3 from . import mainapp
+
 from . import dplatform
 from . import miscwidgets
 from . import inputdialog
@@ -103,6 +106,10 @@ class MapFetchError(MapFetchUrlException):
     '''Map Unexpected Fetch Error.'''
 
 
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("MapDisplay")
+
+
 def set_base_dir(basedir, mapurl, mapkey):
     '''
     Set Base Directory.
@@ -114,19 +121,19 @@ def set_base_dir(basedir, mapurl, mapkey):
     # pylint: disable=global-statement
     global BASE_DIR
     BASE_DIR = basedir
-    printlog("Mapdisplay", ": BASE_DIR configured to %s: " % BASE_DIR)
+    module_logger.info("BASE_DIR configured to %s: ", BASE_DIR)
 
     # setup of the url where go to retrieve tiles
     # pylint: disable=global-statement
     global MAP_URL
     MAP_URL = mapurl
-    printlog("Mapdisplay", ": MAP_URL configured to: %s" % MAP_URL)
+    module_logger.info("MAP_URL configured to: %s", MAP_URL)
 
     # setup of the key to append to the url to retrieve tiles
     # pylint: disable=global-statement
     global MAP_URL_KEY
     MAP_URL_KEY = mapkey
-    printlog("Mapdisplay", ": MAP_URL_KEY configured to: %s " %MAP_URL_KEY)
+    module_logger.info("MAP_URL_KEY configured to: %s ", MAP_URL_KEY)
 
 
 CONFIG = None
@@ -217,16 +224,16 @@ def fetch_url(url, local):
     except six.moves.urllib.error.HTTPError as err:
         if err.code == 404:
             raise MapTileNotFound("404 error code")
-        printlog("HTTP error while retrieving tile: "
-                 "code: {}, reason: {} - {} [{}]".format(err.code,
-                                                         err.reason,
-                                                         str(err), url))
+        module_logger.info("HTTP error while retrieving tile: "
+                           "code: %s, reason: %s - %s [%s]",
+                           err.code,
+                           err.reason,
+                           str(err), url)
         raise MapFetchError(err)
     # pylint: disable=undefined-variable
     except Exception as err:
-        printlog("Mapdisplay fetch_url ",
-                 "Error while retrieving info from Generic ({}) {}".format(
-                     type(err), str(err)))
+        module_logger.info("Mapdisplay fetch_url "
+                           "Error while retrieving info", exc_info=True)
         raise MapFetchError(err)
 
     read_data = data.read()
@@ -241,8 +248,9 @@ class MarkerEditDialog(inputdialog.FieldDialog):
     '''Marker Edit Dialog.'''
 
     def __init__(self):
-        printlog("Mapdisplay", " : markereditdialog")
+        self.logger = logging.getLogger("MarkerEditDialog")
         inputdialog.FieldDialog.__init__(self, title=_("Add Marker"))
+        self.logger = logging.getLogger("Initializing")
 
         self.icons = []
         for sym in sorted(DPRS_TO_APRS.values()):
@@ -304,8 +312,7 @@ class MarkerEditDialog(inputdialog.FieldDialog):
                 iidx = symlist.index(point.get_aprs_symbol())
                 iconsel.set_active(iidx)
             except ValueError:
-                printlog("Mapdisplay",
-                         ": No such symbol `%s'" % point.get_aprs_symbol())
+                self.logger.info("No such symbol `%s'", point.get_aprs_symbol())
         else:
             iconsel.set_sensitive(False)
 
@@ -487,20 +494,18 @@ class MapTile():
                 url = self.remote_path()
                 try:
                     fetch_url(url, self._local_path())
-                    printlog("Mapdisplay", ": opened %s" % url)
+                    self.logger.info("opened %s", url)
                     return True
-                except MapTileNotFound as err:
-                    printlog("Mapdisplay", ": created %s" %
-                             self._local_bad_path())
+                except MapTileNotFound:
+                    self.logger.info("created %s",
+                                     self._local_bad_path())
                     with open(self._local_bad_path(), 'w'):
                         pass
-                    printlog("Mapdisplay.MapTile.fetch",
-                             ": [%i] Not found `%s': (%s) %s" %
-                             (tile_num, url, type(err), err))
-                except MapFetchUrlException as err:
-                    printlog("Mapdisplay.MapTile.fetch",
-                             ": [%i] Failed to fetch `%s': (%s) %s" %
-                             (tile_num, url, type(err), err))
+                    self.logger.info("fetch: [%i] Not found `%s'",
+                                     tile_num, url, exc_info=True)
+                except MapFetchUrlException:
+                    self.logger.info("fetch: [%i] Failed to fetch `%s'",
+                                     tile_num, url, exc_info=True)
 
             return False
         return True
@@ -565,6 +570,7 @@ class MapTile():
 
     def __init__(self, lat, lon, zoom):
 
+        self.logger = logging.getLogger("MapTile")
         self.zoom = zoom
         if isinstance(lat, int) and isinstance(lon, int):
             self.x_axis = lat
@@ -633,9 +639,8 @@ class MapWidget(Gtk.DrawingArea):
         :param color: Color for marker, default is "yellow"
         '''
         # originally commented out.
-        printlog("Mapdisplay",
-                 ": draw_text_marker_at %s at x=%s y=%s" %
-                 (text, x_axis, y_axis))
+        self.logger.info("draw_text_marker_at %s at x=%s y=%s",
+                         text, x_axis, y_axis)
 
         # pylint: disable=invalid-name
         gc = self.get_style().black_gc
@@ -665,7 +670,7 @@ class MapWidget(Gtk.DrawingArea):
         :returns: Height of pixbuf
         '''
         # originally commented out
-        printlog("Mapdisplay", ": draw_image_at x=%s y=%s" %(x_axis, y_axis))
+        self.logger.info("draw_image_at x=%s y=%s", x_axis, y_axis)
         # pylint: disable=invalid-name
         gc = self.get_style().black_gc
 
@@ -683,8 +688,7 @@ class MapWidget(Gtk.DrawingArea):
         :param x_axis: X axis
         :param y_axis: Y axis
         '''
-        # printlog("Mapdisplay",
-        #          ": draw_cross_marker_at x=%s y=%s" %(x_axis, y_axis))
+        # self.logger.info("draw_cross_marker_at x=%s y=%s", x_axis, y_axis)
         width = 2
         # color_map = self.window.get_colormap()
         # color = color_map.alloc_color("red")
@@ -745,11 +749,10 @@ class MapWidget(Gtk.DrawingArea):
         :param lon: Longitude for marker
         :param img: Option image
         '''
-        # printlog("Mapdisplay", ": ----------------- %s" % time.ctime())
-        # printlog("Mapdisplay", ": zoom     =%i" % self.zoom)
-        # printlog("Mapdisplay",
-        #          ": draw marker for %s at %s %s" %(label, lat, lon))
-        # printlog("Mapdisplay",": fudge    =%i" % self.lat_fudge)
+        # self.logger.info(" ----------------- %s, time.ctime())
+        # self.logger.info("zoom     =%i", self.zoom)
+        # self.logger.info("draw marker for %s at %s %s", label, lat, lon)
+        # self.logger.info("fudge    =%i", self.lat_fudge)
 
         # this is the bg color of the stations markers on the map
         # (before it was red)
@@ -768,18 +771,18 @@ class MapWidget(Gtk.DrawingArea):
                 y_axis += (4 + self.draw_image_at(x_axis, y_axis, img))
             self.draw_text_marker_at(x_axis, y_axis, label, color)
 
-    def expose(self, widget, cairo_ctx):
+    def expose(self, _widget, cairo_ctx):
         '''
         Expose.
 
-        :param widget: MapWidget unused
+        :param _widget: MapWidget unused
         :param cairo_ctx: cairo.Context
         '''
 
-        print("expose type(widget) %s" % type(widget))
-        print("       type(cairo_ctx) %s" % type(cairo_ctx))
-        print("       cairo_ctx.get_target() = %s" %
-              type(cairo_ctx.get_target()))
+        # print("expose type(widget) %s" % type(widget))
+        # print("       type(cairo_ctx) %s" % type(cairo_ctx))
+        # print("       cairo_ctx.get_target() = %s" %
+        #       type(cairo_ctx.get_target()))
         if not self.map_tiles:
             self.load_tiles(cairo_ctx)
 
@@ -837,7 +840,7 @@ class MapWidget(Gtk.DrawingArea):
         if self.__broken_tile:
             return self.__broken_tile
 
-        print("broken_tile created")
+        # print("broken_tile created")
         broken = [
             "48 16 3 1",
             "       c #FFFFFFFFFFFF",
@@ -923,12 +926,12 @@ class MapWidget(Gtk.DrawingArea):
                 surface = self.broken_tile()
                 # Debugging information
                 if err != 'file not found':
-                    printlog("Mapdisplay.MapWidget.draw_tile: "
-                             "path %s error %s" % (path, err))
+                    self.logger.info("draw_tile: path %s error %s",
+                                     path, err)
 
             except Exception as err:
-                print('mapdisplay.MapWidget.draw_tile : ',
-                      " %s (%s) %s" % (path, type(err), err))
+                # print('mapdisplay.MapWidget.draw_tile : ',
+                #      " %s (%s) %s" % (path, type(err), err))
                 # this is the case  when some jpg tile file cannot be loaded -
                 # typically this was due to html content saved as jpg
                 # (due to an un trapped http error), or due to really corrupted
@@ -937,20 +940,19 @@ class MapWidget(Gtk.DrawingArea):
                 # utils.log_exception()
                 # removing broken tiles
                 if os.path.exists(path):
-                    printlog("Mapdisplay.MapWidget.draw_tile",
-                             ": Deleting the broken tile to force future"
-                             "download %s" % path)
+                    self.logger.info("draw_tile: Deleting the broken tile"
+                                     " to force future download %s", path)
                     os.remove(path)
                 # else:
                 #   usually this happens when a tile file has not been
                 #   created after fetching from the tile as some error was got
-                #   printlog(("Mapdisplay: broken tile  not found"
-                #             " - skipping deletion of: %s" % path))
+                #   self.logger.info("Broken tile  not found"
+                #                    " - skipping deletion of: %s", path)
 
-                print("# draw-tile: broken_tile by exception")
+                # print("# draw-tile: broken_tile by exception")
                 surface = self.broken_tile()
         else:
-            print("# draw_tile broken tile - no path")
+            # print("# draw_tile broken tile - no path")
             surface = self.broken_tile()
 
         if tile_ctx:
@@ -995,13 +997,13 @@ class MapWidget(Gtk.DrawingArea):
 
         if not self.get_has_window():
             # Window is not loaded, thus can't load tiles
-            print("mapdisplay.MapWidget.load_tiles: ",
-                  "Window is not loaded!")
+            # print("mapdisplay.MapWidget.load_tiles: ",
+            #       "Window is not loaded!")
             return
 
         if not cairo_ctx:
-            print("mapdisplay.MapWidget.load_tiles: ",
-                  "No cairo context passed!")
+            # print("mapdisplay.MapWidget.load_tiles: ",
+            #       "No cairo context passed!")
             return
 
         # print('mapdisplay.MapWidget.load_tiles: ',
@@ -1090,6 +1092,7 @@ class MapWidget(Gtk.DrawingArea):
     def __init__(self, window, width, height, tilesize=256, status=None):
         Gtk.DrawingArea.__init__(self)
 
+        self.logger = logging.getLogger("MapWidget")
         self.__broken_tile = None
         self.pixmap = None  # Replaced by self.surface
         self.surface = None
@@ -1099,8 +1102,7 @@ class MapWidget(Gtk.DrawingArea):
         self.width = width
 
         # originally commented out
-        printlog("Mapdisplay",
-                 ": mapwidget - height %s, width %s" % (height, width))
+        self.logger.info("height %s, width %s", height, width)
         self.tilesize = tilesize
         self.status = status
 
@@ -1360,7 +1362,7 @@ class MapWindow(Gtk.Window):
         menu_action = action.get_name()
 
         if menu_action == "delete":
-            printlog(("Mapdisplay: Deleting %s/%s" % (group, ident)))
+            self.logger.info("Deleting %s/%s", group, ident)
             for source in self.map_sources:
                 if source.get_name() == group:
                     if not source.get_mutable():
@@ -1848,12 +1850,13 @@ class MapWindow(Gtk.Window):
         '''
         # def do_address(_button, latw, lonw, namew):
         #    dlg = geocode_ui.AddressAssistant()
-        #    run_status = dlg.run()
-        #    if run_status == Gtk.ResponseType.OK:
-        #        if not namew.get_text():
-        #            namew.set_text(dlg.place)
-        #        latw.set_text("%.5f" % dlg.lat)
-        #        lonw.set_text("%.5f" % dlg.lon)
+        #    if dlg.geocoders:
+        #        run_status = dlg.run()
+        #        if run_status == Gtk.ResponseType.OK:
+        #            if not namew.get_text():
+        #                namew.set_text(dlg.place)
+        #            latw.set_text("%.5f" % dlg.lat)
+        #            lonw.set_text("%.5f" % dlg.lon)
 
         dialog = MarkerEditDialog()
 
@@ -2007,8 +2010,8 @@ class MapWindow(Gtk.Window):
 
         lat, lon = self.map.xy2latlon(mx_axis, my_axis)
 
-        printlog("Mapdisplay: Button %i at %i,%i" %
-                 (event.button, mx_axis, my_axis))
+        self.logger.info("Button %i at %i,%i",
+                         event.button, mx_axis, my_axis)
         # See comment below.
         # pylint: disable=protected-access
         if event.button == 3:
@@ -2020,14 +2023,14 @@ class MapWindow(Gtk.Window):
             if menu:
                 menu.popup(None, None, None, None, event.button, event.time)
         elif event.type == Gdk.EventType.BUTTON_PRESS:
-            printlog("Mapdisplay", ": Clicked: %.4f,%.4f" % (lat, lon))
+            self.logger.info("Clicked: %.4f,%.4f", lat, lon)
             # The crosshair marker has been missing since 0.3.0
             # self.set_marker(GPSPosition(station=CROSSHAIR,
             #                             lat=lat, lon=lon))
         # This is not a protected-access, it is the actual
         # python name for the type.
         elif event.type == Gdk.EventType._2BUTTON_PRESS:
-            printlog(("Mapdisplay: recenter on %.4f, %.4f" % (lat, lon)))
+            self.logger.info("recenter on %.4f, %.4f", lat, lon)
 
             self.recenter(lat, lon)
 
@@ -2193,11 +2196,11 @@ class MapWindow(Gtk.Window):
                                       center.bearing_to(this))
         # pylint: disable=broad-except
         except Exception as err:
-            print('mapdisplay.MapWindow.update_point: ',
-                  " (%s) %s" % (type(err), err))
+            # print('mapdisplay.MapWindow.update_point: ',
+            #      " (%s) %s" % (type(err), err))
             if str(err) == "Item not found":
                 # this is evil
-                printlog("Mapdisplay", ": Adding point instead of updating")
+                self.logger.info("Adding point instead of updating")
                 self.add_point(source, point)
 
         self.add_point_visible(point)
@@ -2269,12 +2272,12 @@ class MapWindow(Gtk.Window):
 
     def update_points_visible(self):
         '''Update Points Visible.'''
-        print("#update points visible ",
-              " Called")
+        # print("#update points visible ",
+        #      " Called")
         for src in self.map_sources:
             for point in src.get_points():
-                print("# update_points_visible point = %xs" % point)
-                # self.update_point(src, point)
+                # print("# update_points_visible point = %xs" % point)
+                self.update_point(src, point)
 
         # self.map.queue_draw()
 
@@ -2287,7 +2290,7 @@ class MapWindow(Gtk.Window):
         '''
         if point.get_name() == self.center_mark and \
                 self.tracking_enabled:
-            printlog("Mapdisplay", ": Center updated")
+            self.logger.info("Center updated")
             self.recenter(point.get_latitude(), point.get_longitude())
         self.update_point(source, point)
 
@@ -2308,7 +2311,7 @@ class MapWindow(Gtk.Window):
 
         :param map_widget: Map widget to redraw
         '''
-        print("#redraw_markers: ")
+        # print("#redraw_markers: ")
         for point in self.points_visible:
             map_widget.draw_marker(point.get_name(),
                                    point.get_latitude(),
@@ -2319,6 +2322,7 @@ class MapWindow(Gtk.Window):
     def __init__(self, config):
         Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
 
+        self.logger = logging.getLogger("MapWindow")
         # to force open the mapwindow maximized
         # self.maximize()
 
@@ -2348,26 +2352,26 @@ class MapWindow(Gtk.Window):
         self.map_sources = []
 
         self.map = MapWidget(self, tiles, tiles, status=self.status)
-        print('MapWidget created.')
+        # print('MapWidget created.')
         self.map.show()
-        print('map show called')
+        # print('map show called')
         self.map.connect("redraw-markers", self.redraw_markers)
         self.map.connect("new-tiles-loaded",
                          lambda m: self.update_points_visible())
 
         box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
-        print("setting up menubar")
+        # print("setting up menubar")
         self.menubar = self.make_menu()
-        print("showing menubar")
+        # print("showing menubar")
         self.menubar.show()
         box.pack_start(self.menubar, 0, 0, 0)
         self.add_accel_group(self._accel_group)
 
         self.scrollw = Gtk.ScrolledWindow()
-        print('Adding map to viewport')
+        # print('Adding map to viewport')
         self.scrollw.add(self.map)
-        print('Showing map')
+        # print('Showing map')
         self.scrollw.show()
 
         # Handle a mouse scroll event.
@@ -2495,11 +2499,10 @@ class MapWindow(Gtk.Window):
                 return
 
             for source in self.map_sources:
-                printlog(("Mapdisplay: %s,%s" % (source.get_name(), group)))
+                self.logger.info("%s,%s", source.get_name(), group)
                 if source.get_name() == group:
-                    printlog(("Mapdisplay",
-                              ": Adding new point %s to %s" %
-                              (point.get_name(), source.get_name())))
+                    self.logger.info("Adding new point %s to %s",
+                                     point.get_name(), source.get_name())
                     source.add_point(point)
                     source.save()
                     return
@@ -2567,9 +2570,16 @@ def main():
     '''Main program for unit testing.'''
 
     import sys
-    printlog("Mapdisplay", ": __Executing __main__ section")
     from . import gps
     from . import config
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+    # pylint: disable=invalid-name
+    logger = logging.getLogger("MapDisplay")
+
+    logger.info("__Executing __main__ section")
 
     # pylint: disable=invalid-name
     lang = gettext.translation("D-RATS",
