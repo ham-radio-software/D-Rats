@@ -23,7 +23,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import gettext
 import logging
 # import cairo
 # import gi
@@ -37,22 +36,68 @@ import logging
 # gi.require_version("PangoCairo", "1.0")
 # from gi.repository import PangoCairo
 
-_ = gettext.gettext
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 
 def main():
     '''Main function for unit testing.'''
 
+    import argparse
     import sys
+
+    from .dplatform import get_platform
     # printlog("Mapdisplay", ": __Executing __main__ section")
     # from . import gps
     # from . import config
 
+    gettext.install("D-RATS")
     lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               languages=["en"],
+                               localedir="locale",
                                fallback=True)
     lang.install()
+    # pylint: disable=global-statement
+    global _
+    _ = lang.gettext
+
+    # pylint: disable=too-few-public-methods
+    class LoglevelAction(argparse.Action):
+        '''Custom Log Level action.'''
+
+        def __init__(self, option_strings, dest, nargs=None, **kwargs):
+            if nargs is not None:
+                raise ValueError("nargs is not allowed")
+            argparse.Action.__init__(self, option_strings, dest, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_strings=None):
+            level = values.upper()
+            level_name = logging.getLevelName(level)
+            # Contrary to documentation, the above returns for me
+            # an int if given a name or number of a known named level and
+            # str if given a number for a level with out a name.
+            if isinstance(level_name, int):
+                level_name = level
+            elif level_name.startswith('Level '):
+                level_name = int(level)
+            setattr(namespace, self.dest, level_name)
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=_('MAP DISPLAY TEST'))
+    parser.add_argument('-c', '--config',
+                        default=get_platform().config_dir(),
+                        help=_("USE ALTERNATE CONFIGURATION DIRECTORY"))
+    # While this actually returns an int, it needs to be set to the
+    # default type of str for the action routine to handle both named and
+    # numbered levels.
+    parser.add_argument('--loglevel',
+                        action=LoglevelAction,
+                        default='INFO',
+                        help=_('LOGLEVEL TO TEST WITH'))
+
+    args = parser.parse_args()
+
 
     # WB8TYW: DratsConfig takes an unused argument.
     # conf = config.DratsConfig(None)
@@ -79,23 +124,24 @@ def main():
     # logging to the D-rats event window.
     # A handler will be used to route messages to the D-RATS event window.
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=args.loglevel)
 
     # Each class should have their own logger.
     logger = logging.getLogger("mapdisplay3")
 
-    if len(sys.argv) == 3:
-        logger.warning('Processsing DMS coords not implemented')
-        # map_window = MapWindow(conf)
-        # map_window.set_center(gps.parse_dms(sys.argv[1]),
-        #                       gps.parse_dms(sys.argv[2]))
-        # map_window.set_zoom(15)
-    else:
-        logger.warning('processing default case not implemented.')
-        # map_window = MapWindow(config)
-        # map_window.set_center(45.525012, -122.916434)
-        # map_window.set_zoom(14)
-
+    #x_coord = 45.525012
+    #y_coord = -122.916434
+    #zoom = 14
+    # if len(sys.argv) == 3:
+        # logger.warning('Processing DMS codes not implemented!')
+        # zoom = 15
+        # x_coord = gps.parse_dms(sys.argv[1])
+        # y_coord = gps.parse_dms(sys.argv[2])
+    # else:
+        # logger.warning('processing default case not implemented.')
         # m.set_marker(GPSPosition(station="KI4IFW_H",
         #                          lat=45.520, lon=-122.916434))
         # m.set_marker(GPSPosition(station="KE7FTE",
@@ -106,8 +152,10 @@ def main():
         #                          lat=45.5625, lon=-122.8645))
         # m.del_marker("N7QQU")
 
-    logger.info('Exectuting Unit test function.')
-
+    logger.info('Executing Unit test function.')
+    # map_window = MapWindow(conf)
+    # map_window.set_center(x_coord, y_coord)
+    # map_window.set_zoom(zoom)
     # map_window.connect("destroy", Gtk.main_quit)
     # map_window.show()
 
