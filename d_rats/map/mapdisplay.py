@@ -24,18 +24,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-# import cairo
-# import gi
-# gi.require_version("Gtk", "3.0")
 
-# from gi.repository import Gtk
-# from gi.repository import Gdk
-# from gi.repository import GdkPixbuf
-# from gi.repository import GObject
-# from gi.repository import GLib
-# gi.require_version("PangoCairo", "1.0")
-# from gi.repository import PangoCairo
-
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
@@ -45,12 +36,12 @@ def main():
     '''Main function for unit testing.'''
 
     import argparse
-    import sys
+    # import sys
 
-    from .dplatform import get_platform
-    # printlog("Mapdisplay", ": __Executing __main__ section")
-    # from . import gps
-    # from . import config
+    from d_rats.dplatform import get_platform
+    from d_rats import config
+
+    import d_rats.map as Map
 
     gettext.install("D-RATS")
     lang = gettext.translation("D-RATS",
@@ -63,7 +54,12 @@ def main():
 
     # pylint: disable=too-few-public-methods
     class LoglevelAction(argparse.Action):
-        '''Custom Log Level action.'''
+        '''
+        Custom Log Level action.
+
+        This allows entering a log level command line argument
+        as either a known log level name or a number.
+        '''
 
         def __init__(self, option_strings, dest, nargs=None, **kwargs):
             if nargs is not None:
@@ -88,7 +84,8 @@ def main():
     parser.add_argument('-c', '--config',
                         default=get_platform().config_dir(),
                         help=_("USE ALTERNATE CONFIGURATION DIRECTORY"))
-    # While this actually returns an int, it needs to be set to the
+
+    # While loglevel actually returns an int, it needs to be set to the
     # default type of str for the action routine to handle both named and
     # numbered levels.
     parser.add_argument('--loglevel',
@@ -96,11 +93,17 @@ def main():
                         default='INFO',
                         help=_('LOGLEVEL TO TEST WITH'))
 
+    # Default latitude and longitude
+    parser.add_argument('--latitude',
+                        type=float,
+                        default=45.525012,
+                        help=_('INITIAL LATITUDE'))
+    parser.add_argument('--longitude',
+                        type=float,
+                        default=-122.916434,
+                        help=_('INITIAL LONGITUDE'))
+
     args = parser.parse_args()
-
-
-    # WB8TYW: DratsConfig takes an unused argument.
-    # conf = config.DratsConfig(None)
 
     # mapurl = conf.get("settings", "mapurlbase")
     # mapkey = ""
@@ -114,26 +117,20 @@ def main():
     # proxy = conf.get("settings", "http_proxy") or None
     # set_proxy(proxy)
 
-    # We should use a package to parse configuration options here
-    # for now this will be need to be edited as needed.
-
-    # This logging config must be done before logging anything.
-    # Default is "WARNING" is tracked.
-
-    # Eventually this logging should be used for both stdout/file and for the
-    # logging to the D-rats event window.
-    # A handler will be used to route messages to the D-RATS event window.
-
     logging.basicConfig(
         format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=args.loglevel)
 
     # Each class should have their own logger.
-    logger = logging.getLogger("mapdisplay3")
+    logger = logging.getLogger("mapdisplay")
 
-    #x_coord = 45.525012
-    #y_coord = -122.916434
+    # WB8TYW: DratsConfig takes an unused argument.
+    conf = config.DratsConfig(None)
+    if args.config:
+        logger.info("main: re-config option found -- Reconfigure D-rats")
+        get_platform(args.config)
+
     #zoom = 14
     # if len(sys.argv) == 3:
         # logger.warning('Processing DMS codes not implemented!')
@@ -153,17 +150,14 @@ def main():
         # m.del_marker("N7QQU")
 
     logger.info('Executing Unit test function.')
-    # map_window = MapWindow(conf)
+
+    map_window = Map.Window(conf)
     # map_window.set_center(x_coord, y_coord)
     # map_window.set_zoom(zoom)
-    # map_window.connect("destroy", Gtk.main_quit)
-    # map_window.show()
 
-    # try:
-    # Gtk.main()
-    # pylint: disable=bare-except
-    # except:
-    #    pass
+    map_window.show()
+
+    Map.Window.test()
 
 if __name__ == "__main__":
     main()
