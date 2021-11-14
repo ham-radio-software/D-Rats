@@ -24,6 +24,17 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import gi
+
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gio
+from gi.repository import Gtk
+
+from d_rats.dplatform import get_platform
+from d_rats import config
+
+import d_rats.map as Map
+
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -32,16 +43,44 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
+class MapDisplay(Gtk.Application):
+    '''
+    Map Display application.
+
+    :param cmd_args: Parsed command line arguments
+    :type cmd_args: Namespace
+    '''
+
+    def __init__(self, cmd_args):
+        Gtk.Application.__init__(self,
+                                 application_id='localhost.d-rats.map',
+                                 flags=Gio.ApplicationFlags.NON_UNIQUE)
+
+        # Each class should have their own logger.
+        self.logger = logging.getLogger("mapdisplay")
+
+        self.config = config.DratsConfig(None)
+
+        get_platform(cmd_args.config)
+
+
+    # pylint: disable=arguments-differ
+    def do_activate(self):
+        '''
+        Do Activation.
+
+        Emits a :class:`Gio.Application` signal to the application.
+        '''
+        map_window = Map.Window(self, self.config)
+        map_window.set_title("D-RATS Test Map Window - map in use: %s" %
+                             self.config.get("settings", "maptype"))
+        map_window.show()
+
+
 def main():
     '''Main function for unit testing.'''
 
     import argparse
-    # import sys
-
-    from d_rats.dplatform import get_platform
-    from d_rats import config
-
-    import d_rats.map as Map
 
     gettext.install("D-RATS")
     lang = gettext.translation("D-RATS",
@@ -105,6 +144,11 @@ def main():
 
     args = parser.parse_args()
 
+    logging.basicConfig(
+        format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=args.loglevel)
+
     # mapurl = conf.get("settings", "mapurlbase")
     # mapkey = ""
 
@@ -117,19 +161,8 @@ def main():
     # proxy = conf.get("settings", "http_proxy") or None
     # set_proxy(proxy)
 
-    logging.basicConfig(
-        format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        level=args.loglevel)
-
-    # Each class should have their own logger.
-    logger = logging.getLogger("mapdisplay")
 
     # WB8TYW: DratsConfig takes an unused argument.
-    conf = config.DratsConfig(None)
-    if args.config:
-        logger.info("main: re-config option found -- Reconfigure D-rats")
-        get_platform(args.config)
 
     #zoom = 14
     # if len(sys.argv) == 3:
@@ -149,15 +182,17 @@ def main():
         #                          lat=45.5625, lon=-122.8645))
         # m.del_marker("N7QQU")
 
-    logger.info('Executing Unit test function.')
+    # logger.info('Executing Unit test function.')
 
-    map_window = Map.Window(conf)
+    # map_window = Map.Window(conf)
     # map_window.set_center(x_coord, y_coord)
     # map_window.set_zoom(zoom)
 
-    map_window.show()
+    # map_window.show()
 
-    Map.Window.test()
+    # Map.Window.test()
+    map_display = MapDisplay(cmd_args=args)
+    map_display.run(None)
 
 if __name__ == "__main__":
     main()
