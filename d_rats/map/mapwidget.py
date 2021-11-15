@@ -28,7 +28,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-# Silence pylint warnings
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
@@ -96,3 +97,19 @@ class MapWidget(Gtk.DrawingArea):
         #self.set_size_request(self.tilesize * self.width,
         #                      self.tilesize * self.height)
         #self.connect("draw", self.expose)
+
+    def set_zoom(self, zoom):
+        '''
+        Set Zoom Level.
+
+        If the Zoom level changes, this should cause a Map redraw.
+        :param zoom: Zoom level to set
+        :type zoom: int
+        '''
+        # What should happen for zoom in [0, 1, 2]?
+        if zoom > 18 or zoom == 3:
+            return
+
+        self.zoom = zoom
+        self.map_tiles = []
+        # self.queue_draw()
