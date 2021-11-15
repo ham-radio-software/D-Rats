@@ -30,11 +30,9 @@ gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk
 from gi.repository import Gdk
-from gi.repository import GObject
 from gi.repository import GLib
 
 from .. import map as Map
-from .. import miscwidgets
 
 
 # This makes pylance happy with out overriding settings
@@ -49,221 +47,6 @@ class MapMenuBar(Gtk.MenuBar):
 
     def __init__(self):
         Gtk.MenuBar.__init__(self)
-
-
-class MapZoomControls(Gtk.Frame):
-    '''
-    Map zoom controls.
-
-    :param map_widget: Map Widget for control
-    :type map_widget: :class:`Map.Widget`
-    :param zoom: Initial zoom level, Default 14
-    :type zoom: int
-    '''
-    def __init__(self, map_widget, zoom=14):
-        Gtk.Frame.__init__(self)
-        zoom_label = _("Zoom") + " (%i)" % zoom
-        self.set_label(zoom_label)
-        self.map_widget = map_widget
-        self.set_label_align(0.5, 0.5)
-        self.set_size_request(150, 50)
-        self.show()
-
-        box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 3)
-        box.set_border_width(3)
-        box.show()
-
-        label = Gtk.Label.new(_("Min"))
-        label.show()
-        box.pack_start(label, 0, 0, 0)
-
-        # mm here the allowed zoom levels are from 2 to 17 (increased to 18)
-        adj = Gtk.Adjustment.new(value=zoom,
-                                 lower=2,
-                                 upper=18,
-                                 step_increment=1,
-                                 page_increment=3,
-                                 page_size=0)
-        # scroll_bar = Gtk.HScrollbar(adj)
-        scroll_bar = Gtk.Scrollbar.new(Gtk.Orientation.HORIZONTAL, adj)
-        scroll_bar.show()
-        box.pack_start(scroll_bar, 1, 1, 1)
-
-        label = Gtk.Label.new(_("Max"))
-        label.show()
-        box.pack_start(label, 0, 0, 0)
-
-        self.add(box)
-
-        scroll_bar.connect("value-changed", self.zoom, self)
-
-
-    def zoom(self, adj, frame):
-        '''
-        Zoom.
-
-        :param adj: Gtk.Adjustment object
-        :param frame: Frame for zoom
-        '''
-        print("self:", type(self))
-        print("adj)", type(adj))
-        print("frame", type(frame))
-        self.map_widget.set_zoom(int(adj.get_value()))
-        self.set_label(_("Zoom") + " (%i)" % int(adj.get_value()))
-
-
-class MapMakeTrack(Gtk.CheckButton):
-    '''
-    Enable making a track on map
-
-    :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
-    '''
-    def __init__(self, map_window):
-        Gtk.CheckButton.__init__(self)
-        self.set_label(_("Track center"))
-
-        def toggle(check_button, map_window):
-            map_window.tracking_enabled = check_button.get_active()
-
-        self.connect("toggled", toggle, map_window)
-        self.show()
-
-
-class MapMarkerlist(Gtk.ScrolledWindow):
-    '''
-    Make Marker List.
-
-    :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
-    '''
-    cols = [(GObject.TYPE_BOOLEAN, _("Show")),
-            (GObject.TYPE_STRING, _("Station")),
-            (GObject.TYPE_FLOAT, _("Latitude")),
-            (GObject.TYPE_FLOAT, _("Longitude")),
-            (GObject.TYPE_FLOAT, _("Distance")),
-            (GObject.TYPE_FLOAT, _("Direction")),
-            ]
-
-    def __init__(self, map_window):
-        Gtk.ScrolledWindow.__init__(self)
-        self.map_window = map_window
-        self.marker_list = miscwidgets.TreeWidget(self.cols, 1, parent=False)
-        self.marker_list.toggle_cb.append(self.map_window.toggle_show)
-        # self.marker_list.connect("click-on-list", self.make_marker_popup)
-
-        # pylint: disable=protected-access
-        self.marker_list._view.connect("row-activated", self.recenter_cb)
-
-        def render_station(_col, rend, model, iter_value, _data):
-            parent = model.iter_parent(iter_value)
-            if not parent:
-                parent = iter_value
-                group = model.get_value(parent, 1)
-            if group in self.map_window.colors:
-                rend.set_property("foreground", self.map_window.colors[group])
-
-        column = self.marker_list._view.get_column(1)
-        column.set_expand(True)
-        column.set_min_width(150)
-        # r = c.get_cell_renderers()[0]
-        renderer_text = Gtk.CellRendererText()
-        column.set_cell_data_func(renderer_text, render_station)
-
-        def render_coord(_col, rend, model, iter_value, cnum):
-            if isinstance(rend, gi.repository.Gtk.Separator):
-                return
-            if model.iter_parent(iter_value):
-                rend.set_property('text', "%.4f" %
-                                  model.get_value(iter_value, cnum))
-            else:
-                rend.set_property('text', '')
-
-        for col in [2, 3]:
-            column = self.marker_list._view.get_column(col)
-            # renderer_text = column.get_cell_renderers()[0]
-            renderer_text = Gtk.CellRendererText()
-            column.set_cell_data_func(renderer_text, render_coord, col)
-
-        def render_dist(_col, rend, model, iter_value, cnum):
-            if model.iter_parent(iter_value):
-                rend.set_property('text', "%.2f" %
-                                  model.get_value(iter_value, cnum))
-            else:
-                rend.set_property('text', '')
-
-        for col in [4, 5]:
-            column = self.marker_list._view.get_column(col)
-            # renderer_text = column.get_cell_renderers()[0]
-            renderer_text = Gtk.CellRendererText()
-            column.set_cell_data_func(renderer_text, render_dist, col)
-
-        self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        self.add(self.marker_list.packable())
-        self.set_size_request(-1, 150)
-        self.show()
-
-
-    def recenter_cb(self, view, path, column, data=None):
-        '''
-        Recenter Callback.
-
-        :param view: Gtk.TreeView object that received signal
-        :param path: Gtk.TreePath for the activated row
-        :param column: Gtk.TreeviewColumn that was activated
-        :param data: Optional data, Default None
-        '''
-        print("recenter_cb")
-        print("self", type(self))
-        print("path", type(self))
-        print("column", type(column))
-        print("data", type(data))
-        model = view.get_model()
-        if model.iter_parent(model.get_iter(path)) is None:
-            return
-
-        items = self.marker_list.get_selected()
-
-        self.map_window.center_mark = items[1]
-        self.map_window.recenter(items[2], items[3])
-
-        self.map_window.sb_center.pop(self.map_window.STATUS_CENTER)
-        self.map_window.sb_center.push(self.map_window.STATUS_CENTER,
-                                       _("Center") + ": %s" %
-                                       self.map_window.center_mark)
-
-
-class MapControls(Gtk.Box):
-    '''
-    Make Controls for Map
-
-    :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
-    '''
-    def __init__(self, map_window):
-        Gtk.Box.__init__(self, Gtk.Orientation.VERTICAL, 2)
-
-        zoom_control = MapZoomControls(map_window.map_widget)
-        self.pack_start(zoom_control, False, False, False)
-        make_track = MapMakeTrack(map_window)
-        self.pack_start(make_track, False, False, False)
-
-        self.show()
-
-
-class MapBottomPanel(Gtk.Box):
-    '''
-    Map Bottom Panel.
-
-    :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
-    '''
-    def __init__(self, map_window):
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 2)
-        marker_list = MapMarkerlist(map_window)
-        self.pack_start(marker_list, True, True, True)
-        controls = MapControls(map_window)
-        self.pack_start(controls, False, False, False)
 
 
 # We have more than 7 instance attributes
@@ -336,33 +119,11 @@ class MapWindow(Gtk.ApplicationWindow):
         self.map_widget.connect("motion-notify-event", self.mouse_move_event)
         self.scrollw.connect("button-press-event", self.mouse_click_event)
 
-        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
-
-        self.sb_coords = Gtk.Statusbar()
-        self.sb_coords.show()
-        # self.sb_coords.set_has_resize_grip(False)
-
-        self.sb_center = Gtk.Statusbar()
-        self.sb_center.show()
-        # self.sb_center.set_has_resize_grip(False)
-
-        self.sb_gps = Gtk.Statusbar()
-        self.sb_gps.show()
-
-        self.sb_prog = Gtk.ProgressBar()
-        self.sb_prog.set_size_request(150, -1)
-        self.sb_prog.show()
-
-        hbox.pack_start(self.sb_coords, True, True, True)
-        hbox.pack_start(self.sb_center, True, True, True)
-        hbox.pack_start(self.sb_prog, False, False, False)
-        hbox.pack_start(self.sb_gps, True, True, True)
-        hbox.show()
-
+        self.statusbox = Map.StatusBox()
         box.pack_start(self.scrollw, True, True, True)
-        bottom_panel = MapBottomPanel(self)
+        bottom_panel = Map.BottomPanel(self)
         box.pack_start(bottom_panel, False, False, False)
-        box.pack_start(hbox, False, False, False)
+        box.pack_start(self.statusbox, False, False, False)
         box.show()
 
         #setup the default dimensions for the map window
@@ -499,8 +260,9 @@ class MapWindow(Gtk.ApplicationWindow):
         # if not hit:
             # self.info_window.hide()
 
-        self.sb_coords.pop(self.STATUS_COORD)
-        # self.sb_coords.push(self.STATUS_COORD, "%.4f, %.4f" % (lat, lon))
+        self.statusbox.sb_coords.pop(self.STATUS_COORD)
+        # self.statusbox.sb_coords.push(self.STATUS_COORD,
+        #                               "%.4f, %.4f" % (lat, lon))
 
         self.__last_motion = None
 
