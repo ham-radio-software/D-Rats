@@ -44,7 +44,7 @@ class MapMarkerList(Gtk.ScrolledWindow):
     Make Marker List.
 
     :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
+    :type map_window: :class:`map.MapWindow`
     '''
     cols = [(GObject.TYPE_BOOLEAN, _("Show")),
             (GObject.TYPE_STRING, _("Station")),
