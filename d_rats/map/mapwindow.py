@@ -34,19 +34,11 @@ from gi.repository import GLib
 
 from .. import map as Map
 
-
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
-
-
-class MapMenuBar(Gtk.MenuBar):
-    '''Menu for map.'''
-
-    def __init__(self):
-        Gtk.MenuBar.__init__(self)
 
 
 # We have more than 7 instance attributes
@@ -106,7 +98,7 @@ class MapWindow(Gtk.ApplicationWindow):
 
         box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
-        self.menubar = MapMenuBar()
+        self.menubar = self._make_menu()
         self.menubar.show()
 
         box.pack_start(self.menubar, False, False, False)
@@ -116,8 +108,8 @@ class MapWindow(Gtk.ApplicationWindow):
         self.scrollw.show()
 
         self.map_widget.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
-        self.map_widget.connect("motion-notify-event", self.mouse_move_event)
-        self.scrollw.connect("button-press-event", self.mouse_click_event)
+        self.map_widget.connect("motion-notify-event", self._mouse_move_event)
+        self.scrollw.connect("button-press-event", self._mouse_click_event)
 
         self.statusbox = Map.StatusBox()
         box.pack_start(self.scrollw, True, True, True)
@@ -132,7 +124,131 @@ class MapWindow(Gtk.ApplicationWindow):
         self.add(box)
 
 
-    def mouse_click_event(self, widget, event):
+    def add_map_source(self, maps):
+        '''
+        Add Map Source.
+
+        :param maps: Maps
+        :type maps: list
+        '''
+        print("add_map_source %s" % maps, type(maps), type(self))
+
+    # Inherited from Parent and called by mainapp
+    # def connect(self, signal name, function):
+
+    # called my mainapp
+    def get_map_source(self, station):
+        '''
+        Get Map source.
+
+        :param station: Station information
+        :type station: str?
+        :returns: maps for a station
+        :rtype: list?
+        '''
+        print("get_map_source %s" % station, type(station), type(self))
+
+    # Called by mainapp and qst.py
+    def get_map_sources(self):
+        '''
+        Get Map Sources.
+
+        :returns: Map sources
+        :rtype: list
+        '''
+        print("get_map_sources", type(self))
+        return []
+
+    def refresh_item_handler(self, action, _value):
+        '''
+        Refresh Item Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("refresh_item_handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def clearcache_item_handler(self, action, _value):
+        '''
+        Clear Cache Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("Clear Cache handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def editsources_item_handler(self, action, _value):
+        '''
+        Edit Sources Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("Edit Sources handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def printable_item_handler(self, action, _value):
+        '''
+        Printable Item Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("Printable Item handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def printablevis_item_handler(self, action, _value):
+        '''
+        Printable Visible Item Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("Printable Visible Item handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def save_item_handler(self, action, _value):
+        '''
+        Save Item Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("Save Item handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def savevis_item_handler(self, action, _value):
+        '''
+        Save Visible Item Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused.
+        '''
+        print("Save Visible Item handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def _make_menu(self):
+        '''
+        Menu for map.
+
+        :returns: Menu for map
+        :rtype: :class:`Gtk.Menubar`
+        '''
+        model = Map.MenuModel()
+        model.add_actions(self)
+        menubar = Gtk.MenuBar.new_from_model(model)
+        return menubar
+
+    def _mouse_click_event(self, widget, event):
         '''
         Mouse Click Event.
 
@@ -180,12 +296,12 @@ class MapWindow(Gtk.ApplicationWindow):
 
         #    self.recenter(lat, lon)
 
-    def mouse_move_event(self, _widget, event):
+    def _mouse_move_event(self, _widget, event):
         '''
         Mouse Move Event.
 
         :param _widget: Widget that received the signal, Not used
-        :type _widget: :class:`Map.Widget`
+        :type _widget: :class:`map.MapWidget`
         :param event: Event that triggered this handler.
         :type event: :class:`Gdk.EventMotion`
         :returns: True to stop other handlers from being invoked
@@ -268,6 +384,9 @@ class MapWindow(Gtk.ApplicationWindow):
 
         return False
 
+    # Called by mainapp not sure if inherited
+    # def queue_draw(self):
+
 
     def recenter(self, lat, lon):
         '''
@@ -281,6 +400,33 @@ class MapWindow(Gtk.ApplicationWindow):
         # self.refresh_marker_list()
         # self.center_on(lat, lon)
         # self.map_widget.queue_draw()
+
+    # Called my mainapp, inherited
+    # def show(self)
+
+    # called by mainapp
+    def set_center(self, latitude, longitude):
+        '''
+        Set Map Center.
+
+        :param latitude: Latitude of new center
+        :type longitude: float
+        :param Longitude: Longitude of new center
+        :type Longitude: float
+        '''
+
+    # public method used by mainap inherited from parent
+    # def set_title(self, str)
+
+    # Called by mainapp
+    def set_zoom(self, zoom):
+        '''
+        Set zoom level.
+
+        :param zoom: zoom level from 3 to 18?
+        :type zoom: int
+        '''
+        self.map_widget.set_zoom(zoom)
 
     # pylint: disable=no-self-argument
     def status(fraction, message):
@@ -332,7 +478,12 @@ class MapWindow(Gtk.ApplicationWindow):
         #    break
         # self.map_widget.queue_draw()
 
-    @staticmethod
-    def test():
-        '''Test method.'''
-        Gtk.main()
+    # Called from Mainapp
+    def update_gps_status(self, gps_status):
+        '''
+        Update GPS Status.
+
+        :param gps_status: GPS status
+        :type gps_status: str
+        '''
+        print("update_gps_status %s" % gps_status, type(self))

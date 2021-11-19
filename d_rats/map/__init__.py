@@ -2,6 +2,7 @@
 
 from .mapbottompanel import MapBottomPanel as BottomPanel
 from .mapmarkerlist import MapMarkerList as MarkerList
+from .mapmenumodel import MapMenuModel as MenuModel
 from .mapstatusbox import MapStatusBox as StatusBox
 from .mapwidget import MapWidget as Widget
 from .mapwindow import MapWindow as Window
