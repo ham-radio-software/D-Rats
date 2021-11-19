@@ -42,7 +42,7 @@ class MapMakeTrack(Gtk.CheckButton):
     Enable making a track on map
 
     :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
+    :type map_window: :class:`map.MapWindow`
     '''
     def __init__(self, map_window):
         Gtk.CheckButton.__init__(self)
@@ -60,7 +60,7 @@ class MapControls(Gtk.Box):
     Make Controls for Map
 
     :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
+    :type map_window: :class:`map.MapWindow`
     '''
     def __init__(self, map_window):
         Gtk.Box.__init__(self, Gtk.Orientation.VERTICAL, 2)
@@ -78,7 +78,7 @@ class MapBottomPanel(Gtk.Box):
     Map Bottom Panel.
 
     :param map_window: Parent Map window
-    :type map_window: :class:`Map.Window`
+    :type map_window: :class:`map.MapWindow`
     '''
     def __init__(self, map_window):
         Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 2)
