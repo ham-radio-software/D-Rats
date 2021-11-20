@@ -35,6 +35,37 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
+class MapPosition():
+    '''
+    Map Position.
+
+    :param latitude: Latitude of position, Default 0.0
+    :type latitude: float
+    :param longitude: Longitude of position, Default 0.0
+    :type longitude: float
+    '''
+
+    def __init__(self, latitude=0.0, longitude=0.0):
+        self.latitude = latitude
+        self.longitude = longitude
+        self._format = "%.4f, %.4f"
+
+    def set_format(self, format_string=None):
+        '''
+        Set the format string
+
+        :param format_string: Format, default "%.4f, %.4f"
+        :type format_string: str
+        :returns: Formatted position
+        :rtype: str
+        '''
+        if format_string:
+            self._format = format_string
+
+    def __str__(self):
+        return self._format % (self.latitude, self.longitude)
+
+
 # pylint: disable=too-many-instance-attributes
 class MapWidget(Gtk.DrawingArea):
     '''
@@ -113,3 +144,23 @@ class MapWidget(Gtk.DrawingArea):
         self.zoom = zoom
         self.map_tiles = []
         # self.queue_draw()
+
+    def xy2latlon(self, x_axis, y_axis):
+        '''
+        Translate X, Y axes to latitude and longitude.
+
+        :param x_axis: X Axis
+        :param y_axis: Y Axis
+        :returns: Position of the coordinate
+        :rtype: :class:`map.MapPosition`
+        '''
+        y_axis -= self.lat_fudge
+        x_axis -= self.lng_fudge
+
+        lon = 1 - (float(x_axis) / (self.tilesize * self.width))
+        lat = 1 - (float(y_axis) / (self.tilesize * self.height))
+
+        lat = (lat * (self.lat_max - self.lat_min)) + self.lat_min
+        lon = (lon * (self.lon_max - self.lon_min)) + self.lon_min
+
+        return MapPosition(lat, lon)
