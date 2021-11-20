@@ -63,13 +63,13 @@ class MapControls(Gtk.Box):
     :type map_window: :class:`map.MapWindow`
     '''
     def __init__(self, map_window):
-        Gtk.Box.__init__(self, Gtk.Orientation.VERTICAL, 2)
-
+        Gtk.Box.__init__(self)
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        self.set_spacing(2)
         zoom_control = Map.ZoomControls(map_window.map_widget)
         self.pack_start(zoom_control, False, False, False)
         make_track = MapMakeTrack(map_window)
         self.pack_start(make_track, False, False, False)
-
         self.show()
 
 
@@ -81,8 +81,11 @@ class MapBottomPanel(Gtk.Box):
     :type map_window: :class:`map.MapWindow`
     '''
     def __init__(self, map_window):
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 2)
+        Gtk.Box.__init__(self)
+        self.set_orientation(Gtk.Orientation.HORIZONTAL)
+        self.set_spacing(2)
         marker_list = Map.MarkerList(map_window)
         self.pack_start(marker_list, True, True, True)
         controls = MapControls(map_window)
         self.pack_start(controls, False, False, False)
+        self.show()
