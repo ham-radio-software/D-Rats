@@ -59,6 +59,7 @@ class MapStatusBox(Gtk.Box):
         self.sb_gps.show()
 
         self.sb_prog = Gtk.ProgressBar()
+        self.sb_prog.set_show_text(True)
         self.sb_prog.set_size_request(150, -1)
         self.sb_prog.show()
 

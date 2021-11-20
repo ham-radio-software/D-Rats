@@ -83,6 +83,7 @@ class MapWindow(Gtk.ApplicationWindow):
         self.center_mark = None
         self.tracking_enabled = False
         self.__last_motion = None
+        self.__temp_frac = 0.0
         self.map_sources = []
         # this parameter defines the dimension of the map behind the window
         # tiles SHALL be
@@ -169,6 +170,15 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         print("refresh_item_handler", type(self))
         print('Action: %s\n value: %s' % (action, _value))
+        self.statusbox.sb_center.pop(self.STATUS_CENTER)
+        self.statusbox.sb_center.push(self.STATUS_CENTER,
+                                      _("Center") + ": %s" % "refresh")
+        self.update_gps_status("GPS test string")
+        if self.__temp_frac < 1.0:
+            self.__temp_frac += 0.1
+        self.statusbox.sb_prog.set_text(_("Loaded") + " %.0f%%" %
+                                        (self.__temp_frac * 100.0))
+        self.statusbox.sb_prog.set_fraction(self.__temp_frac)
 
     def clearcache_item_handler(self, action, _value):
         '''
@@ -269,32 +279,33 @@ class MapWindow(Gtk.ApplicationWindow):
         mx_axis = x_axis + int(hadj.get_value())
         my_axis = y_axis + int(vadj.get_value())
 
-        # lat, lon = self.map_widget.xy2latlon(mx_axis, my_axis)
+        # position = self.map_widget.xy2latlon(mx_axis, my_axis)
 
         self.logger.info("Button %i at %i,%i",
                          event.button, mx_axis, my_axis)
         # See comment below.
         # pylint: disable=protected-access
-        #if event.button == 3:
-        #    vals = {"lat" : lat,
-        #            "lon" : lon,
+        # if event.button == 3:
+        #    vals = {"lat" : position.latitude,
+        #            "lon" : position.longitude,
         #            "x" : mx_axis,
         #            "y" : my_axis}
-        #    self.logger.info("Clicked 3: %s", vals)
+        #    self.logger.info("Clicked 3: %s %s", vals)
         #    menu = self.make_popup(vals)
         #    if menu:
         #        menu.popup(None, None, None, None, event.button, event.time)
         #elif event.type == Gdk.EventType.BUTTON_PRESS:
-        #    self.logger.info("Clicked: %.4f,%.4f", lat, lon)
+        #    self.logger.info("Clicked: %s", position)
             # The crosshair marker has been missing since 0.3.0
             # self.set_marker(GPSPosition(station=CROSSHAIR,
-            #                             lat=lat, lon=lon))
+            #                             lat=position.latitude,
+            #                             lon=position.longitude))
         # This is not a protected-access, it is the actual
         # python name for the type.
         #elif event.type == Gdk.EventType._2BUTTON_PRESS:
-        #    self.logger.info("recenter on %.4f, %.4f", lat, lon)
+        #    self.logger.info("recenter on %.s", position)
 
-        #    self.recenter(lat, lon)
+        #    self.recenter(position)
 
     def _mouse_move_event(self, _widget, event):
         '''
@@ -316,19 +327,19 @@ class MapWindow(Gtk.ApplicationWindow):
         if self.__last_motion is None:
             return False
 
-        time_motion, _x_axis, _y_axis = self.__last_motion
+        time_motion, x_axis, y_axis = self.__last_motion
         if (time.time() - time_motion) < 0.5:
              # self.info_window.hide()
             return True
 
-        # lat, lon = self.map_widget.xy2latlon(x_axis, y_axis)
+        position = self.map_widget.xy2latlon(x_axis, y_axis)
 
         # hadj = self.scrollw.get_hadjustment()
         # vadj = self.scrollw.get_vadjustment()
         # mx_axis = x_axis - int(hadj.get_value())
         # my_axis = y_axis - int(vadj.get_value())
 
-        # hit = False
+        #hit = False
 
         for source in self.map_sources:
             if not source.get_visible():
@@ -377,8 +388,8 @@ class MapWindow(Gtk.ApplicationWindow):
             # self.info_window.hide()
 
         self.statusbox.sb_coords.pop(self.STATUS_COORD)
-        # self.statusbox.sb_coords.push(self.STATUS_COORD,
-        #                               "%.4f, %.4f" % (lat, lon))
+        self.statusbox.sb_coords.push(self.STATUS_COORD,
+                                      str(position))
 
         self.__last_motion = None
 
@@ -388,18 +399,19 @@ class MapWindow(Gtk.ApplicationWindow):
     # def queue_draw(self):
 
 
-    def recenter(self, lat, lon):
+    def recenter(self, position):
         '''
-        Recenter.
+        Recenter Map to position.
 
-        :param lat: Latitude to recenter on
-        :param lon: Longitude to recenter on
+        :param position: position for new center of map
+        :type position: :class:`map.MapPosition`
         '''
-        # self.map_widget.set_center(lat, lon)
+        # self.map_widget.set_center(position)
         # self.map_widget.load_tiles()
         # self.refresh_marker_list()
         # self.center_on(lat, lon)
         # self.map_widget.queue_draw()
+        print("recenter", type(self), position)
 
     # Called my mainapp, inherited
     # def show(self)
@@ -414,6 +426,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :param Longitude: Longitude of new center
         :type Longitude: float
         '''
+        print("set_center", type(self), latitude, longitude)
 
     # public method used by mainap inherited from parent
     # def set_title(self, str)
@@ -486,4 +499,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :param gps_status: GPS status
         :type gps_status: str
         '''
-        print("update_gps_status %s" % gps_status, type(self))
+
+        self.statusbox.sb_gps.pop(self.STATUS_GPS)
+        self.statusbox.sb_gps.push(self.STATUS_GPS, gps_status)
