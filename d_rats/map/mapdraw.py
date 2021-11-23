@@ -72,12 +72,27 @@ class MapDraw():
         cls.cairo_ctx = cairo_ctx
         cls.map_visible = {}
         scrollw = map_widget.mapwindow.scrollw
-        cls.map_visible['x_start'] = scrollw.get_hadjustment().get_value()
-        cls.map_visible['x_size'] = scrollw.get_hadjustment().get_page_size()
-        cls.map_visible['y_start'] = scrollw.get_vadjustment().get_value()
-        cls.map_visible['y_size'] = scrollw.get_vadjustment().get_page_size()
+        y_slider_width = scrollw.get_vscrollbar().get_preferred_width()
+        x_slider_height = scrollw.get_hscrollbar().get_preferred_height()
+        slider_size = max(max(y_slider_width), max(x_slider_height))
+        # slider size varies because auto hide feature.
+        # It appears to be 0 for systems with touch screens and no mouse
+        # On my system it is 7 when a mouse is not moving a scrollbar and 14
+        # for when a mouse is moving the scrollbar and I can not find
+        # a way to get this size before the scrollbar is expanded.
+        # So make sure that we have at least 20 pixels from the edge for the
+        # the sliders.
+        # For larger sliders the scale will move a bit depending on how the
+        # window position was updated.
+        cls.map_visible['slider_size'] = max(slider_size, 20)
+        cls.map_visible['x_start'] = int(
+            scrollw.get_hadjustment().get_value())
+        cls.map_visible['x_size'] = int(
+            scrollw.get_hadjustment().get_page_size())
+        cls.map_visible['y_start'] = int(scrollw.get_vadjustment().get_value())
+        cls.map_visible['y_size'] = int(
+            scrollw.get_vadjustment().get_page_size())
 
-        print("draw_handler", type(map_widget), type(cairo_ctx))
         cls.scale(cls)
             # map_widget.expose_map(cairo_ctx)
             # self.expose_map(cairo_ctx)
@@ -107,20 +122,22 @@ class MapDraw():
             # Draw scale if needed.
             pass
 
+    # pylint: disable=too-many-locals
     def scale(self, pixels=128):
         '''
         Draw the scale ladder on the Map.
 
-        :param cairo_ctx: Cairo Context
-        :param pixels: Optional pixels, default=128
+        :param cairo_ctx: Cairo context for drawing area
+        :type cairo_ctx: :class:`cairo.Context`
+        :param pixels: Tile size in pixels, default=128
+        :type pixels: int
         '''
         # Need to find out about magic number 128 for pixels.
-        print("Map.MapDraw.scale")
-
-        # rect = Gdk.Rectangle(x-pixels,y-shift-tick,x,y)
-        # self.window.invalidate_rect(rect, True)
 
         dist = self.map_widget.map_distance_with_units(pixels)
+
+        pango_layout = self.map_widget.create_pango_layout(dist)
+        pango_width, pango_height = pango_layout.get_pixel_size()
 
         color = Gdk.RGBA()
         color.parse('black')
@@ -131,16 +148,24 @@ class MapDraw():
                                        color.blue,
                                        color.alpha)
 
-        self.cairo_ctx.new_path()
         visible = self.map_visible
-        scale_x = visible['x_start'] + visible['x_size'] - 200
-        scale_y = visible['y_start'] + visible['y_size'] - 40
+        # place scale ending at 10% of pixels from the bottom right.
+        # taking into account what the scrollbar might be temporarily covering
+        pixel_offset = int(pixels / 10) + visible['slider_size']
+        offset_from_bottom = pixel_offset + pango_height
+        offset_from_right = pixel_offset + pixels
+        if pango_width > pixels:
+            offset_from_right = pixel_offset + pango_width
 
-        print("self axis", visible, scale_x, scale_y)
-        # x_axis = 600
-        # y_axis = 320
-        scale_tick = 5 # int(pixels / 25)
-        text_offset = scale_tick * 2
+        self.cairo_ctx.new_path()
+
+        scale_x = visible['x_start'] + visible['x_size'] - offset_from_right
+        scale_y = visible['y_start'] + visible['y_size'] - offset_from_bottom
+
+        # scale_tick size is 10 % of tile_size
+        scale_tick = int(pixels / 10)
+        # text offset is 10% of the text size
+        text_offset = int(pango_height / 10)
 
         # Scale left end
         self.cairo_ctx.move_to(scale_x, scale_y - scale_tick)
@@ -155,8 +180,6 @@ class MapDraw():
 
         # Show scale text
         self.cairo_ctx.move_to(scale_x, scale_y + text_offset)
-        pango_layout = self.map_widget.create_pango_layout("")
-        pango_layout.set_markup("%s" % dist)
         PangoCairo.show_layout(self.cairo_ctx, pango_layout)
         self.cairo_ctx.stroke()
         self.cairo_ctx.restore()
