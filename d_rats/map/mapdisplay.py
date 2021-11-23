@@ -60,7 +60,7 @@ class MapDisplay(Gtk.Application):
         self.logger = logging.getLogger("mapdisplay")
 
         self.config = config.DratsConfig(None)
-
+        self.cmd_args = cmd_args
         get_platform(cmd_args.config)
 
 
@@ -74,6 +74,11 @@ class MapDisplay(Gtk.Application):
         map_window = Map.Window(self, self.config)
         map_window.set_title("D-RATS Test Map Window - map in use: %s" %
                              self.config.get("settings", "maptype"))
+
+        map_window.set_center(self.cmd_args.latitude,
+                              self.cmd_args.longitude)
+        map_window.set_zoom(14)
+
         map_window.show()
 
 
