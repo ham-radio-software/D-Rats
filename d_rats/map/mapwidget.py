@@ -27,43 +27,16 @@ import logging
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+gi.require_version("PangoCairo", "1.0")
+
+from ..gps import value_with_units
+from .. import map as Map
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
-
-
-class MapPosition():
-    '''
-    Map Position.
-
-    :param latitude: Latitude of position, Default 0.0
-    :type latitude: float
-    :param longitude: Longitude of position, Default 0.0
-    :type longitude: float
-    '''
-
-    def __init__(self, latitude=0.0, longitude=0.0):
-        self.latitude = latitude
-        self.longitude = longitude
-        self._format = "%.4f, %.4f"
-
-    def set_format(self, format_string=None):
-        '''
-        Set the format string
-
-        :param format_string: Format, default "%.4f, %.4f"
-        :type format_string: str
-        :returns: Formatted position
-        :rtype: str
-        '''
-        if format_string:
-            self._format = format_string
-
-    def __str__(self):
-        return self._format % (self.latitude, self.longitude)
 
 
 # pylint: disable=too-many-instance-attributes
@@ -77,8 +50,8 @@ class MapWidget(Gtk.DrawingArea):
     :type height: int
     :param tilesize: Size of tiles, default 256
     :type tilesize: int
-    :param status: Status callback function
-    :type status: function(float, str)
+    :param window: Parent window
+    :type status: :class:`mapWindow`
     '''
 
     #__gsignals__ = {
@@ -91,7 +64,7 @@ class MapWidget(Gtk.DrawingArea):
     #    }
 
     # pylint: disable=too-many-arguments
-    def __init__(self, width, height, tilesize=256, status=None):
+    def __init__(self, width, height, tilesize=256, window=None):
         Gtk.DrawingArea.__init__(self)
 
         self.logger = logging.getLogger("MapWidget")
@@ -107,43 +80,97 @@ class MapWidget(Gtk.DrawingArea):
         # printlog("Mapdisplay",
         #        ": mapwidget - height %s, width %s" % (height, width))
         self.tilesize = tilesize
-        self.status = status
+        self.mapwindow = window
 
-        self.lat = 0
-        self.lon = 0
-        self.zoom = 1
+        self.position = None
 
         self.lat_max = self.lat_min = 0
         self.lon_max = self.lon_min = 0
         self.lng_fudge = 0
         self.lat_fudge = 0
 
-        self.lat_fudge = 0
-        self.lng_fudge = 0
-
         self.map_tiles = []
-        self.x_axis = 0
-        self.y_axis = 0
+        self.map_visible = {}
+        self.map_visible['x_start'] = 0
+        self.map_visible['y_start'] = 0
+        self.map_visible['x_size'] = 0
+        self.map_visible['y_size'] = 0
 
-        #self.set_size_request(self.tilesize * self.width,
-        #                      self.tilesize * self.height)
-        #self.connect("draw", self.expose)
+        self.set_size_request(self.tilesize * self.width,
+                              self.tilesize * self.height)
+        self.connect("draw", Map.Draw.handler)
 
-    def set_zoom(self, zoom):
+    def map_distance_with_units(self, pixels):
         '''
-        Set Zoom Level.
+        Map Distance with units.
 
-        If the Zoom level changes, this should cause a Map redraw.
-        :param zoom: Zoom level to set
-        :type zoom: int
+        :param pixels: Number of pixels per tile
+        :type pixels: int
+        :returns: Size of a map tile
+        :rtype: str
         '''
-        # What should happen for zoom in [0, 1, 2]?
-        if zoom > 18 or zoom == 3:
-            return
+        pos_a = self.xy2latlon(self.tilesize, self.tilesize)
+        pos_b = self.xy2latlon(self.tilesize * 2, self.tilesize)
 
-        self.zoom = zoom
-        self.map_tiles = []
-        # self.queue_draw()
+        # calculate width of one tile to show below the ladder scale
+        d_width = pos_a.distance(pos_b) * (float(pixels) / self.tilesize)
+
+        dist = value_with_units(d_width)
+        return dist
+
+    # def scroll_event(self, widget, event):
+    #    '''
+    #    Mouse Wheel Scroll Event.
+    #
+    #    :param widget: Scroll widget
+    #    :type widget: :class:`Gtk.ScrolledWindow`
+    #    :param event: Event that was signaled
+    #    :type event: :class:`Gdk.EventScroll`
+    #    '''
+    #    Does not appear useful to handle.
+
+    def set_center(self, position):
+        '''
+        Set Center.
+
+        :param position: position for new center
+        :type position: :class:`Map.MapPosition`
+        '''
+        print("Map.MapWidget.set_center old %s" % position)
+        self.position = position
+        #self.map_tiles = []
+        print("Map.MapWidget.set_center new %s" % position)
+        self.queue_draw()
+
+    def value_x_event(self, widget):
+        '''
+        Scrolling value of X change.
+
+        :param widget: adjustment widget
+        :type widget: :class:`Gtk.Adjustment`
+        '''
+        print("value_x_event", widget.get_value(), widget.get_page_size(),
+              self.map_visible['x_start'])
+        # self.map_visible['x_start'] = widget.get_value()
+        # self.map_visible['x_size'] = widget.get_page_size()
+        # self.map_tiles = []
+        # Signal a map redraw
+        self.queue_draw()
+
+    def value_y_event(self, widget):
+        '''
+        Scrolling value of y change.
+
+        :param widget: adjustment widget
+        :type widget: :class:`Gtk.Adjustment`
+        '''
+        print("value_y_event", widget.get_value(), widget.get_page_size(),
+              self.map_visible['y_start'])
+        # self.map_visible['y_start'] = widget.get_value()
+        # self.map_visible['y_size'] = widget.get_page_size()
+        # self.map_tiles = []
+        # Signal a map redraw
+        self.queue_draw()
 
     def xy2latlon(self, x_axis, y_axis):
         '''
@@ -163,4 +190,4 @@ class MapWidget(Gtk.DrawingArea):
         lat = (lat * (self.lat_max - self.lat_min)) + self.lat_min
         lon = (lon * (self.lon_max - self.lon_min)) + self.lon_min
 
-        return MapPosition(lat, lon)
+        return Map.Position(lat, lon)

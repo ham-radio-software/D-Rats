@@ -93,16 +93,16 @@ class MapWindow(Gtk.ApplicationWindow):
         #  - the same for both x and y in the mapwidget creation
         tiles = 9
 
-        self.map_widget = Map.Widget(width=tiles, height=tiles,
-                                     status=self.status)
-        self.map_widget.show()
-
         box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
         self.menubar = self._make_menu()
         self.menubar.show()
 
         box.pack_start(self.menubar, False, False, False)
+
+        self.map_widget = Map.Widget(width=tiles, height=tiles,
+                                     window=self)
+        self.map_widget.show()
 
         self.scrollw = Gtk.ScrolledWindow()
         self.scrollw.add(self.map_widget)
@@ -111,10 +111,23 @@ class MapWindow(Gtk.ApplicationWindow):
         self.map_widget.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
         self.map_widget.connect("motion-notify-event", self._mouse_move_event)
         self.scrollw.connect("button-press-event", self._mouse_click_event)
+        # self.scrollw.connect("scroll-event", self.map_widget.scroll_event)
+        hadj = self.scrollw.get_hadjustment()
+        vadj = self.scrollw.get_vadjustment()
+        # self.map_widget.map_visible['x_size'] = hadj.get_page_size()
+        # self.map_widget.map_visible['y_size'] = vadj.get_page_size()
+        # Need to set these to trigger a window update.
+        # print("mapwindow hadj %s %s vadj %s %s" %
+        #       (hadj.get_value(), hadj.get_page_size(),
+        #        vadj.get_value(), vadj.get_page_size()))
+
+        hadj.connect("value-changed", self.map_widget.value_x_event)
+        vadj.connect("value-changed", self.map_widget.value_y_event)
 
         self.statusbox = Map.StatusBox()
-        box.pack_start(self.scrollw, True, True, True)
         bottom_panel = Map.BottomPanel(self)
+        self.mapcontrols = bottom_panel.controls
+        box.pack_start(self.scrollw, True, True, True)
         box.pack_start(bottom_panel, False, False, False)
         box.pack_start(self.statusbox, False, False, False)
         box.show()
@@ -270,8 +283,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :rtype: bool
         '''
         print("mouse_click_event")
-        print("widget", type(widget))
-        print("event", type(event))
         x_axis, y_axis = event.get_coords()
 
         hadj = widget.get_hadjustment()
@@ -390,7 +401,6 @@ class MapWindow(Gtk.ApplicationWindow):
         self.statusbox.sb_coords.pop(self.STATUS_COORD)
         self.statusbox.sb_coords.push(self.STATUS_COORD,
                                       str(position))
-
         self.__last_motion = None
 
         return False
@@ -427,6 +437,8 @@ class MapWindow(Gtk.ApplicationWindow):
         :type Longitude: float
         '''
         print("set_center", type(self), latitude, longitude)
+        position = Map.Position(latitude, longitude)
+        self.map_widget.set_center(position)
 
     # public method used by mainap inherited from parent
     # def set_title(self, str)
@@ -439,7 +451,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :param zoom: zoom level from 3 to 18?
         :type zoom: int
         '''
-        self.map_widget.set_zoom(zoom)
+        self.mapcontrols.zoom_control.level = zoom
 
     # pylint: disable=no-self-argument
     def status(fraction, message):
