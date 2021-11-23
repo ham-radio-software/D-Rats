@@ -23,10 +23,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 # import logging
+import time
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import GLib
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -44,11 +46,19 @@ class MapZoomControls(Gtk.Frame):
     :param zoom: Initial zoom level, Default 14
     :type zoom: int
     '''
-    def __init__(self, map_widget, zoom=14):
+
+    # mm here the allowed zoom levels are from 2 to 17 (increased to 18)
+    ZOOM_MIN = 2
+    ZOOM_MAX = 18
+    ZOOM_DEFAULT = 14
+
+    def __init__(self, map_widget, zoom=None):
         Gtk.Frame.__init__(self)
-        zoom_label = _("Zoom") + " (%i)" % zoom
+        self.__level = self.sanitize_level(zoom)
+        zoom_label = _("Zoom") + " (%i)" % self.__level
         self.set_label(zoom_label)
         self.map_widget = map_widget
+        self.__last_zoom = None
         self.set_label_align(0.5, 0.5)
         self.set_size_request(150, 50)
         self.show()
@@ -57,40 +67,103 @@ class MapZoomControls(Gtk.Frame):
         box.set_border_width(3)
         box.show()
 
-        label = Gtk.Label.new(_("Min"))
+        label = Gtk.Label.new(str(self.ZOOM_MIN))
         label.show()
-        box.pack_start(label, 0, 0, 0)
+        box.pack_start(label, False, False, False)
 
-        # mm here the allowed zoom levels are from 2 to 17 (increased to 18)
-        adj = Gtk.Adjustment.new(value=zoom,
-                                 lower=2,
-                                 upper=18,
+        adj = Gtk.Adjustment.new(value=self.__level,
+                                 lower=self.ZOOM_MIN,
+                                 upper=self.ZOOM_MAX,
                                  step_increment=1,
                                  page_increment=3,
                                  page_size=0)
-        # scroll_bar = Gtk.HScrollbar(adj)
-        scroll_bar = Gtk.Scrollbar.new(Gtk.Orientation.HORIZONTAL, adj)
-        scroll_bar.show()
-        box.pack_start(scroll_bar, 1, 1, 1)
 
-        label = Gtk.Label.new(_("Max"))
+        self.scroll_bar = Gtk.Scrollbar.new(Gtk.Orientation.HORIZONTAL, adj)
+        self.scroll_bar.show()
+        box.pack_start(self.scroll_bar, True, True, True)
+
+        label = Gtk.Label.new(str(self.ZOOM_MAX))
         label.show()
-        box.pack_start(label, 0, 0, 0)
+        box.pack_start(label, False, False, False)
 
         self.add(box)
 
-        scroll_bar.connect("value-changed", self.zoom, self)
+        self.scroll_bar.connect("value-changed", self.zoom_event)
 
-
-    def zoom(self, adj, frame):
+    def sanitize_level(self, level):
         '''
-        Zoom.
+        Sanitize zoom level by making sure it is range.
 
-        :param adj: Gtk.Adjustment object
-        :param frame: Frame for zoom
+        :param level: Requested zoom level
+        :type level: int
+        :returns: Zoom level that is in range
+        :rtype: int
         '''
-        print("self:", type(self))
-        print("adj)", type(adj))
-        print("frame", type(frame))
-        self.map_widget.set_zoom(int(adj.get_value()))
-        self.set_label(_("Zoom") + " (%i)" % int(adj.get_value()))
+        if not level:
+            level = self.ZOOM_DEFAULT
+        elif level < self.ZOOM_MIN:
+            level = self.ZOOM_MIN
+        elif level > self.ZOOM_MAX:
+            level = self.ZOOM_MAX
+        return level
+
+    @property
+    def level(self):
+        '''
+        :returns: Zoom level
+        :rtype: int
+        '''
+        return self.__level
+
+    @level.setter
+    def level(self, level):
+        '''
+        :param level: New zoom level
+        :type level: int
+        '''
+        new_level = self.sanitize_level(level)
+        if new_level != self.__level:
+            self.__level = new_level
+            self.scroll_bar.set_value(new_level)
+
+    def zoom_event(self, adj):
+        '''
+        Zoom Event.
+
+        This is event is signaled when current value of the
+        zoom scroll_bar is changed, either by a user moving the
+        control, or the program setting the value.
+
+        :param adj: Zoom adjustment
+        :type adj: :class:`Gtk.ScrollBar`
+        '''
+        if not self.__last_zoom:
+            GLib.timeout_add(100, self.zoom_handler)
+        zoom_value = int(adj.get_value())
+        self.__last_zoom = (time.time(), zoom_value)
+        self.set_label(_("Zoom") + " (%i)" % zoom_value)
+
+    def zoom_handler(self):
+        '''
+        Zoom Handler.
+
+        Delayed check of the zoom value changing.
+        The zoom control is very sensitive, so we want to wait
+        until the all motion of the handler has stopped.
+
+        :returns: True to continue waiting for stable value
+        :rtype: bool
+        '''
+        if self.__last_zoom is None:
+            # Nothing to do, so stop polling.
+            return False
+
+        time_zoom, zoom_value = self.__last_zoom
+        if (time.time() - time_zoom) < 0.5:
+            # Waiting for slider to stop moving
+            return True
+        self.__last_zoom = None
+        self.__level = zoom_value
+        # This should signal a map redraw event
+        self.map_widget.queue_draw()
+        return False
