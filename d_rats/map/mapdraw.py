@@ -23,8 +23,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gi
-gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk
+# gi.require_version("Gdk", "3.0")
+# from gi.repository import Gdk
 gi.require_version("PangoCairo", "1.0")
 from gi.repository import PangoCairo
 
@@ -92,6 +92,7 @@ class MapDraw():
         cls.map_visible['y_start'] = int(scrollw.get_vadjustment().get_value())
         cls.map_visible['y_size'] = int(
             scrollw.get_vadjustment().get_page_size())
+        map_widget.calculate_bounds()
 
         cls.scale(cls)
             # map_widget.expose_map(cairo_ctx)
@@ -123,7 +124,7 @@ class MapDraw():
             pass
 
     # pylint: disable=too-many-locals
-    def scale(self, pixels=128):
+    def scale(self):
         '''
         Draw the scale ladder on the Map.
 
@@ -134,13 +135,11 @@ class MapDraw():
         '''
         # Need to find out about magic number 128 for pixels.
 
-        dist = self.map_widget.map_distance_with_units(pixels)
-
-        pango_layout = self.map_widget.create_pango_layout(dist)
+        pango_layout = self.map_widget.map_scale_pango_layout()
         pango_width, pango_height = pango_layout.get_pixel_size()
 
-        color = Gdk.RGBA()
-        color.parse('black')
+        color = self.map_widget.color_black
+        pixels = self.map_widget.pixels
         self.cairo_ctx.save()
 
         self.cairo_ctx.set_source_rgba(color.red,

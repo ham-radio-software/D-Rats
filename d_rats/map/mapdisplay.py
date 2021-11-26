@@ -24,6 +24,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import os
 import gi
 
 gi.require_version('Gtk', '3.0')
@@ -63,6 +64,19 @@ class MapDisplay(Gtk.Application):
         self.cmd_args = cmd_args
         get_platform(cmd_args.config)
 
+        mapurl = self.config.get("settings", "mapurlbase")
+
+        Map.Tile.set_connected(True)
+
+        lifetime = self.config.getint("settings", "map_tile_ttl") * 3000
+        Map.Tile.set_tile_lifetime(lifetime)
+        mapdir = self.config.get("settings", "mapdir")
+        maptype = self.config.get("settings", "maptype")
+        map_path = os.path.join(mapdir, maptype)
+
+        Map.Tile.set_map_info(map_path, mapurl)
+        Map.Tile.set_proxy = self.config.get("settings", "http_proxy") or None
+        self.map_window = None
 
     # pylint: disable=arguments-differ
     def do_activate(self):
@@ -72,6 +86,7 @@ class MapDisplay(Gtk.Application):
         Emits a :class:`Gio.Application` signal to the application.
         '''
         map_window = Map.Window(self, self.config)
+        self.map_window = map_window  # Temporary
         map_window.set_title("D-RATS Test Map Window - map in use: %s" %
                              self.config.get("settings", "maptype"))
 
@@ -80,6 +95,51 @@ class MapDisplay(Gtk.Application):
         map_window.set_zoom(14)
 
         map_window.show()
+
+    # Currently referenced by mainapp, will be moved to Mapwindow calls
+    def set_base_dir(self, basedir, mapurl, mapkey):
+        '''
+        Set Base Directory.
+
+        :param basedir: Base directory
+        :type basedir: str
+        :param mapurl: URL of Map
+        :type mapurl: str
+        :param mapkey: Map access key
+        :type mapkey: str
+        '''
+        self.map_window.set_base_dir(basedir, mapurl, mapkey)
+
+    # Currently referenced by mainapp, will be moved to Mapwindow calls
+    def set_connected(self, connected):
+        '''
+        Set Connected.
+
+        :param connected: New connected state
+        :type connected: bool
+        '''
+        self.map_window.set_connected(connected)
+
+    # Currently referenced by mainapp, will be moved to Mapwindow calls
+    def set_proxy(self, proxy):
+        '''
+        Set Proxy.
+
+        :param proxy: Proxy to use
+        :type proxy: str
+        '''
+        self.map_window.set_proxy(proxy)
+
+    # Currently referenced by mainapp, will be moved to Mapwindow calls
+    def set_tile_lifetime(self, lifetime):
+        '''
+        Set tile Lifetime.
+
+        :param lifetime: Cache lifetime in seconds
+        :param lifetime: int
+        '''
+        self.map_window.set_tile_lifetime(lifetime)
+
 
 
 def main():
@@ -153,19 +213,6 @@ def main():
         format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=args.loglevel)
-
-    # mapurl = conf.get("settings", "mapurlbase")
-    # mapkey = ""
-
-    # set_connected(True)
-    # set_tile_lifetime(conf.getint("settings", "map_tile_ttl") * 3600)
-
-
-    # set_base_dir(os.path.join(conf.get("settings", "mapdir"),
-    #                          conf.get("settings", "maptype")), mapurl, mapkey)
-    # proxy = conf.get("settings", "http_proxy") or None
-    # set_proxy(proxy)
-
 
     # WB8TYW: DratsConfig takes an unused argument.
 
