@@ -30,6 +30,8 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GLib
 
+from .. import map as Map
+
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
 if not '_' in locals():
@@ -55,6 +57,7 @@ class MapZoomControls(Gtk.Frame):
     def __init__(self, map_widget, zoom=None):
         Gtk.Frame.__init__(self)
         self.__level = self.sanitize_level(zoom)
+        Map.Tile.set_zoom(self.__level)
         zoom_label = _("Zoom") + " (%i)" % self.__level
         self.set_label(zoom_label)
         self.map_widget = map_widget
@@ -164,6 +167,7 @@ class MapZoomControls(Gtk.Frame):
             return True
         self.__last_zoom = None
         self.__level = zoom_value
+        Map.Tile.set_zoom(zoom_value)
         # This should signal a map redraw event
         self.map_widget.queue_draw()
         return False

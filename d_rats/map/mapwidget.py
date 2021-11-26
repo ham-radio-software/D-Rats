@@ -27,7 +27,8 @@ import logging
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk
+# gi.require_version("PangoCairo", "1.0")
 
 from ..gps import value_with_units
 from .. import map as Map
@@ -62,8 +63,8 @@ class MapWidget(Gtk.DrawingArea):
     #                          GObject.TYPE_NONE,
     #                          ()),
     #    }
+    _color_black = None
 
-    # pylint: disable=too-many-arguments
     def __init__(self, width, height, tilesize=256, window=None):
         Gtk.DrawingArea.__init__(self)
 
@@ -72,51 +73,122 @@ class MapWidget(Gtk.DrawingArea):
         # self.pixmap = None  # Replaced by self.surface
         # self.surface = None
         # self.window = window
+        self._height = height
+        self._width = width
 
-        self.height = height
-        self.width = width
+        # size of a map tile in Gtk window dimensions
+        self._tilesize = tilesize
+        # apparently a tile is 128 * 128 pixels in a cairo_context
+        self.pixels = 128
+        # The above appear to be contants in the d-rats program.
 
         # originally commented out
         # printlog("Mapdisplay",
         #        ": mapwidget - height %s, width %s" % (height, width))
-        self.tilesize = tilesize
         self.mapwindow = window
 
         self.position = None
 
-        self.lat_max = self.lat_min = 0
-        self.lon_max = self.lon_min = 0
-        self.lng_fudge = 0
-        self.lat_fudge = 0
+        self._lat_max = self._lat_min = 0
+        self._lon_max = self._lon_min = 0
+        self._lng_fudge = 0
+        self._lat_fudge = 0
 
         self.map_tiles = []
         self.map_visible = {}
-        self.map_visible['x_start'] = 0
-        self.map_visible['y_start'] = 0
-        self.map_visible['x_size'] = 0
-        self.map_visible['y_size'] = 0
 
-        self.set_size_request(self.tilesize * self.width,
-                              self.tilesize * self.height)
+        self.set_size_request(self._tilesize * self._width,
+                              self._tilesize * self._height)
         self.connect("draw", Map.Draw.handler)
 
-    def map_distance_with_units(self, pixels):
-        '''
-        Map Distance with units.
+    def calculate_bounds(self):
+        '''Calculate Bounds.'''
+        center = Map.Tile(position=self.position)
 
-        :param pixels: Number of pixels per tile
-        :type pixels: int
-        :returns: Size of a map tile
-        :rtype: str
+        # here we set the bounds for the map into the window
+        # delta is the mid of the tiles used to draw the map
+        # delta is necessary to keep alignment between the map
+        # and the station labels
+        delta = int(self._height / 2)
+        topleft = center + (-delta, -delta)
+        botright = center + (delta, delta)
+        (self._lat_min, _, _, self._lon_min) = botright.tile_edges()
+        (_, self._lon_max, self._lat_max, _) = topleft.tile_edges()
+
+        # I have no idea why, but for some reason we can calculate the
+        # longitude (x) just fine, but not the latitude (y).  The result
+        # of either latlon2xy() or tile_edges() is bad, which causes the
+        # y calculation of a given latitude to be off by some amount.
+        # The amount grows large at small values of zoom (zoomed out) and
+        # starts to seriously affect the correctness of marker placement.
+        # Until I figure out why that is, we calculate a fudge factor below.
+        #
+        # To do this, we ask the center tile for its NW corner's
+        # coordinates.  We then ask latlon2xy() (with fudge of zero) what
+        # the corresponding x,y is.  Since we know what the correct value
+        # should be, we record the offset and use that to shift the y in
+        # further calculations for this zoom level.
+
+        self._lng_fudge = 0
+        self._lat_fudge = 0
+
+        _south, west, north, _east = center.tile_edges()
+        x_axis, y_axis = self.latlon2xy(Map.Position(north, west))
+        self._lng_fudge = ((self._width / 2) * self._tilesize) - x_axis
+        self._lat_fudge = ((self._height / 2) * self._tilesize) - y_axis
+
+    @property
+    def color_black(self):
         '''
-        pos_a = self.xy2latlon(self.tilesize, self.tilesize)
-        pos_b = self.xy2latlon(self.tilesize * 2, self.tilesize)
+        :returns: Gdk Color black
+        :rtype: :class:`Gdk.RGBA`
+        '''
+        if not self._color_black:
+            self._color_black = Gdk.RGBA()
+            self._color_black.parse('black')
+        return self._color_black
+
+    def latlon2xy(self, pos):
+        '''
+        Translate Latitude and Longitude to X and Y map coordinates
+
+        :param pos: postion in latitude and longitude
+        :type pos: :class:`Map.MapPosition`
+        :returns: x and y coordinate on map
+        :rtype: tuple
+        '''
+        y_axis = 1- ((pos.latitude - self._lat_min) /
+                     (self._lat_max - self._lat_min))
+        x_axis = 1- ((pos.longitude - self._lon_min) /
+                     (self._lon_max - self._lon_min))
+
+        x_axis *= (self._tilesize * self._width)
+        y_axis *= (self._tilesize * self._height)
+
+        y_axis += self._lat_fudge
+        x_axis += self._lng_fudge
+        return (x_axis, y_axis)
+
+    def map_scale_pango_layout(self):
+        '''
+        Map Scale Pango Layout.
+
+        :returns: Map scale text in a pango layout
+        :rtype: :class:`Pango.Layout`
+        '''
+        pos_a = self.xy2latlon(self._tilesize, self._tilesize)
+        pos_b = self.xy2latlon(self._tilesize * 2, self._tilesize)
 
         # calculate width of one tile to show below the ladder scale
-        d_width = pos_a.distance(pos_b) * (float(pixels) / self.tilesize)
+        d_width = pos_a.distance(pos_b) * (float(self.pixels) / self._tilesize)
 
         dist = value_with_units(d_width)
-        return dist
+
+        # This layout needs to be replaced when the map_widget pango_context
+        # is changed.
+        pango_layout = self.create_pango_layout(dist)
+        return pango_layout
+
 
     # def scroll_event(self, widget, event):
     #    '''
@@ -142,33 +214,29 @@ class MapWidget(Gtk.DrawingArea):
         print("Map.MapWidget.set_center new %s" % position)
         self.queue_draw()
 
-    def value_x_event(self, widget):
+    def value_x_event(self, _widget):
         '''
-        Scrolling value of X change.
+        Scrolling value of X or Y change.
 
-        :param widget: adjustment widget
-        :type widget: :class:`Gtk.Adjustment`
+        :param _widget: adjustment widget, currently unused
+        :type _widget: :class:`Gtk.Adjustment`
         '''
-        print("value_x_event", widget.get_value(), widget.get_page_size(),
-              self.map_visible['x_start'])
-        # self.map_visible['x_start'] = widget.get_value()
-        # self.map_visible['x_size'] = widget.get_page_size()
-        # self.map_tiles = []
-        # Signal a map redraw
+        #print("value_x_event", widget.get_value(), widget.get_page_size(),
+        #      self.map_visible['x_start'])
+        # Should we invalidate some portion of the map here?
         self.queue_draw()
 
-    def value_y_event(self, widget):
+    def value_y_event(self, _widget):
         '''
         Scrolling value of y change.
 
-        :param widget: adjustment widget
-        :type widget: :class:`Gtk.Adjustment`
+        :param _widget: adjustment widget, Currently unused.
+        :type _widget: :class:`Gtk.Adjustment`
         '''
-        print("value_y_event", widget.get_value(), widget.get_page_size(),
-              self.map_visible['y_start'])
-        # self.map_visible['y_start'] = widget.get_value()
-        # self.map_visible['y_size'] = widget.get_page_size()
-        # self.map_tiles = []
+        # print("value_y_event", widget.get_value(), widget.get_page_size(),
+        #      self.map_visible['y_start'])
+
+        # Should we invalidate some portion of the map here?
         # Signal a map redraw
         self.queue_draw()
 
@@ -181,13 +249,13 @@ class MapWidget(Gtk.DrawingArea):
         :returns: Position of the coordinate
         :rtype: :class:`map.MapPosition`
         '''
-        y_axis -= self.lat_fudge
-        x_axis -= self.lng_fudge
+        y_axis -= self._lat_fudge
+        x_axis -= self._lng_fudge
 
-        lon = 1 - (float(x_axis) / (self.tilesize * self.width))
-        lat = 1 - (float(y_axis) / (self.tilesize * self.height))
+        lon = 1 - (float(x_axis) / (self._tilesize * self._width))
+        lat = 1 - (float(y_axis) / (self._tilesize * self._height))
 
-        lat = (lat * (self.lat_max - self.lat_min)) + self.lat_min
-        lon = (lon * (self.lon_max - self.lon_min)) + self.lon_min
+        lat = (lat * (self._lat_max - self._lat_min)) + self._lat_min
+        lon = (lon * (self._lon_max - self._lon_min)) + self._lon_min
 
         return Map.Position(lat, lon)

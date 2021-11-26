@@ -408,7 +408,6 @@ class MapWindow(Gtk.ApplicationWindow):
     # Called by mainapp not sure if inherited
     # def queue_draw(self):
 
-
     def recenter(self, position):
         '''
         Recenter Map to position.
@@ -440,6 +439,57 @@ class MapWindow(Gtk.ApplicationWindow):
         position = Map.Position(latitude, longitude)
         self.map_widget.set_center(position)
 
+    # Called by mainapp
+    def set_base_dir(self, base_dir, map_url, map_key):
+        '''
+        Set Base Directory.
+
+        :param base_dir: Base directory
+        :type base_dir: str
+        :param map_url: URL of Map
+        :type map_url: str
+        :param map_key: Map access key
+        :type map_key: str
+        '''
+        Map.Tile.set_base_dir(base_dir)
+        Map.Tile.set_map_url_and_key(map_url, map_key)
+        self.logger.info("BASE_DIR configured to %s", base_dir)
+        self.logger.info("MAP_URL configured to: %s", map_url)
+        self.logger.debug("MAP_URL_KEY configured to: %s", map_key)
+
+    # Called by mainap
+    @staticmethod
+    def set_connected(connected):
+        '''
+        Set Connected.
+
+        :param connected: New connected state
+        :type connected: bool
+        '''
+        Map.Tile.set_connected(connected)
+
+    # Called by mainapp
+    @staticmethod
+    def set_proxy(proxy):
+        '''
+        Set Proxy.
+
+        :param proxy: Proxy to use
+        :type proxy: str
+        '''
+        Map.Tile.set_proxy(proxy)
+
+    # Called by mainap
+    @staticmethod
+    def set_tile_lifetime(lifetime):
+        '''
+        Set tile Lifetime.
+
+        :param lifetime: Cache lifetime in seconds
+        :param lifetime: int
+        '''
+        Map.Tile.set_tile_lifetime(lifetime)
+
     # public method used by mainap inherited from parent
     # def set_title(self, str)
 
@@ -448,7 +498,7 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         Set zoom level.
 
-        :param zoom: zoom level from 3 to 18?
+        :param zoom: zoom level from 2 to 18
         :type zoom: int
         '''
         self.mapcontrols.zoom_control.level = zoom
