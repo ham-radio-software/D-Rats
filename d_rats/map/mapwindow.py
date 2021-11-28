@@ -451,8 +451,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :param map_key: Map access key
         :type map_key: str
         '''
-        Map.Tile.set_base_dir(base_dir)
-        Map.Tile.set_map_url_and_key(map_url, map_key)
+        Map.Tile.set_map_info(base_dir, map_url, map_key)
         self.logger.info("BASE_DIR configured to %s", base_dir)
         self.logger.info("MAP_URL configured to: %s", map_url)
         self.logger.debug("MAP_URL_KEY configured to: %s", map_key)
@@ -502,17 +501,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :type zoom: int
         '''
         self.mapcontrols.zoom_control.level = zoom
-
-    # pylint: disable=no-self-argument
-    def status(fraction, message):
-        '''
-        Sets a progress bar status.
-
-        :param fraction: Amount of progress
-        :type fraction: float
-        :param message: Status message to display
-        :type message: str
-        '''
 
     def toggle_show(self, group, *vals):
         '''
