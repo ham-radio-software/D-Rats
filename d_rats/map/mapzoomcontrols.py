@@ -54,6 +54,8 @@ class MapZoomControls(Gtk.Frame):
     ZOOM_MAX = 18
     ZOOM_DEFAULT = 14
 
+    __level = ZOOM_DEFAULT
+
     def __init__(self, map_widget, zoom=None):
         Gtk.Frame.__init__(self)
         self.__level = self.sanitize_level(zoom)
@@ -109,6 +111,16 @@ class MapZoomControls(Gtk.Frame):
         elif level > self.ZOOM_MAX:
             level = self.ZOOM_MAX
         return level
+
+    @classmethod
+    def get_level(cls):
+        '''
+        Get level of zoom.
+
+        :returns: Current Zoom level
+        :rtype: int
+        '''
+        return cls.__level
 
     @property
     def level(self):

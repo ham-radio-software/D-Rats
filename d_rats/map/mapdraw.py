@@ -22,11 +22,16 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import logging
+import os
+import cairo
+
 import gi
-# gi.require_version("Gdk", "3.0")
-# from gi.repository import Gdk
+gi.require_version("Gdk", "3.0")
 gi.require_version("PangoCairo", "1.0")
 from gi.repository import PangoCairo
+
+from .. import map as Map
 
 
 # This makes pylance happy with out overriding settings
@@ -34,6 +39,31 @@ from gi.repository import PangoCairo
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
+
+
+# pylint: disable=too-few-public-methods
+class LoadContext():
+    '''
+    Tile Context
+
+    :param loaded_tiles: Tile that are loaded
+    :param total_tiles: Total tiles
+    '''
+
+    def __init__(self, loaded_tiles, total_tiles):
+        self.loaded_tiles = loaded_tiles
+        self.total_tiles = total_tiles
+        self.zoom = Map.ZoomControls.get_level()
+
+    @property
+    def fraction(self):
+        '''
+        :returns: Fraction of tiles being loaded
+        :rtype: float
+        '''
+        if self.loaded_tiles == self.total_tiles:
+            return 0.0
+        return float(self.loaded_tiles) / float(self.total_tiles)
 
 
 class MapDraw():
@@ -44,12 +74,24 @@ class MapDraw():
     inside the draw handler.
 
     Putting in its own class to avoid confusion.
+    This class should only be instanciated by the handler classmethod.
+
+    :param map_widget: Calling widget context
+    :type map_widget: :class:`Map.Mapwidget`
+    :param cairo_ctx: Cairo context for drawing area
+    :type cairo_ctx: :class:`cairo.Context`
     '''
 
-    def __init__(self):
-        self.map_widget = None
-        self.cairo_ctx = None
+    __broken_tile = None
+
+    def __init__(self, map_widget, cairo_ctx):
+        self.map_widget = map_widget
+        self.cairo_ctx = cairo_ctx
         self.map_visible = {}
+        self.load_ctx = None
+        self.sb_prog = None
+        self.map_visible = None
+        self.logger = logging.getLogger("MapDraw")
 
     @classmethod
     def handler(cls, map_widget, cairo_ctx):
@@ -68,10 +110,10 @@ class MapDraw():
         :returns: False to allow other handlers to run
         :rtype: bool
         '''
-        cls.map_widget = map_widget
-        cls.cairo_ctx = cairo_ctx
-        cls.map_visible = {}
-        scrollw = map_widget.mapwindow.scrollw
+        self = MapDraw(map_widget, cairo_ctx)
+        self.sb_prog = map_widget.map_window.statusbox.sb_prog
+        self.map_visible = {}
+        scrollw = map_widget.map_window.scrollw
         y_slider_width = scrollw.get_vscrollbar().get_preferred_width()
         x_slider_height = scrollw.get_hscrollbar().get_preferred_height()
         slider_size = max(max(y_slider_width), max(x_slider_height))
@@ -84,19 +126,18 @@ class MapDraw():
         # the sliders.
         # For larger sliders the scale will move a bit depending on how the
         # window position was updated.
-        cls.map_visible['slider_size'] = max(slider_size, 20)
-        cls.map_visible['x_start'] = int(
+        self.map_visible['slider_size'] = max(slider_size, 20)
+        self.map_visible['x_start'] = int(
             scrollw.get_hadjustment().get_value())
-        cls.map_visible['x_size'] = int(
+        self.map_visible['x_size'] = int(
             scrollw.get_hadjustment().get_page_size())
-        cls.map_visible['y_start'] = int(scrollw.get_vadjustment().get_value())
-        cls.map_visible['y_size'] = int(
+        self.map_visible['y_start'] = int(scrollw.get_vadjustment().get_value())
+        self.map_visible['y_size'] = int(
             scrollw.get_vadjustment().get_page_size())
         map_widget.calculate_bounds()
 
-        cls.scale(cls)
-            # map_widget.expose_map(cairo_ctx)
-            # self.expose_map(cairo_ctx)
+        self.expose_map()
+        self.scale()
             #if not self.map_tiles:
             #    self.load_tiles(cairo_ctx)
 
@@ -110,18 +151,136 @@ class MapDraw():
             #self.emit("redraw-markers")
         return False
 
+    def broken_tile(self):
+        '''
+        Broken Tile
+
+        :returns: pixbuf object
+        '''
+        if self.__broken_tile:
+            return self.__broken_tile
+
+        module_path = os.path.abspath(__file__)
+        module_dir = os.path.dirname(module_path)
+        map_dir = os.path.dirname(module_dir)
+        base_dir = os.path.dirname(map_dir)
+        broken_path = os.path.join(base_dir, "images", "broken_tile.png")
+        # pylint: disable=no-member
+        self.__broken_tile = cairo.ImageSurface.create_from_png(broken_path)
+        return self.__broken_tile
+
+    def draw_tile(self, path, x_axis, y_axis):
+        '''
+        Draw Tile.
+
+        :param path: Path for tile
+        :type path: str
+        :param x_axis: X Axis for tile
+        :type x_axis: int
+        :param y_axis: Y Axis for tile
+        :type x_axis: int
+        '''
+        #if self.tile_ctx and self.tile_ctx.zoom != self.zoom:
+        #    # Zoom level has changed, so don't do anything
+        #    return
+
+        # pixmap_gc = self.pixmap.new_gc()
+
+        if path:
+            # pylint: disable=broad-except
+            try:
+                # pylint: disable=no-member
+                surface = cairo.ImageSurface.create_from_png(path)
+            except cairo.Error as err:
+                # Debugging information
+                if err.errno != 2:  # file not found
+                    self.logger.info("draw_tile: path %s", path, exc_info=True)
+
+                # this is the case  when some jpg tile file cannot be loaded -
+                # typically this was due to html content saved as jpg
+                # (due to an un trapped http error), or due to really corrupted
+                # jpg (e.g. d-rats was closed before completing file save )
+                if os.path.exists(path):
+                    self.logger.info(
+                        "draw_tile Deleting the broken tile to force future"
+                        "download %s", path)
+                    os.remove(path)
+                # else:
+                #   usually this happens when a tile file has not been
+                #   created after fetching from the tile as some error was got
+                #   printlog(("Mapdisplay: broken tile  not found"
+                #             " - skipping deletion of: %s" % path))
+
+                print("# draw-tile: broken_tile by exception")
+                surface = self.broken_tile()
+        else:
+            surface = self.broken_tile()
+
+        if self.load_ctx:
+            self.load_ctx.loaded_tiles += 1
+            if self.load_ctx.loaded_tiles == self.load_ctx.total_tiles:
+                self.progress("")
+            else:
+                self.progress(_("Loaded"))
+
+        self.cairo_ctx.save()
+        self.cairo_ctx.set_source_surface(surface, x_axis, y_axis)
+        self.cairo_ctx.paint()
+        self.cairo_ctx.restore()
+
     def expose_map(self):
         '''
         Expose the Map.
-
-        :param cairo_ctx: Cairo context for drawing area
-        :type cairo_ctx: :class:`cairo.Context`
         '''
-        print("expose_map", type(self.cairo_ctx))
-        if not self.map_widget.map_tiles:
-            # Draw map tiles if needed
-            # Draw scale if needed.
-            pass
+        print("expose_map_tiles")
+        #if not self.map_widget.map_tiles:
+        #    # Draw map tiles if needed
+        #    # Draw scale if needed.
+        #    pass
+        width = self.map_widget.width
+        height = self.map_widget.height
+        self.load_ctx = LoadContext(0, (width * height))
+        center = Map.Tile(self.map_widget.position)
+
+        delta_h = height / 2
+        delta_w = width  / 2
+
+        count = 0
+        # total = self.width * self.height
+
+        tilesize = self.map_widget.tilesize
+        self.map_widget.map_tiles = []
+        for i in range(0, width):
+            for j in range(0, height):
+                print("load-tiles %s ,%s" % (i, j))
+                tile = center + (i - delta_w, j - delta_h)
+                if not tile.is_local():
+                    message = _("Retrieving")
+                else:
+                    message = _("Loading")
+
+                self.progress(message)
+                tile_path = tile.get_local_tile_path()
+                if tile_path:
+                    self.draw_tile(tile_path,
+                                   tilesize * i,
+                                   tilesize * j)
+                else:
+                    self.draw_tile(None,
+                                   tilesize * i,
+                                   tilesize * j)
+                    # Disable threading for now
+                    #tile.threaded_fetch(self.draw_tile_locked,
+                    #                    tilesize * i,
+                    #                    tilesize * j,
+                    #                    load_ctx,
+                    #                    self.cairo_ctx)
+                self.map_widget.map_tiles.append(tile)
+                count += 1
+
+        # time.sleep(10)
+        #self.calculate_bounds()
+        #self.emit("new-tiles-loaded")
 
     # pylint: disable=too-many-locals
     def scale(self):
@@ -134,18 +293,13 @@ class MapDraw():
         :type pixels: int
         '''
         # Need to find out about magic number 128 for pixels.
-
         pango_layout = self.map_widget.map_scale_pango_layout()
         pango_width, pango_height = pango_layout.get_pixel_size()
 
-        color = self.map_widget.color_black
         pixels = self.map_widget.pixels
         self.cairo_ctx.save()
 
-        self.cairo_ctx.set_source_rgba(color.red,
-                                       color.green,
-                                       color.blue,
-                                       color.alpha)
+        self.cairo_ctx.set_source_rgba(0.0, 0.0, 0.0) # default for black
 
         visible = self.map_visible
         # place scale ending at 10% of pixels from the bottom right.
@@ -182,3 +336,17 @@ class MapDraw():
         PangoCairo.show_layout(self.cairo_ctx, pango_layout)
         self.cairo_ctx.stroke()
         self.cairo_ctx.restore()
+
+    def progress(self, message):
+        '''
+        Sets a progress bar status.
+
+        :param message: Status message to display
+        :type message: str
+        '''
+        fraction = self.load_ctx.fraction
+        progress_text = message
+        if fraction > 0.0:
+            progress_text += " %.0f%%" % (fraction * 100.0)
+        self.sb_prog.set_fraction(fraction)
+        self.sb_prog.set_text(progress_text)
