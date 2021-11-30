@@ -61,8 +61,6 @@ class LoadContext():
         :returns: Fraction of tiles being loaded
         :rtype: float
         '''
-        if self.loaded_tiles == self.total_tiles:
-            return 0.0
         return float(self.loaded_tiles) / float(self.total_tiles)
 
 
@@ -180,63 +178,46 @@ class MapDraw():
         :param y_axis: Y Axis for tile
         :type x_axis: int
         '''
-        #if self.tile_ctx and self.tile_ctx.zoom != self.zoom:
-        #    # Zoom level has changed, so don't do anything
-        #    return
-
-        # pixmap_gc = self.pixmap.new_gc()
-
         if path:
-            # pylint: disable=broad-except
             try:
                 # pylint: disable=no-member
                 surface = cairo.ImageSurface.create_from_png(path)
+                self.load_ctx.loaded_tiles += 1
             except cairo.Error as err:
+                surface = self.broken_tile()
                 # Debugging information
-                if err.errno != 2:  # file not found
+                # pylint: disable=no-member
+                if err.status != cairo.Status.FILE_NOT_FOUND:
+                    # The file not found is because we have a bad tile cached.
+                    # This is to prevent excessive reties for non-existant
+                    # map tiles.  Anything else should be logged for more
+                    # analysis.
                     self.logger.info("draw_tile: path %s", path, exc_info=True)
 
                 # this is the case  when some jpg tile file cannot be loaded -
                 # typically this was due to html content saved as jpg
-                # (due to an un trapped http error), or due to really corrupted
+                # (due to an un-trapped http error), or due to really corrupted
                 # jpg (e.g. d-rats was closed before completing file save )
                 if os.path.exists(path):
                     self.logger.info(
                         "draw_tile Deleting the broken tile to force future"
                         "download %s", path)
                     os.remove(path)
-                # else:
-                #   usually this happens when a tile file has not been
-                #   created after fetching from the tile as some error was got
-                #   printlog(("Mapdisplay: broken tile  not found"
-                #             " - skipping deletion of: %s" % path))
-
-                print("# draw-tile: broken_tile by exception")
-                surface = self.broken_tile()
         else:
             surface = self.broken_tile()
-
-        if self.load_ctx:
-            self.load_ctx.loaded_tiles += 1
-            if self.load_ctx.loaded_tiles == self.load_ctx.total_tiles:
-                self.progress("")
-            else:
-                self.progress(_("Loaded"))
 
         self.cairo_ctx.save()
         self.cairo_ctx.set_source_surface(surface, x_axis, y_axis)
         self.cairo_ctx.paint()
         self.cairo_ctx.restore()
+        # Need to make sure that this returns false
+        # when run by Glib.idle_add
+        return False
 
     def expose_map(self):
         '''
         Expose the Map.
         '''
-        print("expose_map_tiles")
-        #if not self.map_widget.map_tiles:
-        #    # Draw map tiles if needed
-        #    # Draw scale if needed.
-        #    pass
         width = self.map_widget.width
         height = self.map_widget.height
         self.load_ctx = LoadContext(0, (width * height))
@@ -245,21 +226,15 @@ class MapDraw():
         delta_h = height / 2
         delta_w = width  / 2
 
-        count = 0
-        # total = self.width * self.height
-
         tilesize = self.map_widget.tilesize
         self.map_widget.map_tiles = []
         for i in range(0, width):
             for j in range(0, height):
-                print("load-tiles %s ,%s" % (i, j))
                 tile = center + (i - delta_w, j - delta_h)
                 if not tile.is_local():
                     message = _("Retrieving")
                 else:
                     message = _("Loading")
-
-                self.progress(message)
                 tile_path = tile.get_local_tile_path()
                 if tile_path:
                     self.draw_tile(tile_path,
@@ -269,14 +244,11 @@ class MapDraw():
                     self.draw_tile(None,
                                    tilesize * i,
                                    tilesize * j)
-                    # Disable threading for now
-                    #tile.threaded_fetch(self.draw_tile_locked,
-                    #                    tilesize * i,
-                    #                    tilesize * j,
-                    #                    load_ctx,
-                    #                    self.cairo_ctx)
+                    tile.threaded_fetch(self.draw_tile,
+                                        tilesize * i,
+                                        tilesize * j)
+                self.progress(message)
                 self.map_widget.map_tiles.append(tile)
-                count += 1
 
         # time.sleep(10)
         #self.calculate_bounds()
