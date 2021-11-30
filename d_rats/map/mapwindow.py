@@ -103,6 +103,7 @@ class MapWindow(Gtk.ApplicationWindow):
         self.map_widget = Map.Widget(width=tiles, height=tiles,
                                      window=self)
         self.map_widget.show()
+        Map.Tile.set_map_widget(self.map_widget)
 
         self.scrollw = Gtk.ScrolledWindow()
         self.scrollw.add(self.map_widget)
@@ -173,25 +174,15 @@ class MapWindow(Gtk.ApplicationWindow):
         print("get_map_sources", type(self))
         return []
 
-    def refresh_item_handler(self, action, _value):
+    def refresh_item_handler(self, _action, _value):
         '''
         Refresh Item Handler.
 
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
         '''
-        print("refresh_item_handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
-        self.statusbox.sb_center.pop(self.STATUS_CENTER)
-        self.statusbox.sb_center.push(self.STATUS_CENTER,
-                                      _("Center") + ": %s" % "refresh")
-        self.update_gps_status("GPS test string")
-        if self.__temp_frac < 1.0:
-            self.__temp_frac += 0.1
-        self.statusbox.sb_prog.set_text(_("Loaded") + " %.0f%%" %
-                                        (self.__temp_frac * 100.0))
-        self.statusbox.sb_prog.set_fraction(self.__temp_frac)
+        self.map_widget.queue_draw()
 
     def clearcache_item_handler(self, action, _value):
         '''

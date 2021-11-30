@@ -27,6 +27,7 @@ import logging
 import math
 import threading
 import time
+import urllib.request
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -41,6 +42,26 @@ from .. import map as Map
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
+
+
+class MapTileException(Map.MapException):
+    '''Generic MapTile Exception.'''
+
+
+class MapFetchUrlException(MapTileException):
+    '''Map Fetch Url Exception.'''
+
+
+class MapNotConnected(MapFetchUrlException):
+    '''Not connected Error.'''
+
+
+class MapTileNotFound(MapFetchUrlException):
+    '''Map Tile Not Found.'''
+
+
+class MapFetchError(MapFetchUrlException):
+    '''Map Unexpected Fetch Error.'''
 
 
 class MapTile():
@@ -64,6 +85,7 @@ class MapTile():
     _proxy = None
     _tile_lifetime = 0
     _zoom = 0
+    _map_widget = None
 
     def __init__(self, position=None, x_axis=None, y_axis=None):
 
@@ -108,14 +130,23 @@ class MapTile():
         :type base_dir: str
         :param map_url: Url to map source
         :type map_url: str
-        :param map_key: Key to allow access to maps
-        :type map_key: str
+        :param map_url_key: Key to allow access to maps
+        :type map_url_key: str
         '''
         if not os.path.isdir(base_dir):
             os.makedirs(base_dir, mode=0o644, exist_ok=True)
         cls._base_dir = base_dir
         cls._map_url = map_url
         cls._map_key = map_url_key
+
+    @classmethod
+    def set_map_widget(cls, map_widget):
+        '''
+        Set Map Widget.
+
+        :param map_widget: Map display widget
+        :type: map_widget: :class:`Map.MapWidget`'''
+        cls._map_widget = map_widget
 
     @classmethod
     def set_proxy(cls, proxy):
@@ -248,7 +279,7 @@ class MapTile():
         :returns: Local file path or None
         :rtype str:
         '''
-        local_cache = self.local_path()
+        local_cache = self._local_path()
         if os.path.exists(self._local_path()):
             return local_cache
         return None
@@ -261,13 +292,14 @@ class MapTile():
         :rtype: bool
         '''
         local_cache = self._local_path()
-        local = os.path.exists(self._local_path())
+        local = os.path.exists(local_cache)
         if not local:
             local_cache = self._local_bad_path()
-            local = os.path.exists(self._local_bad_path())
+            local = os.path.exists(local_cache)
 
         if not local:
             return False
+
         if self._tile_lifetime == 0 or not self._connected:
             return local
 
@@ -284,33 +316,72 @@ class MapTile():
         #verify if tile is local, if not fetches from web
         if self.is_local():
             return True
-        print("fetch", self.is_local())
-        #for tile_num in range(10):
-            #url = self.remote_path()
-            #try:
-                #fetch_url(url, self._local_path())
-                #self.logger.info("fetch: opened %s", url)
-                #return True
-            # except MapTileNotFound:
-            #    self.logger.info("fetch: created %s",
-            #                     self._local_bad_path())
-            #    with open(self._local_bad_path(), 'w'):
-            #        pass
-            #    self.logger.info("fetch: [%i] Not found `%s'",
-            #                     tile_num, url, exc_info=True)
-            #except MapFetchUrlException as err:
-            #    self.logger.info("fetch: [%i] Failed to fetch `%s'",
-            #                     tile_num, url, exc_info=True)
+        for tile_num in range(10):
+            url = self.remote_path()
+            try:
+                self.fetch_url(url, self._local_path())
+                self.logger.info("fetch: opened %s", url)
+                if self._map_widget:
+                    self._map_widget.queue_draw()
+                return True
+            except MapTileNotFound:
+                self.logger.info("fetch: created %s",
+                                 self._local_bad_path())
+                with open(self._local_bad_path(), 'w'):
+                    pass
+                self.logger.info("fetch: [%i] Not found `%s'",
+                                 tile_num, url)
+            except MapFetchUrlException:
+                self.logger.info("fetch: [%i] Failed to fetch `%s'",
+                                 tile_num, url, exc_info=True)
+            return False
 
-        return False
+    def fetch_url(self, url, local):
+        '''
+        Fetch Url.
 
+        :param local: Local file name to store contents
+        :raises: MapNotConnected(MapFetchUrlException) if not connected
+        :raises: MapTileNotFound(MapFetchUrlException) if tile is not available
+        :raises: MapFetchError(MapFetchUrlException) Any other error
+        '''
+        # for setup of d-rats user_agent
+        from .. import version
+
+        if not self._connected:
+            raise MapNotConnected("Not connected")
+
+        if self._proxy:
+            # proxies = {"http" : PROXY}
+            authinfo = urllib.request.HTTPBasicAuthHandler()
+            proxy_support = urllib.request.ProxyHandler({"http" : self._proxy})
+            ftp_handler = urllib.request.CacheFTPHandler
+            opener = urllib.request.build_opener(proxy_support, authinfo,
+                                                 ftp_handler)
+            urllib.request.install_opener(opener)
+        req = urllib.request.Request(url, None,
+                                     version.HTTP_CLIENT_HEADERS)
+
+        try:
+            data = urllib.request.urlopen(req)
+        except urllib.error.HTTPError as err:
+            if err.code == 404:
+                raise MapTileNotFound("404 error code")
+            self.logger.info("HTTP error while retrieving tile", exc_info=True)
+            raise MapFetchError(err)
+
+        read_data = data.read()
+        local_file = open(local, "wb")
+        local_file.write(read_data)
+        data.close()
+        local_file.close()
+        return True
 
     def _thread(self, callback, *args):
         if self.fetch():
             fname = self._local_path()
         else:
             fname = None
-
         GLib.idle_add(callback, fname, *args)
 
     def threaded_fetch(self, callback, *args):
@@ -320,8 +391,8 @@ class MapTile():
         :param callback: Callback for fetch
         :param args: Optional arguments
         '''
-        _args = (callback,) + args
-        tfetch = threading.Thread(target=self._thread, args=_args)
+        new_args = (callback,) + args
+        tfetch = threading.Thread(target=self._thread, args=new_args)
         tfetch.setDaemon(True)
         tfetch.start()
 
@@ -342,7 +413,10 @@ class MapTile():
         :returns: URL of path
         :rtype: str
         '''
-        return self._map_url + (self.path()) + self._map_url_key
+        remote_path = self._map_url + (self.path())
+        if self._map_url_key:
+            remote_path += self._map_url_key
+        return remote_path
 
     def __add__(self, count):
         (x_axis, y_axis) = count
@@ -353,7 +427,6 @@ class MapTile():
         return (self.x_axis - tile.x_axis, self.y_axis - tile.y_axis)
 
     def __contains__(self, point):
-
         # pylint: disable=fixme
         # FIXME for non-western!
         (lat_max, lon_max, lat_min, lon_min) = self.tile_edges()
