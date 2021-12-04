@@ -81,6 +81,7 @@ class MapDraw():
     '''
 
     __broken_tile = None
+    __center = None
 
     def __init__(self, map_widget, cairo_ctx):
         self.map_widget = map_widget
@@ -90,6 +91,18 @@ class MapDraw():
         self.sb_prog = None
         self.map_visible = None
         self.logger = logging.getLogger("MapDraw")
+
+    @classmethod
+    def set_center(cls, pos):
+        '''
+        Set Center.
+
+        Set a flag to have the window scrollbars centered.
+
+        :param pos: New center position
+        :type pos: :class:`Map.MapPosition
+        '''
+        cls.__center = pos
 
     @classmethod
     def handler(cls, map_widget, cairo_ctx):
@@ -125,14 +138,25 @@ class MapDraw():
         # For larger sliders the scale will move a bit depending on how the
         # window position was updated.
         self.map_visible['slider_size'] = max(slider_size, 20)
-        self.map_visible['x_start'] = int(
-            scrollw.get_hadjustment().get_value())
-        self.map_visible['x_size'] = int(
-            scrollw.get_hadjustment().get_page_size())
-        self.map_visible['y_start'] = int(scrollw.get_vadjustment().get_value())
-        self.map_visible['y_size'] = int(
-            scrollw.get_vadjustment().get_page_size())
+        hadj = scrollw.get_hadjustment()
+        self.map_visible['x_start'] = int(hadj.get_value())
+        h_page_size = hadj.get_page_size()
+        self.map_visible['x_size'] = int(h_page_size)
+        vadj = scrollw.get_vadjustment()
+        self.map_visible['y_start'] = int(vadj.get_value())
+        v_page_size = vadj.get_page_size()
+        self.map_visible['y_size'] = int(v_page_size)
         map_widget.calculate_bounds()
+
+        if cls.__center:
+            # We do not know the page size of the scrollbars until we get
+            # here, so self._center is used to let us know when we need to
+            # have the program adjust the scrollbars to the new center.
+            x_axis, y_axis = map_widget.latlon2xy(cls.__center)
+
+            hadj.set_value(x_axis - (h_page_size / 2))
+            vadj.set_value(y_axis - (v_page_size / 2))
+            cls.__center = None
 
         self.expose_map()
         self.scale()

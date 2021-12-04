@@ -54,7 +54,8 @@ class MapZoomControls(Gtk.Frame):
     ZOOM_MAX = 18
     ZOOM_DEFAULT = 14
 
-    __level = ZOOM_DEFAULT
+    __level = 0
+    __prev_level = 0
 
     def __init__(self, map_widget, zoom=None):
         Gtk.Frame.__init__(self)
@@ -177,9 +178,12 @@ class MapZoomControls(Gtk.Frame):
         if (time.time() - time_zoom) < 0.5:
             # Waiting for slider to stop moving
             return True
+
         self.__last_zoom = None
         self.__level = zoom_value
-        Map.Tile.set_zoom(zoom_value)
-        # This should signal a map redraw event
-        self.map_widget.queue_draw()
+        if self.__prev_level != zoom_value:
+            self.__prev_level = zoom_value
+            Map.Tile.set_zoom(zoom_value)
+            # This should signal a map redraw event
+            self.map_widget.queue_draw()
         return False

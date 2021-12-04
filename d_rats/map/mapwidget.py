@@ -23,12 +23,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import time
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-# from gi.repository import Gdk
-# gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk
 
 from ..gps import value_with_units
 from .. import map as Map
@@ -137,16 +137,46 @@ class MapWidget(Gtk.DrawingArea):
         self._lng_fudge = ((self.width / 2) * self.tilesize) - x_axis
         self._lat_fudge = ((self.height / 2) * self.tilesize) - y_axis
 
-    #@property
-    #def color_black(self):
-    #    '''
-    #    :returns: Gdk Color black
-    #    :rtype: :class:`Gdk.RGBA`
-    #    '''
-    #    if not self._color_black:
-    #        self._color_black = Gdk.RGBA()
-    #        self._color_black.parse('black')
-    #    return self._color_black
+    # pylint: disable=no-self-use
+    def center_on(self, position):
+        '''
+        Center On.
+
+        :param position: position for new center
+        :type position: :class:`Map.MapPosition`
+        '''
+        # The scroll adjustments have no value until being exposed
+        # So we need to tell the expose handler to center them.
+        Map.Draw.set_center(position)
+
+    def export_to(self, filename, bounds):
+        '''
+        Export To File in PNG format.
+
+        :param filename: Filename to export to
+        :type filename: str
+        :param bounds: bounds of screen
+        :type bounds: tuple of 4 items
+        '''
+        if not bounds:
+            x_axis = 0
+            y_axis = 0
+            bounds = (0, 0, -1, -1)
+            width = self.tilesize * self.width
+            height = self.tilesize * self.height
+        else:
+            x_axis = bounds[0]
+            y_axis = bounds[1]
+            width = bounds[2] - bounds[0]
+            height = bounds[3] - bounds[1]
+
+        gdk_window = self.get_window()
+        self.queue_draw()
+        time.sleep(1)
+        pixbuf = Gdk.pixbuf_get_from_window(gdk_window,
+                                            x_axis, y_axis,
+                                            width, height)
+        pixbuf.savev(filename, "png", [], [])
 
     def latlon2xy(self, pos):
         '''
@@ -208,10 +238,10 @@ class MapWidget(Gtk.DrawingArea):
         :param position: position for new center
         :type position: :class:`Map.MapPosition`
         '''
-        print("Map.MapWidget.set_center old %s" % position)
         self.position = position
         #self.map_tiles = []
-        print("Map.MapWidget.set_center new %s" % position)
+        #self.refresh_marker_list()
+        self.center_on(self.position)
         self.queue_draw()
 
     def value_x_event(self, _widget):
@@ -221,9 +251,6 @@ class MapWidget(Gtk.DrawingArea):
         :param _widget: adjustment widget, currently unused
         :type _widget: :class:`Gtk.Adjustment`
         '''
-        #print("value_x_event", widget.get_value(), widget.get_page_size(),
-        #      self.map_visible['x_start'])
-        # Should we invalidate some portion of the map here?
         self.queue_draw()
 
     def value_y_event(self, _widget):
@@ -233,11 +260,6 @@ class MapWidget(Gtk.DrawingArea):
         :param _widget: adjustment widget, Currently unused.
         :type _widget: :class:`Gtk.Adjustment`
         '''
-        # print("value_y_event", widget.get_value(), widget.get_page_size(),
-        #      self.map_visible['y_start'])
-
-        # Should we invalidate some portion of the map here?
-        # Signal a map redraw
         self.queue_draw()
 
     def xy2latlon(self, x_axis, y_axis):
