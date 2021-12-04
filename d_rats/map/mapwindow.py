@@ -23,6 +23,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import shutil
+import tempfile
 import time
 
 import gi
@@ -32,6 +34,7 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
 
+from .. import dplatform
 from .. import map as Map
 
 # This makes pylance happy with out overriding settings
@@ -174,7 +177,73 @@ class MapWindow(Gtk.ApplicationWindow):
         print("get_map_sources", type(self))
         return []
 
-    def refresh_item_handler(self, _action, _value):
+    def get_visible_bounds(self):
+        '''
+        Get Visible Bounds.
+
+        :returns: tuple with bounds
+        :rtype: tuple
+        '''
+        hadj = self.scrollw.get_hadjustment()
+        vadj = self.scrollw.get_vadjustment()
+
+        return (int(hadj.get_value()), int(vadj.get_value()),
+                int(hadj.get_value() + hadj.get_page_size()),
+                int(vadj.get_value() + vadj.get_page_size()))
+
+    def item_clearcache_handler(self, _action, _value):
+        '''
+        Clear Cache Handler.
+
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        base_dir = Map.Tile.get_base_dir()
+        dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.YES_NO)
+        dialog.set_property("text",
+                            _("Are you sure you want to delete all"
+                              "your map files in \n %s\n?") % base_dir)
+        run_status = dialog.run()
+        dialog.destroy()
+
+        if run_status == Gtk.ResponseType.YES:
+            base_dir = Map.Tile.get_base_dir()
+            shutil.rmtree(base_dir, True)
+            self.map_widget.queue_draw()
+
+    def item_editsources_handler(self, action, _value):
+        '''
+        Edit Sources Handler.
+
+        :param action: Action that was invoked
+        :type action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        print("Edit Sources handler", type(self))
+        print('Action: %s\n value: %s' % (action, _value))
+
+    def item_printable_handler(self, _action, _value):
+        '''
+        Printable Item Handler.
+
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        self.printable_map()
+
+    def item_printablevis_handler(self, _action, _value):
+        '''
+        Printable Visible Item Handler.
+
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        self.printable_map(self.get_visible_bounds())
+
+    def item_refresh_handler(self, _action, _value):
         '''
         Refresh Item Handler.
 
@@ -184,71 +253,25 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         self.map_widget.queue_draw()
 
-    def clearcache_item_handler(self, action, _value):
-        '''
-        Clear Cache Handler.
-
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
-        '''
-        print("Clear Cache handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
-
-    def editsources_item_handler(self, action, _value):
-        '''
-        Edit Sources Handler.
-
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
-        '''
-        print("Edit Sources handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
-
-    def printable_item_handler(self, action, _value):
-        '''
-        Printable Item Handler.
-
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
-        '''
-        print("Printable Item handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
-
-    def printablevis_item_handler(self, action, _value):
-        '''
-        Printable Visible Item Handler.
-
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
-        '''
-        print("Printable Visible Item handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
-
-    def save_item_handler(self, action, _value):
+    def item_save_handler(self, _action, _value):
         '''
         Save Item Handler.
 
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
         '''
-        print("Save Item handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
+        self.save_map()
 
-    def savevis_item_handler(self, action, _value):
+    def item_savevis_handler(self, _action, _value):
         '''
         Save Visible Item Handler.
 
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
-        :param _value: Value for action, Unused.
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
         '''
-        print("Save Visible Item handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
+        self.save_map(self.get_visible_bounds())
 
     def _make_menu(self):
         '''
@@ -396,6 +419,57 @@ class MapWindow(Gtk.ApplicationWindow):
 
         return False
 
+    def printable_map(self, bounds=None):
+        '''
+        Printable Map.
+
+        :param bounds: Bounds to save, Default None
+        :type bounds: tuple of 4 elements
+        '''
+        GLib.timeout_add(1000, self.printable_map_handler, bounds)
+
+    def printable_map_handler(self, bounds):
+        '''
+        Printable Map Handler.
+
+        :param bounds: Bounds to save
+        :type bounds: tuple of 4 elements
+        :returns: False to prevent timer retriggering
+        :rtype: bool
+        '''
+        platform = dplatform.get_platform()
+
+        file_handle = tempfile.NamedTemporaryFile()
+        fname = file_handle.name
+        file_handle.close()
+
+        map_file = "%s.png" % fname
+        html_file = "%s.html" % fname
+
+        time_stamp = time.strftime("%H:%M:%S %d-%b-%Y")
+
+        station_map = _("Station map")
+        generated_at = _("Generated at")
+
+        html = """
+<html>
+<body>
+<h2>D-RATS %s</h2>
+<h5>%s %s</h5>
+<img src="file://%s"/>
+</body>
+</html>
+""" % (station_map, generated_at, time_stamp, map_file)
+
+        self.map_widget.export_to(map_file, bounds)
+
+        file_handle = open(html_file, "w")
+        file_handle.write(html)
+        file_handle.close()
+
+        platform.open_html_file(html_file)
+        return False
+
     # Called by mainapp not sure if inherited
     # def queue_draw(self):
 
@@ -412,6 +486,39 @@ class MapWindow(Gtk.ApplicationWindow):
         # self.center_on(lat, lon)
         # self.map_widget.queue_draw()
         print("recenter", type(self), position)
+
+    def save_map(self, bounds=None):
+        '''
+        Save Map.
+
+        :param bounds: Bounds to save, Default None
+        :type bounds: tuple of 4 elements
+        '''
+        platform = dplatform.get_platform()
+        fname = platform.gui_save_file(default_name="map_%s.png" % \
+                                       time.strftime("%m%d%Y%_H%M%S"))
+        if not fname:
+            return
+
+        if not fname.endswith(".png"):
+            fname += ".png"
+
+        GLib.timeout_add(1000, self.save_map_handler, fname, bounds)
+
+    def save_map_handler(self, fname, bounds):
+        '''
+        Save Map Handler.
+
+        :param fname: Filename to save to
+        :type fname: str
+        :param bounds: Bounds to save
+        :type bounds: tuple of 4 elements
+        :returns: False to prevent timer retriggering
+        :rtype: bool
+        '''
+
+        self.map_widget.export_to(fname, bounds)
+        return False
 
     # Called my mainapp, inherited
     # def show(self)
