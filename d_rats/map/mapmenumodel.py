@@ -56,16 +56,18 @@ class MapMenuModel(Gio.Menu):
         menu_map.append_item(item_clearcache)
         menu_map.append_item(item_editsources)
 
-        item_printable = Gio.MenuItem.new(_('Printable'), 'win.printable')
+        # It looks like we can only print the visible area, so disable
+        # the non-functional menu items.
+        # item_printable = Gio.MenuItem.new(_('Printable'), 'win.printable')
         item_printablevis = Gio.MenuItem.new(_("Printable (visible area)"),
                                              'win.printablevis')
-        item_save = Gio.MenuItem.new(_("Save Image"), 'win.save')
+        # item_save = Gio.MenuItem.new(_("Save Image"), 'win.save')
         item_savevis = Gio.MenuItem.new(_('Save Image (visible area)'),
                                         'win.savevis')
         menu_export = Gio.Menu.new()
-        menu_export.append_item(item_printable)
+        # menu_export.append_item(item_printable)
         menu_export.append_item(item_printablevis)
-        menu_export.append_item(item_save)
+        # menu_export.append_item(item_save)
         menu_export.append_item(item_savevis)
 
         menu_map.append_submenu(_("Export"), menu_export)
@@ -81,30 +83,30 @@ class MapMenuModel(Gio.Menu):
         '''
 
         action_refresh = Gio.SimpleAction.new('refresh', None)
-        action_refresh.connect('activate', window.refresh_item_handler)
+        action_refresh.connect('activate', window.item_refresh_handler)
         window.add_action(action_refresh)
 
         action_clearcache = Gio.SimpleAction.new('clearcache', None)
-        action_clearcache.connect('activate', window.clearcache_item_handler)
+        action_clearcache.connect('activate', window.item_clearcache_handler)
         window.add_action(action_clearcache)
 
         action_editsources = Gio.SimpleAction.new('editsources', None)
-        action_editsources.connect('activate', window.editsources_item_handler)
+        action_editsources.connect('activate', window.item_editsources_handler)
         window.add_action(action_editsources)
 
-        action_printable = Gio.SimpleAction.new('printable', None)
-        action_printable.connect('activate', window.printable_item_handler)
-        window.add_action(action_printable)
+        # action_printable = Gio.SimpleAction.new('printable', None)
+        # action_printable.connect('activate', window.item_printable_handler)
+        # window.add_action(action_printable)
 
         action_printablevis = Gio.SimpleAction.new('printablevis', None)
         action_printablevis.connect('activate',
-                                    window.printablevis_item_handler)
+                                    window.item_printablevis_handler)
         window.add_action(action_printablevis)
 
-        action_save = Gio.SimpleAction.new('save', None)
-        action_save.connect('activate', window.save_item_handler)
-        window.add_action(action_save)
+        # action_save = Gio.SimpleAction.new('save', None)
+        # action_save.connect('activate', window.item_save_handler)
+        # window.add_action(action_save)
 
         action_savevis = Gio.SimpleAction.new('savevis', None)
-        action_savevis.connect('activate', window.savevis_item_handler)
+        action_savevis.connect('activate', window.item_savevis_handler)
         window.add_action(action_savevis)
