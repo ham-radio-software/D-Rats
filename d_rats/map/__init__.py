@@ -4,6 +4,7 @@ from .mapbottompanel import MapBottomPanel as BottomPanel
 from .mapdraw import MapDraw as Draw
 from .mapmarkerlist import MapMarkerList as MarkerList
 from .mapmenumodel import MapMenuModel as MenuModel
+from .mappopupmodel import MapPopupModel as PopupModel
 from .mapposition import MapPosition as Position
 from .mapstatusbox import MapStatusBox as StatusBox
 from .mapexception import MapException

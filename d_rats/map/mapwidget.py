@@ -137,18 +137,6 @@ class MapWidget(Gtk.DrawingArea):
         self._lng_fudge = ((self.width / 2) * self.tilesize) - x_axis
         self._lat_fudge = ((self.height / 2) * self.tilesize) - y_axis
 
-    # pylint: disable=no-self-use
-    def center_on(self, position):
-        '''
-        Center On.
-
-        :param position: position for new center
-        :type position: :class:`Map.MapPosition`
-        '''
-        # The scroll adjustments have no value until being exposed
-        # So we need to tell the expose handler to center them.
-        Map.Draw.set_center(position)
-
     def export_to(self, filename, bounds):
         '''
         Export To File in PNG format.
@@ -241,7 +229,10 @@ class MapWidget(Gtk.DrawingArea):
         self.position = position
         #self.map_tiles = []
         #self.refresh_marker_list()
-        self.center_on(self.position)
+
+        # The scroll adjustments have no value until being exposed
+        # So we need to tell the expose handler to center them.
+        Map.Draw.set_center(position)
         self.queue_draw()
 
     def value_x_event(self, _widget):
