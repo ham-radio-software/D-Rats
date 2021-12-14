@@ -33,8 +33,10 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
+from gi.repository import GObject
 
 from .. import dplatform
+from .. import map_source_editor
 from .. import map as Map
 
 # This makes pylance happy with out overriding settings
@@ -45,7 +47,7 @@ if not '_' in locals():
 
 
 # We have more than 7 instance attributes
-# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes, too-many-public-methods
 class MapWindow(Gtk.ApplicationWindow):
     '''
     Map Window.
@@ -58,8 +60,10 @@ class MapWindow(Gtk.ApplicationWindow):
     :type config: :class:`DratsConfig`
     '''
 
-    #__gsignals__ = {
-    #    "reload-sources" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE, ()),
+    __gsignals__ = {
+        "reload-sources" : (GObject.SignalFlags.RUN_LAST,
+                            GObject.TYPE_NONE, ())
+    }
     #    "user-send-chat" : signals.USER_SEND_CHAT,
     #    "get-station-list" : signals.GET_STATION_LIST,
     #    }
@@ -113,18 +117,12 @@ class MapWindow(Gtk.ApplicationWindow):
         self.scrollw.show()
 
         self.map_widget.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
+        self.scrollw.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.map_widget.connect("motion-notify-event", self._mouse_move_event)
         self.scrollw.connect("button-press-event", self._mouse_click_event)
         # self.scrollw.connect("scroll-event", self.map_widget.scroll_event)
         hadj = self.scrollw.get_hadjustment()
         vadj = self.scrollw.get_vadjustment()
-        # self.map_widget.map_visible['x_size'] = hadj.get_page_size()
-        # self.map_widget.map_visible['y_size'] = vadj.get_page_size()
-        # Need to set these to trigger a window update.
-        # print("mapwindow hadj %s %s vadj %s %s" %
-        #       (hadj.get_value(), hadj.get_page_size(),
-        #        vadj.get_value(), vadj.get_page_size()))
-
         hadj.connect("value-changed", self.map_widget.value_x_event)
         vadj.connect("value-changed", self.map_widget.value_y_event)
 
@@ -140,7 +138,7 @@ class MapWindow(Gtk.ApplicationWindow):
         self.set_default_size(800, 600)
 
         self.add(box)
-
+        Map.PopupModel.add_actions(self)
 
     def add_map_source(self, maps):
         '''
@@ -222,6 +220,11 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         print("Edit Sources handler", type(self))
         print('Action: %s\n value: %s' % (action, _value))
+        srced = map_source_editor.MapSourcesEditor(self.config)
+        print('srced', type(srced))
+        srced.run()
+        srced.destroy()
+        self.emit("reload-sources")
 
     def item_printable_handler(self, _action, _value):
         '''
@@ -297,6 +300,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :rtype: bool
         '''
         print("mouse_click_event")
+        print("widget", type("widget"), widget)
         x_axis, y_axis = event.get_coords()
 
         hadj = widget.get_hadjustment()
@@ -304,33 +308,36 @@ class MapWindow(Gtk.ApplicationWindow):
         mx_axis = x_axis + int(hadj.get_value())
         my_axis = y_axis + int(vadj.get_value())
 
-        # position = self.map_widget.xy2latlon(mx_axis, my_axis)
+        position = self.map_widget.xy2latlon(mx_axis, my_axis)
 
         self.logger.info("Button %i at %i,%i",
                          event.button, mx_axis, my_axis)
-        # See comment below.
+        # Need to test for _2BUTTON_PRESS before testing
+        # for a normal button press.
+        # This is not a protected-access, it is the actual
+        # python name for the type.
         # pylint: disable=protected-access
-        # if event.button == 3:
-        #    vals = {"lat" : position.latitude,
-        #            "lon" : position.longitude,
-        #            "x" : mx_axis,
-        #            "y" : my_axis}
-        #    self.logger.info("Clicked 3: %s %s", vals)
-        #    menu = self.make_popup(vals)
-        #    if menu:
-        #        menu.popup(None, None, None, None, event.button, event.time)
-        #elif event.type == Gdk.EventType.BUTTON_PRESS:
-        #    self.logger.info("Clicked: %s", position)
+        if event.button == 1 and event.type == Gdk.EventType._2BUTTON_PRESS:
+            self.logger.info("recenter on %.s", position)
+            self.recenter(position)
+        elif event.button == 3:
+            vals = {"lat" : position.latitude,
+                    "lon" : position.longitude,
+                    "x" : mx_axis,
+                    "y" : my_axis}
+            self.logger.info("Clicked 3: %s", vals)
+            popup_model = Map.PopupModel(position)
+            popup_menu = Gtk.Menu.new_from_model(popup_model)
+            popup_menu.attach_to_widget(self)
+            # Map.PopupModel.add_actions(self)
+            # self.grab_focus()
+            popup_menu.popup_at_pointer()
+        # elif event.type == Gdk.EventType.BUTTON_PRESS:
+            #self.logger.info("Clicked: %s", position)
             # The crosshair marker has been missing since 0.3.0
             # self.set_marker(GPSPosition(station=CROSSHAIR,
             #                             lat=position.latitude,
             #                             lon=position.longitude))
-        # This is not a protected-access, it is the actual
-        # python name for the type.
-        #elif event.type == Gdk.EventType._2BUTTON_PRESS:
-        #    self.logger.info("recenter on %.s", position)
-
-        #    self.recenter(position)
 
     def _mouse_move_event(self, _widget, event):
         '''
@@ -344,7 +351,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :rtype: bool
         '''
         if not self.__last_motion:
-            GLib.timeout_add(100, self._mouse_motion_handler)
+            GLib.timeout_add(10, self._mouse_motion_handler)
         self.__last_motion = (time.time(), event.x, event.y)
 
     # pylint: disable=too-many-locals
@@ -419,6 +426,42 @@ class MapWindow(Gtk.ApplicationWindow):
 
         return False
 
+    def popup_center_handler(self, _action, _value):
+        '''
+        Popup Center Handler.
+
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        print("self", type(self))
+        print("action", type(_action))
+        print("value", type(_value))
+
+    def popup_newmarker_handler(self, _action, _value):
+        '''
+        Popup New Marker Handler.
+
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        print("self", type(self))
+        print("action", type(_action))
+        print("value", type(_value))
+
+    def popup_broadcast_handler(self, _action, _value):
+        '''
+        Popup Broadcast Handler.
+
+        :param _action: Action that was invoked, Unused
+        :type _action: :class:`GioSimpleAction`
+        :param _value: Value for action, Unused
+        '''
+        print("self", type(self))
+        print("action", type(_action))
+        print("value", type(_value))
+
     def printable_map(self, bounds=None):
         '''
         Printable Map.
@@ -480,12 +523,9 @@ class MapWindow(Gtk.ApplicationWindow):
         :param position: position for new center of map
         :type position: :class:`map.MapPosition`
         '''
-        # self.map_widget.set_center(position)
+        self.map_widget.set_center(position)
         # self.map_widget.load_tiles()
         # self.refresh_marker_list()
-        # self.center_on(lat, lon)
-        # self.map_widget.queue_draw()
-        print("recenter", type(self), position)
 
     def save_map(self, bounds=None):
         '''
