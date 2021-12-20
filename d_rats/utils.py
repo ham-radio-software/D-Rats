@@ -1,6 +1,7 @@
 #
-'''utility Methods'''
+'''utility Methods.'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John Malmberg <wb8tyw@gmail.com> python3 gtk3 update
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +19,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import gettext
+import logging
 from io import FileIO
 # import re
 import os
@@ -30,12 +31,13 @@ import six.moves.urllib.parse # type: ignore
 import six.moves.urllib.error # type: ignore
 from six.moves import range # type: ignore
 
-# importing printlog() wrapper
-from .debug import printlog
-
 from . import dplatform
 
-_ = gettext.gettext
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 
 def open_icon_map(iconfn):
@@ -43,22 +45,24 @@ def open_icon_map(iconfn):
     Open icon map.
 
     :param iconfn: Filename with icon file
+    :type iconfn: str
     :returns: Icon Map or None
+    :rtype: :class:`GdkPixbuf.Pixbuf`
     '''
     import gi
     gi.require_version("Gdk", "3.0")
     from gi.repository import GdkPixbuf
 
+    logger = logging.getLogger("Utils.open_icon_map")
     if not os.path.exists(iconfn):
-        printlog("Utils", "     : Icon file %s not found" % iconfn)
+        logger.info("Icon file %s not found", iconfn)
         return None
 
     try:
         return GdkPixbuf.Pixbuf.new_from_file(iconfn)
     # pylint: disable=broad-except
-    except Exception as err:
-        printlog("Utils",
-                 "     :Error opening icon map %s: %s" % (iconfn, err))
+    except Exception:
+        logger.info("Error opening icon map %s", iconfn, exc_info=True)
         return None
 
 
@@ -83,7 +87,9 @@ def byte_ord(raw_data):
     byte to ordinal for python 2 compatibility
 
     :param raw_data: Byte or String character
+    :type raw_data: str or bytes
     :returns: Ordinal value
+    :rtype: int or bytes
     '''
     # python2 compatibility hack
     if isinstance(raw_data, str):
@@ -96,7 +102,9 @@ def hexprintlog(raw_data):
     Hex Print log
 
     :param raw_data: Data to print in HEX
+    :type raw_data: str or bytes
     :returns: Checksum of data
+    :rtype: int 8 bit
     '''
     line_sz = 8
     csum = 0
@@ -147,7 +155,9 @@ def filter_to_ascii_bytes(bytes_str):
     Filter to ASCII bytes.
 
     :param byte_str: bytes string to filter
+    :type byte_str: bytes
     :returns: Filtered bytes string
+    :rtype: bytearray
     '''
     out_bytes = bytearray(len(bytes_str))
     idx = 0
@@ -163,7 +173,9 @@ def filter_to_ascii(string):
     Filter to ASCII.
 
     :param string: String to filter
+    :type string: str
     :returns: Filtered string
+    :rtype: str
     '''
     c_val = '\x00'
     xlate = ([c_val] * 32) + \
@@ -182,14 +194,16 @@ def run_safe(function):
     Run function safe
 
     :param function: function to run
+    :type function: function
     :returns: function result
     '''
     def runner(*args, **kwargs):
         try:
             return function(*args, **kwargs)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Utils", "     :<<<%s>>> %s" % (function, err))
+        except Exception:
+            logger = logging.getLogger("Utils.run_safe.runner")
+            logger.info("<<<%s>>>", function, exc_info=True)
             return None
 
     return runner
@@ -200,6 +214,7 @@ def run_gtk_locked(function):
     Run function with gtk locked.
 
     :param function: Function to run
+    :type function: function
     :returns: function result or raise error
     '''
     import gi
@@ -212,6 +227,8 @@ def run_gtk_locked(function):
             function(*args, **kwargs)
         # pylint: disable=broad-except
         except Exception:
+            logger = logging.getLogger("Utils.run_gtk_locked")
+            logger.info("broad-exception", exc_info=True)
             Gdk.threads_leave()
             raise
 
@@ -225,6 +242,7 @@ def run_or_error(function):
     Run Function or raise an error.
 
     :param function: function to run
+    :type function: function
     :returns: Function result or raise error
     '''
     # import gi
@@ -237,6 +255,8 @@ def run_or_error(function):
             function(*args, **kwargs)
         # pylint: disable=broad-except
         except Exception as err:
+            logger = logging.getLogger("Utils.run_or_error")
+            logger.info("broad-exception", exc_info=True)
             log_exception()
             main_common.display_error(_("An error occurred: ") + str(err))
 
@@ -250,23 +270,27 @@ def print_stack():
     traceback.print_stack(file=sys.stdout)
 
 
-def get_sub_image(iconmap, i, j, size=20):
+def get_sub_image(iconmap, h_offset, v_offset, size=20):
     '''
-    Get sub image
+    Get sub image from iconmap
 
     :param iconmap: Icon map
-    :param i: horizontal map index
-    :param j: Vertical map index
+    :type iconmap: :class:`GtkPixbuf.Pixbuf`
+    :param h_offset: horizontal pixel offset
+    :type h_offset: int
+    :param v_offset: Vertical pixel offset
+    :type v_offset: int
     :param size: Size of icon, default 20
-    :returns: icon
+    :returns: icon extracted from icon map
+    :rtype: :class:`GdkPixbuf.Pixbuf`
     '''
     import gi
     gi.require_version("Gdk", "3.0")
     from gi.repository import GdkPixbuf
 
     # Account for division lines (1px per icon)
-    x_coord = (i * size) + i + 1
-    y_coord = (j * size) + j + 1
+    x_coord = (h_offset * size) + h_offset + 1
+    y_coord = (v_offset * size) + v_offset + 1
 
     icon = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, size, size)
     iconmap.copy_area(x_coord, y_coord, size, size, icon, 0, 0)
@@ -278,14 +302,17 @@ def get_icon_from_map(iconmap, symbol):
     '''
     Get icon from map.
 
-    :param iconmap: Map of icons
+    :param iconmap: Pixbuf with a number of icons
+    :type iconmap: :class:`GdkPixbuf.Pixbuf`
     :param symbol: Symbol for icon
+    :type symbol: str
     :returns: icon
+    :rtype: :class:`GdkPixbuf.Pixbuf`
     '''
     index = ord(symbol) - ord("!")
 
     i = index % 16
-    j = index / 16
+    j = int(index / 16)
 
     # print ("Symbol `%s' is %i,%i" % (symbol, i, j))
 
@@ -297,41 +324,54 @@ def get_icon(key):
     Get Icon
 
     :param key: Name of icon
+    :type key: str
     :returns: Icon or None
+    :rtype: :class:`GdkPixbuf.Pixbuf`
     '''
     if not key:
         return None
 
+    logger = logging.getLogger("Utils.get_icon")
     if len(key) == 2:
         if key[0] == "/":
             set_value = "/"
         elif key[0] == "\\":
             set_value = "\\"
         else:
-            printlog("Utils",
-                     "     :Utils     : Unknown APRS symbol table: %s" %
-                     key[0])
+            logger.info("Unknown APRS symbol table: %s", key[0])
             return None
 
         key = key[1]
     elif len(key) == 1:
         set_value = "/"
     else:
-        printlog("Utils", "     :Utils     : Unknown APRS symbol: `%s'" % key)
+        logger.info("Unknown APRS symbol: `%s'", key)
         return None
 
+    if not ICON_MAPS:
+        init_icon_maps()
     try:
         return get_icon_from_map(ICON_MAPS[set_value], key)
     # pylint: disable=broad-except
-    except Exception as err:
-        printlog("Utils", "     :Error cutting icon %s: %s" % (key, err))
+    except Exception:
+        logger.info("Error cutting icon %s", key, exc_info=True)
         return None
 
 
 class NetFile(FileIO):
-    '''NetFile'''
+    '''
+    NetFile.
+
+    :param uri: URI to open
+    :type uri: str
+    :param mode: Mode to open, default "r"
+    :type mode: str
+    :param buffering: Buffering level, default 1
+    :type buffering: int
+    '''
 
     def __init__(self, uri, mode="r", buffering=1):
+        self.logger = logging.getLogger("NetFile")
         self.__fn = uri
         self.is_temp = False
 
@@ -343,8 +383,7 @@ class NetFile(FileIO):
                 self.__fn = tmpf.name
                 tmpf.close()
 
-                printlog("Utils",
-                         "     :Retrieving %s -> %s" % (uri, self.__fn))
+                self.logger.info("init: Retrieving %s -> %s", uri, self.__fn)
                 six.moves.urllib.request.urlretrieve(uri, self.__fn)
                 break
 
@@ -359,14 +398,14 @@ class NetFile(FileIO):
 
 
 class ExternalHash():
-    '''External Hash'''
+    '''External Hash.'''
 
     def __init__(self):
         self.hval = ""
 
     def update(self, val):
         '''
-        Update
+        Update.
 
         :param val: value to write
         '''
@@ -390,11 +429,13 @@ class ExternalHash():
 
 def combo_select(box, value):
     '''
-    Combo Select
+    Combo Select.
 
     :param box: Box object
+    :type box: :class:`Gtk.Box`
     :param value: Value to select
     :returns: True if selection is made
+    :rtype: bool
     '''
     store = box.get_model()
     item_iter = store.get_iter_first()
@@ -408,13 +449,17 @@ def combo_select(box, value):
 
 
 def log_exception():
-    '''Log Exception'''
+    '''Log Exception.'''
     import traceback
     import sys
 
-    printlog("Utils", "     :-- Exception: --")
+    # Calls need to be integrated into logger.
+
+    logger = logging.getLogger("Utils.log_exception")
+
+    logger.info("-- Exception: --", exc_info=True, stack_info=True)
     traceback.print_exc(limit=30, file=sys.stdout)
-    printlog("Utils", "     :------")
+    logger.info("----------------")
 
 
 def set_entry_hint(entry, hint, default_focused=False):
@@ -422,8 +467,11 @@ def set_entry_hint(entry, hint, default_focused=False):
     Set Entry Hint.
 
     :param entry: Entry to show.
+    :type entry: :class:`Gtk.Widget`
     :param hint: hint text
-    :default_focus: Optional make default focused
+    :type hint: str
+    :param default_focus: Optional make default focused
+    :type default_focus: bool
     '''
     import gi
     gi.require_version("Gtk", "3.0")
@@ -455,8 +503,10 @@ def port_for_station(ports, station):
     '''
     Port for station
 
-    :param ports: Port to look for a station in
+    :param ports: Radio port to look for a station in
+    :type ports: dict
     :param station: Station callsign to lookup
+    :type station: str
     :returns: Port if found or none.
     '''
     for port, stations in ports.items():
@@ -470,7 +520,9 @@ def make_error_dialog(msg, stack, buttons, msg_type, extra):
     Make Error Dialog
 
     :param stack: Stack trace text
+    :type stack: str
     :param buttons: Dialog buttons
+    :type buttons: :class:`Gtk.Widget`
     :param msg_type: Type of message
     :param extra: Extra information
     :returns: Result of running error dialog
@@ -505,19 +557,31 @@ def make_error_dialog(msg, stack, buttons, msg_type, extra):
     return result
 
 
+# Can not find where this function is used!
 def dict_rev(target_dict, key):
     '''
     Dict to lookup the key containing a value.
 
-    if value is not unique to a key, only one key will be returned
-    :param target_dict: Dict to do lookup on.
-    :param key: value to find the key for.
-    :returns: Key that contains the value.
-    '''
-    reverse = {}
-    for key, value in target_dict.items():
-        reverse[value] = key
+    Only one value is returned.
 
-    printlog("Utils", "     :Reversed dict: %s" % reverse)
+    If key is present as multiple values in target_dict, it is
+    indeterminate which value will be returned.
+
+    :param target_dict: Dict to do lookup on
+    :type target_dict: dict
+    :param key: value to find the key for
+    :returns: Key that contains the value.
+    :raises: value_error if value is not present in target_dict.
+    '''
+    # Alternate implementation
+    reverse = {}
+    for target_key, target_value in target_dict.items():
+        # if target_key == value:
+        #    return target_key
+        reverse[target_value] = target_key
+    # raise value_error
+
+    logger = logging.getLogger("Utils.dict_rev")
+    logger.info("Reversed dict: %s", reverse)
 
     return reverse[key]
