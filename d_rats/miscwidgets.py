@@ -1,5 +1,5 @@
 #
-'''Misc Widgets'''
+'''Misc Widgets.'''
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # Copyright 2021 John. E. Malmberg - Python3 Conversion
@@ -29,6 +29,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 from gi.repository import GObject
 from gi.repository import Pango
 
@@ -100,6 +101,7 @@ class KeyedListWidget(Gtk.Box):
     Keyed List Widget.
 
     :param columns: Columns for widget
+    :type columns: int
     '''
 
     __gsignals__ = {
@@ -354,7 +356,7 @@ class KeyedListWidget(Gtk.Box):
         :type resizable: bool
         :param ellipsize: Ellipsize Mode, True for Omit characters at end.
                           Default false
-        :type: bool
+        :type ellipsize: bool
         '''
         col = self.__view.get_column(column)
         col.set_resizable(resizable)
@@ -1189,15 +1191,15 @@ def make_pixbuf_choice(options, default=None):
     :returns: GtkBox object
     :rtype: :class:`Gtk.Box`
     '''
-    store = Gtk.ListStore(Gdk.Pixbuf, GObject.TYPE_STRING)
+    store = Gtk.ListStore(GdkPixbuf.Pixbuf, GObject.TYPE_STRING)
     box = Gtk.ComboBox.new_with_model(store)
 
     cell = Gtk.CellRendererPixbuf()
-    box.pack_start(cell, True, True, 0)
+    box.pack_start(cell, True)
     box.add_attribute(cell, "pixbuf", 0)
 
     cell = Gtk.CellRendererText()
-    box.pack_start(cell, True, True, 0)
+    box.pack_start(cell, True)
     box.add_attribute(cell, "text", 1)
 
     _default = None
