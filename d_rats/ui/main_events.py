@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gettext
+import logging
 import time
 import os
 from datetime import datetime
@@ -30,10 +30,12 @@ from d_rats.ui.main_common import MainWindowTab
 from d_rats import utils
 from d_rats import signals
 
-# importing printlog() wrapper
-from ..debug import printlog
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
-_ = gettext.gettext
 EVENT_INFO = 0
 EVENT_FILE_XFER = 1
 EVENT_FORM_XFER = 2
@@ -54,14 +56,30 @@ _EVENT_TYPES = {EVENT_INFO : None,
 FILTER_HINT = _("Enter filter text")
 
 
+class EventException(Exception):
+    '''Generic Event Exception.'''
+
+
+class InvalidEventType(EventException):
+    '''Invalid Event Type Error.'''
+
+
 class Event():
-    '''Event'''
+    '''
+    Event.
+
+    :param group_id: Group ID
+    :param message: Event message
+    :param evtype: event type, Default EVENT_INFO
+    :type evtype: int
+    :raises: :class:`InvalidEventType' if the event type validation fails
+    '''
 
     def __init__(self, group_id, message, evtype=EVENT_INFO):
         self._group_id = group_id
 
         if evtype not in _EVENT_TYPES.keys():
-            raise Exception("Invalid event type %i" % evtype)
+            raise InvalidEventType("Invalid event type %i" % evtype)
         self._evtype = evtype
         self._message = message
         self._isfinal = False
@@ -80,6 +98,7 @@ class Event():
         Is event final?
 
         :returns: True if the event is final
+        :rtype: bool
         '''
         return self._isfinal
 
@@ -93,34 +112,48 @@ class Event():
 
 
 class FileEvent(Event):
-    '''File Event'''
+    '''
+    File Event.
+    '''
     def __init__(self, group_id, message):
         Event.__init__(self, group_id, message, EVENT_FILE_XFER)
 
 
 class FormEvent(Event):
-    '''Form Event'''
+    '''
+    Form Event.
+    '''
 
     def __init__(self, group_id, message):
         Event.__init__(self, group_id, message, EVENT_FORM_XFER)
 
 
 class PingEvent(Event):
-    '''Ping Event'''
+    '''
+    Ping Event.
+    '''
 
     def __init__(self, group_id, message):
         Event.__init__(self, group_id, message, EVENT_PING)
 
 
 class PosReportEvent(Event):
-    '''Position Report Event'''
+    '''
+    Position Report Event.
+    '''
 
     def __init__(self, group_id, message):
         Event.__init__(self, group_id, message, EVENT_POS_REPORT)
 
 
 class SessionEvent(Event):
-    '''Session Event'''
+    '''
+    Session Event.
+
+    :param session_id: Session ID
+    :param port_id: Port Id
+    :param message: message for event
+    '''
 
     def __init__(self, session_id, port_id, message):
         group_id = "%s_%s" % (session_id, port_id)
@@ -171,6 +204,7 @@ def filter_rows(model, row_iter, evtab):
     :param row_iter: Iterated row to get
     :param evtab: Event table
     :returns: True if no filter icon, or if icon matches the filter icon
+    :rtype: bool
     '''
     # Probably needs a better doc-string
     # pylint: disable=protected-access
@@ -190,7 +224,13 @@ def filter_rows(model, row_iter, evtab):
 
 
 class EventTab(MainWindowTab):
-    '''Event Tab'''
+    '''
+    Event Tab.
+
+    :param wtree: Widget tree
+    :param config:
+    :type config: :class:`DratsConfig`
+    '''
 
     __gsignals__ = {
         "event" : signals.EVENT,
@@ -202,6 +242,74 @@ class EventTab(MainWindowTab):
         }
 
     _signals = __gsignals__
+
+    def __init__(self, wtree, config):
+        MainWindowTab.__init__(self, wtree, config, "event", _("Event Log"))
+
+        # Each class should have their own logger.
+        self.logger = logging.getLogger("EventTab")
+
+        self.__ctr = 0
+
+        # pylint: disable=unbalanced-tuple-unpacking
+        eventlist, = self._getw("list")
+
+        eventlist.connect("button_press_event", self._mouse_cb)
+
+        self.store = Gtk.ListStore(GObject.TYPE_STRING,  # 0: id
+                                   GObject.TYPE_OBJECT,  # 1: icon
+                                   GObject.TYPE_INT,     # 2: timestamp
+                                   GObject.TYPE_STRING,  # 3: message
+                                   GObject.TYPE_STRING,  # 4: details
+                                   GObject.TYPE_INT,     # 5: order
+                                   GObject.TYPE_PYOBJECT,# 6: event
+                                   )
+        self._filter_icon = None
+        event_filter = self.store.filter_new()
+        event_filter.set_visible_func(filter_rows, self)
+        eventlist.set_model(event_filter)
+
+        col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
+        eventlist.append_column(col)
+
+        def render_time(_col, rend, model, model_iter, _data):
+            val, = model.get(model_iter, 2)
+            stamp = datetime.fromtimestamp(val)
+            rend.set_property("text", stamp.strftime("%Y-%m-%d %H:%M:%S"))
+
+        renderer = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Time"), renderer, text=2)
+        col.set_cell_data_func(renderer, render_time)
+        col.set_sort_column_id(5)
+        col.connect("clicked", self.__change_sort)
+        eventlist.append_column(col)
+
+        try:
+            srt = int(self._config.get("state", "events_sort"))
+        except ValueError:
+            srt = Gtk.SortType.DESCENDING
+        self.store.set_sort_column_id(5, srt)
+        col.set_sort_indicator(True)
+        col.set_sort_order(srt)
+
+        renderer = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Description"), renderer, text=3)
+        eventlist.append_column(col)
+
+        # pylint: disable=unbalanced-tuple-unpacking
+        typesel, = self._getw("typesel")
+        typesel.set_active(0)
+        typesel.connect("changed", self._type_selected, event_filter)
+
+        # pylint: disable=unbalanced-tuple-unpacking
+        filtertext, = self._getw("searchtext")
+        filtertext.connect("changed", self._search_text, event_filter)
+        utils.set_entry_hint(filtertext, FILTER_HINT)
+
+        self._load_pixbufs()
+
+        event = Event(None, _("D-RATS Started"))
+        self.event(event)
 
     def _mh_xfer(self, _action, event):
         action = _action.get_name()
@@ -272,9 +380,10 @@ class EventTab(MainWindowTab):
 
     def _type_selected(self, typesel, filtermodel):
         event_filter = typesel.get_active_text()
-        printlog("MainEvents", ": Filter set on %s" % event_filter)
+        self.logger.info("_type_selected: Filter set on %s", event_filter)
         filter_type = None
-        # This needs to be fixed.
+        # This needs to be fixed.  It means that the internationalization
+        # dictionaries are not being properly setup.
         if event_filter == _("All") or event_filter == _("Tutto"):
             filter_type = None
         elif event_filter == _("File Transfers") or \
@@ -323,74 +432,9 @@ class EventTab(MainWindowTab):
         column.set_sort_order(srt)
 
     def _get_sort_asc(self):
-        # printlog("MainEvents", ": sorting events in ascending order")
+        # self.logger.info("_get_sort_asc: sorting events in ascending order")
         srt = self._config.getint("state", "events_sort")
         return srt == Gtk.SortType.ASCENDING
-
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "event", _("Event Log"))
-
-        self.__ctr = 0
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        eventlist, = self._getw("list")
-
-        eventlist.connect("button_press_event", self._mouse_cb)
-
-        self.store = Gtk.ListStore(GObject.TYPE_STRING,  # 0: id
-                                   GObject.TYPE_OBJECT,  # 1: icon
-                                   GObject.TYPE_INT,     # 2: timestamp
-                                   GObject.TYPE_STRING,  # 3: message
-                                   GObject.TYPE_STRING,  # 4: details
-                                   GObject.TYPE_INT,     # 5: order
-                                   GObject.TYPE_PYOBJECT,# 6: event
-                                   )
-        self._filter_icon = None
-        event_filter = self.store.filter_new()
-        event_filter.set_visible_func(filter_rows, self)
-        eventlist.set_model(event_filter)
-
-        col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
-        eventlist.append_column(col)
-
-        def render_time(_col, rend, model, model_iter, _data):
-            val, = model.get(model_iter, 2)
-            stamp = datetime.fromtimestamp(val)
-            rend.set_property("text", stamp.strftime("%Y-%m-%d %H:%M:%S"))
-
-        renderer = Gtk.CellRendererText()
-        col = Gtk.TreeViewColumn(_("Time"), renderer, text=2)
-        col.set_cell_data_func(renderer, render_time)
-        col.set_sort_column_id(5)
-        col.connect("clicked", self.__change_sort)
-        eventlist.append_column(col)
-
-        try:
-            srt = int(self._config.get("state", "events_sort"))
-        except ValueError:
-            srt = Gtk.SortType.DESCENDING
-        self.store.set_sort_column_id(5, srt)
-        col.set_sort_indicator(True)
-        col.set_sort_order(srt)
-
-        renderer = Gtk.CellRendererText()
-        col = Gtk.TreeViewColumn(_("Description"), renderer, text=3)
-        eventlist.append_column(col)
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        typesel, = self._getw("typesel")
-        typesel.set_active(0)
-        typesel.connect("changed", self._type_selected, event_filter)
-
-        # pylint: disable=unbalanced-tuple-unpacking
-        filtertext, = self._getw("searchtext")
-        filtertext.connect("changed", self._search_text, event_filter)
-        utils.set_entry_hint(filtertext, FILTER_HINT)
-
-        self._load_pixbufs()
-
-        event = Event(None, _("D-RATS Started"))
-        self.event(event)
 
     @utils.run_gtk_locked
     def _event(self, event):
@@ -461,7 +505,7 @@ class EventTab(MainWindowTab):
 
             :param adj: Adjustment
             '''
-            adj.set_value(adj.get_upper() - adj.adj.get_page_size)
+            adj.set_value(adj.get_upper() - adj.get_page_size())
 
         if top_scrolled:
             GObject.idle_add(top_scroll, adj)
