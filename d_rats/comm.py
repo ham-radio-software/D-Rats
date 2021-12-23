@@ -57,6 +57,7 @@ def kiss_escape_frame(frame):
 
     :param frame: Frame of data
     :returns: Buffer with frame escaped
+    :rtype: str
     '''
     escaped = ""
 
@@ -100,6 +101,7 @@ def kiss_buf_has_frame(buf):
 
     :param buf: Kiss buffer
     :returns: True if this is a KISS frame
+    :rtype: bool
     '''
     return buf.count(chr(FEND)) >= 2
 
@@ -163,6 +165,7 @@ class TNCSerial(serial.Serial):
     '''
     TNC Serial.
 
+    :param tncport: Optional tnc port
     :param kwargs: Key word arguments
     '''
     def __init__(self, **kwargs):
@@ -321,6 +324,7 @@ class SWFSerial(serial.Serial):
         Read.
 
         :param size: Number of bytes to read
+        :type size: int
         :returns: bytes of data read
         '''
         return serial.Serial.read(self, size)
@@ -332,6 +336,7 @@ class DataPath():
 
     :param pathspec: Path to data.
     :param timeout: Timeout in seconds, default 0.25
+    :type timeout: float
     '''
 
     def __init__(self, pathspec, timeout=0.25):
@@ -392,6 +397,7 @@ class DataPath():
         Is connected?
 
         :returns: False
+        :rtype: bool
         '''
         return False
 
@@ -405,6 +411,7 @@ class AGWDataPath(DataPath):
 
     :param pathspec: Path to AGW device
     :param timeout: Timeout in seconds, default 0
+    :type timeout: float
     '''
     def __init__(self, pathspec, timeout=0):
         DataPath.__init__(self, pathspec, timeout)
@@ -443,6 +450,7 @@ class AGWDataPath(DataPath):
         Read.
 
         :param size: Number of bytes to read, Ignored.
+        :type size: int
         :returns: bytes of data read
         '''
         return agw.receive_data(self._agw)
@@ -460,6 +468,7 @@ class AGWDataPath(DataPath):
         Is Connected?
 
         :returns: True if connected
+        :rtype: bool
         '''
         return bool(self._agw)
 
@@ -488,7 +497,9 @@ class SerialDataPath(DataPath):
     Serial Data Path.
 
     :param pathspec: Path to serial device
+    :type pathspec: tuple
     :param timeout: Time out in seconds, default 0.25
+    :type timeout: float
     '''
 
     def __init__(self, pathspec, timeout=0.25):
@@ -540,6 +551,7 @@ class SerialDataPath(DataPath):
         Read.
 
         :param size: Number of bytes to read
+        :type size: int
         :returns: bytes of data read
         :raises: DataPathIOError on read error
         '''
@@ -585,6 +597,7 @@ class SerialDataPath(DataPath):
         Is Connected?
 
         :returns: True if connected
+        :rtype: bool
         '''
         return self._serial is not None
 
@@ -602,6 +615,7 @@ class TNCDataPath(SerialDataPath):
 
     :param pathspec: Path to serial device
     :param timeout: Time out in seconds, default 0.25
+    :type timeout: float
     '''
 
     def __init__(self, pathspec, timeout=0.25):
@@ -739,6 +753,7 @@ class TNCAX25DataPath(TNCDataPath):
         Read.
 
         :param size: Number of bytes to read
+        :type size: int
         :returns: bytes of data read
         '''
         while len(self.__buffer) < size:
@@ -758,6 +773,7 @@ class SocketDataPath(DataPath):
 
     :param pathspec: Communication path
     :param timeout: Timeout in seconds, default 0.25
+    :type timeout: float
     '''
     def __init__(self, pathspec, timeout=0.25):
         DataPath.__init__(self, pathspec, timeout)
@@ -790,8 +806,9 @@ class SocketDataPath(DataPath):
         def readline(sock, timeout=30):
             start_time = time.time()
 
-            line = ""
-            while ("\n" not in line) and ((time.time() - start_time) < timeout):
+            line = b""
+            while (b"\n" not in line) and \
+                    ((time.time() - start_time) < timeout):
                 try:
                     data = sock.recv(32)
                     if not data:
@@ -808,13 +825,20 @@ class SocketDataPath(DataPath):
             Get a line.
 
             :param sock: Socket to use
+            :type sock: int
             :param timeout: Timeout in seconds, default 30.
+            :type timeout: float
             :returns: Tuple of count and line
             '''
             line = readline(sock, timeout)
+            # python3 line is a bytes object
+            if isinstance(line, str):
+                text_line = line
+            else:
+                text_line = line.decode('utf-8', 'replace')
 
             try:
-                code, string = line.split(" ", 1)
+                code, string = text_line.split(" ", 1)
                 code = int(code)
             # pylint: disable=broad-except
             except Exception:
@@ -888,6 +912,7 @@ class SocketDataPath(DataPath):
         Read.
 
         :param size: Number of bytes to read
+        :type size: int
         :returns: bytestring of data read
         '''
         data = b''
@@ -988,6 +1013,7 @@ class SocketDataPath(DataPath):
         Is Connected?
 
         :returns: True if connected
+        :rtype: bool
         '''
         return self._socket is not None
 
