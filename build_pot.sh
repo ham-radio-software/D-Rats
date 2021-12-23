@@ -11,5 +11,5 @@ xgettext -d D-RATS -o locale/base.pot -j --from-code ISO-8859-15 d_rats/*.py
 # Any warnings probably need to be looked at.
 xgettext -d D-RATS -o locale/base.pot -j d_rats/map/*.py
 xgettext -d D-RATS -o locale/base.pot -j d_rats/sessions/*.py
-xgettext -d D-RATS -o locale/base.pot -j d_rats/sessions/*.py
+xgettext -d D-RATS -o locale/base.pot -j d_rats/ui/*.py
 xgettext -d D-RATS -o locale/base.pot -j -L Glade ui/*.glade
