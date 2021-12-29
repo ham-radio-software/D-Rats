@@ -2,6 +2,7 @@
 '''Base Session.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,6 +83,8 @@ class Session(object):
         :param blocks: List of blocks to send
         :type blocks: list of :class:`DDT2EncodedFrame`
         '''
+        # wb8tyw: stateful.py overrides this class and appears to be
+        # the only user of this class.
         for block in blocks:
             self._sm.outgoing(self, block)
 
@@ -154,8 +157,8 @@ class Session(object):
 
         :param timeout: default=None
         :type timeout: float
-        :returns: Current state
-        :rtype: int:
+        :returns: True if the state changed.
+        :rtype: bool:
         '''
         before = self.state
 
