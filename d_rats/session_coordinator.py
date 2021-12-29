@@ -2,6 +2,7 @@
 '''Session Coordinator'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-
+import logging
 import socket
 import threading
 import time
@@ -36,12 +37,29 @@ from d_rats.sessions import sock
 from .utils import run_safe, run_gtk_locked
 from . import formgui
 
-# importing print() wrapper
-from .debug import printlog
-
 # from . import emailgw
 from . import signals
 from . import msgrouting
+
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
+
+
+class SessionCoordinatorException(Exception):
+    '''Generic Session Coordinator Exception.'''
+
+
+class ListenerActiveError(SessionCoordinatorException):
+    '''Listener is already Active Error.'''
+
+
+class PortNotConfigError(SessionCoordinatorException):
+    '''Port is not Configured Error.'''
+
+
+class SocketIsClosedError(SessionCoordinatorException):
+    '''Socket is Closed Error.'''
 
 
 class SessionThread():
@@ -55,6 +73,8 @@ class SessionThread():
     OUTGOING = False
 
     def __init__(self, coord, session, data):
+
+        self.logger = logging.getLogger("SessionThread")
         self.enabled = True
         self.coord = coord
         self.session = session
@@ -76,7 +96,7 @@ class SessionThread():
 
         :param _path: Unused, arguments for base case
         '''
-        printlog("SessCoord", " : **** EMPTY SESSION THREAD ****")
+        self.logger.info("worker: **** EMPTY SESSION THREAD ****")
 
 
 class FileBaseThread(SessionThread):
@@ -88,6 +108,13 @@ class FileBaseThread(SessionThread):
 
     progress_key = "recv_size"
 
+    def __init__(self, *args):
+        SessionThread.__init__(self, *args)
+
+        self.pct_complete = 0.0
+
+        self.session.status_cb = self.status_cb
+
     @run_safe
     def status_cb(self, vals):
         '''
@@ -95,9 +122,9 @@ class FileBaseThread(SessionThread):
 
         :param vals: data for callback
         '''
-        #print "GUI Status:"
-        #for k,v in vals.items():
-        #    print "   -> %s: %s" % (k, v)
+        # print "GUI Status:"
+        # for k,v in vals.copy().items():
+        #     print "   -> %s: %s" % (k, v)
 
         if vals["total_size"]:
             pct = (float(vals[self.progress_key]) / vals["total_size"]) * 100.0
@@ -109,12 +136,12 @@ class FileBaseThread(SessionThread):
         else:
             retries = ""
 
+        speed = ""
         if "start_time" in vals:
             elapsed = time.time() - vals["start_time"]
-            kbytes = vals[self.progress_key]
-            speed = " %2.2f B/s" % (kbytes / elapsed)
-        else:
-            speed = ""
+            if elapsed:
+                kbytes = vals[self.progress_key]
+                speed = " %2.2f B/s" % (kbytes / elapsed)
 
         if vals["sent_wire"]:
             amt = vals["sent_wire"]
@@ -171,13 +198,6 @@ class FileBaseThread(SessionThread):
 
         self.coord.session_failed(self.session, status, restart_info)
 
-    def __init__(self, *args):
-        SessionThread.__init__(self, *args)
-
-        self.pct_complete = 0.0
-
-        self.session.status_cb = self.status_cb
-
 
 class FileRecvThread(FileBaseThread):
     '''File Receive Thread.'''
@@ -187,6 +207,7 @@ class FileRecvThread(FileBaseThread):
         Worker.
 
         :param path: Path for file to be received
+        :type path: str
         '''
         file_name = self.session.recv_file(path)
         if file_name:
@@ -207,6 +228,7 @@ class FileSendThread(FileBaseThread):
         Worker.
 
         :param path: Path for file to be sent
+        :type path: str
         '''
         if self.session.send_file(path):
             self.completed("file %s" % os.path.basename(path))
@@ -218,6 +240,10 @@ class FileSendThread(FileBaseThread):
 class FormRecvThread(FileBaseThread):
     '''Form Receive Thread.'''
 
+    def __init__(self, *args):
+        FileBaseThread.__init__(self, *args)
+        self.logger = logging.getLogger("FormRecvThread")
+
     def worker(self, _path):
         '''
         Worker.
@@ -227,8 +253,8 @@ class FormRecvThread(FileBaseThread):
         m_dir = os.path.join(self.coord.config.form_store_dir(), _("Inbox"))
         newfn = time.strftime(os.path.join(m_dir, "form_%m%d%Y_%H%M%S.xml"))
         if not msgrouting.msg_lock(newfn):
-            printlog("SessCoord ",
-                     ": AIEE! Unable to lock incoming new message file!")
+            self.logger.info("worker: "
+                             "AIEE! Unable to lock incoming new message file!")
 
         file_name = self.session.recv_file(newfn)
 
@@ -246,7 +272,7 @@ class FormRecvThread(FileBaseThread):
             self.coord.session_newform(self.session, file_name)
         else:
             self.failed()
-            printlog("SessCoord", " : <--- Form transfer failed -->")
+            self.logger.info("worker: <--- Form transfer failed -->")
 
 
 class FormSendThread(FileBaseThread):
@@ -260,6 +286,7 @@ class FormSendThread(FileBaseThread):
         Worker.
 
         :param path: Path to send form?
+        :type path: str
         '''
         if self.session.send_file(path):
             self.completed()
@@ -269,7 +296,18 @@ class FormSendThread(FileBaseThread):
 
 
 class SocketThread(SessionThread):
-    '''Socket Thread.'''
+    '''
+    Socket Thread.
+
+    :param coord: Coordinates?
+    :param session: Session object
+    :param data: Session thread data
+    '''
+    OUTGOING = False
+
+    def __init__(self, coord, session, data):
+        SessionThread.__init__(self, coord, session, data)
+        self.logger = logging.getLogger("SessionThread")
 
     def status(self):
         '''Status.'''
@@ -295,7 +333,10 @@ class SocketThread(SessionThread):
 
         :param read_sock: Socket to read from
         :param length: Amount of data to read
+        :type length: int
         :param time_out: Time out for read, default 5 seconds
+        :type time_out: float
+        :raises: :class:`SocketIsClosedError` if the socket is closed.
         '''
         data = ""
         start_time = time.time()
@@ -309,7 +350,7 @@ class SocketThread(SessionThread):
                 continue
 
             if not read_data and not data:
-                raise Exception("Socket is closed")
+                raise SocketIsClosedError("Socket is closed")
 
             data += read_data
 
@@ -320,10 +361,12 @@ class SocketThread(SessionThread):
         Worker.
 
         :param data: Tuple of a socket and a timeout
+        :type data: tuple
         '''
         (worker_sock, timeout) = data
 
-        printlog("SessCoord : *** Socket thread alive (%i timeout)" % timeout)
+        self.logger.info("worker: *** Socket thread alive (%i timeout)",
+                         timeout)
 
         worker_sock.settimeout(timeout)
 
@@ -332,45 +375,43 @@ class SocketThread(SessionThread):
             try:
                 send_data = self.socket_read(worker_sock, 512, timeout)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("SessCoord : worker socket read %s -%s- " %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("worker socket read broad-except",
+                                 exc_info=True)
                 break
-            printlog("SessCoord", " : Waited %f sec for socket" %
-                     (time.time() - start_time))
+            self.logger.info("worker: Waited %f sec for socket",
+                             (time.time() - start_time))
 
             try:
                 read_data = self.session.read(512)
-            except base.SessionClosedError as err:
-                printlog("SessCoord", " : Session closed")
+            except base.SessionClosedError:
+                self.logger.info("Session closed")
                 self.enabled = False
                 break
 
             self.status()
 
             if send_data:
-                printlog("SessCoord", " : Sending socket data (%i)" %
-                         len(send_data))
+                self.logger.info("worker: Sending socket data (%i)",
+                                 len(send_data))
                 self.session.write(send_data)
 
             if read_data:
-                printlog("SessCoord", " : Sending radio data (%i)" %
-                         len(read_data))
+                self.logger("worker : Sending radio data (%i)",
+                            len(read_data))
                 worker_sock.sendall(read_data)
 
-        printlog("SessCoord", " : Closing session")
+        self.logger.info("Closing session")
 
         self.session.close()
         try:
             worker_sock.close()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("SessCoord",
-                     " : worker sock close broad except: %s -%s-" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("worker sock close broad except", exc_info=True)
             # pass
 
-        printlog("SessCoord", " : *** Socket thread exiting")
+        self.logger.info("*** Socket thread exiting")
 
 
 class SessionCoordinator(GObject.GObject):
@@ -378,6 +419,7 @@ class SessionCoordinator(GObject.GObject):
     Session Coordinator.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     :param session_manager: Session object
     '''
 
@@ -393,6 +435,21 @@ class SessionCoordinator(GObject.GObject):
 
     _signals = __gsignals__
 
+    def __init__(self, config, session_manager):
+        GObject.GObject.__init__(self)
+
+        self.logger = logging.getLogger("SessionCoordinator")
+        # pylint: disable=invalid-name
+        self.sm = session_manager
+        self.config = config
+
+        self.sthreads = {}
+
+        self.outgoing_files = []
+        self.outgoing_forms = []
+
+        self.socket_listeners = {}
+
     def _emit(self, signal, *args):
         GObject.idle_add(self.emit, signal, *args)
 
@@ -402,6 +459,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param msg: Status message
+        :type msg: str
         '''
         # pylint: disable=protected-access
         self._emit("session-status-update", session._id, msg)
@@ -412,6 +470,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param path: Path of file or session?
+        :type path: str
         '''
         # pylint: disable=protected-access
         self._emit("form-received", session._id, path)
@@ -422,6 +481,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param path: Path of file or session?
+        :type path: str
         '''
         # pylint: disable=protected-access
         self._emit("file-received", session._id, path)
@@ -432,6 +492,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param path: Path of form or session?
+        :type path: str
         '''
         # pylint: disable=protected-access
         self._emit("form-sent", session._id, path)
@@ -442,6 +503,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param path: Path of file or session?
+        :type path: str
         '''
         # pylint: disable=protected-access
         self._emit("file-sent", session._id, path)
@@ -452,6 +514,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param msg: Status message
+        :type msg: str
         :param restart_info: Restart information, default None
         '''
         # pylint: disable=protected-access
@@ -462,7 +525,9 @@ class SessionCoordinator(GObject.GObject):
         Cancel Session
 
         :param ident: Session identification
+        :type ident: int
         :param force: Force the session closed, default False
+        :type force: bool
         '''
         if ident < 2:
             # Don't let them cancel Control or Chat
@@ -471,10 +536,10 @@ class SessionCoordinator(GObject.GObject):
         try:
             session = self.sm.sessions[ident]
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("SessCoord",
-                     " : Session `%i' not found: %s -%s-" %
-                     (ident, type(err), err))
+        except Exception:
+            self.logger.info("cancel_session:"
+                             "Session `%i' not found",
+                             ident, exc_info=True)
             return
 
         if ident in self.sthreads:
@@ -486,19 +551,21 @@ class SessionCoordinator(GObject.GObject):
         Create socket listener.
 
         :param sport: Source port
+        :type sport: int
         :param dport: Destination port
+        :type dport: int
         :param dest: Destination host
-        :raises: if the listener is already in use
+        :type dest: str
+        :raises: :class:`ListenerActiveError` if the listener is already in use
         '''
-        if dport not in list(self.socket_listeners.keys()):
-            printlog("SessCoord",
-                     " : Starting a listener for port %i->%s:%i" %
-                     (sport, dest, dport))
+        if dport not in list(self.socket_listeners):
+            self.logger.info("Starting a listener for port %i->%s:%i",
+                             sport, dest, dport)
             self.socket_listeners[dport] = \
                 sock.SocketListener(self.sm, dest, sport, dport)
-            printlog("SessCoord", " : Started")
+            self.logger.info("Started")
         else:
-            raise Exception("Listener for %i already active" % dport)
+            raise ListenerActiveError("Listener for %i already active" % dport)
 
     def new_file_xfer(self, session, direction):
         '''
@@ -506,6 +573,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param direction: Direction of transfer
+        :type direction: str
         '''
         # pylint: disable=protected-access
         msg = _("File transfer of %s started with %s") % \
@@ -530,6 +598,7 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param direction: Direction of transfer
+        :type direction: str
         '''
         # pylint: disable=protected-access
         msg = _("Message transfer of %s started with %s") % (session.name,
@@ -554,6 +623,8 @@ class SessionCoordinator(GObject.GObject):
 
         :param session: Session object
         :param direction: Direction of transfer
+        :type direction: str
+        :raises: :class:`PortNotConfigError` if the port is not configured
         '''
         # pylint: disable=protected-access
         msg = _("Socket session %s started with %s") % (session.name,
@@ -567,10 +638,9 @@ class SessionCoordinator(GObject.GObject):
             _foo, session_port = session.name.split(":", 2)
             session_port = int(session_port)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("SessCoord",
-                     " : Invalid socket session name %s: %s -%s-" %
-                     (session.name, type(err), err))
+        except Exception:
+            self.logger.info("new_socket: Invalid socket session name %s",
+                             session.name, exc_info=True)
             session.close()
             return
 
@@ -592,34 +662,31 @@ class SessionCoordinator(GObject.GObject):
                                                                    time_out))
                         return
 
-                raise Exception("Port %i not configured" % port)
+                raise PortNotConfigError("Port %i not configured" % session_port)
             # pylint: disable=broad-except
             except Exception as err:
                 msg = _("Error starting socket session: %s -%s-") % \
                         (type(err), err)
-                printlog("SessCoord",
-                         " : new_socket broad except: %s -%s-" %
-                         (type(err), err))
+                self.logger.info("new_socket broad except", exc_info=True)
                 self.emit("session-status-update", session._id, msg)
                 session.close()
 
         elif direction == "out":
-            new_sock = self.socket_listeners[port].dsock
+            new_sock = self.socket_listeners[session_port].dsock
             # pylint: disable=protected-access
             self.sthreads[session._id] = SocketThread(self, session,
                                                       (new_sock, time_out))
 
     @run_gtk_locked
-    def _new_session(self, _session_type, session, direction):
+    def _new_session(self, session_type, session, direction):
         # pylint: disable=protected-access
         if session._id <= 3:
             return # Skip control, chat, sniff, rpc
 
-        printlog("SessCoord",
-                 " : New session (%s) of type: %s" %
-                 (direction, session.__class__))
+        self.logger.info("New session (%s) of type: %s",
+                         direction, session.__class__)
         # pylint: disable=protected-access
-        self.emit("session-started", session._id, type)
+        self.emit("session-started", session._id, session_type)
 
         if isinstance(session, form.FormTransferSession):
             self.new_form_xfer(session, direction)
@@ -628,9 +695,8 @@ class SessionCoordinator(GObject.GObject):
         elif isinstance(session, sock.SocketSession):
             self.new_socket(session, direction)
         else:
-            printlog("SessCoord",
-                     " : *** Unknown session type: %s" %
-                     session.__class__.__name__)
+            self.logger.info("_new_session: *** Unknown session type: %s",
+                             session.__class__.__name__)
 
     def new_session(self, session_type, session, direction):
         '''
@@ -638,7 +704,9 @@ class SessionCoordinator(GObject.GObject):
 
         :param session_type: Type of session
         :param session: Session name
+        :type session: str
         :param direction: Direction of session
+        :type direction: str
         '''
         GObject.idle_add(self._new_session, session_type, session, direction)
 
@@ -677,14 +745,17 @@ class SessionCoordinator(GObject.GObject):
         Send file.
 
         :param dest: Destination call sign
+        :type dest: str
         :param filename: Filename to send
+        :type filename: str
         :param name: Session Name, default filename with out path
+        :type name: str
         '''
         if name is None:
             name = os.path.basename(filename)
 
         self.outgoing_files.insert(0, filename)
-        printlog("SessCoord", " : Outgoing files: %s" % self.outgoing_files)
+        self.logger.info("send_file: Outgoing files: %s", self.outgoing_files)
 
         xfer = sessions_file.FileTransferSession
         block_size = self.config.getint("settings", "ddt_block_size")
@@ -698,18 +769,21 @@ class SessionCoordinator(GObject.GObject):
                                                "outlimit"  : outlimit})
         file_thread.setDaemon(True)
         file_thread.start()
-        printlog("SessCoord", " : Started Session")
+        self.logger.info("send_file: Started Session")
 
     def send_form(self, dest, filename, name="Form"):
         '''
         Send Form.
 
         :param dest: Destination call sign
+        :type dest: str
         :param filename: Filename of form
+        :type filename: str
         :param name: Session name, default "Form"
+        :type name: str
         '''
         self.outgoing_forms.insert(0, filename)
-        printlog("SessCoord", " : Outgoing forms: %s" % self.outgoing_forms)
+        self.logger.info("send_form: Outgoing forms: %s", self.outgoing_forms)
 
         xfer = form.FormTransferSession
 
@@ -719,24 +793,10 @@ class SessionCoordinator(GObject.GObject):
                                                "cls"  : xfer})
         form_thread.setDaemon(True)
         form_thread.start()
-        printlog("SessCoord", " : Started form session")
-
-    def __init__(self, config, session_manager):
-        GObject.GObject.__init__(self)
-
-        # pylint: disable=invalid-name
-        self.sm = session_manager
-        self.config = config
-
-        self.sthreads = {}
-
-        self.outgoing_files = []
-        self.outgoing_forms = []
-
-        self.socket_listeners = {}
+        self.logger.info("Started form session")
 
     def shutdown(self):
         '''Shutdown.'''
-        for dport, listener in self.socket_listeners.items():
-            printlog("SessCoord", " : Stopping TCP:%i" % dport)
+        for dport, listener in self.socket_listeners.copy().items():
+            self.logger.info("shutdown: Stopping TCP:%i", dport)
             listener.stop()
