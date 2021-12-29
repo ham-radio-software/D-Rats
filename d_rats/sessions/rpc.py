@@ -1,5 +1,6 @@
 #!/usr/bin/python
 '''RPC'''
+# pylint: disable=too-many-lines
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
@@ -50,6 +51,15 @@ ASCII_GS = "\x1D"
 ASCII_RS = "\x1E"
 ASCII_US = "\x1F"
 
+RPC_JOBS = ['RPCFileListJob',
+            'RPCFormListJob',
+            'RPCPullFileJob',
+            'RPCDeleteFileJob',
+            'RPCPullFormJob',
+            'RPCPositionReport',
+            'RPCGetVersion',
+            'RPCCheckMail']
+
 
 class RPCException(Exception):
     '''Generic RPC Exception'''
@@ -96,7 +106,7 @@ def encode_dict(source):
     :param source: Source Dictionary
     :type source: dict
     :returns: encoded data
-    :rtype: string
+    :rtype: str
     '''
     elements = []
 
@@ -104,7 +114,7 @@ def encode_dict(source):
         if not isinstance(key, str):
             raise InvalidRPCDictKey("Cannot encode non-string dict key")
 
-        if isinstance(value, bytearray):
+        if not isinstance(value, str):
             value = value.decode('utf-8', 'replace')
         # python 3 type must be 'str'
         # python 2 type must be of 'basestring'
@@ -126,24 +136,30 @@ def decode_dict(string):
     Decode into Dictionary.
 
     :param string: Encoded string
+    :type string: bytes
     :returns: Decoded data
     :rtype: dict
     '''
+    # :type string: str on python2
     result = {}
     if not string:
         return result
+    # On python3, this will likely be a bytes object and we need to
+    # convert it back to a str object for processing.
+    if not isinstance(string, str):
+        string = string.decode('utf-8', 'replace')
     elements = string.split(ASCII_RS)
     for element in elements:
         try:
             key, value = element.split(ASCII_US)
         except ValueError:
             raise MalformedRPCDictEncoding("Malformed dict encoding")
-        # sockets and pipe routines return bytearray type
+        # sockets and pipe routines return bytes type
         # which on python2 is almost the same str type, but not quite.
-        if isinstance(key, bytearray):
-            key = key.decode('ISO-8859-1')
+        if not isinstance(key, str):
+            key = key.decode('utf-8', 'replace')
         # Just about everything will want a utf-8 string for the value.
-        if isinstance(value, bytearray):
+        if not isinstance(value, str):
             result[key] = value.decode('utf-8', 'replace')
         else:
             result[key] = value
@@ -531,6 +547,7 @@ class RPCCheckMail(RPCJob):
             int(self._args["port"]), self._args["ssl"] == "True"
 
 
+# pylint: disable=too-many-instance-attributes
 class RPCSession(GObject.GObject, stateless.StatelessSession):
     '''
     RPC Session.
@@ -569,22 +586,24 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
     def notify(self):
         pass
 
-    # pylint: disable=no-self-use
-    def __decode_rpccall(self, frame):
-        jobtype, args = frame.data.split(ASCII_GS)
-        # pylint: disable=fixme
-        # FIXME: Make this more secure
-        if not (jobtype.isalpha() and jobtype.startswith("RPC")):
+    @staticmethod
+    def __decode_rpccall(frame):
+        frame_data = frame.data
+        if not isinstance(frame_data, str):
+            frame_data = frame.data.decode('utf-8', 'replace')
+        jobtype, args = frame_data.split(ASCII_GS)
+        print("RPC: _decode_rpccall jobtype, args", jobtype, args)
+        if not jobtype in RPC_JOBS or not jobtype in globals():
             raise UnknownRPCCall("Unknown call `%s'" % jobtype)
 
-        # pylint: disable=eval-used
-        job = eval("%s('%s', 'New job')" % (jobtype, frame.s_station))
+        rpc_job = globals()[jobtype]
+        job = rpc_job(frame.s_station, 'New job')
         job.unpack(args)
 
         return job
 
-    # pylint: disable=no-self-use
-    def __encode_rpccall(self, job):
+    @staticmethod
+    def __encode_rpccall(job):
         return "%s%s%s" % (job.__class__.__name__, ASCII_GS, job.pack())
 
     def __get_seq(self):
@@ -661,7 +680,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
         self.logger.info("Job sent")
 
     def __worker(self):
-        for ident, (time_stamp, att, job) in self.__jobs.items():
+        for ident, (time_stamp, att, job) in self.__jobs.copy().items():
             if job.frame and not job.frame.sent_event.isSet():
                 # Reset timer until the block is sent
                 self.__jobs[ident] = (time.time(), att, job)
