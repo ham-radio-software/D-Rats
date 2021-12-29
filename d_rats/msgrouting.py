@@ -1,6 +1,7 @@
 #
 '''Message Routing'''
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +19,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import threading
 import time
 import os
@@ -25,7 +27,7 @@ import smtplib
 import shutil
 import traceback
 from glob import glob
-from six.moves import range
+from six.moves import range # type: ignore
 
 try:
     from email.mime.multipart import MIMEMultipart
@@ -52,13 +54,24 @@ from . import wl2k
 
 #py3   from . import mainapp
 
-#importing printlog() wrapper
-from .debug import printlog
+
+class MsgRoutingException(Exception):
+    '''Generic MsgRouting Exception.'''
+
+
+class MessageRouterException(MsgRoutingException):
+    '''Generic Message Router Exception.'''
+
+
+class EmailTypeRequired(MessageRouterException):
+    '''Email message type required.'''
+
 
 CALL_TIMEOUT_RETRY = 300
 
 MSG_LOCK_LOCK = threading.Lock()
 
+global_logger = logging.getLogger("MsgRouting")
 
 def __msg_lockfile(fname):
     name = os.path.basename(fname)
@@ -91,14 +104,14 @@ def msg_lock(fname):
         success = True
     else:
         lock = open(__msg_lockfile(fname), "r")
-        printlog("Msgrouting",
-                 ": ------ LOCK OWNED BY -------\n%s------------\n" %
-                 lock.read())
+        global_logger.info("msg_lock: "
+                           "------ LOCK OWNED BY -------\n%s------------\n",
+                           lock.read())
         lock.close()
         success = False
     MSG_LOCK_LOCK.release()
 
-    # printlog("Locked %s: %s" % (fn, success))
+    # global_logger.info("Locked %s: %s", fname, success)
     return success
 
 
@@ -118,7 +131,7 @@ def msg_unlock(fname):
         success = False
     MSG_LOCK_LOCK.release()
 
-    #printlog("Unlocked %s: %s" % (fn, success))
+    # global_logger.info("Unlocked %s: %s", fn, success)
     return success
 
 
@@ -134,15 +147,16 @@ def gratuitous_next_hop(route, path):
     route_nodes = route.split(";")
 
     if len(path_nodes) >= len(route_nodes):
-        printlog("Msgrouting", ": Nothing left in the routes")
+        global_logger.info("gratuitous_next_hop: Nothing left in the routes")
         return None
+
 
     # pylint: disable=consider-using-enumerate
     for i in range(0, len(path_nodes)):
         if path_nodes[i] != route_nodes[i]:
-            printlog("Msgrouting",
-                     ": Path element %i (%s) does not match route %s" %
-                     (i, path_nodes[i], route_nodes[i]))
+            global_logger.info("gratuitous_next_hop: "
+                               "Path element %i (%s) does not match route %s",
+                               i, path_nodes[i], route_nodes[i])
             return None
 
     return route_nodes[len(path_nodes)]
@@ -159,35 +173,36 @@ def is_sendable_dest(mycall, string):
     '''
     # Specifically for me
     if string == mycall:
-        printlog("Msgrouting", ": msg for me")
+        global_logger.info("is_sendable_dest: msg for me")
         return False
 
     # Empty string
     if not string.strip():
-        printlog("Msgrouting", ": empty: %s %s" % (string, string.strip()))
+        global_logger.info("is_sendable_dest: empty: %s %s",
+                            string, string.strip())
         return False
 
     # Is an email address:
     if "@" in string:
-        printlog("Msgrouting", ": is an Email")
+        global_logger.info("is_sendable_dest: is an Email")
         return True
 
     # Contains lowercase characters
     if string != string.upper():
-        printlog("Msgrouting", ": lowercase")
+        global_logger.info("is_sendable_dest: lowercase")
         return False
 
     # Contains spaces
     if string != string.split()[0]:
-        printlog("Msgrouting", ": spaces")
+        global_logger.info("is_sendable_dest: spaces")
         return False
 
     # Contains a gratuitous route and we're the last in line
     if ";" in string and string.split(";")[-1] == mycall:
-        printlog("Msgrouting", ": End of grat")
+        global_logger.info("is_sendable_dest: End of grat")
         return False
 
-    printlog("Msgrouting", ": default to call")
+    global_logger.info("is_sendable_dest: default to call")
 
     # Looks like it's a candidate to be routed
     return True
@@ -198,6 +213,7 @@ def form_to_email(config, msgfn, replyto=None):
     Form to E-mail
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param msgfn: Message Form
     :param replyto: Optional replyto destination
     '''
@@ -249,6 +265,7 @@ def move_to_folder(config, msg, folder):
     Move to folder
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param msg: Message to move
     :param folder: Destination folder
     '''
@@ -265,6 +282,7 @@ def move_to_outgoing(config, msg):
     Move to outgoing
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param msg: Message to move
     :returns: Result of move to folder, which does not have a return value
     '''
@@ -277,6 +295,7 @@ class MessageRoute():
     Message Route.
 
     :param line: String containing a destination, gateway, and port
+    :type line: str
     '''
 
     # This class does not appear to be used anywhere
@@ -290,6 +309,7 @@ class MessageRouter(GObject.GObject):
     Message Router.
 
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     '''
 
     __gsignals__ = {
@@ -302,17 +322,9 @@ class MessageRouter(GObject.GObject):
         }
     _signals = __gsignals__
 
-    def _emit(self, signal, *args):
-        GObject.idle_add(self.emit, signal, *args)
-
-    def __proxy_emit(self, signal):
-        def handler(_obj, *args):
-            printlog("Msgrouting", ": Proxy emit %s: %s" % (signal, args))
-            self._emit(signal, *args)
-        return handler
-
     def __init__(self, config):
         GObject.GObject.__init__(self)
+        self.logger = logging.getLogger("MessageRouter")
 
         self.__event = threading.Event()
 
@@ -326,6 +338,15 @@ class MessageRouter(GObject.GObject):
 
         self.__thread = None
         self.__enabled = False
+
+    def _emit(self, signal, *args):
+        GObject.idle_add(self.emit, signal, *args)
+
+    def __proxy_emit(self, signal):
+        def handler(_obj, *args):
+            self.logger.info("Proxy emit %s: %s", signal, args)
+            self._emit(signal, *args)
+        return handler
 
     def _get_routes(self):
         r_file = self.__config.platform.config_file("routes.txt")
@@ -345,9 +366,9 @@ class MessageRouter(GObject.GObject):
                 dest, gateway, _port = line.split()
                 routes[dest] = gateway
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Msgrouting",
-                         ": Error parsing line '%s': %s" % (line, err))
+            except Exception:
+                self.logger.info("_get_routes: Error parsing line '%s'",
+                                 line, exc_info=True)
 
         return routes
 
@@ -357,7 +378,7 @@ class MessageRouter(GObject.GObject):
 
     # pylint: disable=no-self-use
     def _p(self, string):
-        printlog("Msgrouting", ": [MR] %s" % string)
+        self.logger.info("_p: [MR] %s", string)
         import sys
         sys.stdout.flush()
 
@@ -368,8 +389,8 @@ class MessageRouter(GObject.GObject):
         field_list = glob(os.path.join(q_dir, "*.xml"))
         for field in field_list:
             if not msg_lock(field):
-                printlog("Msgrouting",
-                         ": Message %s is locked, skipping" % field)
+                self.logger.info("_get_queue: Message %s is locked, skipping",
+                                 field)
                 continue
 
             form = formgui.FormFile(field)
@@ -425,8 +446,8 @@ class MessageRouter(GObject.GObject):
             if ";" in dst:
                 # Gratuitous routing takes precedence
                 route = gratuitous_next_hop(dst, path)
-                printlog("Msgrouting",
-                         ": Route for %s: %s (%s)" % (dst, route, path))
+                self.logger.info("_route_msg: Route for %s: %s (%s)",
+                                 dst, route, path)
                 break
             elif "@" in dst and dst not in invalid and \
                     not ":" in dst and \
@@ -453,18 +474,16 @@ class MessageRouter(GObject.GObject):
             if route.upper().startswith("WL2K:"):
                 break # WL2K is easy
             elif route != dst and route in path:
-                printlog("Msgrouting",
-                         ": Route %s in path" % route)
+                self.logger.info("_route_msg: Route %s in path", route)
                 invalid.append(route)
                 route = None # Don't route to the same location twice
             elif self._is_station_failed(route):
-                printlog("Msgrouting",
-                         ": Route %s is failed" % route)
+                self.logger.info("_route_msg: Route %s is failed", route)
                 invalid.append(route)
                 route = None # This one is not responding lately
             elif old(route) and self._station_pinged_out(route):
-                printlog("Msgrouting",
-                         ": Route %s for %s is pinged out" % (route, dst))
+                self.logger.info("_route_msg: Route %s for %s is pinged out",
+                                 route, dst)
                 invalid.append(route)
                 route = None # This one has been pinged and isn't responding
             else:
@@ -491,7 +510,7 @@ class MessageRouter(GObject.GObject):
         form = formgui.FormFile(msgfn)
 
         if form.ident != "email":
-            raise Exception("WL2K support requires email type message")
+            raise EmailTypeRequired("WL2K support requires email type message")
 
         payload = form.get_field_value("message")
 
@@ -543,7 +562,7 @@ class MessageRouter(GObject.GObject):
             self._p("Call %s is busy" % route)
             return False
 
-        printlog("Msgrouting", ": ", slist)
+        self.logger.info("_route_va_station: %s", slist)
         port = slist[route].get_port()
         if not self._port_free(port):
             self._p("I think port %s is busy" % port)
@@ -562,7 +581,8 @@ class MessageRouter(GObject.GObject):
             if status:
                 self._emit("form-sent", -1, msgfn)
             else:
-                printlog("Msgrouting", ": Failed to send via WL2K: %s" % error)
+                self.logger.info("_route_vi_wl2k: Failed to send via WL2K: %s",
+                                 error)
 
         from . import mainapp # Hack to force import of mainapp
         msg_thread = wl2k.wl2k_auto_thread(mainapp.get_mainapp(),
@@ -608,46 +628,46 @@ class MessageRouter(GObject.GObject):
         routes = self._get_routes()
 
         if not plist:
-            printlog("MsgRouting", "Station list was empty")
+            self.logger.info("_run_one: Station list was empty")
             return
 
-        for _port, stations in plist.items():
+        for _port, stations in plist.copy().items():
             for station in stations:
                 slist[str(station)] = station
 
-        for _dst, callq in queue.items():
+        for _dst, callq in queue.copy().items():
             for msg in callq:
 
                 try:
                     routed = self._route_message(msg, slist, routes)
                 # pylint: disable=broad-except
                 except Exception:
+                    self.logger.info("_run_one: broad-except", exc_info=True)
                     utils.log_exception()
                     routed = False
 
                 if not routed:
                     if msg_is_locked(msg):
-                        printlog("Msgrouting", ": unlocking message %s" % msg)
+                        self.logger.info("_run_one: unlocking message %s", msg)
                         msg_unlock(msg)
 
     def _run(self):
         while self.__enabled:
             if self.__config.getboolean("settings", "msg_forward") or \
                     self.__event.isSet():
-                # printlog("Msgrouting", ": Running routing loop")
+                # self.logger.info("_run: Running routing loop")
                 queue = self._get_queue()
 
                 try:
                     self._run_one(queue)
                 # pylint: disable=broad-except
-                except Exception as err:
+                except Exception:
                     utils.log_exception()
-                    printlog("Msgrouting",
-                             ": Fail-safe unlocking messages in queue: (%s)" %
-                             err)
+                    self.logger.info("_run: Fail-safe unlocking messages "
+                                     "in queue: broad-except", exc_info=True)
                     for msgs in queue.values():
                         for msg in msgs:
-                            printlog("Msgrouting", ": Unlocking %s" % msg)
+                            self.logger.info("_run: Unlocking %s", msg)
                             if msg_is_locked(msg):
                                 msg_unlock(msg)
 
@@ -685,9 +705,8 @@ class MessageRouter(GObject.GObject):
 
     def _station_failed(self, call):
         self.__failed_stations[call] = self.__failed_stations.get(call, 0) + 1
-        printlog("Msgrouting",
-                 ": Fail count for %s is %i" %
-                 (call, self.__failed_stations[call]))
+        self.logger.info("_station_failed: Fail count for %s is %i",
+                         call, self.__failed_stations[call])
 
     def _is_station_failed(self, call):
         return self.__failed_stations.get(call, 0) >= 3
