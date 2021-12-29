@@ -491,7 +491,7 @@ class ChatTab(MainWindowTab):
         label.set_markup(label.get_text())
 
     def _display_matching_filter(self, text):
-        for filter_item, display in self.__filters.items():
+        for filter_item, display in self.__filters.copy().items():
             if filter_item and filter_item in text:
                 return display
 
@@ -678,7 +678,7 @@ class ChatTab(MainWindowTab):
 
     def _save_filters(self):
         rev = {}
-        for key, val in self.__filters.items():
+        for key, val in self.__filters.copy().items():
             rev[val] = key
 
         filters = []
@@ -722,7 +722,7 @@ class ChatTab(MainWindowTab):
 
     def _enter_to_send(self, view, event, dest):
         if event.keyval == 65293:
-            print("_enter_to_send dest=%s" % dest)
+            # print("_enter_to_send dest=%s" % dest)
             self._send_button(None, dest, view)
             return True
         if event.keyval >= 65470 and event.keyval <= 65482:
