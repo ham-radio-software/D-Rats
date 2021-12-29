@@ -697,7 +697,7 @@ class TreeWidget(ListWidget):
 
     def _set_values(self, parent, vals):
         if isinstance(vals, dict):
-            for key, val in vals.items():
+            for key, val in vals.copy().items():
                 iter_val = self._store.append(parent)
                 self._store.set(iter_val, self._key, key)
                 self._set_values(iter_val, val)
