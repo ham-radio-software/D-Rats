@@ -141,7 +141,10 @@ def hexprintlog(raw_data):
             char = data[(i * line_sz) + j]
 
             if byte_ord(char) > 0x20 and byte_ord(char) < 0x7E:
-                print("%s" % chr(char), end='')
+                if isinstance(char, str):
+                    print(char, end='')
+                else:
+                    print("%s" % chr(char), end='')
             else:
                 print(".", end='')
 
@@ -457,7 +460,7 @@ def log_exception():
 
     logger = logging.getLogger("Utils.log_exception")
 
-    logger.info("-- Exception: --", exc_info=True, stack_info=True)
+    logger.info("-- Exception: --", exc_info=True)
     traceback.print_exc(limit=30, file=sys.stdout)
     logger.info("----------------")
 
@@ -509,7 +512,7 @@ def port_for_station(ports, station):
     :type station: str
     :returns: Port if found or none.
     '''
-    for port, stations in ports.items():
+    for port, stations in ports.copy().items():
         if station in stations:
             return port
     return None
@@ -575,7 +578,7 @@ def dict_rev(target_dict, key):
     '''
     # Alternate implementation
     reverse = {}
-    for target_key, target_value in target_dict.items():
+    for target_key, target_value in target_dict.copy().items():
         # if target_key == value:
         #    return target_key
         reverse[target_value] = target_key
