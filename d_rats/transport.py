@@ -2,6 +2,7 @@
 '''Transport'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,14 +20,13 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import threading
 import re
 import time
 import random
 from six.moves import range # type: ignore
 
-# importing printlog() wrapper
-from .debug import printlog
 from . import utils
 from . import ddt2
 from . import comm
@@ -131,17 +131,26 @@ class Transporter():
     Transporter.
 
     :param pipe: Object for communications to a device or remote
+    :type pipe: :class:`DataPath`
     :param inhandler: Optional Incoming message handler callback
+    :type inhandler: function
     :param authfn: Authorization Function, Default None
+    :type authfn: function
     :param compat: Compatibility mode?, default False
+    :type compat: bool
     :param warmup_length: Time needed from key up to transmit in seconds,
                           Default 8
+    :type warmup_length: float
     :param warmup_timeout: Time limit for warmup in seconds, default 3
+    :type warmup_timeout: float
     :param force_delay: Forced delay, default 0
+    :type force_delay: float
     :param compat_delay: Compatibility delay in seconds, default 5
+    :type compat_delay: float
     '''
 
     def __init__(self, pipe, inhandler=None, authfn=None, **kwargs):
+        self.logger = logging.getLogger("Transporter")
         self.inq = BlockQueue()
         self.outq = BlockQueue()
         self.pipe = pipe
@@ -155,6 +164,7 @@ class Transporter():
         self.compat_delay = kwargs.get("compat_delay", 5)
         self.msg_fn = kwargs.get("msg_fn", None)
         self.name = kwargs.get("port_name", "")
+        self.hexdump = False
 
         self.thread = threading.Thread(target=self.worker,
                                        args=(authfn,))
@@ -167,14 +177,17 @@ class Transporter():
     def __send(self, data):
         for i in range(0, 10):
             try:
+                if self.hexdump:
+                    print("Transporter.__send/pipe", type(self.pipe))
+                    utils.hexprintlog(data)
                 return self.pipe.write(data)
             except comm.DataPathIOError as err:
                 if not self.pipe.can_reconnect:
                     break
-                printlog("Transport", " : Data path IO error: %s" % err)
+                self.logger.info("__send: Data path IO error: %s", err)
                 try:
                     time.sleep(i)
-                    printlog("Transport", " : Attempting reconnect...")
+                    self.logger.info("__send: Attempting reconnect...")
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
@@ -190,12 +203,10 @@ class Transporter():
             except comm.DataPathIOError as err:
                 if not self.pipe.can_reconnect:
                     break
-                printlog("Transport",
-                         " : Data path IO error: %s" % err)
+                self.logger.info("__recv: Data path IO error: %s", err)
                 try:
                     time.sleep(i)
-                    printlog("Transport",
-                             " : Attempting reconnect...")
+                    self.logger.info("__recv: Attempting reconnect...")
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
@@ -205,6 +216,12 @@ class Transporter():
     def get_input(self):
         '''Get Input.'''
         chunk = self.__recv()
+        # wb8tyw, we seem to be polling get_input instead of using
+        # an event based system.  If something goes wrong here, this
+        # can result in a CPU bound loop.
+        if chunk and self.hexdump:
+            print("Transporter.get_input/pipe", type(self.pipe))
+            utils.hexprintlog(chunk)
         if chunk:
             self.inbuf += chunk
             self.last_recv = time.time()
@@ -237,19 +254,19 @@ class Transporter():
             frame = ddt2.DDT2EncodedFrame()
             try:
                 if frame.unpack(block):
-                    printlog("Transport", " : Got a block: %s" % frame)
+                    self.logger.debug("parse_blocks: Got a block: %s", frame)
                     self._handle_frame(frame)
                 elif self.compat:
                     self._send_text_block(block)
                 else:
-                    printlog("Transport",
-                             " : Found a broken block (S:%i E:%i len(buf):%i" %
-                             (start, end, len(self.inbuf)))
+                    self.logger.info("parse_blocks: Found a broken block "
+                                     "(S:%i E:%i len(buf):%i",
+                                     start, end, len(self.inbuf))
                     utils.hexprintlog(block)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Transport", " : Failed to process block: (%s -%s-)" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("parse_blocks: Failed to process block",
+                                 exc_info=True)
                 utils.log_exception()
 
     def _match_gps(self):
@@ -268,8 +285,7 @@ class Transporter():
         if match:
             return bytearray(match.group(1), 'utf-8', 'replace')
         if u"$$CRC" in inbuf_str:
-            printlog("Transport",
-                     " : Didn't match:\n%s" % repr(self.inbuf))
+            self.logger.info("_match_gps: Didn't match:\n%s", repr(self.inbuf))
         return None
 
     def _send_text_block(self, string):
@@ -279,8 +295,7 @@ class Transporter():
         frame.s_station = "CQCQCQ"
         frame.d_station = "CQCQCQ"
         if isinstance(string, str):
-            printlog("Transport/_send_text_block",
-                     " : Called with str data!")
+            self.logger.info("_send_text_block: Called with str data!")
             ascii_data = utils.filter_to_ascii(string)
         else:
             ascii_data = utils.filter_to_ascii_bytes(string)
@@ -296,7 +311,7 @@ class Transporter():
                 self.inbuf = bytearray(new_inbuf, 'utf-8', 'replace')
             else:
                 self.inbuf = new_inbuf
-            printlog("Transport", " : Found GPS string: %s" % repr(result))
+            self.logger.info("_parse_gps: Found GPS string: %s", repr(result))
             self._send_text_block(result)
 
     def parse_gps(self):
@@ -323,8 +338,8 @@ class Transporter():
                     # long before transmitting
                     delay = self.force_delay
 
-                printlog("Transport",
-                         " : Waiting %.1f sec before transmitting" % delay)
+                self.logger.info("send_frames: Waiting %.1f sec before "
+                                 "transmitting", delay)
                 time.sleep(delay)
                 delayed = True
 
@@ -338,11 +353,10 @@ class Transporter():
                 warmup_f.d_station = "!"
                 warmup_f.data = ("\x01" * self.warmup_length)
                 warmup_f.set_compress(False)
-                printlog(("Transport : Sending warm-up: %s" % warmup_f))
+                self.logger.info("send_frames: Sending warm-up: %s", warmup_f)
                 self.__send(warmup_f.get_packed())
 
-            printlog("Transport",
-                     " : Sending block: %s" % frame)
+            self.logger.debug("send_frames: Sending block: %s", frame)
             # pylint: disable=protected-access
             frame._xmit_s = time.time()
             self.__send(frame.get_packed())
@@ -374,8 +388,8 @@ class Transporter():
             except comm.DataPathNotConnectedError as err:
                 if self.msg_fn:
                     self.msg_fn("Unable to connect (%s)" % err)
-                printlog("Transport",
-                         " : Comm %s did not connect: %s" % (self.pipe, err))
+                self.logger.info("worker: Comm %s did not connect: %s",
+                                 self.pipe, err)
                 return
 
         if authfn and not authfn(self.pipe):
@@ -386,19 +400,16 @@ class Transporter():
             self.msg_fn("Connected")
 
         while self.enabled:
+            # pylint: disable=broad-except
             try:
                 self.get_input()
             except comm.DataPathIOError:
-                printlog("Transport",
-                         " : Unable to reconnect!")
+                self.logger.info("worker: Unable to reconnect!")
                 self.enabled = False
                 break
-            # This pylint disable does not work.
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Transport",
-                         " : Exception while getting input: %s -%s-" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("worker: Exception while getting input",
+                                 exc_info=True)
                 utils.log_exception()
                 self.enabled = False
                 break
@@ -410,17 +421,16 @@ class Transporter():
                 if self.compat:
                     self._send_text_block(self.inbuf)
                 else:
-                    printlog("Transport",
-                             " : ### Unconverted data: %s" % self.inbuf)
+                    self.logger.info("worker: ### Unconverted data: %s",
+                                     self.inbuf)
                 self.inbuf = b""
 
             try:
                 self.send_frames()
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Transport",
-                         " : Exception while sending frames: (%s -%s-)" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("worker: Exception while sending frames",
+                                 exc_info=True)
                 self.enabled = False
                 break
 
@@ -435,10 +445,11 @@ class Transporter():
         Send Frame
 
         :param frame: Frame to send.
+        :type frame: :class:`DDT2Frame`
         '''
         if not self.enabled:
-            printlog("Transport",
-                     " : Refusing to queue block for dead transport")
+            self.logger.info("send_frame: Refusing to queue block for "
+                             "dead transport")
             return
         self.outq.enqueue(frame)
 
@@ -447,6 +458,7 @@ class Transporter():
         Receive a frame.
 
         :returns: Frame from queue
+        :rtype: :class:`DDT2Frame`
         '''
         return self.inq.dequeue()
 
@@ -462,13 +474,13 @@ class Transporter():
         # pylint: disable=protected-access
         for block in self.outq._queue[:]:
             if block.session == ident:
-                printlog("Transport : Flushing block: %s" % block)
+                self.logger.info("flush_block: %s", block)
                 try:
                     # pylint: disable=protected-access
                     self.outq._queue.remove(block)
                 except ValueError:
-                    printlog("Transport",
-                             " : Block disappeared while flushing?")
+                    self.logger.info("flush_block: Block disappeared "
+                                     "while flushing?")
         self.outq.unlock()
 
     def __str__(self):
@@ -480,8 +492,15 @@ class TestPipe():
     Test Pipe Class.
 
     :param src: Optional Source station, Default "Sender"
+    :type src: str
     :param dst: Optional Destination Station, Default "Recvr"
+    :type dst: str
     '''
+    def __init__(self, src="Sender", dst="Recvr"):
+        self.logger = logging.getLogger("TestPipe")
+        self.make_fake_data(src, dst)
+        self.buf = None
+
     def make_fake_data(self, src, dst):
         '''
         Make Fake Data.
@@ -520,13 +539,7 @@ class TestPipe():
                             b",W,0.00,113.7,010808,17.4,E,A*27\r" + \
                             b"K7TAY M ,/10-13/\r"
 
-
-        printlog(("Transport :  Made some data: %s" % self.buf))
-
-
-    def __init__(self, src="Sender", dst="Recvr"):
-        self.make_fake_data(src, dst)
-        self.buf = None
+        self.logger.info("make_fake_data: %s", self.buf)
 
     # pylint: disable=no-self-use
     def is_connected(self):
@@ -562,6 +575,10 @@ class TestPipe():
 
 def test_simple():
     '''Unit test for module'''
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        level=logging.INFO)
+    logger = logging.getLogger("Transport:TestSimple")
     test_pipe = TestPipe()
     transport = Transporter(test_pipe)
 
@@ -577,7 +594,7 @@ def test_simple():
     time.sleep(2)
 
     frame = transport.recv_frame()
-    printlog(("Transport :  Received block: %s" % frame))
+    logger.info("Received block: %s", frame)
 
     transport.disable()
 
