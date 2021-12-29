@@ -5,19 +5,26 @@ from __future__ import print_function
 
 try:
     # python2
-    from UserDict import UserDict
+    from UserDict import UserDict # type: ignore
 except ModuleNotFoundError:
     # python3
     from collections import UserDict
 
+import logging
 import struct
 import os
 import time
 import zlib
 import sys # python 2 support only
 
-from six.moves import range
+from six.moves import range # type: ignore
 from d_rats.sessions import base, stateful
+
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 
 # pylint: disable=too-many-ancestors
@@ -26,6 +33,7 @@ class NotifyDict(UserDict):
     Notify Dictionary.
 
     :param callback: Callback function
+    :type callback: function
     :param data: data for function
     '''
 
@@ -39,47 +47,23 @@ class NotifyDict(UserDict):
         self.callback()
 
 
+# pylint: disable=too-many-instance-attributes
 class FileTransferSession(stateful.StatefulSession):
     '''
     File Transfer Session.
 
     :param name: Name of session
+    :type name: str
     :param status_cb: Status call back, default=None
+    :type status_cb: function
     :param kwargs: Keyword arguments
     '''
 
     type = base.T_FILEXFER
 
-    # pylint: disable=no-self-use
-    def internal_status(self, vals):
-        '''
-        Internal Status.
-
-        :param vals: dict with "msg' member with status
-        '''
-        print("XFER STATUS: %s" % vals["msg"])
-
-    def status(self, msg):
-        '''
-        Status Message
-
-        :param msg: Message to set as status
-        '''
-        vals = dict(self.stats)
-
-        vals["msg"] = msg
-        vals["filename"] = self.filename
-
-        self.status_cb(vals)
-
-        self.last_status = msg
-
-    def status_tick(self):
-        '''Status Tick'''
-        self.status(self.last_status)
-
     def __init__(self, name, status_cb=None, **kwargs):
         stateful.StatefulSession.__init__(self, name, **kwargs)
+        self.logger = logging.getLogger("FileTransferSession")
         if not status_cb:
             self.status_cb = self.internal_status
         else:
@@ -93,62 +77,96 @@ class FileTransferSession(stateful.StatefulSession):
         self.stats = NotifyDict(self.status_tick, self.stats)
         self.stats["total_size"] = 0
 
+    def internal_status(self, vals):
+        '''
+        Internal Status.
+
+        :param vals: dict with "msg' member with status
+        :type vals: dict
+        '''
+        self.logger.info("XFER STATUS: %s", vals["msg"])
+
+    def status(self, msg):
+        '''
+        Status Message
+
+        :param msg: Message to set as status
+        :type msg: str
+        '''
+        vals = dict(self.stats)
+
+        vals["msg"] = msg
+        vals["filename"] = self.filename
+
+        self.status_cb(vals)
+
+        self.last_status = msg
+
+    def status_tick(self):
+        '''Status Tick.'''
+        self.status(self.last_status)
+
     # pylint: disable=too-many-branches,too-many-statements
     def send_file(self, filename):
         '''
         Send a file.
 
         :param filename: Filename to send
+        :type filename: str
         :returns: True if file tranferred.
+        :rtype: bool
         '''
         data = self.get_file_data(filename)
         if not data:
             return False
 
+        base_name = os.path.basename(filename)
         try:
-            offer = struct.pack("I", len(data)) + os.path.basename(filename)
+            fname = base_name.encode('utf-8', 'replace')
+            offer = struct.pack("I", len(data)) + fname
             self.write(offer)
         except base.SessionClosedError:
-            print("Session closed while sending file information")
+            self.logger.info("send_file: "
+                             "Session closed while sending file information")
             return False
 
-        self.filename = os.path.basename(filename)
+        self.filename = base_name
 
         offset = None
 
         for _i in range(40):
-            print("Waiting for start")
+            self.logger.info("send_file: Waiting for start")
             try:
                 resp = self.read()
             except base.SessionClosedError:
-                print("Session closed while waiting for start ack")
+                self.logger.info("send_file: "
+                                 "Session closed while waiting for start ack")
                 return False
 
             if not resp:
                 self.status(_("Waiting for response"))
-            elif resp == "OK":
+            elif resp == b"OK":
                 self.status(_("Negotiation Complete"))
                 offset = 0
                 break
-            elif resp.startswith("RESUME:"):
-                _resume, _offset = resp.split(":", 1)
-                print("Got RESUME request at %s" % _offset)
+            elif resp.startswith(b"RESUME:"):
+                _resume, _offset = resp.split(b":", 1)
+                self.logger.info("send_file: Got RESUME request at %s",
+                                 _offset)
                 try:
                     offset = int(_offset)
-                # pylint: disable=broad-except
-                except Exception as err:
-                    print("Unable to parse RESUME value: %s -%s-" %
-                          (type(err), err))
+                except ValueError:
+                    self.logger.info("send_file: Unable to parse RESUME value")
                     offset = 0
                 self.status(_("Resuming at") + "%i" % offset)
                 break
             else:
-                print("Got unknown start: `%s'" % resp)
+                self.logger.info("send_file: Got unknown start: `%s'", resp)
 
             time.sleep(0.5)
 
         if offset is None:
-            print("Did not get start response")
+            self.logger.info("send_file: Did not get start response")
             return False
 
         self.stats["total_size"] = len(data) + len(offer) - offset
@@ -158,7 +176,7 @@ class FileTransferSession(stateful.StatefulSession):
             self.status("Sending")
             self.write(data[offset:], timeout=120)
         except base.SessionClosedError:
-            print("Session closed while doing write")
+            self.logger.info("send_file: Session closed while doing write")
 
         sent = self.stats["sent_size"]
 
@@ -177,14 +195,17 @@ class FileTransferSession(stateful.StatefulSession):
         Receive a file.
 
         :param dest_dir: Destination directory
+        :type dest_dir: str
         :returns: filename received or None
+        :rtype: str
         '''
         self.status(_("Waiting for transfer to start"))
         for _i in range(40):
             try:
                 data = self.read()
             except base.SessionClosedError:
-                print("Session closed while waiting for start")
+                self.logger.info("recv_file: "
+                                 "Session closed while waiting for start")
                 return None
 
             if data:
@@ -207,11 +228,13 @@ class FileTransferSession(stateful.StatefulSession):
         partfilename = filename + ".part"
 
         if os.path.exists(partfilename):
-            data = self.get_file_data(partfilename)
+            # partial transfers can not be decompressed.
+            data = self.get_file_partial_data(partfilename)
             offset = os.path.getsize(partfilename)
-            print("Part file exists, resuming at %i" % offset)
+            self.logger.info("recv_file: Part file exists, resuming at %i",
+                             offset)
         else:
-            data = ""
+            data = b""
             offset = 0
 
         self.status(_("Receiving file") + \
@@ -224,12 +247,13 @@ class FileTransferSession(stateful.StatefulSession):
 
         try:
             if offset:
-                print("Sending resume at %i" % offset)
+                self.logger.info("recv_file: Sending resume at %i", offset)
                 self.write("RESUME:%i" % offset)
             else:
                 self.write("OK")
         except base.SessionClosedError:
-            print("Session closed while sending start ack")
+            self.logger.info("recv_file: "
+                             "Session closed while sending start ack")
             return None
 
         self.status(_("Waiting for first block"))
@@ -238,7 +262,7 @@ class FileTransferSession(stateful.StatefulSession):
             try:
                 read_data = self.read()
             except base.SessionClosedError:
-                print("SESSION IS CLOSED")
+                self.logger.info("recv_file: SESSION IS CLOSED")
                 break
 
             if read_data:
@@ -248,12 +272,13 @@ class FileTransferSession(stateful.StatefulSession):
         try:
             self.put_file_data(filename, data)
             if os.path.exists(partfilename):
-                print("Removing old file part")
+                self.logger.info("recv_file: Removing old file part")
                 os.remove(partfilename)
-        # pylint: disable=broad-except
-        except Exception as err:
-            print("Failed to write transfer data: %s -%s-" % (type(err), err))
-            self.put_file_data(partfilename, data)
+        except zlib.error:
+            self.logger.debug("recv_file: Failed to write transfer data",
+                              exc_info=True)
+            # partial data can not be decompressed
+            self.put_file_partial_data(partfilename, data)
             return None
 
         if self.stats["recv_size"] != self.stats["total_size"]:
@@ -270,7 +295,9 @@ class FileTransferSession(stateful.StatefulSession):
         Get file data amd compress it.
 
         :param filename: Filename to get data from
+        :type filename: str
         :returns: Compressed data
+        :rtype: bytes
         '''
         file_handle = open(filename, "rb")
         data = file_handle.read()
@@ -279,13 +306,30 @@ class FileTransferSession(stateful.StatefulSession):
         return zlib.compress(data, 9)
 
     # pylint: disable=no-self-use
+    def get_file_partial_data(self, filename):
+        '''
+        Get file data from a previous partial transfer..
+
+        :param filename: Filename to get data from
+        :type filename: str
+        :returns: data
+        :rtype: bytes
+        '''
+        file_handle = open(filename, "rb")
+        data = file_handle.read()
+        file_handle.close()
+        return data
+
+    # pylint: disable=no-self-use
     def put_file_data(self, filename, zdata):
         '''
         Put file data that is compressed.
 
         :param filename: Filename to write
+        :type filename: str
         :param zdata:  Compressed data
-        :raises: zlib.err is can not decompress
+        :type zdata: bytes
+        :raises: :class:`zlib.err` if can not decompress
         '''
         try:
             if sys.version_info[0] > 2:
@@ -298,3 +342,16 @@ class FileTransferSession(stateful.StatefulSession):
             file_handle.close()
         except zlib.error as err:
             raise err
+
+    def put_file_partial_data(self, filename, data):
+        '''
+        Put file partial data.
+
+        :param filename: Filename to write
+        :type filename: str
+        :param data: data
+        :type zdata: bytes
+        '''
+        file_handle = open(filename, "wb")
+        file_handle.write(data)
+        file_handle.close()
