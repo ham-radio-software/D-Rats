@@ -30,6 +30,9 @@ try:
     from geopy import geocoders
 except ModuleNotFoundError:
     pass
+# python2 compatibility
+except ImportError:
+    pass
 
 import gi
 gi.require_version("Gtk", "3.0")
