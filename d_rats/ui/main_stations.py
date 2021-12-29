@@ -133,7 +133,7 @@ class StationsList(MainWindowTab):
 
     _signals = __gsignals__
 
-    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-statements, too-many-locals
     def __init__(self, wtree, config):
         MainWindowTab.__init__(self, wtree, config, "main")
 
@@ -487,11 +487,27 @@ class StationsList(MainWindowTab):
         :type station: str
         :param port: Radio port station seen on
         :type port: str
-        :param status: Optional station status
+        :param status: Station status, default 0
+        :type status: int
         :param smsg: Optional Station message
         :type smsg: str
         '''
         status_changed = False
+
+        # print("saw_station: %s %s %i %s" % (station, port, status, smsg))
+        # import traceback
+        # traceback.print_stack()
+
+        # This data can come from many sources, so make sure that any
+        # bytes type is converted to str before storage.
+        # Eventually need to trace down all callers of this method to
+        # make sure that they only pass str types for string data.
+        if not isinstance(station, str):
+            station = station.decode('utf-8', 'replace')
+        if not isinstance(port, str):
+            port = port.decode('utf-8', 'replace')
+        if not isinstance(smsg, str):
+            smsg.decode('utf-8', 'replace')
 
         if station == "CQCQCQ":
             return
