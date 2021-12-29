@@ -2,6 +2,7 @@
 '''Control'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,9 +19,11 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+import logging
 import struct
 
-from six.moves import range
+from six.moves import range # type: ignore
 
 from d_rats.utils import log_exception
 from d_rats.ddt2 import DDT2EncodedFrame
@@ -39,18 +42,33 @@ class ControlSession(base.Session):
 
     stateless = True
 
+    def __init__(self):
+        base.Session.__init__(self, "control")
+        self.logger = logging.getLogger("ControlSession")
+        self.handler = self.ctl
+
+        self.stypes = {T_NEW + base.T_GENERAL  : stateful.StatefulSession,
+                       T_NEW + base.T_FILEXFER : file.FileTransferSession,
+                       T_NEW + base.T_FORMXFER : form.FormTransferSession,
+                       T_NEW + base.T_SOCKET   : sock.SocketSession,
+                       }
+
     def ack_req(self, dest, data):
         '''
         Ack Request
 
         :param dest: Destination Callsign
+        :type dest: str
         :param data: Data for frame
         '''
         frame = DDT2EncodedFrame()
         frame.type = T_ACK
         frame.seq = 0
         frame.d_station = dest
-        frame.data = data
+        if isinstance(data, str):
+            frame.data = data.encode('utf-8', 'replace')
+        else:
+            frame.data = data
         self._sm.outgoing(self, frame)
 
     def ctl_ack(self, frame):
@@ -58,20 +76,21 @@ class ControlSession(base.Session):
         Control Ack.
 
         :param frame: Frame of data
+        :type frame: :class:`DDT2Frame`
         '''
         try:
             local_session, remote_session = struct.unpack("BB", frame.data)
             session = self._sm.sessions[local_session]
             # pylint: disable=protected-access
             session._rs = remote_session
-            print("Control",
-                  "   : Signaled waiting session thread (l=%i r=%i)" %
-                  (local_session, remote_session))
+            self.logger.info("ctl_ack: "
+                             "Signaled waiting session thread (l=%i r=%i)",
+                             local_session, remote_session)
         # pylint: disable=broad-except
-        except Exception as err:
-            print("Control",
-                  "   : Failed to lookup new session event: %s -%s-" %
-                  (type(err), err))
+        except Exception:
+            self.logger.info("ctl_ack: "
+                             "Failed to lookup new session event",
+                             exc_info=True)
 
         if session.get_state() == base.ST_CLSW:
             session.set_state(base.ST_CLSD)
@@ -80,25 +99,26 @@ class ControlSession(base.Session):
         elif session.get_state() == base.ST_SYNC:
             session.set_state(base.ST_OPEN)
         else:
-            print("Control",
-                  "   : ACK for session in invalid state: %i" %
-                  session.get_state())
+            self.logger.info("ctl_ack: "
+                             "ACK for session in invalid state: %i",
+                             session.get_state())
 
     def ctl_end(self, frame):
         '''
         Control End.
 
         :param frame: Frame object
+        :type frame: :class:`DDT2Frame`
         '''
-        print(("Control   : End of session %s" % frame.data))
+        self.logger.debug("ctl_end: End of session %s", frame.data)
 
         try:
             ident = int(frame.data)
         # pylint: disable=broad-except
-        except Exception as err:
-            print("Control",
-                  "   : Session end request had invalid ID: %s -%s-" %
-                  (type(err), err))
+        except Exception:
+            self.logger.info("ctl_end: "
+                             "Session end request had invalid ID",
+                             exc_info=True)
             return
 
         try:
@@ -106,20 +126,20 @@ class ControlSession(base.Session):
             session.set_state(base.ST_CLSD)
             self._sm.stop_session(session)
         # pylint: disable=broad-except
-        except Exception as err:
-            print("Control",
-                  "   : Session %s ended but not registered %s -%s-" %
-                  (id, type(err), err))
+        except Exception:
+            self.logger.info("ctl_end: "
+                             "Session %s ended but not registered",
+                             ident, exc_info=True)
             return
 
         frame.d_station = frame.s_station
         # pylint: disable=protected-access
         if session._rs:
             # pylint: disable=protected-access
-            frame.data = str(session._rs)
+            frame.data = str(session._rs).encode('utf-8', 'replace')
         else:
             # pylint: disable=protected-access
-            frame.data = str(session._id)
+            frame.data = str(session._id).encode('utf-8', 'replace')
         self._sm.outgoing(self, frame)
 
     def ctl_new(self, frame):
@@ -127,43 +147,43 @@ class ControlSession(base.Session):
         Control New.
 
         :param frame: Frame object
+        :type frame: :class:`DDT2Frame`
         '''
         try:
             (ident,) = struct.unpack("B", frame.data[:1])
-            name = frame.data[1:]
+            name = frame.data[1:].decode('utf-8', 'replace')
         # pylint: disable=broad-except
-        except Exception as err:
-            print("Control",
-                  "   : Session request had invalid ID: %s -%s-" %
-                  (type(err), err))
+        except Exception:
+            self.logger.info("ctl_new: "
+                             "Session request had invalid ID", exc_info=True)
             return
 
-        print("Control   : New session %i from remote" % ident)
+        self.logger.info("ctl_new: New session %i from remote", ident)
 
         exist = self._sm.get_session(rid=ident, rst=frame.s_station)
         if exist:
             # pylint: disable=protected-access
-            print("Control",
-                  "   : Re-sending ACK for existing session %s:%i:%i" %
-                  (frame.s_station, ident, exist._id))
+            self.logger.info("ctl_new: "
+                             "Re-sending ACK for existing session %s:%i:%i",
+                             frame.s_station, ident, exist._id)
             self.ack_req(frame.s_station, struct.pack("BB", ident, exist._id))
             return
 
-        print("Control   : sending ACK for session request for %i" % ident)
+        self.logger.info("ctl_new: sending ACK for session request for %i",
+                         ident)
 
         try:
             c_type = self.stypes[frame.type]
-            print("Control   : Got type: %s" % c_type)
+            self.logger.info("ctl_new: Got type: %s", c_type)
             station = c_type(name)
             # pylint: disable=protected-access
             station._rs = ident
             station.set_state(base.ST_OPEN)
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             log_exception()
-            print("Control",
-                  "  : Can't start session type `%s': %s -%s-" %
-                  (frame.type, type(err), err))
+            self.logger.info("ctl_new: Can't start session type `%s'",
+                             frame.type, exc_info=True)
             return
 
         # pylint: disable=protected-access
@@ -177,11 +197,11 @@ class ControlSession(base.Session):
         Control.
 
         :param frame: Frame of data
+        :type frame: :class:`DDT2Frame`
         '''
         if frame.d_station != self._sm.station:
-            print(("Control",
-                   "   : Control ignoring frame for station %s" %
-                   frame.d_station))
+            self.logger.info("ctl: Control ignoring frame for station %s",
+                             frame.d_station)
             return
 
         if frame.type == T_ACK:
@@ -191,23 +211,27 @@ class ControlSession(base.Session):
         elif frame.type >= T_NEW:
             self.ctl_new(frame)
         else:
-            print(("Control",
-                   "   : Unknown control message type %i" % frame.type))
+            self.logger.info("ctl: Unknown control message type %i", frame.type)
 
     def new_session(self, session):
         '''
         New Session.
 
         :param session: Session object
+        :type session: :class:`Session`
         :returns: True if session created
+        :rtype: bool
         '''
         frame = DDT2EncodedFrame()
         frame.type = T_NEW + session.type
         frame.seq = 0
+        # frame data is of type bytes with python3
+        session_name = session.name.encode('utf-8', 'replace')
         # pylint: disable=protected-access
         frame.d_station = session._st
         # pylint: disable=protected-access
-        frame.data = struct.pack("B", int(session._id)) + session.name
+
+        frame.data = struct.pack("B", int(session._id)) + session_name
 
         wait_time = 5
 
@@ -217,27 +241,26 @@ class ControlSession(base.Session):
             frame.sent_event.wait(10)
             frame.sent_event.clear()
 
-            print("Control   : Sent request, blocking...")
+            self.logger.info("new_session: Sent request, blocking...")
             session.wait_for_state_change(wait_time)
 
             state = session.get_state()
 
             if state == base.ST_CLSD:
-                print("Control   : Session is closed")
+                self.logger.info("new_session: Session is closed")
                 break
             if state == base.ST_SYNC:
-                print("Control   : Waiting for synchronization")
+                self.logger.info("new_session: Waiting for synchronization")
                 wait_time = 15
             else:
                 # pylint: disable=protected-access
-                print("Control",
-                      "   : Established session %i:%i" %
-                      (session._id, session._rs))
+                self.logger.info("new_session: Established session %i:%i",
+                                 session._id, session._rs)
                 session.set_state(base.ST_OPEN)
                 return True
 
         session.set_state(base.ST_CLSD)
-        print("Control   : Failed to establish session")
+        self.logger.info("new_session: Failed to establish session")
         return False
 
     def end_session(self, session):
@@ -245,13 +268,15 @@ class ControlSession(base.Session):
         End Session.
 
         :param session: Session object
+        :type session: :class:`Session`
         :returns: True if session is closed normally
+        :rtype: bool
         '''
         if session.stateless:
             return True
 
         while session.get_state() == base.ST_SYNC:
-            print("Control   : Waiting for session in SYNC")
+            self.logger.info("end_session: Waiting for session in SYNC")
             session.wait_for_state_change(2)
 
         frame = DDT2EncodedFrame()
@@ -262,37 +287,27 @@ class ControlSession(base.Session):
         # pylint: disable=protected-access
         if session._rs:
             # pylint: disable=protected-access
-            frame.data = str(session._rs)
+            frame.data = str(session._rs).encode('utf-8', 'replace')
         else:
             # pylint: disable=protected-access
-            frame.data = str(session._id)
+            frame.data = str(session._id).encode('utf-8', 'replace')
 
         session.set_state(base.ST_CLSW)
 
         for _attempt in range(0, 3):
-            print("Control   : Sending End-of-Session")
+            self.logger.info("end_session: Sending End-of-Session")
             self._sm.outgoing(self, frame)
 
             frame.sent_event.wait(10)
             frame.sent_event.clear()
 
-            print("Control   : Sent, waiting for response")
+            self.logger.info("end_session: Sent, waiting for response")
             session.wait_for_state_change(15)
 
             if session.get_state() == base.ST_CLSD:
-                print("Control   : Session closed")
+                self.logger.info("end_session: Session closed")
                 return True
 
         session.set_state(base.ST_CLSD)
-        print("Control   : Session closed because no response")
+        self.logger.info("end_session: Session closed because no response")
         return False
-
-    def __init__(self):
-        base.Session.__init__(self, "control")
-        self.handler = self.ctl
-
-        self.stypes = {T_NEW + base.T_GENERAL  : stateful.StatefulSession,
-                       T_NEW + base.T_FILEXFER : file.FileTransferSession,
-                       T_NEW + base.T_FORMXFER : form.FormTransferSession,
-                       T_NEW + base.T_SOCKET   : sock.SocketSession,
-                       }
