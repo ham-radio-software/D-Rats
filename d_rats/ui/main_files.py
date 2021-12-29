@@ -2,6 +2,7 @@
 '''Main Files'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -171,7 +172,7 @@ class RemoteFileView(FileView):
 
         # pylint: disable=fixme
         # FIXME: This might need to be in the idle loop
-        for key, value in result.items():
+        for key, value in result.copy().items():
             if "B (" in value:
                 size_str, units, file_date, file_time = value.split(" ")
                 size = 0
@@ -549,7 +550,7 @@ class FilesTab(MainWindowTab):
         file_sel_ports.remove_all()
 
         if stationlist:
-            for port, stations in stationlist.items():
+            for port, stations in stationlist.copy().items():
                 _ports.append(port)
                 for station in stations:
                     _stations.append(str(station))
