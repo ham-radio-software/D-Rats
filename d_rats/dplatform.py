@@ -677,12 +677,19 @@ class Win32Platform(Platform):
         except ImportError:
             self.logger.info("list_serial_ports: failed to load win32file %s",
                              exc_info=True)
+        # pylint: disable=import-error
+        try:
+            import pywintypes # type: ignore
+        except ImportError:
+            self.logger.info("list_serial_ports: failed to load pywintypes %s",
+                             exc_info=True)
 
             return []
         import win32con # type: ignore
 
         ports = []
         for i in range(1, 257):
+            # pylint: disable=broad-except
             try:
                 portname = "COM%i" % i
                 mode = win32con.GENERIC_READ | win32con.GENERIC_WRITE
@@ -697,11 +704,10 @@ class Win32Platform(Platform):
                 ports.append(portname)
                 win32file.CloseHandle(port)
                 port = None
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("list_serial_ports: Broad-exception",
-                                 exc_info=True)
-                # pass
+
+            except pywintypes.error as err:
+                if err.args[0] != 2:
+                    self.logger.info("list_serial_ports", exc_info=True)
 
         return ports
 
@@ -783,9 +789,9 @@ class Win32Platform(Platform):
         '''
         # pylint: disable=import-error, unused-import
         try:
-            import win32file # type: ignore
+            import win32api # type: ignore
         except ImportError:
-            self.logger.info("os_version_string: Failed to load win32file",
+            self.logger.info("os_version_string: Failed to load win32api",
                              exc_info=True)
             return "Windows Unknown."
         #platform: try to identify windows version
