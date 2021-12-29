@@ -116,7 +116,7 @@ class SessionManager():
         :type session: :class:`Session`
         :param reason: Reason for callback
         '''
-        for function, data in self.session_cb.items():
+        for function, data in self.session_cb.copy().items():
             try:
                 function(data, reason, session)
             # pylint: disable=broad-except
@@ -289,17 +289,17 @@ class SessionManager():
         Deregister Session
 
         :param ident: Identification of session to deregister
+        :type ident: int
         '''
         if ident in self.sessions:
             self.fire_session_cb(self.sessions[ident], "end")
 
         try:
             del self.sessions[ident]
-        # pylint: disable=broad-except
-        except Exception:
+        except KeyError:
             self.logger.info("_deregister_session:"
-                             "No session %s to deregister (%s)",
-                             ident, "broad-exception", exc_info=True)
+                             "No session %s to deregister",
+                             ident)
 
     def start_session(self, name, dest=None, cls=None, **kwargs):
         '''
