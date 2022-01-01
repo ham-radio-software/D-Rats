@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''D-Rats Signals.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
