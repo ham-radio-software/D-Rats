@@ -27,23 +27,23 @@ msgstr "Argomenti di comando non implementati."
 
 #: internationalization_test.py:82
 msgid "DEFAULT ARGUMENTS NOT IMPLEMENTED!"
-msgstr "Default arguments not implemented."
+msgstr "Valori di default non implementati."
 
 #: internationalization_test.py:84
 msgid "EXECUTING UNIT TEST FUNCTION."
-msgstr "Esecuzione della funzione di test dell'unita."
+msgstr "UNIT TEST in corso"
 
 msgid " on port "
 msgstr "sulla porta"
 
 msgid " when a new chat arrives"
-msgstr "quando arriva nuova chat"
+msgstr "quando arriva una chat"
 
 msgid " when new file activity occurs"
 msgstr "quando arriva un file"
 
 msgid " when new message activity occurs"
-msgstr "quando arriva un messaggio"
+msgstr "quando arriva un nuovo messaggio"
 
 msgid "%s Color"
 msgstr "Colore %s"
@@ -71,7 +71,7 @@ msgid "9600 for mobile radios, 38400 for handhelds"
 msgstr "9600 per i veicolari, 38400 per i palmari"
 
 msgid "<b>My Status</b>"
-msgstr "<b>Condizioni</b>"
+msgstr "<b>Il mio stato</b>"
 
 msgid "<b>Parameters</b>"
 msgstr "<b>Parametri</b>"
@@ -125,9 +125,8 @@ msgid ""
 "After this many hours, a map tile will be re-fetched, regardless of if it is "
 "already stored locally.  0 means never re-fetch.  720 hours is 30 days."
 msgstr ""
-"Dopo questo numero di ore, la mappa sarà aggiornata, indipendentemente dal "
-"suo salvataggio locale. 0 significa nessun aggiornamento. 720 ore sono 30 "
-"giorni."
+"Dopo questo numero di ore la mappa verrà riscaricata in locale. "
+"Valori: 0 per non fare mai aggiornamenti. 720 ore sono 30 giorni."
 
 msgid "Airport"
 msgstr "Aereoporto"
@@ -149,10 +148,10 @@ msgstr ""
 "Ping"
 
 msgid "Allow POP3 Gateway"
-msgstr "Gateway POP3 permesso"
+msgstr "Abilita Gateway POP3"
 
 msgid "Allow WL2K Gateway"
-msgstr "Permetti WL2K Gateway"
+msgstr "Abilita Gateway WL2K "
 
 msgid "Allow remote stations to pull files"
 msgstr "Abilita stazioni remote a prendere file"
@@ -161,7 +160,7 @@ msgid "Allow remote stations to pull forms"
 msgstr "Abilita stazioni remote a prendere messaggi"
 
 msgid "Alternate location to store cached map images"
-msgstr "Posizoine alternativa per le immagini delle mappe"
+msgstr "Posizione alternativa per le immagini delle mappe"
 
 msgid "Altitude"
 msgstr "Altitudine"
@@ -173,7 +172,7 @@ msgid ""
 "Amount of time to wait between transmissions in seconds (a positive number "
 "is a fixed delay, a negative value means 'randomly choose between 0 and X')"
 msgstr ""
-"Quantità di secondi da attendere fra le trasmissioni (un valore positivo è "
+"Quantità di secondi di attesa fra le trasmissioni (un valore positivo è "
 "considerato un periodo fisso, negativo significa un tempo variabile fra 0 e "
 "il valore indicato)"
 
@@ -187,7 +186,7 @@ msgid "Appearance"
 msgstr "Aspetto"
 
 msgid "Are you sure you want to clear your map cache?"
-msgstr "Sei sicuro di coler cancellare la mappa dalla memoria ?"
+msgstr "Sei sicuro di voler cancellare la mappa dalla memoria ?"
 
 msgid "Attachments"
 msgstr "Allegati"
@@ -208,7 +207,7 @@ msgid "Block size"
 msgstr "Dimensione blocco"
 
 msgid "Both"
-msgstr "entrambi"
+msgstr "Entrambi"
 
 msgid "Broadcast Location"
 msgstr "Posizone di Trasmissione"
@@ -250,7 +249,7 @@ msgid "Center on this"
 msgstr "Centra questo punto"
 
 msgid "Channel names must be a single-word "
-msgstr "I nomi dei canali devono essere una parola intera"
+msgstr "Il nome dei canale deve essere una parola intera"
 
 msgid "Chat"
 msgstr "Chat"
@@ -259,7 +258,7 @@ msgid "Chat activity"
 msgstr "Attività su Chat"
 
 msgid "Chat font"
-msgstr "Formato carattere chat"
+msgstr "Font della chat"
 
 msgid "Check spelling"
 msgstr "Controllo ortografia"
@@ -900,7 +899,7 @@ msgid "Options"
 msgstr "Opzioni"
 
 msgid "Outbox"
-msgstr "Outbox"
+msgstr "Inviati"
 
 msgid "Outgoing"
 msgstr "In uscita"
@@ -1384,8 +1383,7 @@ msgstr "Trash"
 msgid ""
 "Treat incoming raw text (and garbage) as chat data and display it on-screen"
 msgstr ""
-"Tratta il testo grezzo (e i rifiuti) come dati di chat e li visualizza sul "
-"monitor"
+"Tratta il testo ricevuto come dati di chat e li visualizza sullo schermo"
 
 msgid "Type"
 msgstr "Tipo"
