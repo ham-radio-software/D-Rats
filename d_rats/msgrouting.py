@@ -71,6 +71,7 @@ CALL_TIMEOUT_RETRY = 300
 
 MSG_LOCK_LOCK = threading.Lock()
 
+# pylint: disable=invaid-name
 global_logger = logging.getLogger("MsgRouting")
 
 def __msg_lockfile(fname):
@@ -179,7 +180,7 @@ def is_sendable_dest(mycall, string):
     # Empty string
     if not string.strip():
         global_logger.info("is_sendable_dest: empty: %s %s",
-                            string, string.strip())
+                           string, string.strip())
         return False
 
     # Is an email address:
