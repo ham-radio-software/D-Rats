@@ -20,6 +20,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+import logging
+import os
 import threading
 import time
 import socket
@@ -27,12 +30,17 @@ import sys
 import six.moves.configparser # type: ignore
 # import os
 
-import gettext
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
+# from gi.repository import GLib
 
 from d_rats import dplatform
 from d_rats import transport
@@ -40,7 +48,6 @@ from d_rats import comm
 from d_rats.miscwidgets import make_choice
 from d_rats import miscwidgets
 from d_rats.config import prompt_for_port
-from d_rats.debug import printlog
 
 # from d_rats.comm import SWFSerial
 from d_rats import utils
@@ -55,12 +62,14 @@ if sys.version_info[0] < 3:
         '''Suppress pylint on python3 warning.'''
 
 
+# WB8TYW: Can not find a caller for this function.
 def call_with_lock(lock, function, *args):
     '''
     Call with lock.
 
     :param lock: Locking object
     :param function: Function to call
+    :type function: function
     :param args: Arguments for function
     :returns: Result of function
     '''
@@ -86,7 +95,9 @@ class CallInfo:
     Call Information.
 
     :param call: Call sign
+    :type call: str
     :param call_transport: Transport call was heard on
+    :type call_transport: :class:`Transporter`
     '''
 
     def __init__(self, call, call_transport):
@@ -97,7 +108,8 @@ class CallInfo:
         '''
         Get call.
 
-        Returns Call sign
+        :returns: Call sign
+        :rtype: str
         '''
         return self.__call
 
@@ -106,6 +118,7 @@ class CallInfo:
         Just heard.
 
         :param heard_transport: Transport that had something heard
+        :type heard_transport: :class:`Transporter`
         '''
         self.__heard = time.time()
         self.__transport = heard_transport
@@ -114,7 +127,8 @@ class CallInfo:
         '''
         Last heard.
 
-        :returns: Time object for last heard station
+        :returns: Time for last heard station
+        :type float:
         '''
         return time.time() - self.__heard
 
@@ -132,8 +146,11 @@ def call_in_list(callinfo, call):
     Call in list?
 
     :param callinfo: list of callsign infomation objects
+    :type callinfo: list of :class:`CallInfo`
     :param call: Call sign to lookup
+    :type call: str
     :returns true: If call sign is found
+    :rtype: bool
     '''
     for info in callinfo:
         if call == info.get_call():
@@ -147,13 +164,18 @@ class Repeater:
     Repeater.
 
     :param ident: Identity string, Default 'D-RATS Network Proxy'
+    :type ident: str
     :param reqauth: True is authorization required
+    :type reqauth: bool
     :param trustlocal: True if local should be trusted
+    :type trustlocal: bool
     :param gps_okay_ports: List of GPS active TCP/IP ports, default None
+    :type gps_ok_ports: list
     '''
 
     def __init__(self, ident="D-RATS Network Proxy",
                  reqauth=False, trustlocal=False, gps_okay_ports=None):
+        self.logger = logging.getLogger("Repeater")
         self.paths = []
         self.calls = {}
         self.thread = None
@@ -195,43 +217,40 @@ class Repeater:
         srcinfo = self.calls.get(frame.s_station, None)
         if srcinfo is None and frame.s_station != "CQCQCQ":
 
-            printlog("Repeater",
-                     "  : Adding new station %s to port %s" %
-                     (frame.s_station, rpt_transport))
+            self.logger.info("__repeat: Adding new station %s to port %s",
+                             frame.s_station, rpt_transport)
             self.calls[frame.s_station] = CallInfo(frame.s_station,
                                                    rpt_transport)
         elif srcinfo:
             if srcinfo.last_transport() != rpt_transport:
-                printlog("Repeater",
-                         "  : Station %s moved to port %s" %
-                         (frame.s_station, rpt_transport))
+                self.logger.info("__repeat: Station %s moved to port %s",
+                                 frame.s_station, rpt_transport)
 
             srcinfo.just_heard(rpt_transport)
 
         dstinfo = self.calls.get(frame.d_station, None)
         if dstinfo is not None:
             if not dstinfo.last_transport().enabled:
-                printlog("Repeater",
-                         " : Last transport for %s is dead" % frame.d_station)
+                self.logger.info("__repeat: Last transport for %s is dead",
+                                 frame.d_station)
             elif dstinfo.last_heard() < self.__call_timeout:
-                printlog("Repeater",
-                         "  : Delivering frame to %s at %s" %
-                         (frame.d_station, dstinfo.last_transport()))
+                self.logger.info("__repeat: Delivering frame to %s at %s",
+                                 frame.d_station, dstinfo.last_transport())
                 dstinfo.last_transport().send_frame(frame.get_copy())
                 return
-            printlog("Repeater",
-                     "  : Last port for %s was %i sec ago (>%i sec)" %
-                     (frame.d_station,
-                      dstinfo.last_heard(),
-                      self.__call_timeout))
+            self.logger.info("__repeat: Last port for %s was %i sec"
+                             " ago (>%i sec)",
+                             frame.d_station,
+                             dstinfo.last_heard(),
+                             self.__call_timeout)
 
-        printlog("Repeater",
-                 "  : Repeating frame to %s on all ports" % frame.d_station)
+        self.logger.info("__repeat: Repeating frame to %s on all ports",
+                         frame.d_station)
         for path in self.paths[:]:
             if path == rpt_transport:
                 continue
             if not path.enabled:
-                printlog("Repeater  : Found a stale path, removing...")
+                self.logger.info("__repeat: Found a stale path, removing...")
                 path.disable()
                 self.paths.remove(path)
             else:
@@ -241,7 +260,8 @@ class Repeater:
         '''
         Add new transport.
 
-        :param: new_transport: Transport to add
+        :param new_transport: Transport to add
+        :type new_transport: :class:`Transporter`
         '''
         self.paths.append(new_transport)
 
@@ -250,10 +270,9 @@ class Repeater:
             try:
                 self.__repeat(new_transport, frame)
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Repeater  :",
-                         "Exception during __repeat: Generic %s -%s-" %
-                         (type(err), err))
+            except Exception:
+                self.logger.info("add_new_transport: Generic Exception",
+                                 exc_info=True)
             self.condition.release()
 
         new_transport.inhandler = handler
@@ -265,22 +284,23 @@ class Repeater:
 
         :param pipe: socket object
         :returns: Data for exchange
+        :rtype: tuple of two str
         '''
         username = password = None
         count = 0
 
-        def readline(_s):
+        def readline(sock):
             data = ""
             while "\r\n" not in data:
                 try:
-                    _d = _s.read(32)
+                    data_part = sock.read(32)
                 except socket.timeout:
                     continue
 
-                if _d == "":
+                if data_part == b"":
                     break
 
-                data += _d
+                data += data_part.decode('utf-8', 'replace')
             return data.strip()
 
         while (not username or not password) and count < 3:
@@ -289,12 +309,7 @@ class Repeater:
                 continue
             try:
                 cmd, value = line.split(" ", 1)
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Repeater  : ",
-                         "Unable to read auth command: `%s': %s -%s-" %
-                         (line, type(err), err))
-
+            except ValueError:
                 pipe.write(b"501 Invalid Syntax\r\n")
                 break
 
@@ -312,7 +327,7 @@ class Repeater:
                 pipe.write(b"102 %s okay\r\n" % cmd)
 
         if not username or not password:
-            printlog("Repeater  : Negotiation failed with client")
+            self.logger.info("auth_exchange: Negotiation failed with client")
 
         return username, password
 
@@ -322,6 +337,7 @@ class Repeater:
 
         :param pipe: Pipe object
         :return: True if authorized
+        :rtype: bool
         '''
         # pylint: disable=protected-access
         host, _port = pipe._socket.getpeername()
@@ -333,16 +349,14 @@ class Repeater:
             pipe.write(b"100 Authentication not required for localhost\r\n")
             return True
 
-        auth_fn = dplatform.get_platform().config_file("users.txt")
+        auth_fname = dplatform.get_platform().config_file("users.txt")
         try:
-            auth = open(auth_fn)
+            auth = open(auth_fname)
             lines = auth.readlines()
             auth.close()
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater  : ",
-                     "Failed to open %s: (%s -%s-)" %
-                     (auth_fn, type(err), err))
+        except (NameError, FileNotFoundError) as err:
+            self.logger.info("auth_user: Failed to open %s: %s",
+                             auth_fname, err)
 
         pipe.write(b"101 Authorization required\r\n")
         username, password = self.auth_exchange(pipe)
@@ -353,19 +367,18 @@ class Repeater:
             try:
                 user, passwd = line.split(" ", 1)
                 user = user.upper()
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Repeater   : ",
-                         "Failed to parse line %i in users.txt: %s (%s -%s-)" %
-                         (lno, line, type(err), err))
+            except ValueError as err:
+                self.logger.info("auth_user: Failed to parse "
+                                 "line %i in users.txt: %s",
+                                 lno, line)
                 continue
 
             if user == username and passwd == password:
-                printlog(("Authorized user %s" % user))
+                self.logger.info("Authorized user %s", user)
                 pipe.write(b"200 Authorized\r\n")
                 return True
 
-        printlog("Repeater  : User %s failed to authenticate" % username)
+        self.logger.info("auth_user: User %s failed to authenticate", username)
         pipe.write(b"500 Not authorized\r\n")
         return False
 
@@ -383,7 +396,8 @@ class Repeater:
         except socket.error:
             return
 
-        printlog("Repeater  : Accepted new client %s:%i" % addr)
+        addr_str = "%s:%i" % addr
+        self.logger.info("accept_new: Accepted new client %s", addr_str)
 
         path = comm.SocketDataPath(csocket)
         tport = transport.Transporter(path,
@@ -405,7 +419,8 @@ class Repeater:
         except socket.error:
             return
 
-        printlog("Repeater  : Accepted new GPS client %s:%i" % addr)
+        addr_str = "%s:$i" % addr
+        self.logger.info("accept_new_gps: Accepted new GPS client %s", addr_str)
         self.gps_sockets.append(csocket)
 
     # pylint: disable=no-self-use
@@ -414,7 +429,9 @@ class Repeater:
         Listen on.
 
         :param port: TCP/IP port number
+        :type port: int
         :returns: socket object
+        :rtype: socket
         '''
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(0)
@@ -435,7 +452,7 @@ class Repeater:
 
             time.sleep(0.5)
 
-        printlog("Repeater  : Repeater thread ended")
+        self.logger.info("_repeat: Repeater thread ended")
 
     def repeat(self):
         '''Repeat.'''
@@ -452,11 +469,11 @@ class Repeater:
         self.condition.release()
 
         if self.repeat_thread:
-            printlog("Repeater  : Stopping repeater")
+            self.logger.info("stop: Stopping repeater")
             self.repeat_thread.join()
 
         for path in self.paths:
-            printlog("Repeater  : Stopping")
+            self.logger.info("stop: Stopping")
             path.disable()
 
         if self.socket:
@@ -467,6 +484,7 @@ class RepeaterUI:
     '''Repeater UI.'''
 
     def __init__(self):
+        self.logger = logging.getLogger("RepeaterUI")
         self.repeater = None
         self.tap = None
         self.tick = 0
@@ -479,6 +497,8 @@ class RepeaterUI:
         Load configuration.
 
         :returns: Config object
+        :rtype: :class:`DratsConfig`
+
         '''
         self.config_fn = self.platform.config_file("repeater.config")
         config = six.moves.configparser.ConfigParser()
@@ -505,12 +525,14 @@ class RepeaterUI:
         Add outgoing paths.
 
         :param ident: Path id
+        :type ident: str
         :param path: Paths data
+        :type path: list of tuple
         '''
         reqauth = self.config.get("settings", "require_auth") == "True"
         trustlocal = self.config.get("settings", "trust_local") == "True"
         gps_okay_ports = self.config.get("tweaks", "allow_gps").split(",")
-        printlog("Repeater  : Repeater id is %s" % ident)
+        self.logger.info("add_outgoing_path: Repeater id is %s", ident)
         self.repeater = Repeater(ident, reqauth, trustlocal, gps_okay_ports)
         for dev, param in paths:
             timeout = 0
@@ -519,12 +541,14 @@ class RepeaterUI:
                     _net, host, port = dev.split(":", 2) # type: ignore
                     port = int(port)
                 # pylint: disable=broad-except
-                except Exception as err:
-                    printlog("Invalid net string: %s (%s -%s-)"
-                             % (dev, type(err), err))
+                except ValueError as err:
+                    self.logger.info("add_outgoing_paths: "
+                                     "Invalid net string: %s (%s)",
+                                     dev, err)
                     continue
 
-                printlog("Repeater  : Socket %s %i (%s)" % (host, port, param))
+                self.logger.info("add_outgoing_paths: Socket %s %i (%s)",
+                                 host, port, param)
 
                 if param:
                     path = comm.SocketDataPath((host, port, ident, param))
@@ -535,17 +559,17 @@ class RepeaterUI:
                     _tnc, port, device = dev.split(":", 2)
                     device = int(device)
                 # pylint: disable=broad-except
-                except Exception as err:
-                    printlog("Repeater",
-                             "  : Invalid tnc string: %s (%s -%s-)" %
-                             (dev, type(err), err))
+                except ValueError as err:
+                    self.logger.info("add_outgoing_paths: "
+                                     "Invalid tnc string: %s (%s)",
+                                     dev, err)
                     continue
-                printlog("Repeater",
-                         "  : TNC %s %i" %
-                         (dev.replace("tnc:", ""), int(param)))
+                self.logger.info("add_outgoing_paths: TNC %s %i",
+                                 dev.replace("tnc:", ""), int(param))
                 path = comm.TNCDataPath((dev.replace("tnc:", ""), int(param)))
             else:
-                printlog("Repeater  : Serial: %s %i" % (dev, int(param)))
+                self.logger.info("add_outgoing_paths: Serial: %s %i",
+                                 dev, int(param))
                 path = comm.SerialDataPath((dev, int(param)))
                 timeout = 3
 
@@ -558,6 +582,54 @@ class RepeaterUI:
 # pylint: disable=too-many-instance-attributes
 class RepeaterGUI(RepeaterUI):
     '''Repeater GUI.'''
+
+    def __init__(self):
+        RepeaterUI.__init__(self)
+
+        self.logger = logging.getLogger("RepeaterGUI")
+        self.window = Gtk.Window()
+        # self.window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
+        self.window.set_default_size(450, 380)
+        self.window.connect("delete_event", self.ev_delete)
+        self.window.connect("destroy", self.sig_destroy)
+        self.window.set_title("D-RATS Repeater Proxy")
+        self.traffic_buffer = None
+        self.traffic_view = None
+        self.conn_list = None
+        self.trust_local = None
+        self.req_auth = None
+        self.id_freq = None
+        self.entry_id = None
+        self.entry_port = None
+        self.entry_gpsport = None
+        self.net_enabled = None
+        self.dev_list = None
+
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
+
+        self.tabs = Gtk.Notebook()
+        self.tabs.append_page(self.make_settings(), Gtk.Label.new("Settings"))
+        # pylint: disable=fixme
+        # FIXME: later
+        # self.tabs.append_page(self.make_monitor(), Gtk.Label.new("Monitor"))
+        self.tabs.show()
+
+        vbox.pack_start(self.tabs, 1, 1, 1)
+        vbox.pack_start(self.make_bottom_buttons(), 0, 0, 0)
+        vbox.show()
+
+        self.window.add(vbox)
+        self.window.show()
+
+        # GLib.timeout_add(1000, self.update)
+
+        try:
+            if self.config.get("settings", "state") == "True":
+                self.button_on(None, None)
+        # pylint: disable=broad-except
+        except Exception:
+            self.logger.info("__init__: RepeaterGUI broad-except",
+                             exc_info=True)
 
     def add_serial(self, _widget):
         '''
@@ -576,6 +648,7 @@ class RepeaterGUI(RepeaterUI):
         Save config.
 
         :param config: Config object
+        :type config: :class:`DratsConfig`
         '''
         self.sync_config()
         file_handle = open(self.config_fn, "w")
@@ -603,7 +676,8 @@ class RepeaterGUI(RepeaterUI):
         '''
         self.button_off(None, False)
         self.save_config(self.config)
-        self.repeater.stop()
+        if self.repeater:
+            self.repeater.stop()
         Gtk.main_quit()
 
     def make_side_buttons(self):
@@ -638,8 +712,9 @@ class RepeaterGUI(RepeaterUI):
             for device, radio in devices:
                 self.dev_list.add_item(device, radio)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Unable to load devices: %s -%s-" % (type(err), err))
+        except Exception:
+            self.logger.info("load_devices: Unable to load devices",
+                             exc_info=True)
 
     def make_devices(self):
         '''
@@ -660,7 +735,6 @@ class RepeaterGUI(RepeaterUI):
         self.load_devices()
 
         # sw = Gtk.ScrolledWindow()
-        # sw.add_with_viewport(self.dev_list)
         list_box = Gtk.ListBox()
         list_box.add(self.dev_list)
         list_box.show()
@@ -694,10 +768,9 @@ class RepeaterGUI(RepeaterUI):
         try:
             accept = self.config.getboolean("settings", "acceptnet")
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater   : RepeaterGUI/",
-                     "make_network acceptnet broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("make_network: acceptnet broad-except",
+                             exc_info=True)
             accept = True
 
         self.net_enabled.set_active(accept)
@@ -709,20 +782,18 @@ class RepeaterGUI(RepeaterUI):
         try:
             port = self.config.get("settings", "netport")
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater   : ",
-                     "RepeaterGUI/make_network netport broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("make_network netport broad-except",
+                             exc_info=True)
             port = "9000"
 
         self.entry_gpsport = Gtk.Entry()
         try:
             gpsport = self.config.get("settings", "gpsport")
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater   : ",
-                     "RepeaterGUI/make_network gpsport broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("make_network: gpsport broad-except",
+                             exc_info=True)
             port = "9500"
 
         self.entry_gpsport.set_text(gpsport)
@@ -790,10 +861,9 @@ class RepeaterGUI(RepeaterUI):
         try:
             deftxt = self.config.get("settings", "id")
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater",
-                     "   : RepeaterGUI/make_id 'id' broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("make_id 'id' broad-except",
+                             exc_info=True)
             deftxt = "W1AW"
 
         self.entry_id.set_text(deftxt)
@@ -804,10 +874,9 @@ class RepeaterGUI(RepeaterUI):
         try:
             idfreq = self.config.get("settings", "idfreq")
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater   ",
-                     ": RepeaterGUI/make_id 'idfreq' broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("make_id: 'idfreq' broad-except",
+                             exc_info=True)
             idfreq = "30"
 
         self.id_freq = make_choice(["Never", "30", "60", "120"],
@@ -828,6 +897,7 @@ class RepeaterGUI(RepeaterUI):
         Make authentication.
 
         :returns: Gtk.Frame object
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new("Authentication")
 
@@ -870,6 +940,7 @@ class RepeaterGUI(RepeaterUI):
         Make settings display.
 
         :returns: Gtk.Box with settings
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
 
@@ -893,6 +964,7 @@ class RepeaterGUI(RepeaterUI):
         Connected Paths.
 
         :returns: Gtk.Frame object with paths
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new("Connected Paths")
 
@@ -900,7 +972,7 @@ class RepeaterGUI(RepeaterUI):
         idlist.show()
 
         self.conn_list = Gtk.ScrolledWindow()
-        self.conn_list.add_with_viewport(idlist)
+        self.conn_list.add(idlist)
         self.conn_list.show()
 
         frame.add(self.conn_list)
@@ -912,7 +984,8 @@ class RepeaterGUI(RepeaterUI):
         '''
         Make Traffic Monitor.
 
-        :returns: GtkFrame Object for traffic monitor
+        :returns: Gtk Frame Object for traffic monitor
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new("Traffic Monitor")
 
@@ -942,6 +1015,7 @@ class RepeaterGUI(RepeaterUI):
         Make Monitor.
 
         :returns: Box object that is displayed.
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
 
@@ -1006,10 +1080,8 @@ class RepeaterGUI(RepeaterUI):
             gpsport = int(self.entry_gpsport.get_text())
             enabled = self.net_enabled.get_active()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater",
-                     "   : RepeaterGUI/button_on broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("button_on broad-except", exc_info=True)
             port = 0
             gpsport = 0
 
@@ -1046,14 +1118,14 @@ class RepeaterGUI(RepeaterUI):
         '''Update.'''
         if self.repeater:
             paths = self.repeater.paths
-            l = [(x.ident,) for x in paths]
+            path_list = [(x.ident,) for x in paths]
         else:
-            l = []
+            path_list = []
 
-        if ("TAP",) in l:
-            l.remove(("TAP",))
+        if ("TAP",) in path_list:
+            path_list.remove(("TAP",))
 
-        self.conn_list.get_child().set_values(l)
+        self.conn_list.get_child().set_values(path_list)
 
         if self.tap:
             traffic = self.tap.peek()
@@ -1075,65 +1147,21 @@ class RepeaterGUI(RepeaterUI):
                 self.repeater.send_data(None, self.entry_id.get_text())
                 self.tick = 0
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater   : RepeaterGUI/update broad-except (%s -%s-)" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("update: broad-except", exc_info=True)
             # pass
 
         self.tick += 1
 
         return True
 
-    def __init__(self):
-        RepeaterUI.__init__(self)
-
-        self.window = Gtk.Window()
-        # self.window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
-        self.window.set_default_size(450, 380)
-        self.window.connect("delete_event", self.ev_delete)
-        self.window.connect("destroy", self.sig_destroy)
-        self.window.set_title("D-RATS Repeater Proxy")
-        self.traffic_buffer = None
-        self.traffic_view = None
-        self.conn_list = None
-        self.trust_local = None
-        self.req_auth = None
-        self.id_freq = None
-        self.entry_id = None
-        self.entry_port = None
-        self.entry_gpsport = None
-        self.net_enabled = None
-        self.dev_list = None
-
-        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
-
-        self.tabs = Gtk.Notebook()
-        self.tabs.append_page(self.make_settings(), Gtk.Label.new("Settings"))
-        # pylint: disable=fixme
-        # FIXME: later
-        # self.tabs.append_page(self.make_monitor(), Gtk.Label.new("Monitor"))
-        self.tabs.show()
-
-        vbox.pack_start(self.tabs, 1, 1, 1)
-        vbox.pack_start(self.make_bottom_buttons(), 0, 0, 0)
-        vbox.show()
-
-        self.window.add(vbox)
-        self.window.show()
-
-        # GObject.timeout_add(1000, self.update)
-
-        try:
-            if self.config.get("settings", "state") == "True":
-                self.button_on(None, None)
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater   : RepeaterGUI broad-except (%s -%s-)" %
-                     (type(err), err))
-
 
 class RepeaterConsole(RepeaterUI):
     '''Repeater Console.'''
+
+    def __init__(self):
+        RepeaterUI.__init__(self)
+        self.logger = logging.getLogger("RepeaterConsole")
 
     def main(self):
         '''Main Routine.'''
@@ -1152,9 +1180,9 @@ class RepeaterConsole(RepeaterUI):
             else:
                 idfreq = int(idfreq)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Repeater  : Failed to parse network info: %s -%s-" %
-                     (type(err), err))
+        except Exception:
+            self.logger.info("main: Failed to parse network info:",
+                             exc_info=True)
             acceptnet = False
 
         if acceptnet:
@@ -1174,43 +1202,95 @@ class RepeaterConsole(RepeaterUI):
 def main():
     '''D-Rats Repeater main program.'''
 
-    # pylint: disable=deprecated-module
-    from optparse import OptionParser
+    import argparse
 
-    option = OptionParser()
-    option.add_option("-c", "--config",
-                      dest="config",
-                      help="Use alternate configuration directory")
-    option.add_option("-d", "--debug",
-                      dest="debug",
-                      action="store_true",
-                      help="Show debug messages on stdout")
-    option.add_option("-C", "--console",
-                      dest="console",
-                      action="store_true",
-                      help="Run in console mode only")
-    option.add_option("-L", "--log",
-                      dest="logpath",
-                      help="Use alternate log file directory")
-    # pylint: disable=invalid-name
-    (opts, _args) = option.parse_args()
+    gettext.install("D-RATS")
+    lang = gettext.translation("D-RATS",
+                               localedir="locale",
+                               fallback=True)
+    lang.install()
+    # pylint: disable=global-statement
+    global _
+    _ = lang.gettext
 
-    if opts.config:
-        dplatform.get_platform(opts.config)
-    if not opts.debug:
-        if opts.logpath:
-            file_handle = open(opts.logpath + "/repeater.log", "a", 0)
-        else:
-            platform = dplatform.get_platform()
-            # f = file(p.config_file("repeater.log"), "w", 0)
-            file_handle = open(platform.config_file("repeater.log"), "a", 1)
-        if file_handle:
-            sys.stdout = file_handle
-            sys.stderr = file_handle
-        else:
-            printlog("Repeater  : Failed to open log")
+    platform = dplatform.get_platform()
+    def_config_dir = platform.config_dir()
 
-    if opts.console:
+    # pylint: disable=too-few-public-methods
+    class LoglevelAction(argparse.Action):
+        '''
+        Custom Log Level action.
+
+        This allows entering a log level command line argument
+        as either a known log level name or a number.
+        '''
+
+        def __init__(self, option_strings, dest, nargs=None, **kwargs):
+            if nargs is not None:
+                raise ValueError("nargs is not allowed")
+            argparse.Action.__init__(self, option_strings, dest, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_strings=None):
+            level = values.upper()
+            level_name = logging.getLevelName(level)
+            # Contrary to documentation, the above returns for me
+            # an int if given a name or number of a known named level and
+            # str if given a number for a level with out a name.
+            if isinstance(level_name, int):
+                level_name = level
+            elif level_name.startswith('Level '):
+                level_name = int(level)
+            setattr(namespace, self.dest, level_name)
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=_('DRATS-REPEATER'))
+    parser.add_argument('-c', '--config',
+                        default=def_config_dir,
+                        help="Use alternate configuration directory")
+
+    # While loglevel actually returns an int, it needs to be set to the
+    # default type of str for the action routine to handle both named and
+    # numbered levels.
+    parser.add_argument('--loglevel',
+                        action=LoglevelAction,
+                        default='INFO',
+                        help=_('LOGLEVEL TO TEST WITH'))
+
+    parser.add_argument("-d", "--debug",
+                        action="store_true",
+                        help="Show debug messages on stdout")
+
+    parser.add_argument("-C", "--console",
+                        action="store_true",
+                        help="Run in console mode only")
+
+    parser.add_argument("-L", "--log",
+                        dest="logpath",
+                        help="Use alternate log file directory")
+
+    args = parser.parse_args()
+
+    log_filename = platform.config_file("repeater.log")
+    if args.logpath:
+        log_filename = os.path.join(args.logpath, "repeater.log")
+
+    if args.debug:
+        logging.basicConfig(
+            format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+            datefmt="%m/%d/%Y %H:%M:%S",
+            level=args.loglevel)
+    else:
+        logging.basicConfig(
+            filename=log_filename,
+            format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+            datefmt="%m/%d/%Y %H:%M:%S",
+            level=args.loglevel)
+
+    if args.config:
+        dplatform.get_platform(args.config)
+
+    if args.console:
         repeater = RepeaterConsole()
         repeater.main()
     else:
