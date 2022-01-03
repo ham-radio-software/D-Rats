@@ -52,7 +52,7 @@ class MapWidget(Gtk.DrawingArea):
     :param tilesize: Size of tiles, default 256
     :type tilesize: int
     :param window: Parent window
-    :type status: :class:`mapWindow`
+    :type status: :class:`Map.MapWindow`
     '''
 
     #__gsignals__ = {
@@ -207,6 +207,22 @@ class MapWidget(Gtk.DrawingArea):
         pango_layout = self.create_pango_layout(dist)
         return pango_layout
 
+    def point_is_visible(self, lat, lon):
+        '''
+        Point is Visible.
+
+        :param lat: latitude
+        :type lat: float
+        :param lon: longitude
+        :type lon: float
+        :returns: True if visible
+        :rtype: bool
+        '''
+        for i in self.map_tiles:
+            if (lat, lon) in i:
+                return True
+
+        return False
 
     # def scroll_event(self, widget, event):
     #    '''

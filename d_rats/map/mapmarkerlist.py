@@ -39,10 +39,9 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
-class MapMarkerList(Gtk.ScrolledWindow):
+class MapMarkerList(miscwidgets.TreeWidget):
     '''
-    Make Marker List.
-
+    Map Marker List.
     :param map_window: Parent Map window
     :type map_window: :class:`map.MapWindow`
     '''
@@ -55,15 +54,12 @@ class MapMarkerList(Gtk.ScrolledWindow):
             ]
 
     def __init__(self, map_window):
-        Gtk.ScrolledWindow.__init__(self)
+        miscwidgets.TreeWidget.__init__(self, self.cols, 1, parent=False)
         self.map_window = map_window
-        self.marker_list = miscwidgets.TreeWidget(self.cols, 1, parent=False)
-        self.marker_list.toggle_cb.append(self.map_window.toggle_show)
-        # self.marker_list.connect("click-on-list", self.make_marker_popup)
+        self.toggle_cb.append(self.map_window.toggle_show)
+        self.connect("click-on-list", self.map_window.make_marker_popup)
 
-        # pylint: disable=protected-access
-        self.marker_list._view.connect("row-activated", self.recenter_cb)
-
+        self._view.connect("row-activated", self.recenter_cb)
         def render_station(_col, rend, model, iter_value, _data):
             parent = model.iter_parent(iter_value)
             if not parent:
@@ -72,7 +68,7 @@ class MapMarkerList(Gtk.ScrolledWindow):
             if group in self.map_window.colors:
                 rend.set_property("foreground", self.map_window.colors[group])
 
-        column = self.marker_list._view.get_column(1)
+        column = self._view.get_column(1)
         column.set_expand(True)
         column.set_min_width(150)
         # r = c.get_cell_renderers()[0]
@@ -89,7 +85,7 @@ class MapMarkerList(Gtk.ScrolledWindow):
                 rend.set_property('text', '')
 
         for col in [2, 3]:
-            column = self.marker_list._view.get_column(col)
+            column = self._view.get_column(col)
             # renderer_text = column.get_cell_renderers()[0]
             renderer_text = Gtk.CellRendererText()
             column.set_cell_data_func(renderer_text, render_coord, col)
@@ -102,16 +98,10 @@ class MapMarkerList(Gtk.ScrolledWindow):
                 rend.set_property('text', '')
 
         for col in [4, 5]:
-            column = self.marker_list._view.get_column(col)
+            column = self._view.get_column(col)
             # renderer_text = column.get_cell_renderers()[0]
             renderer_text = Gtk.CellRendererText()
             column.set_cell_data_func(renderer_text, render_dist, col)
-
-        self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        self.add(self.marker_list.packable())
-        self.set_size_request(-1, 150)
-        self.show()
-
 
     def recenter_cb(self, view, path, column, data=None):
         '''
@@ -131,7 +121,7 @@ class MapMarkerList(Gtk.ScrolledWindow):
         if model.iter_parent(model.get_iter(path)) is None:
             return
 
-        items = self.marker_list.get_selected()
+        items = self.get_selected()
 
         self.map_window.center_mark = items[1]
         self.map_window.recenter(items[2], items[3])
