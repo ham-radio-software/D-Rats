@@ -4,6 +4,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# Python3 update Copyright 2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,11 +23,11 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import re
 import time
 import tempfile
 import datetime
-import gettext
 
 import threading
 #from typing import Match
@@ -37,14 +38,16 @@ from math import pi, cos, acos, sin, atan2
 import serial
 from six.moves import range # type: ignore
 
-#importing printlog() wrapper
-from .debug import printlog
 from . import dplatform
 from . import subst
 
 from . import utils
 
-_ = gettext.gettext
+# This makes pylance happy with out overriding settings
+# from the invoker of the class
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 TEST = "$GPGGA,180718.02,4531.3740,N,12255.4599,W,1,07,1.4," \
        "50.6,M,-21.4,M,,*63 KE7JSS  ,440.350+ PL127.3"
@@ -55,6 +58,9 @@ EARTH_UNITS = "mi"
 DEGREE = u"\u00b0"
 
 DPRS_TO_APRS = {}
+
+# pylint: disable=invalid-name
+global_logger = logging.getLogger("gps")
 
 
 # The DPRS to APRS mapping is pretty horrific, but the following
@@ -151,15 +157,18 @@ class GpsGpmrcChecksumError(GpsGprmcException):
     '''GPS GPRMC Checksum Error.'''
     # raise Exception("GPRMC has no checksum in 12 or 13")
 
+
 def dprs_to_aprs(symbol):
     '''
     DPRS to APRS.
 
     :param symbol: DPRS Symbol
+    :type symbol: str
     :returns: APRS Symbol
+    :rtype: str
     '''
     if len(symbol) < 2:
-        printlog("Gps", "      : Invalid DPRS symbol: `%s'" % symbol)
+        global_logger.info("dprs_to_aprs: Invalid DPRS symbol: `%s'", symbol)
         return None
     return DPRS_TO_APRS.get(symbol[0:2], None)
 
@@ -169,7 +178,9 @@ def parse_dms(string):
     Parse Degrees, Minutes, Seconds.
 
     :param string: String with coordinates
-    :returns: Float with Degrees
+    :type string: str
+    :returns: Degrees
+    :rtype: float
     '''
     string = string.replace(u"\u00b0", " ")
     string = string.replace('"', ' ')
@@ -183,11 +194,7 @@ def parse_dms(string):
         deg = int(d_str)
         minutes = int(m_str)
         sec = float(s_str)
-    # pylint: disable=broad-except
-    except Exception as err:
-        printlog("GPS/parse_dms :",
-                 "Broad exception used here (%s) %s",
-                 (type(err), err))
+    except ValueError:
         deg = minutes = sec = 0
 
     if deg < 0:
@@ -205,6 +212,7 @@ def set_units(units):
     Set units.
 
     :param units: String Imperial or Metric adjusted for language.
+    :type units: str
     '''
     # This will be tricky for getting internationalizion working right.
     # pylint: disable=global-statement
@@ -218,16 +226,19 @@ def set_units(units):
     elif units == _("Metric"):
         EARTH_RADIUS = 6380.0
         EARTH_UNITS = "km"
-    printlog("Gps", "       : Set GPS units to %s" % units)
+    global_logger.info("set_units: Set GPS units to %s", units)
 
 
 def value_with_units(value):
     '''
     Value with units.
 
-    Translates a value to be more human readable
+    Translates a value to be more human readable.
+
     :param value: value to translate
+    :type value: float
     :returns: String with value and units
+    :rtype: str
     '''
     if value < 0.5:
         if EARTH_UNITS == "km":
@@ -252,7 +263,9 @@ def NMEA_checksum(string):
     NMEA Checksum.
 
     :param string: String to checksum
+    :type string: str
     :returns: Checksum string
+    :rtype: str
     '''
     checksum = 0
     for i in string:
@@ -267,7 +280,9 @@ def GPSA_checksum(string):
     GPSA Checksum.
 
     :param string: GPS String
+    :type string: str
     :returns: Checksum
+    :rtype: int
     '''
     def calc(buf):
         icomcrc = 0xffff
@@ -291,8 +306,11 @@ def DPRS_checksum(callsign, msg):
     DPRS Checksum.
 
     :param callsign: Station for message
+    :type callsign: str
     :param msg: DPRS message
+    :type msg: str
     :returns: Checksum String
+    :rtype: str
     '''
     csum = 0
     string = "%-8s,%s" % (callsign, msg)
@@ -307,7 +325,9 @@ def deg2rad(deg):
     Degrees to radans.
 
     :param deg: Degrees
+    :type deg: float
     :returns: Radians
+    :rtype: float
     '''
     return deg * (pi / 180)
 
@@ -317,7 +337,9 @@ def rad2deg(rad):
     Radians to Degrees.
 
     :param rad: Radians
+    :type rad: float
     :returns: degrees
+    :rtype: float
     '''
     return rad / (pi / 180)
 
@@ -327,8 +349,11 @@ def dm2deg(deg, minutes):
     Degrees and minutes to floating degrees
 
     :param deg: Degrees
+    :type deg: float
     :param min: Minutes
-    :returns: Float contining degrees and minutes
+    :type min: float
+    :returns: Degrees and minutes encoded
+    :rtype: float
     '''
     return deg + (minutes / 60.0)
 
@@ -337,7 +362,8 @@ def deg2dm(decdeg):
     '''
     Degrees to degrees and minutes
 
-    :param decdeg: Floating degrees value
+    :param decdeg: Degrees value
+    :type decdeg: float
     :returns: Tuple of degree and minutes
     '''
     deg = int(decdeg)
@@ -351,8 +377,11 @@ def nmea2deg(nmea, direction="N"):
     NMEA to Degrees
 
     :param nmea: NMEA position
+    :type nmea: str
     :param direction: Direction in set of ['N', 'S', 'E', 'W'], default 'N'
+    :type direction: str
     :returns: Degrees
+    :rtype: float
     '''
     deg = int(nmea) / 100
     try:
@@ -373,7 +402,9 @@ def deg2nmea(deg):
     Degrees to NMEA.
 
     :param deg: Degrees
+    :param deg: float
     :returns: NMEA value
+    :rtype: float
     '''
     deg, minutes = deg2dm(deg)
 
@@ -385,7 +416,9 @@ def meters2feet(meters):
     Meters to Feet
 
     :param meters: Distance in meters
+    :type meters: float
     :returns: Distance in feet
+    :rtype: float
     '''
     return meters * 3.2808399
 
@@ -395,7 +428,9 @@ def feet2meters(feet):
     Convert feet to meters.
 
     :param feet: Distance in feet
+    :type feet: float
     :returns: Distance in meters
+    :rtype: float
     '''
     return feet * 0.3048
 
@@ -405,8 +440,15 @@ def distance(lat_a, lon_a, lat_b, lon_b):
     Distance between two sets of coordinates.
 
     :param lat_a: Latitude for first coordinate
+    :type lat_a: float
     :param lon_a: Longitude for first coordinate
-    :param lat b: Latitude for first coordinate
+    :type lon_a: float
+    :param lat_b: Latitude for second coordinate
+    :type lat_b: float
+    :param lon_b: longitude for second coordinate
+    :type lon_b: float
+    :returns: distance between the points in current unit setting.
+    :rtype: float
     '''
     lat_a = deg2rad(lat_a)
     lon_a = deg2rad(lon_a)
@@ -447,17 +489,20 @@ def distance(lat_a, lon_a, lat_b, lon_b):
 def parse_date(string, fmt):
     '''
     Parse Date.
-    
+
     :param string: String to parse
+    :type string: str
     :param fmt: Format string
-    :returns: datetime object
-    :raises: GpsDateParseError
+    :param fnt: str
+    :returns: date and time information
+    :rtype: datetime
+    :raises: GpsDateParseError if date is not parsable.
     '''
     try:
         return datetime.datetime.strptime(string, fmt)
     except AttributeError:
-        printlog("Gps",
-                 "       : Enabling strptime() workaround for Python <= 2.4.x")
+        global_logger.info("parse_data: Enabling strptime() workaround "
+                           "for Python <= 2.4.x")
 
     vals = {}
 
@@ -482,12 +527,33 @@ class GPSPosition():
     GPS Position.
 
     Represents a position on the globe, either from GPS data or
-    a static position
+    a static position.
 
     :param lat: Latitude, default 0
+    :type lat: float:
     :param lon: Longitude, default 0
+    :type lon: float
     :param station: Station, default "UNKNOWN"
+    :type station: str
     '''
+
+    def __init__(self, lat=0, lon=0, station="UNKNOWN"):
+        self.logger = logging.getLogger("GPSPosition")
+        self.valid = False
+        self.altitude = 0
+        self.satellites = 0
+        self.station = station
+        self.comment = ""
+        self.current = None
+        self.date = datetime.datetime.now()
+        self.speed = None
+        self.direction = None
+        # pylint: disable=invalid-name
+        self.APRSIcon = None
+        self._original_comment = ""
+        self.latitude = None
+        self.longitude = None
+        self._from_coords(lat, lon)
 
     def _from_coords(self, lat, lon, alt=0):
         try:
@@ -509,46 +575,25 @@ class GPSPosition():
         astidx = self.comment.rindex("*")
         checksum = self.comment[astidx:]
 
-        _checksum = DPRS_checksum(self.station, self.comment[:astidx])
+        calc_checksum = DPRS_checksum(self.station, self.comment[:astidx])
 
-        # WB8TYW this check was failing and spamming the logs before
-        # the gtk3 conversion attempt.  Disabling it for now.
-        if int(_checksum[1:], 16) != int(checksum[1:], 16):
-            printlog("Gps",
-                     "        : Failed to parse DPRS comment: %s " %
-                     self.comment)
-            printlog("Gps",
-                     "        : CHECKSUM(%s): %s != %s" %
-                     (self.station,
-                      int(_checksum[1:], 16),
-                      int(checksum[1:], 16)))
-            printlog("Gps",
-                     "        : Checksum : %s " %
-                     checksum)
-            printlog("Gps", "        : _checksum: %s " % _checksum)
-            printlog("Gps", "        : astidx   : %i " % astidx)
+        if int(calc_checksum[1:], 16) != int(checksum[1:], 16):
+            self.logger.info("_parse_dprs_comment: Failed to parse "
+                             "DPRS comment: %s ", self.comment)
+            self.logger.info("_parse_dprs_comment: CHECKSUM(%s): %s != %s",
+                             self.station,
+                             int(calc_checksum[1:], 16),
+                             int(checksum[1:], 16))
+            self.logger.info("_parse_dprs_comment: Checksum : %s ",
+                             checksum)
+            self.logger.info("_parse_dprs_comment: _checksum: %s ",
+                             calc_checksum)
+            self.logger.info("_parse_dprs_comment: astidx   : %i ", astidx)
 
             raise GpsDprsChecksumError("DPRS checksum failed")
 
         self.APRSIcon = dprs_to_aprs(symbol)
         self.comment = self.comment[4:astidx].strip()
-
-    def __init__(self, lat=0, lon=0, station="UNKNOWN"):
-        self.valid = False
-        self.altitude = 0
-        self.satellites = 0
-        self.station = station
-        self.comment = ""
-        self.current = None
-        self.date = datetime.datetime.now()
-        self.speed = None
-        self.direction = None
-        # pylint: disable=invalid-name
-        self.APRSIcon = None
-        self._original_comment = ""
-        self.latitude = None
-        self.longitude = None
-        self._from_coords(lat, lon)
 
     def __iadd__(self, update):
         self.station = update.station
@@ -573,6 +618,8 @@ class GPSPosition():
 
         if update.comment:
             self.comment = update.comment
+            # Since this is actually class internal use, this is not really
+            # a protected access.
             # pylint: disable=protected-access
             self._original_comment = update._original_comment
 
@@ -630,8 +677,9 @@ class GPSPosition():
         else:
             return "(" + _("Invalid GPS data") + ")"
 
-    # pylint: disable=invalid-name, no-self-use
-    def _NMEA_format(self, val, latitude):
+    @staticmethod
+    # pylint: disable=invalid-name
+    def _NMEA_format(val, latitude):
         if latitude:
             if val > 0:
                 direction = "N"
@@ -646,7 +694,12 @@ class GPSPosition():
         return "%.3f,%s" % (deg2nmea(abs(val)), direction)
 
     def station_format(self):
-        '''Station Format.'''
+        '''
+        Station Format.
+
+        :returns: formatted station
+        :rtype: str
+        '''
         if " " in self.station:
             call, extra = self.station.split(" ", 1)
             sta = "%-7.7s%1.1s" % (call.strip(),
@@ -662,7 +715,9 @@ class GPSPosition():
         To NMEA GGA.
 
         :param _ssid: Unused, default " "
+        :type _ssid: str
         :returns: an NMEA-compliant GPGGA sentence
+        :rtype: str
         '''
         date = time.strftime("%H%M%S")
 
@@ -695,6 +750,7 @@ class GPSPosition():
         To NMEA RMC.
 
         :returns: an NMEA-compliant GPRMC sentence
+        :rtype: str
         '''
         tstamp = time.strftime("%H%M%S")
         dstamp = time.strftime("%d%m%y")
@@ -733,9 +789,13 @@ class GPSPosition():
         To APRS.
 
         :param dest: Destination, default "APRSATS"
+        :param dest: str
         :param symtab: Symbol tab, default "/"
+        :type symtab: str
         :param symbol: Symbol, default ">"
+        :type symbol: str
         :returns: a GPS-A (APRS-compliant) string
+        :rtype: str
         '''
         stamp = time.strftime("%H%M%S", time.gmtime())
 
@@ -794,23 +854,25 @@ class GPSPosition():
         Set Station
 
         :param station: Station name
+        :type station: str
         :param comment: Comment, default 'D-RATS'
+        :type comment: str
         '''
         self.station = station
         self.comment = comment
         self._original_comment = comment
 
-        # Temp disabled as flooding the log
-        # if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
-        #     printlog('gps.set_station called _parse_dprs_comment')
-        #    self._parse_dprs_comment()
+        if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
+            self._parse_dprs_comment()
 
     def distance_from(self, pos):
         '''
         Distance From.
 
         :param pos: Postion to get distance from
-        :returns: Distrance
+        :type pos: :class:`GPSPosition`
+        :returns: Distance
+        :rtype: float
         '''
         return distance(self.latitude, self.longitude,
                         pos.latitude, pos.longitude)
@@ -820,7 +882,8 @@ class GPSPosition():
         Bearing To.
 
         :param pos: Position to get bearing to
-        :returns: Float with Bearing
+        :returns: Bearing
+        :rtype: float
         '''
         lat_me = deg2rad(self.latitude)
         # lon_me = deg2rad(self.longitude)
@@ -852,6 +915,7 @@ class GPSPosition():
         Coordinates.
 
         :returns: String with coordinates
+        :rtype: str
         '''
         return "%.4f,%.4f" % (self.latitude, self.longitude)
 
@@ -860,7 +924,10 @@ class GPSPosition():
         Fuzzy to.
 
         :param pos: Position
-        :returns: String describing position'''
+        :type pos: :class:`GPSPosition`
+        :returns: String describing position
+        :rtype: str
+        '''
         direction = self.bearing_to(pos)
 
         dirs = ["N", "NNE", "NE", "ENE", "E",
@@ -891,28 +958,38 @@ class NMEAGPSPosition(GPSPosition):
     :raises: GpsGpggaException classes on error.
     '''
 
+    def __init__(self, sentence, station=_("UNKNOWN")):
+        GPSPosition.__init__(self)
+        self.logger = logging.getLogger("NMEAGPSPosition")
+        self.latitude = None
+        self.longitude = None
+
+        if sentence.startswith("$GPGGA"):
+            self._from_NMEA_GPGGA(sentence)
+        elif sentence.startswith("$GPRMC"):
+            self._from_NMEA_GPRMC(sentence)
+        else:
+            self.logger.info("Unsupported GPS sentence type: %s", sentence)
+
     # pylint: disable=no-self-use
     def _test_checksum(self, string, csum):
         try:
             idx = string.index("*")
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Gps        :",
-                     "String does not contain '*XY' checksum Generic(%s) %s" %
-                     (type(err), err))
+        except ValueError:
+            self.logger.info("_test_checksum: String does not contain "
+                             "'*XY' checksum")
             return False
 
         segment = string[1:idx]
 
         csum = csum.upper()
-        _csum = NMEA_checksum(segment).upper()
+        calc_csum = NMEA_checksum(segment).upper()
 
-        if csum != _csum:
-            printlog("Gps",
-                     "        : Failed checksum: %s != %s" % (csum, _csum))
+        if csum != calc_csum:
+            self.logger.info("_test_checksum: Failed checksum: %s != %s",
+                             csum, calc_csum)
 
-        return csum == _csum
-
+        return csum == calc_csum
 
     def _parse_GPGGA(self, string):
         elements = string.split(",", 14)
@@ -927,7 +1004,7 @@ class NMEAGPSPosition(GPSPosition):
         self.latitude = nmea2deg(float(elements[2]), elements[3])
         self.longitude = nmea2deg(float(elements[4]), elements[5])
 
-        printlog("Gps", "        :  %f,%f" % (self.latitude, self.longitude))
+        self.logger.info("_parse_GPGGA:  %f,%f", self.latitude, self.longitude)
 
         self.satellites = int(elements[7])
         self.altitude = float(elements[9])
@@ -945,7 +1022,6 @@ class NMEAGPSPosition(GPSPosition):
                 self._original_comment = self.comment
 
         if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
-            printlog('gps._parse_GPGGA called _parse_dprs_comment')
             self._parse_dprs_comment()
 
         self.valid = self._test_checksum(string, csum)
@@ -984,7 +1060,7 @@ class NMEAGPSPosition(GPSPosition):
 
         match = re.match(r"^.?(\*[A-z0-9]{2})", elements[end])
         if not match:
-            printlog("Gps", "        :  Invalid end: %s" % elements[end])
+            self.logger.info("_parse_GPRMC: Invalid end: %s", elements[end])
             return
 
         csum = match.group(1)
@@ -995,17 +1071,14 @@ class NMEAGPSPosition(GPSPosition):
             self._original_comment = self.comment
 
         if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
-            printlog('gps._parse_GPRMC called _parse_dprs_comment')
             self._parse_dprs_comment()
 
         if elements[2] != "A":
             self.valid = False
-            printlog("Gps",
-                     "        : GPRMC marked invalid by GPS (%s)" %
-                     elements[2])
+            self.logger.info("_parse_GPRMC: GPRMC marked invalid by GPS (%s)",
+                             elements[2])
         else:
-            printlog("Gps",
-                     "        : GPRMC is valid")
+            self.logger.info("_parse_GPRMC: GPRMC is valid")
             self.valid = self._test_checksum(string, csum)
 
     def _from_NMEA_GPGGA(self, string):
@@ -1013,45 +1086,35 @@ class NMEAGPSPosition(GPSPosition):
         string = string.replace('\n', ' ')
         try:
             self._parse_GPGGA(string)
-        # pylint: disable=broad-except
-        except Exception as err:
+        except GpsGpggaException as err:
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            printlog("Gps",
-                     "       : Invalid GPS data: Generic (%s) %s" %
-                     (type(err), err))
+            self.logger.info("_from_NMEA_GPGGA: Invalid GPS data: %s", err)
             self.valid = False
 
     def _from_NMEA_GPRMC(self, string):
         try:
             self._parse_GPRMC(string)
         # pylint: disable=broad-except
-        except Exception as err:
+        except GpsGprmcException as err:
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            printlog("Gps",
-                     "        : Invalid GPS data: Generic (%s) %s" %
-                     (type(err), err))
+            self.logger.info("_from_NMEA_GPRMC: Invalid GPS data: %s", err)
             self.valid = False
-
-    def __init__(self, sentence, station=_("UNKNOWN")):
-        GPSPosition.__init__(self)
-        self.latitude = None
-        self.longitude = None
-
-        if sentence.startswith("$GPGGA"):
-            self._from_NMEA_GPGGA(sentence)
-        elif sentence.startswith("$GPRMC"):
-            self._from_NMEA_GPRMC(sentence)
-        else:
-            printlog("Gps",
-                     "        : Unsupported GPS sentence type: %s" % sentence)
 
 
 class APRSGPSPosition(GPSPosition):
     '''APRS GPS Position.'''
+
+    def __init__(self, message):
+        self.latitude = None
+        self.longitude = None
+        GPSPosition.__init__(self)
+        self.logger = logging.getLogger("APRSGPSPosition")
+
+        self._from_APRS(message)
 
     # pylint: disable=no-self-use
     def _parse_date(self, string):
@@ -1068,8 +1131,8 @@ class APRSGPSPosition(GPSPosition):
         elif suffix == "h":
             date_str = time.strftime("%d%m%y", time.gmtime()) + digits
         else:
-            printlog("Gps",
-                     "        : Unknown APRS date suffix: `%s'" % suffix)
+            self.logger.info("_parse_date: Unknown APRS date suffix: `%s'",
+                             suffix)
             return datetime.datetime.now()
 
         date_num = parse_date(date_str, "%d%m%y%H%M%S")
@@ -1087,17 +1150,16 @@ class APRSGPSPosition(GPSPosition):
             return
 
         crc = match.group(1)
-        _crc = "%04X" % GPSA_checksum(match.group(2))
+        calc_crc = "%04X" % GPSA_checksum(match.group(2))
 
-        if crc != _crc:
-            printlog("Gps",
-                     "        : APRS CRC mismatch: %s != %s (%s)" %
-                     (crc, _crc, match.group(2)))
+        if crc != calc_crc:
+            self.logger.info("_parse_GPSA: APRS CRC mismatch: %s != %s (%s)",
+                             crc, calc_crc, match.group(2))
             return
 
         elements = string.split(",")
         if not elements[0].startswith("$$CRC"):
-            printlog("Gps       : Missing $$CRC...")
+            self.logger.info("_parse_GPSA: Missing $$CRC...")
             return
 
         self.station, _dst = elements[1].split(">")
@@ -1123,7 +1185,7 @@ class APRSGPSPosition(GPSPosition):
 
         match = re.search(expr, data)
         if not match:
-            printlog("Gps", "        : Did not match GPS-A: `%s'" % data)
+            self.logger.info("_parse_GPSA: Did not match GPS-A: `%s'", data)
             return
 
         if match.group(1) in "!=":
@@ -1131,9 +1193,8 @@ class APRSGPSPosition(GPSPosition):
         elif match.group(2) in "@/":
             self.date = self._parse_date(match.group(1))
         else:
-            printlog("Gps",
-                     "        : Unknown timestamp prefix: %s" %
-                     match.group(1))
+            self.logger.info("_parse_GPSA: Unknown timestamp prefix: %s",
+                             match.group(1))
             self.date = datetime.datetime.now()
 
         self.latitude = nmea2deg(float(match.group(4)), match.group(5))
@@ -1150,26 +1211,22 @@ class APRSGPSPosition(GPSPosition):
 
     def _from_APRS(self, string):
         self.valid = False
+        # pylint: disable=broad-except
         try:
             self._parse_GPSA(string)
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Gps",
-                     "  : _from_APRS Generic Exception Invalid APRS: (%s) %s" %
-                     (type(err), err))
+        except (TypeError, ValueError) as err:
+            self.logger.info("_from_APRS: Invalid APRS (%s)", err)
+            return False
+
+        except Exception:
+            self.logger.info("_from_APRS: Generic Exception Invalid APRS",
+                             exc_info=True)
             return False
 
         return self.valid
 
-    def __init__(self, message):
-        self.latitude = None
-        self.longitude = None
 
-        GPSPosition.__init__(self)
-
-        self._from_APRS(message)
-
-
+# WB8TYW: Not finding this class used anywhere.
 class MapImage():
     '''
     Map Image.
@@ -1178,6 +1235,7 @@ class MapImage():
     '''
 
     def __init__(self, center):
+        self.logger = logging.getLogger("MapImage")
         self.key = "ABQIAAAAWot3KuWpenfCAGfQ65FdzRTaP0xjRaMPpcw6bBbU" \
                    "2QUEXQBgHBR5Rr2HTGXYVWkcBFNkPvxtqV4VLg"
         self.center = center
@@ -1192,6 +1250,7 @@ class MapImage():
         Get Image Url.
 
         :returns: Google map URL
+        :rtype: str
         '''
         el_data = ["key=%s" % self.key,
                    "center=%s" % self.center.coordinates(),
@@ -1212,6 +1271,7 @@ class MapImage():
         Station Table.
 
         :returns: String with a table in an HTML fragment
+        :rtype: str
         '''
         table = ""
 
@@ -1230,6 +1290,7 @@ class MapImage():
         Make html.
 
         :returns: String with HTML page
+        :rtype: str
         '''
         return """
 <html>
@@ -1264,10 +1325,13 @@ class GPSSource():
     GPS Source.
 
     :param port: Port for GPS access
+    :type port: str
     :param rate: Baud rate, default=4800
+    :type rate: int
     '''
 
     def __init__(self, port, rate=4800):
+        self.logger = logging.getLogger("GPSSource")
         self.port = port
         self.enabled = False
         self.broken = None
@@ -1276,10 +1340,9 @@ class GPSSource():
         try:
             self.serial = serial.Serial(port=port, baudrate=rate, timeout=1)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Gps",
-                     "        : Unable to open port `%s': Generic (%s) %s" %
-                     (port, type(err), err))
+        except Exception:
+            self.logger.info("Unable to open port `%s' broad-except",
+                             port, exc_info=True)
             self.broken = _("Unable to open GPS port")
 
         self.thread = None
@@ -1290,7 +1353,7 @@ class GPSSource():
     def start(self):
         '''Start.'''
         if self.broken:
-            printlog("Gps", "        : Not starting broken GPSSource")
+            self.logger.info("start: Not starting broken GPSSource")
             return
 
         self.invalid = 100
@@ -1310,6 +1373,8 @@ class GPSSource():
         '''GPS Thread.'''
         while self.enabled:
             data = self.serial.read(1024)
+            if not isinstance(data, str):
+                data = data.decode('utf-8', 'replace')
             lines = data.split("\r\n")
 
             for line in lines:
@@ -1324,20 +1389,20 @@ class GPSSource():
 
                     if position.valid and self.position.valid:
                         self.position += position
-                        printlog("Gps",
-                                 _("ME") +
-                                 ": xxxxxxxxxxxxxxxxxxxxxxxxxxxxx %s" %
-                                 self.position)
+                        self.logger.info("gpsthread: %s"
+                                         ": xxxxxxxxxxxxxxxxxxxxxxxxxxxxx %s",
+                                         _("ME"), self.position)
                     elif position.valid:
                         self.position = position
                     else:
-                        printlog("Gps", "        : Could not parse: %s" % line)
+                        self.logger.info("gpsthread: Could not parse: %s", line)
 
     def get_position(self):
         '''
         Get position.
 
         :returns: Position information
+        :rtype: :class:`GPSPosition`
         '''
         return self.position
 
@@ -1346,6 +1411,7 @@ class GPSSource():
         Status String.
 
         :returns: String containing status
+        :rtype: str
         '''
         if self.broken:
             return self.broken
@@ -1358,16 +1424,18 @@ class NetworkGPSSource(GPSSource):
     '''
     Network GPS Source.
 
-    :param port: Network port
+    :param port: Radio port
+    :type port: str
     '''
 
     # pylint: disable=super-init-not-called
     def __init__(self, port):
+        self.logger = logging.getLogger("NetworkGPSSource")
         self.port = port
         self.enabled = False
         self.thread = None
         self.position = GPSPosition()
-        printlog("Gps", "        : NetworkGPSPosition: %s" % self.position)
+        self.logger.info("NetworkGPSPosition: %s", self.position)
         self.last_valid = False
         self.sock = None
         self.broken = None
@@ -1390,18 +1458,18 @@ class NetworkGPSSource(GPSSource):
         Connect.
 
         :returns: False if could not connect
+        :rtype: bool
         '''
         try:
             _, host, port = self.port.split(":", 3)
             port = int(port)
         except ValueError as err:
-            printlog("Gps",
-                     "       : Unable to parse %s Generic (%s) %s" %
-                     (self.port, type(err), err))
+            self.logger.info("connect: Unable to parse %s (%s)",
+                             self.port, err)
             self.broken = _("Unable to parse address")
             return False
 
-        printlog("Gps", "        : Connecting to %s:%i" % (host, port))
+        self.logger.info("connect: Connecting to %s:%i", host, port)
 
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1409,14 +1477,13 @@ class NetworkGPSSource(GPSSource):
             self.sock.settimeout(10)
         # pylint: disable=broad-except
         except Exception as err:
-            printlog("Gps",
-                     "        : Unable to connect: Generic (%s) %s"
-                     % (type(err), err))
+            self.logger.info("connect: Unable to connect: broad-except",
+                             exc_info=True)
             self.broken = _("Unable to connect") + ": %s" % err
             self.sock = None
             return False
 
-        self.sock.send("r\n")
+        self.sock.send(b"r\n")
 
         return True
 
@@ -1432,14 +1499,16 @@ class NetworkGPSSource(GPSSource):
                 data = self.sock.recv(1024)
 
             # pylint: disable=broad-except
-            except Exception as err:
+            except Exception:
                 self.sock.close()
                 self.sock = None
-                printlog("Gps",
-                         "       : GPSd Socket closed. Generic (%s) %s" %
-                         (type(err), err))
+                self.logger.info("gpsthread: "
+                                 "GPSd Socket closed. broad-except",
+                                 exc_info=True)
                 continue
 
+            if not isinstance(data, str):
+                data = data.decode('utf-8', 'replace')
             line = data.strip()
 
             if not (line.startswith("$GPGGA") or \
@@ -1454,13 +1523,14 @@ class NetworkGPSSource(GPSSource):
             elif pos.valid:
                 self.position = pos
             else:
-                printlog("Gps", "        : Could not parse: %s" % line)
+                self.logger.info("gpsthread: Could not parse: %s", line)
 
     def get_position(self):
         '''
         Get position.
 
         :returns: Position information
+        :rtype: :class:`GPSPosition`
         '''
         return self.position
 
@@ -1469,10 +1539,11 @@ class NetworkGPSSource(GPSSource):
         Status String.
 
         :returns: String containing status
+        :rtype: str
         '''
         if self.broken:
             return self.broken
-        elif self.last_valid and self.position.satellites >= 3:
+        if self.last_valid and self.position.satellites >= 3:
             return _("GPSd Locked") + " (%i sats)" % self.position.satellites
         return _("GPSd Not Locked")
 
@@ -1482,12 +1553,16 @@ class StaticGPSSource(GPSSource):
     Static GPS Source.
 
     :param lat: Latitude
+    :type lat: float
     :param lon: Longitude
+    :type lon: float
     :param alt: Altitude, default 0
+    :type alt: float
     '''
 
     # pylint: disable=super-init-not-called
     def __init__(self, lat, lon, alt=0):
+        self.logger = logging.getLogger("StaticGPSSource")
         self.lat = lat
         self.lon = lon
         self.alt = alt
@@ -1498,7 +1573,7 @@ class StaticGPSSource(GPSSource):
             # This is kinda ugly, but assume we're given altitude in the same
             # type of units as we've been asked to display
             self.position.altitude = feet2meters(self.position.altitude)
-        printlog("Gps", "       : StaticGPSPosition: %s" % self.position)
+        self.logger.info("StaticGPSPosition: %s", self.position)
 
     def start(self):
         '''Start.'''
@@ -1511,6 +1586,7 @@ class StaticGPSSource(GPSSource):
         Get position.
 
         :returns: Position information
+        :rtype: :class:`GPSPosition`
         '''
         return self.position
 
@@ -1519,6 +1595,7 @@ class StaticGPSSource(GPSSource):
         Status String.
 
         :returns: String containing status
+        :rtype: str
         '''
         return _("Static position")
 
@@ -1528,7 +1605,9 @@ def parse_GPS(string):
     Parse GPS string.
 
     :param string: GPS data to parse
+    :type string: str
     :returns: Gps Fix
+    :rtype: str
     '''
     fixes = []
 
@@ -1545,10 +1624,8 @@ def parse_GPS(string):
             else:
                 string = string[string.index("$")+1:]
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Gps",
-                     "        :  Generic Exception during GPS parse: (%s) %s" %
-                     (type(err), err))
+        except Exception:
+            global_logger.info("parse_GPS: broad-except", exc_info=True)
             string = string[string.index("$")+1:]
 
     if not fixes:
@@ -1558,7 +1635,7 @@ def parse_GPS(string):
     fixes = fixes[1:]
 
     for extra in fixes:
-        printlog("Gps", "        : Appending fix: %s" % extra)
+        global_logger.info("parse_GPS: Appending fix: %s", extra)
         fix += extra
 
     return fix
@@ -1566,6 +1643,19 @@ def parse_GPS(string):
 
 def main():
     '''Unit Test.'''
+
+    gettext.install("D-RATS")
+    lang = gettext.translation("D-RATS",
+                               localedir="locale",
+                               fallback=True)
+    lang.install()
+    # pylint: disable=global-statement
+    global _
+    _ = lang.gettext
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
 
     nmea_strings = [
         "$GPRMC,010922,A,4603.6695,N,07307.3033,W,0.6,66.8,060508," \
@@ -1582,14 +1672,14 @@ def main():
             ",,A*71\r\nKK7DS  M,LJ  DAN*C",
         "$GPRMC,230710,A,2748.1414,N,08238.5556,W,000.0,033.1,111208,004.3,W*77",
         ]
-    printlog("Gps", "        : -- NMEA --")
+    global_logger.info("main: -- NMEA --")
 
     for nmea_str in nmea_strings:
         nmea_pos = NMEAGPSPosition(nmea_str)
         if nmea_pos.valid:
-            printlog("Gps", "        : Pass: %s" % str(nmea_pos))
+            global_logger.info("main: Pass: %s", str(nmea_pos))
         else:
-            printlog("Gps", "      : ** FAIL: %s" % nmea_str)
+            global_logger.info("main: ** FAIL: %s", nmea_str)
 
     aprs_strings = [
         "$$CRCCE3E,AE5PL-T>API282,DSTAR*:!3302.39N/09644.66W>/\r",
@@ -1597,19 +1687,19 @@ def main():
             ">APRS test beacon /A=000022",
         "$$CRC80C3,VA2PBI>APU25N,DSTAR*:=4539.33N/07330.28W" \
             "-73 de Pierre D-Star Montreal {UIV32N}",
-        "$$CRCA31F,VA2PBI>API282,DSTAR*:/221812z4526.56N07302.34W/\r",
-        '$$CRCF471,AB9FT-ML>APRATS,DSTAR*:@214235h0.00S/00000.00W" \
+        "$$CRC3AA6,VA2PBI>API282,DSTAR*:/221812z4526.56N/07302.34W/\r",
+        '$$CRC0745,AB9FT-ML>APRATS,DSTAR*:@214235h0.00S/00000.00W" \
             ">ON D-RATS at Work\r',
         ]
 
-    printlog("Gps       :  \n-- GPS-A --")
+    global_logger.info("main:  \n-- GPS-A --")
 
     for aprs_str in aprs_strings:
         gps_pos = APRSGPSPosition(aprs_str)
         if gps_pos.valid:
-            printlog("Gps", "       :  Pass: %s" % str(gps_pos))
+            global_logger.info("main: Pass: %s", str(gps_pos))
         else:
-            printlog("Gps", "       :  ** FAIL: %s" % aprs_str)
+            global_logger.info("main: ** FAIL: %s", aprs_str)
 
 
 if __name__ == "__main__":
