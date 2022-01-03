@@ -29,6 +29,7 @@ try:
     # pylint: disable=import-error
     import commands # type: ignore
 except ModuleNotFoundError:
+    # commands does not exist for python3 and is not needed.
     pass
 import subprocess
 import six.moves.urllib.request # type: ignore
