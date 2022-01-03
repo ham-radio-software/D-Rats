@@ -160,6 +160,7 @@ class MapDraw():
 
         self.expose_map()
         self.scale()
+        self.draw_markers()
             #if not self.map_tiles:
             #    self.load_tiles(cairo_ctx)
 
@@ -190,6 +191,24 @@ class MapDraw():
         # pylint: disable=no-member
         self.__broken_tile = cairo.ImageSurface.create_from_png(broken_path)
         return self.__broken_tile
+
+
+    def draw_marker(self, point):
+        '''Draw Marker.'''
+        print("draw_marker", type(self), point.get_name(),
+              point.get_longitude(), point.get_latitude())
+        #point.get_name(),
+        #                           point.get_latitude(),
+        #                           point.get_longitude(),
+        #                           point.get_icon())
+
+    def draw_markers(self):
+        '''
+        Draw Markers.
+        '''
+        print("redraw_markers: ")
+        for point in self.map_widget.map_window.points_visible:
+            self.draw_marker(point)
 
     def draw_tile(self, path, x_axis, y_axis):
         '''

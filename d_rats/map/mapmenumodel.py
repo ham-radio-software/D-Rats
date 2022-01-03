@@ -79,7 +79,7 @@ class MapMenuModel(Gio.Menu):
         Add menu actions to the window.
 
         :param window: The map window
-        :type window: 'map.Mapwindow
+        :type window: :class:`Map.MapWindow`
         '''
 
         action_refresh = Gio.SimpleAction.new('refresh', None)

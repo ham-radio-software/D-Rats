@@ -1,4 +1,4 @@
-'''Map Popup Menu Model Module.'''
+'''Map Mouse Popup Menu Model Module.'''
 #
 # Copyright 2021 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
@@ -62,27 +62,23 @@ class MapPopupModel(Gio.Menu):
         Add menu actions to the window.
 
         :param window: The map window
-        :type window: 'map.Mapwindow
+        :type window: :class:`Map.Mapwindow`
         '''
 
-        #action_group = Gio.SimpleActionGroup()
-        action_group = window
         action_center = Gio.SimpleAction(name='center',
                                          parameter_type=None,
                                          enabled=True)
         action_center.connect('activate', window.popup_center_handler)
-        action_group.add_action(action_center)
-        #window.add_action(action_center)
+        window.add_action(action_center)
 
         action_newmarker = Gio.SimpleAction(name='newmarker',
                                             parameter_type=None,
                                             enabled=True)
         action_newmarker.connect('activate', window.popup_newmarker_handler)
-        action_group.add_action(action_newmarker)
+        window.add_action(action_newmarker)
 
         action_broadcast = Gio.SimpleAction(name='broadcast',
                                             parameter_type=None,
                                             enabled=True)
         action_broadcast.connect('activate', window.popup_broadcast_handler)
-        action_group.add_action(action_broadcast)
-        #window.scrollw.insert_action_group('popup', action_group)
+        window.add_action(action_broadcast)

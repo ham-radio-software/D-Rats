@@ -12,3 +12,5 @@ from .maptile import MapTile as Tile
 from .mapwidget import MapWidget as Widget
 from .mapwindow import MapWindow as Window
 from .mapzoomcontrols import MapZoomControls as ZoomControls
+from .markereditdialog import MarkerEditDialog
+from .markerpopupmodel import MarkerPopupModel
