@@ -3,7 +3,7 @@
 # pylint: disable=too-many-lines, invalid-name
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Python3 conversion Copyright 2012 John Malmberg <wb8tyw@qsl.net>
+# Python3 conversion Copyright 2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

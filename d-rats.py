@@ -4,6 +4,7 @@
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# Python3 conversion Copyright 2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,29 +21,29 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-import sys
-import os
-import logging
+
+import argparse
 import gettext
-
-# pylint: disable=deprecated-module
-from optparse import OptionParser
-
+import logging
+import os
+import sys
 import traceback
+
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
-# pylint: disable=invalid-name
-lang = gettext.translation("D-RATS",
-                           localedir="./locale",
-                           fallback=True)
-lang.install()
-_ = lang.gettext
+from d_rats import dplatform
 
-from d_rats.dplatform import get_platform
-#importing print() wrapper
+# This makes pylance happy with out overriding settings
+# from the invoker of the module
+if not '_' in locals():
+    _ = gettext.gettext
+
+
+# pylint: disable=invalid-name
+module_logger = logging.getLogger("D-Rats")
 
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
@@ -56,12 +57,6 @@ IGNORE_ALL = False
 # here we design the window which usually comes out at the beginning asking
 # to "ignore/ignore all" the exceptions
 
-
-logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
-                    datefmt="%m/%d/%Y %H:%M:%S",
-                    level=logging.INFO)
-# pylint: disable=invalid-name
-module_logger = logging.getLogger("D-Rats")
 
 def handle_exception(exctyp, value, tb):
     '''
@@ -84,9 +79,11 @@ def handle_exception(exctyp, value, tb):
     Gdk.pointer_ungrab(Gdk.CURRENT_TIME)
     Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
     # WB8TYW: Gdk.pointer_ungrab and Gdk_keyboard_ungrab are marked as
-    # deprecated.  Documentation says to use Gdk.ungrab() instead.
-    # That generates a AttributeError, Gdk has no attribute 'ungrab'.
-    # Gdk.ungrab()
+    # deprecated.  Documentation says to use Gdk.Seat.ungrab().
+    # At this point, we do not have a seat object use and would
+    # need to rework things a bit.
+    # Other documentation indicates that most grabs and un-grabs may
+    # not be needed for Gtk 3
 
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
@@ -126,7 +123,7 @@ possible.
             IGNORE_ALL = True
             break
         if response == Gtk.ResponseType.HELP:
-            platform = get_platform()
+            platform = dplatform.get_platform()
             platform.open_text_file(platform.config_file("debug.log"))
 
 
@@ -165,27 +162,68 @@ def ignore_exception(_exctyp, _value, _tb):
 
 def main():
     '''D-Rats Main module.'''
-    #
-    # lets parse the options passed from command line
-    ops = OptionParser()
-    ops.add_option("-s", "--safe",
-                   dest="safe",
-                   action="store_true",
-                   help="Safe mode (ignore configuration)")
-    ops.add_option("-c", "--config",
-                   dest="config",
-                   help="Use alternate configuration directory")
-    ops.add_option("-p", "--profile",
-                   dest="profile",
-                   action="store_true",
-                   help="Enable profiling")
-    (opts, _args) = ops.parse_args()
 
-    # Eventually this will be a config option/command line
-    logging.basicConfig(level=logging.INFO)
-    if opts.config:
+    platform = dplatform.get_platform()
+    def_config_dir = platform.config_dir()
+
+    # pylint: disable=too-few-public-methods
+    class LoglevelAction(argparse.Action):
+        '''
+        Custom Log Level action.
+
+        This allows entering a log level command line argument
+        as either a known log level name or a number.
+        '''
+
+        def __init__(self, option_strings, dest, nargs=None, **kwargs):
+            if nargs is not None:
+                raise ValueError("nargs is not allowed")
+            argparse.Action.__init__(self, option_strings, dest, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_strings=None):
+            level = values.upper()
+            level_name = logging.getLevelName(level)
+            # Contrary to documentation, the above returns for me
+            # an int if given a name or number of a known named level and
+            # str if given a number for a level with out a name.
+            if isinstance(level_name, int):
+                level_name = level
+            elif level_name.startswith('Level '):
+                level_name = int(level)
+            setattr(namespace, self.dest, level_name)
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=_('DRATS'))
+    parser.add_argument('-c', '--config',
+                        default=def_config_dir,
+                        help="Use alternate configuration directory")
+
+    # While loglevel actually returns an int, it needs to be set to the
+    # default type of str for the action routine to handle both named and
+    # numbered levels.
+    parser.add_argument('--loglevel',
+                        action=LoglevelAction,
+                        default='INFO',
+                        help=_('LOGLEVEL TO TEST WITH'))
+
+    parser.add_argument("-p", "--profile",
+                        action="store_true",
+                        help="Enable profiling")
+
+    parser.add_argument("-s", "--safe",
+                        action="store_true",
+                        help="Safe mode (ignore configuration)")
+
+    args = parser.parse_args()
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=args.loglevel)
+
+    if args.config:
         module_logger.info("main: re-config option found -- Reconfigure D-rats")
-        get_platform(opts.config)
+        dplatform.get_platform(args.config)
 
     # import the D-Rats main application
     from d_rats import mainapp
@@ -194,16 +232,16 @@ def main():
     install_excepthook()
 
     # create the mainapp with the basic options
-    app = mainapp.MainApp(safe=opts.safe)
+    app = mainapp.MainApp(safe=args.safe)
 
     module_logger.info("main: reloading app\n\n")
     # finally let's open the default application triggering it differently if
     # we want to profile it (which is running the app under profile control to
     # see what happens)
-    if opts.profile:
+    if args.profile:
         module_logger.info("main: Executing with cprofile")
         import cProfile
-        cProfile.run('app.main()')
+        cProfile.runctx('app.main()', globals(), locals())
     else:
         #execute the main app
         # result_code = app.main()
