@@ -94,6 +94,9 @@ class MapDisplay(Gtk.Application):
                               self.cmd_args.longitude)
         map_window.set_zoom(14)
 
+        # Have map exit on close for test.
+        map_window.exiting = True
+
         map_window.show()
 
     # Currently referenced by mainapp, will be moved to Mapwindow calls

@@ -86,7 +86,9 @@ class MapWindow(Gtk.ApplicationWindow):
 
         self.logger = logging.getLogger("MapWindow")
 
-        # self.connect("destroy", Gtk.main_quit)
+        self.connect("destroy", self.ev_destroy)
+        self.connect("delete_event", self.ev_delete)
+
         self.config = config
         # self.map_tiles = []
         self.logger.info("Testing MapWindow")
@@ -97,6 +99,7 @@ class MapWindow(Gtk.ApplicationWindow):
         self._newcenter = None
         self.map_sources = []
         self.points_visible = []
+        self.exiting = False
         # this parameter defines the dimension of the map behind the window
         # tiles SHALL be
         #  - ODD due to the mechanism used then to calculate the
@@ -202,17 +205,64 @@ class MapWindow(Gtk.ApplicationWindow):
     # Inherited from Parent and called by mainapp
     # def connect(self, signal name, function):
 
+    # called by mainapp
+    def clear_map_sources(self):
+        '''Clean Map Sources.'''
+        self.marker_list.clear()
+        self.map_sources = []
+        self.points_visible = []
+        self.update_points_visible()
+
+    def ev_destroy(self, _widget, _data=None):
+        '''
+        Event Destroy
+
+        Signaled when all holders of a reference to a widget should release
+        the reference that they hold.
+
+        May result in finalization of the widget if all references are released
+        Any return value usage not documented in Gtk 3
+        :param _widget: Widget (unused)
+        :param _data: data (unused)
+        :returns: True to stop other handlers for this signal from running
+        '''
+        print("map/map_window/ev_destroy")
+        if not self.exiting:
+            self.hide()
+            return True
+        return False
+
+    def ev_delete(self, _widget, _event, _data=None):
+        '''
+        Event Delete.  Intercepts the closing of a window so that it
+        can be hidden and re-used.
+
+        Hides this object
+        :param _widget: Widget (unused)
+        :param _event: event (unused)
+        :param _data: data (unused)
+        :returns: True to stop other handlers for this signal from running
+        '''
+        print("map/map_window/ev_delete")
+        if not self.exiting:
+            self.hide()
+            return True
+        return False
+
     # called my mainapp
-    def get_map_source(self, station):
+    def get_map_source(self, name):
         '''
         Get Map source.
 
-        :param station: Station information
-        :type station: str?
+        :param name: Map Source Name
+        :type station: str
         :returns: maps for a station
-        :rtype: list?
+        :rtype: :class:`MapFileSource`
         '''
-        print("get_map_source %s" % station, type(station), type(self))
+        for source in self.get_map_sources():
+            if source.get_name() == name:
+                return source
+        return None
 
     # Called by mainapp and qst.py
     def get_map_sources(self):
@@ -220,10 +270,9 @@ class MapWindow(Gtk.ApplicationWindow):
         Get Map Sources.
 
         :returns: Map sources
-        :rtype: list
+        :rtype: list of :class:`MapFileSource`
         '''
-        print("get_map_sources", type(self))
-        return []
+        return self.map_sources
 
     def get_visible_bounds(self):
         '''
@@ -820,7 +869,8 @@ class MapWindow(Gtk.ApplicationWindow):
         self.map_widget.set_center(position)
 
     # Called by mainapp
-    def set_base_dir(self, base_dir, map_url, map_key):
+    @staticmethod
+    def set_base_dir(base_dir, map_url, map_key):
         '''
         Set Base Directory.
 
@@ -832,9 +882,9 @@ class MapWindow(Gtk.ApplicationWindow):
         :type map_key: str
         '''
         Map.Tile.set_map_info(base_dir, map_url, map_key)
-        self.logger.info("BASE_DIR configured to %s", base_dir)
-        self.logger.info("MAP_URL configured to: %s", map_url)
-        self.logger.debug("MAP_URL_KEY configured to: %s", map_key)
+        print("BASE_DIR configured to %s" % base_dir)
+        print("MAP_URL configured to: %s" % map_url)
+        print("MAP_URL_KEY configured to: %s" % map_key)
 
     # Called by mainap
     @staticmethod
@@ -1009,3 +1059,15 @@ class MapWindow(Gtk.ApplicationWindow):
         print("mapdisplay.MapWindow.update_point source=%s point=%s",
               source, point)
         self.map_widget.queue_draw()
+
+    def update_points_visible(self):
+        '''Update Points Visible.'''
+        print("#update points visible ",
+              " Called")
+        for src in self.map_sources:
+            for point in src.get_points():
+                print("# update_points_visible point = %xs" % point)
+                # self.update_point(src, point)
+
+        print("mapdisplay.MapWindow.update_points_visible")
+        # self.map.queue_draw()

@@ -3,6 +3,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti
+# Copyright 2021 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -61,8 +62,8 @@ class MainWindow(MainWindowElement):
     '''
     MainWindow.
 
-    :param config: Configuration object
-    :type config: :class:`DratsConfig`
+    :param application: MainApp application
+    :type: application: :class:`MainApp`
     '''
 
     __gsignals__ = {
@@ -75,14 +76,14 @@ class MainWindow(MainWindowElement):
         }
     _signals = __gsignals__
 
-    def __init__(self, config):
-        self.logger = logging.getLogger("MainWindow")
+    def __init__(self, application):
+        config = application.config
         wtree = Gtk.Builder()
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
-        # wtree = Gtk.glade.XML(config.ship_obj_fn("ui/mainwindow.glade"),
-        #                       "mainwindow", "D-RATS")
         MainWindowElement.__init__(self, wtree, config, "")
+        self._application = application
+        self.logger = logging.getLogger("MainWindow")
         self.__window = self._wtree.get_object("mainwindow")
         self._tabs = self._wtree.get_object("main_tabs")
         self._tabs.connect("switch-page", self._tab_switched)
@@ -137,6 +138,7 @@ class MainWindow(MainWindowElement):
         GLib.timeout_add(3000, self.__update_status)
 
     def _delete(self, window, _event):
+        print("mainwindow/_delete")
         if self._config.getboolean("prefs", "confirm_exit"):
             if not ask_for_confirmation("Really exit D-RATS?", window):
                 return True
@@ -145,6 +147,7 @@ class MainWindow(MainWindowElement):
         return False
 
     def _destroy(self, window):
+        print("mainwindow/_destroy")
         width, height = window.get_size()
 
         #maximized = window.maximize_initially
@@ -155,7 +158,8 @@ class MainWindow(MainWindowElement):
             self._config.set("state", "main_size_x", str(width))
             self._config.set("state", "main_size_y", str(height))
 
-        Gtk.main_quit()
+        # Gtk.main_quit()
+        self._application.quit()
 
     # pylint: disable=too-many-locals, too-many-statements
     def _connect_menu_items(self, window):
