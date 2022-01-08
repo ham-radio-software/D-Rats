@@ -537,12 +537,15 @@ class GPSPosition():
     :type station: str
     '''
 
-    def __init__(self, lat=0, lon=0, station="UNKNOWN"):
+    def __init__(self, lat=0, lon=0, station=None):
         self.logger = logging.getLogger("GPSPosition")
         self.valid = False
         self.altitude = 0
         self.satellites = 0
-        self.station = station
+        if station:
+            self.station = station
+        else:
+            self.station = _("UNKNOWN")
         self.comment = ""
         self.current = None
         self.date = datetime.datetime.now()
@@ -958,7 +961,7 @@ class NMEAGPSPosition(GPSPosition):
     :raises: GpsGpggaException classes on error.
     '''
 
-    def __init__(self, sentence, station=_("UNKNOWN")):
+    def __init__(self, sentence, station=None):
         GPSPosition.__init__(self)
         self.logger = logging.getLogger("NMEAGPSPosition")
         self.latitude = None
@@ -1558,16 +1561,18 @@ class StaticGPSSource(GPSSource):
     :type lon: float
     :param alt: Altitude, default 0
     :type alt: float
+    :param station: Station for source, default 'Unknown'
+    :type station: str
     '''
 
     # pylint: disable=super-init-not-called
-    def __init__(self, lat, lon, alt=0):
+    def __init__(self, lat, lon, alt=0, station=None):
         self.logger = logging.getLogger("StaticGPSSource")
         self.lat = lat
         self.lon = lon
         self.alt = alt
 
-        self.position = GPSPosition(self.lat, self.lon)
+        self.position = GPSPosition(self.lat, self.lon, station)
         self.position.altitude = int(float(alt))
         if EARTH_UNITS == "mi":
             # This is kinda ugly, but assume we're given altitude in the same
