@@ -50,11 +50,10 @@ import shutil
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk          # to manage windows objects
+from gi.repository import Gio
 from gi.repository import GObject      # to manage multitasking
 from gi.repository import GLib
 
-#importing printlog() wrapper
-from .debug import printlog
 from . import dplatform
 
 
@@ -81,7 +80,7 @@ else:
 from . import mainwindow
 from . import config
 from . import gps
-from . import mapdisplay
+from . import map as Map
 from . import map_sources
 from . import comm
 from . import sessionmgr
@@ -283,7 +282,7 @@ class CallList():
 
 
 # pylint: disable=too-many-instance-attributes
-class MainApp():
+class MainApp(Gtk.Application):
     '''
     Main App.
 
@@ -292,6 +291,10 @@ class MainApp():
 
     #pylint: disable=too-many-statements
     def __init__(self, **_args):
+        Gtk.Application.__init__(self,
+                                 application_id='localhost.d-rats',
+                                 flags=Gio.ApplicationFlags.NON_UNIQUE)
+
         self.logger = logging.getLogger("MainApp")
         self.handlers = {
             "status" : self.__status,
@@ -345,6 +348,10 @@ class MainApp():
         self.pop3srv = None
         self.msgrouter = None
         self.plugsrv = None
+        self.stations_overlay = None
+        self.__map_point = None
+        self.connect("shutdown", self.ev_shutdown)
+
         self.config = config.DratsConfig(self)
         self._refresh_lang()
 
@@ -371,33 +378,17 @@ class MainApp():
         self.logger.info("load position from config file")
         self.gps = self._static_gps()
 
-        # create map instance
-        self.logger.info("create map window object-----")
-        self.map = mapdisplay.MapWindow(self.config)
-        self.map.set_title("D-RATS Map Window - map in use: %s" %
-                           self.config.get("settings", "maptype"))
-        self.map.connect("reload-sources", lambda m: self._load_map_overlays())
-        self.logger.info("create map window object: connect object-----")
-        self.__connect_object(self.map)
-
-        self.logger.info("query local gps device to see our current position")
-        pos = self.get_position()
-        self.map.set_center(pos.latitude, pos.longitude)
-        self.map.set_zoom(14)
-        self.__map_point = None
+        self.map = None
+        # Moving map code below to do_activate()
 
         self.logger.info("load main window with self config")
-        self.mainwindow = mainwindow.MainWindow(self.config)
+        self.mainwindow = mainwindow.MainWindow(self)
 
         self.logger.info("connect main window")
         self.__connect_object(self.mainwindow)
         self.logger.info("connect tabs")
         for tab in self.mainwindow.tabs.values():
             self.__connect_object(tab)
-
-        self.logger.info("invoke config refresh")
-        self.refresh_config()
-        self._load_map_overlays()
 
         if self.config.getboolean("prefs", "dosignon") and self.chat_session:
             self.logger.info("going online")
@@ -464,6 +455,54 @@ class MainApp():
             sock.close()
             sock = None
         self.logger.info("Socket Created")
+
+    # pylint: disable=arguments-differ
+    def do_activate(self):
+        '''
+        Do Activation.
+
+        Emits a :class:`Gio.Application` signal to the application.
+        '''
+        # create map instance
+        self.logger.info("create map window object-----")
+        self.map = Map.Window(self, self.config)
+        self.map.set_title("D-RATS Map Window - map in use: %s" %
+                           self.config.get("settings", "maptype"))
+        self.map.connect("reload-sources", lambda m: self._load_map_overlays())
+        self.logger.info("create map window object: connect object-----")
+        self.__connect_object(self.map)
+
+        self.logger.info("query local gps device to see our current position")
+        pos = self.get_position()
+        self.map.set_center(pos.latitude, pos.longitude)
+        self.map.set_zoom(14)
+        self._load_map_overlays()
+        self.logger.info("invoke config refresh")
+        self.refresh_config()
+
+    def do_quit_mainloop(self):
+        print("mainapp/do_quit_mainloop")
+        Gtk.Application.do_quit_mainloop(self)
+
+    def do_shutdown(self):
+        print("mainapp/do_shutdown")
+        Gtk.Application.do_shutdown(self)
+
+    @staticmethod
+    def ev_shutdown(application):
+        '''
+        Event Shutdown
+
+        Signaled when all holders of a reference to a widget should release
+        the reference that they hold.
+
+        May result in finalization of the widget if all references are released
+        Any return value usage not documented in Gtk 3
+        :param application: :class:`Gtk.Application`
+        '''
+        print("mainapp/ev_shutdown")
+        if application.map:
+            application.map.exiting = True
 
     # pylint: disable=no-self-use
     def setup_autoid(self):
@@ -709,7 +748,7 @@ class MainApp():
         self.logger.info(
             "check_comms_status: Ports expected to be already started:")
         for portid in self.smgr:
-            printlog("Mainapp", "   : %s" % portid)
+            self.logger.info("check_comms_status: %s", portid)
 
         self.logger.info("check_comms_status: Checking all Ports from config:")
         for portid in self.config.options("ports"):
@@ -965,7 +1004,8 @@ class MainApp():
                 sources = stype.enumerate(self.config)
             # pylint: disable=broad-except
             except TypeError:
-                self.logger.info("_load_map_overlays not working for python3",
+                self.logger.info("_load_map_overlays not working.  "
+                                 "USGS changed URls/APIs.",
                                  exc_info=True)
                 sources = []
             except Exception:
@@ -1045,16 +1085,16 @@ class MainApp():
             mapurl = self.config.get("settings", "mapurlbase")
             mapkey = ""
 
-        mapdisplay.set_base_dir(os.path.join(
+        Map.Window.set_base_dir(os.path.join(
             self.config.get("settings", "mapdir"),
             self.config.get("settings", "maptype")), mapurl, mapkey)
 
-        mapdisplay.set_connected(
+        Map.Window.set_connected(
             self.config.getboolean("state", "connected_inet"))
-        mapdisplay.set_tile_lifetime(
+        Map.Window.set_tile_lifetime(
             self.config.getint("settings", "map_tile_ttl") * 3600)
         proxy = self.config.get("settings", "http_proxy") or None
-        mapdisplay.set_proxy(proxy)
+        Map.Window.set_proxy(proxy)
 
         self.map.set_title(
             "D-RATS Map Window - map in use: %s" %
@@ -1291,8 +1331,9 @@ class MainApp():
 
         for station in station_list:
             if station.get_port() not in list(stations.keys()):
-                printlog("Mainapp   : Station %s has unknown port %s" %
-                         (station, station.get_port()))
+                self.logger.info("__get_station_list: Station %s "
+                                 "has unknown port %s",
+                                 station, station.get_port())
             else:
                 stations[station.get_port()].append(station)
         return stations
@@ -1927,11 +1968,11 @@ class MainApp():
 
         # LOAD THE MAIN WINDOW
         self.logger.info("load the main window")
+        # pylint: disable=broad-except
         try:
-            Gtk.main()
+            self.run(None)
         except KeyboardInterrupt:
             pass
-        # pylint: disable=broad-except
         except Exception:
             self.logger.info("Got broad-exception on close", exc_info=True)
             # broad/bare exceptions make debugging harder
