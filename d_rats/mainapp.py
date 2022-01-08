@@ -1452,6 +1452,7 @@ class MainApp(Gtk.Application):
         :return: Map source
         :rtype: :class:`StaticGPSSource`
         '''
+        # Note, nothing seems to be using the return value.
         tstation = self.mainwindow.tabs["event"].last_event_time(fix.station)
         if (time.time() - tstation) > 300:
             self.mainwindow.tabs["event"].finalize_last(fix.station)
@@ -1538,7 +1539,8 @@ class MainApp(Gtk.Application):
                 "__incoming_gps_fix:"
                 " Export to external mapserver not active: %s",
                 mapserver_active)
-        return gps.StaticGPSSource(fix.latitude, fix.longitude, fix.altitude)
+        return gps.StaticGPSSource(fix.latitude, fix.longitude,
+                                   fix.altitude, fix.station)
 
     def __station_status(self, _obj, sta, stat, msg, port):
         '''
