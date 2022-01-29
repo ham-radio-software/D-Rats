@@ -2,6 +2,7 @@
 '''Map Sources'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,19 +20,18 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import time
 import threading
 import os
+import urllib
 from glob import glob
 from lxml import etree
 
-# import libxml2
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 
-# importing printlog() wrapper
-from .debug import printlog
 from . import utils
 from . import dplatform
 
@@ -64,15 +64,6 @@ class MapSourcePointError(MapSourceException):
     '''MapSourcePointError.'''
 
 
-
-# pylint: disable=too-few-public-methods
-class Callable:
-    '''Callable.'''
-
-    def __init__(self, target):
-        self.__call__ = target
-
-
 # pylint: disable=too-few-public-methods
 class MapItem():
     '''MapItem.'''
@@ -88,9 +79,6 @@ class MapPoint(GObject.GObject):
                      (GObject.TYPE_STRING,)),
         }
 
-    def _retr_hook(self, method, attribute):
-        pass
-
     def __init__(self):
         GObject.GObject.__init__(self)
         self.__latitude = 0.0
@@ -101,6 +89,9 @@ class MapPoint(GObject.GObject):
         self.__icon = None
         self.__timestamp = time.time()
         self.__visible = True
+
+    def _retr_hook(self, method, attribute):
+        pass
 
     def dup(self):
         '''Dup.'''
@@ -156,10 +147,15 @@ class MapStation(MapPoint):
     Map Station.
 
     :param call: Call sign for station
+    :type call: str
     :param lat: Latitude for station
+    :type lat: float
     :param lon: Longitude for station
+    :type lon: float
     :param alt: Altitude for station, default 0.0
+    :type alt: float
     :param comment: Comment for station, default ""
+    :type comment: str
     '''
 
     # pylint: disable=too-many-arguments
@@ -208,13 +204,13 @@ class MapPointThreaded(MapPoint):
     def __init__(self):
         MapPoint.__init__(self)
 
+        self.logger = logging.getLogger("MapPointThreaded")
         self.__thread = None
         self.__ts = 0
 
     def __start_thread(self):
         if self.__thread and self.__thread.isAlive():
-            printlog("Mapsrc",
-                     "    :Threaded Point: Still waiting on a thread")
+            self.logger.info("Threaded Point: Still waiting on a thread")
             return
 
         self.__thread = threading.Thread(target=self.__thread_fn)
@@ -227,9 +223,8 @@ class MapPointThreaded(MapPoint):
                 self.__ts = time.time()
                 self.__start_thread()
             # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mapsrc",
-                         "    :Can't start: (%s) %s" % (type(err), err))
+            except Exception:
+                self.logger.info("_retr_hook: Can't start", exc_info=True)
 
     def __thread_fn(self):
         self.do_update()
@@ -243,58 +238,78 @@ class MapUSGSRiver(MapPointThreaded):
     :param site: Site information.
     '''
 
+    def __init__(self, site):
+        MapPointThreaded.__init__(self)
+        self.logger = logging.getLogger("MapUSGSRiver")
+        self.__site = site
+        self.__have_site = False
+        self._height_ft = None
+        self._basename = None
+
+        self.set_icon(utils.get_icon("/w"))
+
     def do_update(self):
-        '''Do update'''
-        printlog("Mapsrc",
-                 "    :[River %s] Doing update..." % self.__site)
+        '''Do update.'''
+        self.logger.info("[River %s] Doing update...", self.__site)
         if  not self.__have_site:
             try:
                 self.__parse_site()
                 self.__have_site = True
             # pylint: disable=broad-except
-            except Exception as err:
+            except Exception:
                 utils.log_exception()
-                printlog("Mapsrc",
-                         "    :[River %s] Failed to parse site: (%s) %s" %
-                         (self.__site, type(err), err))
+                self.logger.info("do_update: [River %s] Failed to parse site",
+                                 self.__site, exc_info=True)
                 self.set_name("Invalid river %s" % self.__site)
 
         try:
             self.__parse_level()
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             utils.log_exception()
-            printlog("Mapsrc",
-                     "    :[River %s] Failed to parse level: (%s) %s" %
-                     (self.__site, type(err), err))
+            self.logger.info("do_update: [River %s] Failed to parse level",
+                             self.__site, exc_info=True)
 
-        printlog("[River %s] Done with update" % self.__site)
+        self.logger.info("do_update: [River %s] Done with update", self.__site)
 
     def __parse_site(self):
-        # pylint: disable=line-too-long
-        url = "http://waterdata.usgs.gov/nwis/inventory" \
-              "?search_site_no=%s" \
-              "&format=sitefile_output" \
-              "&sitefile_output_format=xml" \
-              "&column_name=agency_cd" \
-              "&column_name=site_no" \
-              "&column_name=station_nm" \
-              "&column_name=dec_lat_va" \
-              "&column_name=dec_long_va" \
-              "&column_name=alt_va" % self.__site
+        # Old URL no longer works.   New URL is just for testing
+        # This code currently does not work because lxml needs some
+        # additional processing done to the downloaded data.
+        url = "https://waterservices.usgs.gov/nwis/site/?format=mapper,1.0" \
+              "&bBox=-123.975100,45.415900,-121.975100,45.615900" \
+              "&siteType=ST&siteStatus=active"
+        #url = "http://waterservices.usgs.gov/nwis/iv" \
+        #      "?search_site_no=%s" \
+        #      "&format=sitefile_output" \
+        #      "&sitefile_output_format=xml" \
+        #      "&column_name=agency_cd" \
+        #      "&column_name=site_no" \
+        #      "&column_name=station_nm" \
+        #      "&column_name=dec_lat_va" \
+        #      "&column_name=dec_long_va" \
+        #      "&column_name=alt_va" % self.__site
 
         platform = dplatform.get_platform()
+        # print("url", url)
         try:
             filter_filename, _headers = platform.retrieve_url(url)
             content = open(filter_filename).read()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc",
-                     "    :[NSGS] Failed to fetch info for %s: %s %s" %
-                     (self.__site, type(err), err))
+        except urllib.error.HTTPError as err:
             self.set_name("NSGS NWIS Site %s" % self.__site)
+            if err.code == 400:
+                self.logger.info("__parse_site [NSGS] Failed %s: %s %s",
+                                 self.__site, err.code, err.reason)
+                return
+            print("err", type(err), dir(err), err.code, err.reason)
+            self.logger.info("__parse_site [NSGS] Failed to fetch info for %s",
+                             self.__site, exc_info=True)
             return
 
+        # print("-------")
+        # print(content)
+        # print("-------")
         doc = etree.fromstring(content)
 
         base = "/usgs_nwis/site/"
@@ -307,7 +322,6 @@ class MapUSGSRiver(MapPointThreaded):
         self.set_altitude(float(_xdoc_getnodeval(doc, base + "alt_va")))
 
     def __parse_level(self):
-        # pylint: disable=line-too-long
         url = \
             "http://waterdata.usgs.gov/nwis/uv?format=rdb&period=1&site_no=%s" \
             % self.__site
@@ -317,10 +331,10 @@ class MapUSGSRiver(MapPointThreaded):
             file_name, _headers = platform.retrieve_url(url)
             line = open(file_name).readlines()[-1]
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc",
-                     "    :[NSGS] Failed to fetch info for site %s: (%s) %s" %
-                     (self.__site, type(err), err))
+        except Exception:
+            self.logger.info("__parse_level: [NSGS] Failed to fetch "
+                             "info for site %s",
+                             self.__site, exc_info=True)
             self.set_comment("No data")
             self.set_timestamp(time.time())
 
@@ -332,15 +346,6 @@ class MapUSGSRiver(MapPointThreaded):
         self.set_comment("River height: %.1f ft" % self._height_ft)
         self.set_timestamp(time.time())
 
-    def __init__(self, site):
-        MapPointThreaded.__init__(self)
-        self.__site = site
-        self.__have_site = False
-        self._height_ft = None
-        self._basename = None
-
-        self.set_icon(utils.get_icon("/w"))
-
 
 class MapNBDCBuoy(MapPointThreaded):
     '''
@@ -349,6 +354,15 @@ class MapNBDCBuoy(MapPointThreaded):
     :param buoy: Buoy information
     '''
 
+    def __init__(self, buoy):
+        MapPointThreaded.__init__(self)
+
+        self.logger = logging.getLogger("MapNBDCBuoy")
+        self.__buoy = buoy
+        self.__url = "http://www.ndbc.noaa.gov/data/latest_obs/%s.rss" % buoy
+
+        self.set_icon(utils.get_icon("\\N"))
+
     def do_update(self):
         '''Do Update.'''
         platform = dplatform.get_platform()
@@ -356,20 +370,18 @@ class MapNBDCBuoy(MapPointThreaded):
             fname, _headers = platform.retrieve_url(self.__url)
             content = open(fname).read()
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc",
-                     "    :[NBDC] Failed to fetch info for %i: (%s) %s" %
-                     (self.__buoy, type(err), err))
+        except Exception:
+            self.logger.info("do_update: [NBDC] Failed to fetch info for %i",
+                             self.__buoy, exc_info=True)
             self.set_name("NBDC %s" % self.__buoy)
             return
 
         try:
             doc = etree.parse(content)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc",
-                     "    :[NBDC] Failed to parse document %s: (%s) %s" %
-                     (self.__url, type(err), err))
+        except Exception:
+            self.logger.info("do_update: [NBDC] Failed to parse document %s",
+                             self.__url, exc_info=True)
             self.set_name("NBDC Unknown Buoy %s" % self.__buoy)
             return
 
@@ -381,10 +393,9 @@ class MapNBDCBuoy(MapPointThreaded):
         try:
             descrip = _xdoc_getnodeval(doc, base + "description", namespaces)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc",
-                     "    :[Buoy %s] Unable to get description: (%s) %s" %
-                     (self.__buoy, type(err), err))
+        except Exception:
+            self.logger.info("do_update :[Buoy %s] Unable to get description",
+                             self.__buoy, exc_info=True)
             return
 
         for i in ["<strong>", "</strong>", "<br />", "&#176;"]:
@@ -397,25 +408,16 @@ class MapNBDCBuoy(MapPointThreaded):
                                           base + "georss:point",
                                           namespaces).split(" ", 1)
         # pylint: disable=broad-except
-        except Exception as err:
+        except Exception:
             utils.log_exception()
-            printlog("Mapsrc",
-                     "    :[Buoy %s]: Result has no georss:point (%s) %s" %
-                     (self.__buoy, type(err), err))
+            self.logger.info("do_update: [Buoy %s]: Result has no georss:point",
+                             self.__buoy, exc_info=True)
             return
 
         self.set_latitude(float(slat))
         self.set_longitude(float(slon))
 
-        printlog("Mapsrc", "    :[Buoy %s] Done with update" % self.__buoy)
-
-    def __init__(self, buoy):
-        MapPointThreaded.__init__(self)
-
-        self.__buoy = buoy
-        self.__url = "http://www.ndbc.noaa.gov/data/latest_obs/%s.rss" % buoy
-
-        self.set_icon(utils.get_icon("\\N"))
+        self.logger.info("do_update: [Buoy %s] Done with update", self.__buoy)
 
 
 class MapSource(GObject.GObject):
@@ -423,8 +425,11 @@ class MapSource(GObject.GObject):
     MapSource.
 
     :param name: Map source name
+    :type name: str
     :param description: Map source description
+    :type description: str
     :param color: Color of map source, default "red"
+    :type color: str
     '''
 
     __gsignals__ = {
@@ -552,13 +557,52 @@ class MapFileSource(MapSource):
     MapFileSource.
 
     :param name: Name of map source
+    :type name: str
     :param description: Description of map source
+    :type description: str
     :param filename: Map source filename
+    :type filename: str
     :param _create: Unused default to False
+    :type _create: bool
     '''
 
-    # pylint: disable=no-self-argument
-    def _enumerate(config):
+    def __init__(self, name, description, filename, _create=False):
+        MapSource.__init__(self, name, description)
+
+        self.logger = logging.getLogger("MapFileSource")
+        self._fn = filename
+
+        self._need_save = 0
+
+        try:
+            input_handle = open(filename)
+        # pylint: disable=broad-except
+        except Exception as err:
+            msg = "Failed to open %s: (%s) %s" % (filename, type(err), err)
+            self.logger.info("Failed to open %s", filename, exc_info=True)
+            raise MapSourceFailedToConnect(msg)
+
+        lines = input_handle.readlines()
+        for line in lines:
+            try:
+                point = self.__parse_line(line)
+            # pylint: disable=broad-except
+            except Exception:
+                self.logger.info("Failed to parse", exc_info=True)
+                continue
+
+            self._points[point.get_name()] = point
+
+    @staticmethod
+    def enumerate(config):
+        '''
+        Enumerate.
+
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
+        :returns: list of matching files
+        :rtype: list of str
+        '''
         # pylint: disable=no-member
         dirpath = os.path.join(config.platform.config_dir(),
                                "static_locations")
@@ -566,22 +610,31 @@ class MapFileSource(MapSource):
 
         return [os.path.splitext(os.path.basename(f))[0] for f in files]
 
-    enumerate = Callable(_enumerate)
+    @staticmethod
+    def open_source_by_name(config, name, create=False):
+        '''
+        Open Source By Name.
 
-    # pylint: disable=no-self-argument
-    def _open_source_by_name(config, name, create=False):
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
+        :param name: Name of map source
+        :type name: str
+        :param create: Flag to create a source, default False
+        :type create: bool
+        :returns: filenames for sources
+        :rtype: list of str
+        '''
         # pylint: disable=no-member
         dirpath = os.path.join(config.platform.config_dir(),
                                "static_locations")
 
         path = os.path.join(dirpath, "%s.csv" % name)
-
         if create and not os.path.exists(path):
             _file_handle = open(path, "a").close()
 
         return MapFileSource(name, "Static file", path)
 
-    open_source_by_name = Callable(_open_source_by_name)
+    # open_source_by_name = Callable(_open_source_by_name)
 
     # pylint: disable=no-self-use
     def __parse_line(self, line):
@@ -589,6 +642,7 @@ class MapFileSource(MapSource):
             ident, icon, lat, lon, alt, comment, show = line.split(",", 6)
         # pylint: disable=broad-except
         except Exception as err:
+            self.logger.info("parse_line broad-execpt", exc_info=True)
             raise MapSourcePointError(str(err))
 
         if alt:
@@ -619,33 +673,6 @@ class MapFileSource(MapSource):
                                                      os.linesep))
         handle.close()
 
-    def __init__(self, name, description, filename, _create=False):
-        MapSource.__init__(self, name, description)
-
-        self._fn = filename
-
-        self._need_save = 0
-
-        try:
-            input_handle = open(filename)
-        # pylint: disable=broad-except
-        except Exception as err:
-            msg = "Failed to open %s: (%s) %s" % (filename, type(err), err)
-            printlog(msg)
-            raise MapSourceFailedToConnect(msg)
-
-        lines = input_handle.readlines()
-        for line in lines:
-            try:
-                point = self.__parse_line(line)
-            # pylint: disable=broad-except
-            except Exception as err:
-                printlog("Mapsrc", "    :Failed to parse: (%s) %s" %
-                         (type(err), err))
-                continue
-
-            self._points[point.get_name()] = point
-
     def get_filename(self):
         '''Get Filename'''
         return self._fn
@@ -656,44 +683,77 @@ class MapUSGSRiverSource(MapSource):
     Map USGS River Source.
 
     :param name: Map source name
+    :type name: str
     :param description: Map source description
+    :type description: str
     :param sites: Optional site information
+    :type sites: str
     '''
 
-    # pylint: disable=no-self-argument
-    def _open_source_by_name(config, name):
+    def __init__(self, name, description, *sites):
+        MapSource.__init__(self, name, description)
+
+        self.__sites = sites
+        self._mutable = False
+
+        for site in sites:
+            print("MapUSGSRiverSource site:", site)
+            point = MapUSGSRiver(site)
+            point.connect("updated", self._point_updated)
+
+    @staticmethod
+    def open_source_by_name(config, name, _create=False):
+        '''
+        Open Source By Name.
+
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
+        :param name: Name of map source
+        :type name: str
+        :param _create: Flag to create a source, default False, Unused
+        :type _create: bool
+        :returns: filenames for sources
+        :rtype: list of str
+        '''
         # pylint: disable=no-member
         if not config.has_section("rivers"):
             return None
         # pylint: disable=no-member
         if not config.has_option("rivers", name):
             return None
+        print("MapUSGSRiverSource.opensource by name:", name)
         # pylint: disable=no-member
         sites = tuple(config.get("rivers", name).split(","))
+        print("MapUSGSRiverSource.opensource by name sites", *sites)
         try:
             # pylint: disable=no-member
             _name = config.get("rivers", "%s.label" % name)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc", "    :No option %s.label" % name)
-            printlog("Mapsrc : (%s) %s" % (type(err), err))
+        except Exception:
+            logger = logging.getLogger("MapUSGSRiverSource")
+            logger.info("_open_source_by_name: No option %s.label",
+                        name, exc_info=True)
             _name = name
 
         return MapUSGSRiverSource(_name, "NWIS Rivers", *sites)
 
-    open_source_by_name = Callable(_open_source_by_name)
+    @staticmethod
+    def enumerate(config):
+        '''
+        Enumerate.
 
-    # pylint: disable=no-self-argument
-    def _enumerate(config):
-        # pylint: disable=no-member
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
+        :returns: filenames for sources
+        :rtype: list of str
+        '''
+          # pylint: disable=no-member
         if not config.has_section("rivers"):
             return []
         # pylint: disable=no-member
         options = config.options("rivers")
 
         return [x for x in options if not x.endswith(".label")]
-
-    enumerate = Callable(_enumerate)
 
     def packed_name(self):
         '''Packed Name.'''
@@ -712,16 +772,6 @@ class MapUSGSRiverSource(MapSource):
         else:
             self.emit("point-updated", point)
 
-    def __init__(self, name, description, *sites):
-        MapSource.__init__(self, name, description)
-
-        self.__sites = sites
-        self._mutable = False
-
-        for site in sites:
-            point = MapUSGSRiver(site)
-            point.connect("updated", self._point_updated)
-
     def get_sites(self):
         '''Get Sites.'''
         return self.__sites
@@ -732,12 +782,36 @@ class MapNBDCBuoySource(MapSource):
     Map NBDC Buoy Source.
 
     :param name: Name of source
+    :type name: str
     :param description: Description of source
-    :param buoys: Optional buoy information
+    :type description: str
+    :param *buoys: Optional buoy information
     '''
 
-    # pylint: disable=no-self-argument
-    def _open_source_by_name(config, name):
+    def __init__(self, name, description, *buoys):
+        MapSource.__init__(self, name, description)
+
+        self.__buoys = buoys
+        self._mutable = False
+
+        for buoy in buoys:
+            point = MapNBDCBuoy(buoy)
+            point.connect("updated", self._point_updated)
+
+    @staticmethod
+    def open_source_by_name(config, name, _create=False):
+        '''
+        Open Source By Name.
+
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
+        :param name: Name of map source
+        :type name: str
+        :param _create: Flag to create a source, default False, Unused
+        :type _create: bool
+        :returns: filenames for sources
+        :rtype: list of str
+        '''
         # pylint: disable=no-member
         if not config.has_section("buoys"):
             return None
@@ -750,27 +824,33 @@ class MapNBDCBuoySource(MapSource):
             # pylint: disable=no-member
             _name = config.get("buoys", "%s.label" % name)
         # pylint: disable=broad-except
-        except Exception as err:
-            printlog("Mapsrc", "    :No option %s.label" % name)
-            printlog(err)
+        except Exception:
+            logger = logging.getLogger("MapNBDCBuoySource")
+            logger.info("_open_source_by_name: No option %s.label",
+                        name, exc_info=True)
             _name = name
         sites = tuple([x for x in _sites])
+        print("opensource by name: sites", *sites)
 
         return MapNBDCBuoySource(_name, "NBDC Buoys", *sites)
 
-    open_source_by_name = Callable(_open_source_by_name)
+    @staticmethod
+    def enumerate(config):
+        '''
+        Enumerate.
 
-    # pylint: disable=no-self-argument
-    def _enumerate(config):
-        # pylint: disable=no-member
+        :param config: Configuration data
+        :type config: :class:`DratsConfig`
+        :returns: filenames for sources
+        :rtype: list of str
+        '''
+          # pylint: disable=no-member
         if not config.has_section("buoys"):
             return []
         # pylint: disable=no-member
         options = config.options("buoys")
 
         return [x for x in options if not x.endswith(".label")]
-
-    enumerate = Callable(_enumerate)
 
     def packed_name(self):
         '''Packed name.'''
@@ -788,16 +868,6 @@ class MapNBDCBuoySource(MapSource):
             self.emit("point-added", point)
         else:
             self.emit("point-updated", point)
-
-    def __init__(self, name, description, *buoys):
-        MapSource.__init__(self, name, description)
-
-        self.__buoys = buoys
-        self._mutable = False
-
-        for buoy in buoys:
-            point = MapNBDCBuoy(buoy)
-            point.connect("updated", self._point_updated)
 
     def get_buoys(self):
         '''Get Buoys.'''

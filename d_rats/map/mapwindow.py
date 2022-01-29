@@ -1,6 +1,7 @@
 '''Map Window Module.'''
+# pylint: disable=too-many-lines
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -77,6 +78,7 @@ class MapWindow(Gtk.ApplicationWindow):
                 "get-station-list" : None
                 }
 
+    CROSSHAIR = "+"
     STATUS_COORD = 0
     STATUS_CENTER = 1
     STATUS_GPS = 2
@@ -91,7 +93,7 @@ class MapWindow(Gtk.ApplicationWindow):
 
         self.config = config
         # self.map_tiles = []
-        self.logger.info("Testing MapWindow")
+        self.logger.info("init MapWindow")
 
         self.center_mark = None
         self.tracking_enabled = False
@@ -99,6 +101,7 @@ class MapWindow(Gtk.ApplicationWindow):
         self._newcenter = None
         self.map_sources = []
         self.points_visible = []
+        self.colors = {}
         self.exiting = False
         # this parameter defines the dimension of the map behind the window
         # tiles SHALL be
@@ -153,21 +156,34 @@ class MapWindow(Gtk.ApplicationWindow):
         self.marker_menu = Gtk.Menu.new_from_model(self.marker_model)
         self.marker_menu.attach_to_widget(self)
 
-    def add_map_source(self, maps):
+    def add_map_source(self, source):
         '''
         Add Map Source.
 
-        :param maps: Maps
-        :type maps: list
+        :param source: A map source
+        :type source: :class:`MapSource`
         '''
-        print("add_map_source %s" % maps, type(maps), type(self))
+        self.map_sources.append(source)
+        self.marker_list.add_item(None,
+                                  source.get_visible(), source.get_name(),
+                                  0.0, 0.0, 0.0, 0.0)
+        for point in source.get_points():
+            self.add_point(source, point)
+
+
+        ##source.connect("point-updated", self.update_point)
+        source.connect("point-added", self.add_point)
+        source.connect("point-deleted", self.del_point)
+        source.connect("point-updated", self.maybe_recenter_on_updated_point)
 
     def add_point(self, source, point):
         '''
         Add Point.
 
         :param source: Map source
-        :param point: Point to add
+        :type source: :class:`MapSource`
+        :param point: Point to update
+        :type point: :class:`MapPoint`
         '''
         # (_lat, _lon) = self.map.get_center()
         center = GPSPosition(self.map_widget.position.latitude,
@@ -181,7 +197,6 @@ class MapWindow(Gtk.ApplicationWindow):
                                   center.distance_from(this),
                                   center.bearing_to(this))
         self.add_point_visible(point)
-        print("mapdisplay.MapWindow.add_point")
         self.map_widget.queue_draw()
 
     def add_point_visible(self, point):
@@ -189,13 +204,13 @@ class MapWindow(Gtk.ApplicationWindow):
         Add Point Visible.
 
         :param point: Point to add
+        :type point: :class:`MapPoint`
         :returns: True if point is visible
         '''
         if point in self.points_visible:
             self.points_visible.remove(point)
 
-        if self.map_widget.point_is_visible(point.get_latitude(),
-                                            point.get_longitude()):
+        if self.map_widget.point_is_visible(point):
             if point.get_visible():
                 self.points_visible.append(point)
                 return True
@@ -212,8 +227,26 @@ class MapWindow(Gtk.ApplicationWindow):
         self.map_sources = []
         self.points_visible = []
         self.update_points_visible()
+        self.map_widget.queue_draw()
 
-    def ev_destroy(self, _widget, _data=None):
+    def del_point(self, source, point):
+        '''
+        Delete Point.
+
+        :param source: Map source
+        :type source: :class:`MapSource`
+        :param point: Point to update
+        :type point: :class:`MapPoint`
+        '''
+        self.marker_list.del_item(source.get_name(), point.get_name())
+
+        if point in self.points_visible:
+            self.points_visible.remove(point)
+
+        self.map_widget.queue_draw()
+
+    @staticmethod
+    def ev_destroy(widget, _data=None):
         '''
         Event Destroy
 
@@ -222,30 +255,34 @@ class MapWindow(Gtk.ApplicationWindow):
 
         May result in finalization of the widget if all references are released
         Any return value usage not documented in Gtk 3
-        :param _widget: Widget (unused)
+        :param widget: Widget
+        :type widget: :class:`Map.MapWindow`
         :param _data: data (unused)
         :returns: True to stop other handlers for this signal from running
+        :rtype: bool
         '''
-        print("map/map_window/ev_destroy")
-        if not self.exiting:
-            self.hide()
+        if not widget.exiting:
+            widget.hide()  # Probably redundant
             return True
         return False
 
-    def ev_delete(self, _widget, _event, _data=None):
+    @staticmethod
+    def ev_delete(widget, _event, _data=None):
         '''
         Event Delete.  Intercepts the closing of a window so that it
         can be hidden and re-used.
 
         Hides this object
-        :param _widget: Widget (unused)
+        :param widget: Widget (unused)
+        :type widget: :class:`Map.MapWindow`
         :param _event: event (unused)
+        :type _event: :class:`Gtk.Event`
         :param _data: data (unused)
         :returns: True to stop other handlers for this signal from running
+        :rtype: bool
         '''
-        print("map/map_window/ev_delete")
-        if not self.exiting:
-            self.hide()
+        if not widget.exiting:
+            widget.hide()
             return True
         return False
 
@@ -317,10 +354,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :type action: :class:`GioSimpleAction`
         :param _value: Value for action, Unused
         '''
-        print("Edit Sources handler", type(self))
-        print('Action: %s\n value: %s' % (action, _value))
         srced = map_source_editor.MapSourcesEditor(self.config)
-        print('srced', type(srced))
         srced.run()
         srced.destroy()
         self.emit("reload-sources")
@@ -393,7 +427,6 @@ class MapWindow(Gtk.ApplicationWindow):
             x_axis, y_axis = event.get_coords()
             pathinfo = view.get_path_at_pos(int(x_axis), int(y_axis))
             if pathinfo is None:
-                print("pathinfo is none")
                 return
             view.set_cursor_on_cell(pathinfo[0], None, None, False)
 
@@ -401,13 +434,9 @@ class MapWindow(Gtk.ApplicationWindow):
         try:
             ident, = store.get(iter_value, 1)
             group, = store.get(store.iter_parent(iter_value), 1)
-            print("ident", type(ident))
-            print("group", type(group))
         except TypeError:
-            #ident = group = ""
-            ident="i"
-            group="g"
-            print("TypeError Seen")
+            ident = "i"
+            group = "g"
 
         self.marker_model.change_state(group, ident)
         self.marker_menu.popup_at_widget(widget, Gdk.Gravity.STATIC,
@@ -485,6 +514,22 @@ class MapWindow(Gtk.ApplicationWindow):
         menubar = Gtk.MenuBar.new_from_model(model)
         return menubar
 
+    def maybe_recenter_on_updated_point(self, source, point):
+        '''
+        Maybe Recenter on Updated Point.
+
+        :param source: Map source
+        :type source: :class:`MapSource`
+        :param point: Point to update
+        :type point: :class:`MapPoint`
+        '''
+        if point.get_name() == self.center_mark and self.tracking_enabled:
+            self.logger.into("maybe_recenter_on_updated_point: Center updated")
+            position = Map.Position(point.get_latitude(),
+                                    point.get_longitude())
+            self.recenter(position)
+        self.update_point(source, point)
+
     def _mouse_click_event(self, widget, event):
         '''
         Mouse Click Event.
@@ -496,7 +541,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :returns: True to stop other handlers from processing the event.
         :rtype: bool
         '''
-        print("mouse_click_event")
         x_axis, y_axis = event.get_coords()
 
         hadj = widget.get_hadjustment()
@@ -529,10 +573,13 @@ class MapWindow(Gtk.ApplicationWindow):
             popup_menu.popup_at_pointer()
         # elif event.type == Gdk.EventType.BUTTON_PRESS:
             #self.logger.info("Clicked: %s", position)
+            # This was found commented out:
+            # original code:
             # The crosshair marker has been missing since 0.3.0
-            # self.set_marker(GPSPosition(station=CROSSHAIR,
+            # self.set_marker(GPSPosition(station=self.CROSSHAIR,
             #                             lat=position.latitude,
             #                             lon=position.longitude))
+            # end of original code
 
     def _mouse_move_event(self, _widget, event):
         '''
@@ -643,9 +690,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :type _action: :class:`GioSimpleAction`
         :param _value: Value for action, Unused
         '''
-        print("self", type(self))
-        print("action", type(_action))
-        print("value", type(_value))
         self.set_mark_at()
 
     def popup_broadcast_handler(self, _action, _value):
@@ -656,9 +700,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :type _action: :class:`GioSimpleAction`
         :param _value: Value for action, Unused
         '''
-        print("self", type(self))
-        print("action", type(_action))
-        print("value", type(_value))
         self.prompt_to_send_loc()
 
     def printable_map(self, bounds=None):
@@ -815,8 +856,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :type position: :class:`map.MapPosition`
         '''
         self.map_widget.set_center(position)
-        # self.map_widget.load_tiles()
-        # self.refresh_marker_list()
 
     def save_map(self, bounds=None):
         '''
@@ -847,7 +886,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :returns: False to prevent timer retriggering
         :rtype: bool
         '''
-
         self.map_widget.export_to(fname, bounds)
         return False
 
@@ -864,7 +902,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :param Longitude: Longitude of new center
         :type Longitude: float
         '''
-        print("set_center", type(self), latitude, longitude)
         position = Map.Position(latitude, longitude)
         self.map_widget.set_center(position)
 
@@ -882,9 +919,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :type map_key: str
         '''
         Map.Tile.set_map_info(base_dir, map_url, map_key)
-        print("BASE_DIR configured to %s" % base_dir)
-        print("MAP_URL configured to: %s" % map_url)
-        print("MAP_URL_KEY configured to: %s" % map_key)
 
     # Called by mainap
     @staticmethod
@@ -902,6 +936,7 @@ class MapWindow(Gtk.ApplicationWindow):
         Set Mark at.
         '''
         if not self._newcenter:
+            # This should not ever happen
             self.logger.info("Set Mark at - no new position set")
             return
 
@@ -930,7 +965,6 @@ class MapWindow(Gtk.ApplicationWindow):
         if not ask_for_confirmation(query):
             return
 
-        # pylint: disable=not-callable
         src = map_sources.MapFileSource.open_source_by_name(self.config,
                                                             group,
                                                             True)
@@ -978,12 +1012,10 @@ class MapWindow(Gtk.ApplicationWindow):
         Toggle Show.
 
         :param group: Group to show
+        :type group: str
         :param vals: Optional values
+        :type vals: tuple
         '''
-        print("toggle_show")
-        print("self:", type(self))
-        print("group:", type(group))
-        print("vals:", type(vals))
         if group:
             station = vals[1]
         else:
@@ -1020,7 +1052,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :param gps_status: GPS status
         :type gps_status: str
         '''
-
         self.statusbox.sb_gps.pop(self.STATUS_GPS)
         self.statusbox.sb_gps.push(self.STATUS_GPS, gps_status)
 
@@ -1029,11 +1060,10 @@ class MapWindow(Gtk.ApplicationWindow):
         Update Point.
 
         :param source: Map source
+        :type source: :class:`MapSource`
         :param point: Point to update
+        :type point: :class:`MapPoint`
         '''
-        print("source", type(source))
-        print("point", type(point))
-        # = self.map_widget.position
         center = GPSPosition(self.map_widget.position.latitude,
                              self.map_widget.position.longitude)
         this = GPSPosition(point.get_latitude(), point.get_longitude())
@@ -1046,28 +1076,20 @@ class MapWindow(Gtk.ApplicationWindow):
                                       point.get_longitude(),
                                       center.distance_from(this),
                                       center.bearing_to(this))
-        # pylint: disable=broad-except
-        except Exception as err:
-            print('mapdisplay.MapWindow.update_point: ',
-                  " (%s) %s" % (type(err), err))
+        except miscwidgets.SetItemError as err:
             if str(err) == "Item not found":
                 # this is evil
                 self.logger.info("Adding point instead of updating")
                 self.add_point(source, point)
+            else:
+                self.logger.info("update_point failed", exc_into=True)
 
         self.add_point_visible(point)
-        print("mapdisplay.MapWindow.update_point source=%s point=%s",
-              source, point)
-        self.map_widget.queue_draw()
+        # These are now called by the Draw event, so do not queue_draw.
 
     def update_points_visible(self):
         '''Update Points Visible.'''
-        print("#update points visible ",
-              " Called")
         for src in self.map_sources:
             for point in src.get_points():
-                print("# update_points_visible point = %xs" % point)
-                # self.update_point(src, point)
-
-        print("mapdisplay.MapWindow.update_points_visible")
-        # self.map.queue_draw()
+                self.update_point(src, point)
+        # These are now called by the Draw event, so do not queue_draw.

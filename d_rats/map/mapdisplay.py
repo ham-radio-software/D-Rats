@@ -1,7 +1,7 @@
 #!/usr/bin/python
 '''Map Display Unit Test for GTK3'''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -33,6 +33,7 @@ from gi.repository import Gtk
 
 from d_rats.dplatform import get_platform
 from d_rats import config
+from d_rats import map_sources
 
 import d_rats.map as Map
 
@@ -77,6 +78,7 @@ class MapDisplay(Gtk.Application):
         Map.Tile.set_map_info(map_path, mapurl)
         Map.Tile.set_proxy = self.config.get("settings", "http_proxy") or None
         self.map_window = None
+        self.stations_overlay = None
 
     # pylint: disable=arguments-differ
     def do_activate(self):
@@ -93,56 +95,56 @@ class MapDisplay(Gtk.Application):
         map_window.set_center(self.cmd_args.latitude,
                               self.cmd_args.longitude)
         map_window.set_zoom(14)
+        Gtk.Application.do_activate(self)
 
+        self.load_map_overlays()
         # Have map exit on close for test.
         map_window.exiting = True
-
         map_window.show()
 
-    # Currently referenced by mainapp, will be moved to Mapwindow calls
-    def set_base_dir(self, basedir, mapurl, mapkey):
-        '''
-        Set Base Directory.
+    def load_map_overlays(self):
+        '''Load Map Overlays.'''
+        self.stations_overlay = None
 
-        :param basedir: Base directory
-        :type basedir: str
-        :param mapurl: URL of Map
-        :type mapurl: str
-        :param mapkey: Map access key
-        :type mapkey: str
-        '''
-        self.map_window.set_base_dir(basedir, mapurl, mapkey)
+        # self.map.clear_map_sources()
 
-    # Currently referenced by mainapp, will be moved to Mapwindow calls
-    def set_connected(self, connected):
-        '''
-        Set Connected.
+        # wb8tyw - The USGS has changed their URL and API
+        # We need to recode that class to the new API.
+        # The Map code also needs to be fixed to use lxml.
+        source_types = [map_sources.MapFileSource]
+                        # map_sources.MapUSGSRiverSource,
+                        # map_sources.MapNBDCBuoySource]
 
-        :param connected: New connected state
-        :type connected: bool
-        '''
-        self.map_window.set_connected(connected)
+        for stype in source_types:
+            try:
+                sources = stype.enumerate(self.config)
+            except (TypeError, ValueError):
+                # ValueError from lxml conversion needed.
+                self.logger.info("_load_map_overlays not working.  "
+                                 "USGS changed URls/APIs.",
+                                 exc_info=True)
+                sources = []
 
-    # Currently referenced by mainapp, will be moved to Mapwindow calls
-    def set_proxy(self, proxy):
-        '''
-        Set Proxy.
+            for sname in sources:
+                source = stype.open_source_by_name(self.config, sname)
+                self.map_window.add_map_source(source)
+                if sname == _("Stations"):
+                    self.stations_overlay = source
 
-        :param proxy: Proxy to use
-        :type proxy: str
-        '''
-        self.map_window.set_proxy(proxy)
-
-    # Currently referenced by mainapp, will be moved to Mapwindow calls
-    def set_tile_lifetime(self, lifetime):
-        '''
-        Set tile Lifetime.
-
-        :param lifetime: Cache lifetime in seconds
-        :param lifetime: int
-        '''
-        self.map_window.set_tile_lifetime(lifetime)
-
+        if not self.stations_overlay:
+            fname = os.path.join(self.config.platform.config_dir(),
+                                 "static_locations",
+                                 _("Stations") + ".csv")
+            try:
+                # python 3 can be set to not raise this error
+                os.makedirs(os.path.dirname(fname))
+            except OSError as err:
+                if err.errno != 17:  # File or directory exists
+                    raise
+            open(fname, "w").close()
+            self.stations_overlay = map_sources.MapFileSource(_("Stations"),
+                                                              "Static Overlay",
+                                                              fname)
 
 
 def main():

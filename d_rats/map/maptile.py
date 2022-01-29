@@ -1,6 +1,6 @@
 '''Map Tile Module.'''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -92,14 +92,17 @@ class MapTile():
         self.logger = logging.getLogger("MapTile")
         if position:
             self.position = position
-            self.x_axis, self.y_axis = self.deg2num(self.position)
+            self.x_tile, self.y_tile = self.deg2num(self.position)
+            # Convert the tile coordinates back to the latitude, longitude
+            # to be able to calculate corrections to the center.
+            self.tile_position = self.num2deg(self.x_tile, self.y_tile)
         else:
-            self.x_axis = x_axis
-            self.y_axis = y_axis
-            self.position = self.num2deg(self.x_axis, self.y_axis)
+            self.position = self.num2deg(x_axis, y_axis)
+            self.x_tile, self.y_tile = self.deg2num(self.position)
+            self.tile_position = self.position
 
     def __str__(self):
-        return "%s (%i,%i)" % (self.position, self.x_axis, self.y_axis)
+        return "%s (%i,%i)" % (self.position, self.x_tile, self.y_tile)
 
     @classmethod
     def get_base_dir(cls):
@@ -186,7 +189,7 @@ class MapTile():
 
         :param position: Latitude and longitude
         :type position: :class:`Map.MapPosition`
-        :returns: x_axis, and y_axis on map for coordinates
+        :returns: x_tile, and y_tile on map for coordinates
         :rtype: tuple of (int, int)
         '''
         # lat_rad = lat_deg * math.pi / 180.0
@@ -233,8 +236,8 @@ class MapTile():
                   of a tile
         :rtype: tuple of (float, float, float, float)
         '''
-        northwest = self.num2deg(self.x_axis, self.y_axis)
-        southeast = self.num2deg(self.x_axis + 1, self.y_axis + 1)
+        northwest = self.num2deg(self.x_tile, self.y_tile)
+        southeast = self.num2deg(self.x_tile + 1, self.y_tile + 1)
         return (southeast.latitude, northwest.longitude,
                 northwest.latitude, southeast.longitude)
 
@@ -245,7 +248,7 @@ class MapTile():
         :returns: Local path for map tile
         :rtype: str
         '''
-        return "%d/%d/%d.png" % (self._zoom, self.x_axis, self.y_axis)
+        return "%d/%d/%d.png" % (self._zoom, self.x_tile, self.y_tile)
 
     def bad_path(self):
         '''
@@ -254,7 +257,7 @@ class MapTile():
         :returns: Local bad path for unavailable tiles
         :rtype: str
         '''
-        return "%d/%d/%d.bad" % (self._zoom, self.x_axis, self.y_axis)
+        return "%d/%d/%d.bad" % (self._zoom, self.x_tile, self.y_tile)
 
     def _local_path(self):
         if not self._base_dir:
@@ -320,7 +323,7 @@ class MapTile():
             url = self.remote_path()
             try:
                 self.fetch_url(url, self._local_path())
-                self.logger.info("fetch: opened %s", url)
+                self.logger.debug("fetch: opened %s", url)
                 if self._map_widget:
                     self._map_widget.queue_draw()
                 return True
@@ -420,16 +423,16 @@ class MapTile():
 
     def __add__(self, count):
         (x_axis, y_axis) = count
-        return MapTile(x_axis=self.x_axis + x_axis,
-                       y_axis=self.y_axis + y_axis)
+        return MapTile(x_axis=self.x_tile + x_axis,
+                       y_axis=self.y_tile + y_axis)
 
     def __sub__(self, tile):
-        return (self.x_axis - tile.x_axis, self.y_axis - tile.y_axis)
+        return (self.x_tile - tile.x_tile, self.y_tile - tile.y_tile)
 
     def __contains__(self, point):
         # pylint: disable=fixme
         # FIXME for non-western!
-        (lat_max, lon_max, lat_min, lon_min) = self.tile_edges()
+        (lat_min, lon_min, lat_max, lon_max) = self.tile_edges()
 
         lat_match = lat_min < point.latitude < lat_max
         lon_match = lon_min < point.longitude < lon_max

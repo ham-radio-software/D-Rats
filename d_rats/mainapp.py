@@ -4,7 +4,7 @@
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -994,16 +994,19 @@ class MainApp(Gtk.Application):
 
         self.map.clear_map_sources()
 
-        source_types = [map_sources.MapFileSource,
-                        map_sources.MapUSGSRiverSource,
-                        map_sources.MapNBDCBuoySource]
+        # wb8tyw - The USGS has changed their URL and API
+        # We need to recode that class to the new API.
+        # The Map code also needs to be fixed to use lxml.
+        source_types = [map_sources.MapFileSource]
+                        # map_sources.MapUSGSRiverSource,
+                        # map_sources.MapNBDCBuoySource]
 
         for stype in source_types:
             try:
                 # pylint: disable=not-callable
                 sources = stype.enumerate(self.config)
             # pylint: disable=broad-except
-            except TypeError:
+            except (TypeError, ValueError):
                 self.logger.info("_load_map_overlays not working.  "
                                  "USGS changed URls/APIs.",
                                  exc_info=True)
