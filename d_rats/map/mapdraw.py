@@ -1,6 +1,6 @@
 '''Map Draw Module.'''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -29,10 +29,11 @@ import cairo
 import gi
 gi.require_version("Gdk", "3.0")
 gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk
 from gi.repository import PangoCairo
 
 from .. import map as Map
-
+from .. import utils
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -64,6 +65,8 @@ class LoadContext():
         return float(self.loaded_tiles) / float(self.total_tiles)
 
 
+# pylint wants only 7 instance attributes
+# pylint: disable=too-many-instance-attributes
 class MapDraw():
     '''
     Map Draw Handler thread.
@@ -82,6 +85,8 @@ class MapDraw():
 
     __broken_tile = None
     __center = None
+    __old_center = None
+    __zoom_changed = False
 
     def __init__(self, map_widget, cairo_ctx):
         self.map_widget = map_widget
@@ -90,6 +95,8 @@ class MapDraw():
         self.load_ctx = None
         self.sb_prog = None
         self.map_visible = None
+        self.rgba_red = Gdk.RGBA()
+        self.rgba_red.parse('red')
         self.logger = logging.getLogger("MapDraw")
 
     @classmethod
@@ -100,9 +107,17 @@ class MapDraw():
         Set a flag to have the window scrollbars centered.
 
         :param pos: New center position
-        :type pos: :class:`Map.MapPosition
+        :type pos: :class:`Map.MapPosition`
         '''
+        cls.__old_center = cls.__center
         cls.__center = pos
+
+    @classmethod
+    def set_zoom_changed(cls):
+        '''
+        Sets that the zoom level changed.
+        '''
+        cls.__zoom_changed = True
 
     @classmethod
     def handler(cls, map_widget, cairo_ctx):
@@ -146,32 +161,25 @@ class MapDraw():
         self.map_visible['y_start'] = int(vadj.get_value())
         v_page_size = vadj.get_page_size()
         self.map_visible['y_size'] = int(v_page_size)
-        map_widget.calculate_bounds()
 
-        if cls.__center:
+        if cls.__zoom_changed or cls.__center != cls.__old_center:
+            map_widget.calculate_bounds()
+
+        if cls.__center != cls.__old_center:
             # We do not know the page size of the scrollbars until we get
-            # here, so self._center is used to let us know when we need to
-            # have the program adjust the scrollbars to the new center.
-            x_axis, y_axis = map_widget.latlon2xy(cls.__center)
+            # here, so a self._center change is used to let us know when
+            # we need to have the program adjust the scrollbars to the new
+            # center.
+            x_coord, y_coord = map_widget.latlon2xy(cls.__center)
 
-            hadj.set_value(x_axis - (h_page_size / 2))
-            vadj.set_value(y_axis - (v_page_size / 2))
-            cls.__center = None
+            hadj.set_value(x_coord - (h_page_size / 2))
+            vadj.set_value(y_coord - (v_page_size / 2))
 
         self.expose_map()
         self.scale()
         self.draw_markers()
-            #if not self.map_tiles:
-            #    self.load_tiles(cairo_ctx)
-
-            # pylint: disable=invalid-name
-            # gc = self.get_style().black_gc
-            # self.window.draw_drawable(gc,
-            #                          self.pixmap,
-            #                          0, 0,
-            #                          0, 0,
-            #                          -1, -1)
-            #self.emit("redraw-markers")
+        cls.__center = cls.__old_center
+        cls.__zoom_changed = False
         return False
 
     def broken_tile(self):
@@ -179,6 +187,7 @@ class MapDraw():
         Broken Tile
 
         :returns: pixbuf object
+        :rtype: :class:`GdkPixbuf.Pixbuf`
         '''
         if self.__broken_tile:
             return self.__broken_tile
@@ -192,34 +201,131 @@ class MapDraw():
         self.__broken_tile = cairo.ImageSurface.create_from_png(broken_path)
         return self.__broken_tile
 
+    def draw_cross_marker_at(self, x_coord, y_coord):
+        '''
+        Draw Cross Marker at coordinates
+
+        :param x_coord: Horizontal coordinate
+        :type x_coord: float
+        :param y_coord: Vertical coordinate
+        :type y_coord: float
+        '''
+        self.cairo_ctx.save()
+
+        self.cairo_ctx.save()
+        self.cairo_ctx.set_source_rgba(self.rgba_red.red,
+                                       self.rgba_red.green,
+                                       self.rgba_red.blue,
+                                       self.rgba_red.alpha)
+        x_coord = int(x_coord)
+        y_coord = int(y_coord)
+
+        self.cairo_ctx.move_to(x_coord, y_coord - 5)
+        self.cairo_ctx.line_to(x_coord, y_coord + 5)
+        self.cairo_ctx.move_to(x_coord - 5, y_coord)
+        self.cairo_ctx.line_to(x_coord + 5, y_coord)
+        self.cairo_ctx.stroke()
+        self.cairo_ctx.restore()
+
+    def draw_image_at(self, x_coord, y_coord, pixbuf):
+        '''
+        Draw Image at coordinates.
+
+        :param x_coord: Horizontal coordinate
+        :type x_coord: float
+        :param y_coord: Vertical coordinate
+        :type y_coord: float
+        :param pixbuf: Image to draw
+        :type pixbuf: :class:`GdkPixbuf.Pixbuf`
+        :returns: height of pixbuf
+        :rtype: int
+        '''
+        self.cairo_ctx.save()
+        Gdk.cairo_set_source_pixbuf(self.cairo_ctx, pixbuf, x_coord, y_coord)
+        self.cairo_ctx.paint()
+        self.cairo_ctx.restore()
+
+        return pixbuf.get_height()
 
     def draw_marker(self, point):
-        '''Draw Marker.'''
-        print("draw_marker", type(self), point.get_name(),
-              point.get_longitude(), point.get_latitude())
-        #point.get_name(),
-        #                           point.get_latitude(),
-        #                           point.get_longitude(),
-        #                           point.get_icon())
+        '''
+        Draw Marker.
+
+        :param point: point to draw
+        :type point: :class:`MapPoint`
+        '''
+        color = "yellow"
+
+        position = Map.Position(point.get_latitude(), point.get_longitude())
+        try:
+            x_coord, y_coord = self.map_widget.latlon2xy(position)
+
+        except ZeroDivisionError:
+            return
+
+        label = point.get_name()
+        if label == self.map_widget.map_window.CROSSHAIR:
+            self.draw_cross_marker_at(x_coord, y_coord)
+        else:
+            img = point.get_icon()
+            if img:
+                y_coord += (4 + self.draw_image_at(x_coord, y_coord, img))
+            self.draw_text_marker_at(x_coord, y_coord, label, color)
 
     def draw_markers(self):
         '''
         Draw Markers.
         '''
-        print("redraw_markers: ")
+        if self.__zoom_changed or self.__center != self.__old_center:
+            # At this point we know we have to recreate the list
+            # list of visible points when ever the zoom or center changes.
+            self.map_widget.map_window.update_points_visible()
+
         for point in self.map_widget.map_window.points_visible:
             self.draw_marker(point)
 
-    def draw_tile(self, path, x_axis, y_axis):
+    def draw_text_marker_at(self, x_coord, y_coord, text, color="yellow"):
+        '''
+        Draw Text Marker At Location on Map.
+
+        :param x_coord: X position for tile
+        :type x_coord: float
+        :param y_coord: y position for tile
+        :type y_coord: float
+        :param text: Text for marker
+        :type text: str
+        :param color: Color of text, default 'yellow'
+        :type color str
+        '''
+        # setting the size for the text marker
+        zoom = Map.ZoomControls.get_level()
+        if zoom < 12:
+            size = 'size="x-small"'
+        elif zoom < 14:
+            size = 'size="small"'
+        else:
+            size = ''
+        text = utils.filter_to_ascii(text)
+
+        pango_layout = self.map_widget.create_pango_layout("")
+        markup = '<span %s background="%s">%s</span>' % (size, color, text)
+        pango_layout.set_markup(markup)
+        self.cairo_ctx.save()
+        self.cairo_ctx.move_to(x_coord, y_coord)
+        PangoCairo.show_layout(self.cairo_ctx, pango_layout)
+        self.cairo_ctx.stroke()
+        self.cairo_ctx.restore()
+
+    def draw_tile(self, path, x_coord, y_coord):
         '''
         Draw Tile.
 
         :param path: Path for tile
         :type path: str
-        :param x_axis: X Axis for tile
-        :type x_axis: int
-        :param y_axis: Y Axis for tile
-        :type x_axis: int
+        :param x_coord: X Axis for tile
+        :type x_coord: float
+        :param y_coord: Y Axis for tile
+        :type x_coord: float
         '''
         if path:
             try:
@@ -235,7 +341,7 @@ class MapDraw():
                     # This is to prevent excessive reties for non-existant
                     # map tiles.  Anything else should be logged for more
                     # analysis.
-                    self.logger.info("draw_tile: path %s", path, exc_info=True)
+                    self.logger.debug("draw_tile: path %s", path, exc_info=True)
 
                 # this is the case  when some jpg tile file cannot be loaded -
                 # typically this was due to html content saved as jpg
@@ -250,12 +356,10 @@ class MapDraw():
             surface = self.broken_tile()
 
         self.cairo_ctx.save()
-        self.cairo_ctx.set_source_surface(surface, x_axis, y_axis)
+        self.cairo_ctx.set_source_rgba(0.0, 0.0, 0.0)
+        self.cairo_ctx.set_source_surface(surface, x_coord, y_coord)
         self.cairo_ctx.paint()
         self.cairo_ctx.restore()
-        # Need to make sure that this returns false
-        # when run by Glib.idle_add
-        return False
 
     def expose_map(self):
         '''
@@ -266,6 +370,8 @@ class MapDraw():
         self.load_ctx = LoadContext(0, (width * height))
         center = Map.Tile(self.map_widget.position)
 
+        # python2 delta_h is 4, python3 4.5
+        # map_widget.set_fudge() needs to be changed if this is changed.
         delta_h = height / 2
         delta_w = width  / 2
 
@@ -292,9 +398,6 @@ class MapDraw():
                                         tilesize * j)
                 self.progress(message)
                 self.map_widget.map_tiles.append(tile)
-
-        # time.sleep(10)
-        #self.calculate_bounds()
         #self.emit("new-tiles-loaded")
 
     # pylint: disable=too-many-locals

@@ -2,7 +2,7 @@
 '''Misc Widgets.'''
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -135,6 +135,16 @@ class KeyedListWidget(Gtk.Box):
         self.__view.show()
 
     def _toggle(self, _rend, path, colnum):
+        '''
+        Internal Toggle callback.
+
+        :param _rend: unused
+        :type _rend: :class:`Gtk.CellRenderer`
+        :param path: The event location
+        :type path: str
+        :param colnum,: Colum to toggle
+        :type colnum: int
+        '''
         if self.__toggle_connected:
             # pylint: disable=unsubscriptable-object
             self.__store[path][colnum] = not self.__store[path][colnum]
@@ -398,8 +408,9 @@ class ListWidget(Gtk.Box):
     List Widget Box.
 
     :param columns: Columns for Widget
-    :type: list of tuple
+    :type: list of tuple of (type, str)
     :param parent: Is parent, default True
+    :type parent: bool
     '''
     __gsignals__ = {
         "click-on-list" : (GObject.SignalFlags.RUN_LAST,
@@ -414,7 +425,6 @@ class ListWidget(Gtk.Box):
 
     def __init__(self, columns, parent=True):
         Gtk.Box.__init__(self)
-
         self.logger = logging.getLogger("ListWidget")
         col_types = tuple([x for x, y in columns])
         self._ncols = len(col_types)
@@ -434,6 +444,7 @@ class ListWidget(Gtk.Box):
         Mouse Callback.
 
         :param view: view object
+        :type view: :class:`Gtk.ListwWidget`
         :param event: Mouse button event
         :type event: :class:`Gdk.EventButton`
         '''
@@ -445,6 +456,16 @@ class ListWidget(Gtk.Box):
         self.emit("click-on-list", view, event)
 
     def _toggle(self, _render, path, column):
+        '''
+        Internal Toggle callback.
+
+        :param _render: unused
+        :type _render: :class:`Gtk.CellRenderer`
+        :param path: The event location
+        :type path: str
+        :param column: Colum to toggle
+        :type column: int
+        '''
         # pylint: disable=unsubscriptable-object
         self._store[path][column] = not self._store[path][column]
         iter_val = self._store.get_iter(path)
@@ -458,6 +479,7 @@ class ListWidget(Gtk.Box):
         Make View.
 
         :param columns: column data
+        :type columns: list
         :raises: :class:`MakeViewColumnError` if unknown column type
         '''
         self._view = Gtk.TreeView.new_with_model(self._store)
@@ -475,6 +497,7 @@ class ListWidget(Gtk.Box):
                 column = Gtk.TreeViewColumn(col, rend, text=index)
                 column.set_resizable(True)
                 rend.set_property("ellipsize", Pango.EllipsizeMode.END)
+
             elif col_type == GObject.TYPE_BOOLEAN:
                 rend = Gtk.CellRendererToggle()
                 rend.connect("toggled", self._toggle, index)
@@ -489,9 +512,10 @@ class ListWidget(Gtk.Box):
 
     def packable(self):
         '''
-        Packable.
+        Packable object if a TreeView.
 
-        :returns: packable value
+        :returns: packable object or None
+        :rtype: :class:`Gtk.TreeView`
         '''
         return self._view
 
@@ -499,28 +523,24 @@ class ListWidget(Gtk.Box):
         '''
         Add Item.
 
+        :param vals: Values to add
+        :type vals: tuple
         :raises: :class:`AddItemColumnError` if not enough values
         '''
         if len(vals) != self._ncols:
             raise AddItemColumnError("Need %i columns" % self._ncols)
 
-        args = []
-        i = 0
-        for val in vals:
-            args.append(i)
-            args.append(val)
-            i += 1
-
-        args = tuple(args)
-
-        iter_val = self._store.append()
-        self._store.set(iter_val, *args)
+        _iter_val = self._store.append(vals)
 
     def _remove_item(self, model, _path, iter_val, match):
+        # print statement to be removed once the types are identified.
+        # print("listwidget._remove_item", type(model), type(_path),
+        #      type(iter_val), type(match))
         vals = model.get(iter_val, *tuple(range(0, self._ncols)))
         if vals == match:
             model.remove(iter_val)
 
+    # WB8TYW: I can not find a caller of this method.
     def remove_item(self, *vals):
         '''
         Remove Item.
@@ -528,6 +548,7 @@ class ListWidget(Gtk.Box):
         :param *vals: Items to remove
         :raises: :class:`DelItemError` if not enough vals
         '''
+        self.logger.info("remove_item %s", vals)
         if len(vals) != self._ncols:
             raise DelItemError("Need %i columns" % self._ncols)
 
@@ -563,6 +584,8 @@ class ListWidget(Gtk.Box):
         :returns: True if move successful
         :rtype: bool
         '''
+        # print statement to be removed once the types are identified.
+        # print("listwidget.move_selected", type(delta))
         (lst, iter_val) = self._view.get_selection().get_selected()
 
         pos = int(lst.get_path(iter_val)[0])
@@ -584,6 +607,9 @@ class ListWidget(Gtk.Box):
         return False
 
     def _get_value(self, model, _path, iter_val, lst):
+        # print statement to be removed once the types are identified.
+        # print("listwidget.get_value", type(model), type(_path),
+        #       type(iter_val), type(lst))
         lst.append(model.get(iter_val, *tuple(range(0, self._ncols))))
 
     def get_values(self):
@@ -617,8 +643,9 @@ class TreeWidget(ListWidget):
     Tree Widget.
 
     :param columns: Columns for Widget
-    :type: list of tuple
-    :param key: Key for widget
+    :type: list of tuple of (type, str)
+    :param key: column number to use as a key
+    :type key: int
     :param parent: Is a parent, default True
     :type parent: true
     '''
@@ -627,11 +654,20 @@ class TreeWidget(ListWidget):
 
     def __init__(self, columns, key, parent=True):
         ListWidget.__init__(self, columns, parent)
-
         self.logger = logging.getLogger("TreeWidget")
         self._key = key
 
     def _toggle(self, _render, path, column):
+        '''
+        Internal Toggle callback.
+
+        :param _render: unused
+        :type _render: :class:`Gtk.CellRenderer`
+        :param path: The event location
+        :type path: str
+        :param column: Colum to toggle
+        :type column: int
+        '''
         # pylint: disable=unsubscriptable-object
         self._store[path][column] = not self._store[path][column]
         iter_val = self._store.get_iter(path)
@@ -647,19 +683,33 @@ class TreeWidget(ListWidget):
             callback(parent, *vals)
 
     def _add_item(self, piter, *vals):
-        args = []
+        '''
+        Add item internal.
+
+        :param piter: Parent to append row to
+        :type piter: :class:`Gtk.TreeIter`
+        :param vals: Values to add
+        :type vals: tuple
+        '''
+        values = []
         indx = 0
         for val in vals:
-            args.append(indx)
-            args.append(val)
+            values.append(val)
             indx += 1
 
-        args = tuple(args)
-
-        iter_val = self._store.append(piter)
-        self._store.set(iter_val, *args)
+        _iter_val = self._store.append(piter, values)
 
     def _iter_of(self, key, iter_val=None):
+        '''
+        internal iter_of.
+
+        :param key: key to lookup
+        :type key: str
+        :param iter_val: Parent of row
+        :type iter_val: :class:`Gtk.TreeIter`
+        :returns: iter_val of row or None
+        :rtype: :class:`Gtk.TreeIter`
+        '''
         if not iter_val:
             iter_val = self._store.get_iter_first()
 
@@ -678,7 +728,9 @@ class TreeWidget(ListWidget):
         Add Item.
 
         :param parent: Parent of item
+        :type parent: str
         :param vals: Optional vals for item
+        :type vals: tuple
         :raises: :class:`AddItemColumnError` if not enough columns
         :raises: :class:`AddItemParentError` if parent not found
         '''
@@ -696,6 +748,13 @@ class TreeWidget(ListWidget):
                 raise AddItemParentError("Parent not found: %s", parent)
 
     def _set_values(self, parent, vals):
+        '''
+        Set values internal.
+
+        :param parent: Parent of row, or None.
+        :type parent: :class:`Gtk.TreeIter`
+        :param vals: Values to set
+        '''
         if isinstance(vals, dict):
             for key, val in vals.copy().items():
                 iter_val = self._store.append(parent)
@@ -715,11 +774,22 @@ class TreeWidget(ListWidget):
         Set Values.
 
         :param vals: Values to set
+        :type vals: dict
         '''
         self._store.clear()
         self._set_values(self._store.get_iter_first(), vals)
 
     def _get_values(self, iter_val, onlyone=False):
+        '''
+        Get Values internal.
+
+        :param iter_val: Row data to retrieve
+        :type iter_val: :class:`Gtk.TreeIter`
+        :param onlyone: Flag to get only one value
+        :type onlyone: bool
+        :returns: values
+        :rtype: list
+        '''
         values = []
         while iter_val:
             if self._store.iter_has_child(iter_val):
@@ -743,7 +813,9 @@ class TreeWidget(ListWidget):
         Get Values.
 
         :param parent: Parent object, default None
+        :type parent: str
         :returns: values
+        :rtype: list
         '''
         if parent:
             iter_val = self._iter_of(parent)
@@ -761,6 +833,7 @@ class TreeWidget(ListWidget):
         Del Item.
 
         :param parent: parent of object
+        :type parent: str
         :param key: key of item to delete
         :raises: :class:`DelItemError` if item is not found
         '''
@@ -777,6 +850,7 @@ class TreeWidget(ListWidget):
         Set Item.
 
         :param parent: Parent of object
+        :type parent: str
         :param key: Key for item
         :raises: :class:`GetItemError` when item not found
         :returns: Returned item
@@ -794,6 +868,7 @@ class TreeWidget(ListWidget):
         Set Item.
 
         :param parent: Parent of item
+        :type parent: str
         :param *vals: Optional vals
         :raises: :class:`SetItemError` if item is not found
         '''
@@ -1104,7 +1179,8 @@ class FilenameBox(Gtk.Box):
     :type types: list
     '''
     __gsignals__ = {
-        "filename-changed" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE, ()),
+        "filename-changed" : (GObject.SignalFlags.RUN_LAST,
+                              GObject.TYPE_NONE, ()),
         }
 
     def __init__(self, find_dir=False, types=None):
@@ -1224,6 +1300,8 @@ def test():
     logger = logging.getLogger("MiscWidgets")
 
     win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+    win.connect("destroy", Gtk.main_quit)
+
     lst = ListWidget([(GObject.TYPE_STRING, "Foo"),
                       (GObject.TYPE_BOOLEAN, "Bar")])
 
@@ -1246,13 +1324,13 @@ def test():
 
     win3 = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
     lst = TreeWidget([(GObject.TYPE_STRING, "Id"),
-                      (GObject.TYPE_STRING, "Value")],
+                      (GObject.TYPE_STRING, "Value"),
+                      (GObject.TYPE_FLOAT, "latitude")],
                      1)
-    #l.add_item(None, "Foo", "Bar")
-    #l.add_item("Foo", "Bar", "Baz")
-    lst.set_values({"Fruit" : [("Apple", "Red"), ("Orange", "Orange")],
-                    "Pizza" : [("Cheese", "Simple"), ("Pepperoni", "Yummy")]})
-    lst.add_item("Fruit", "Bananna", "Yellow")
+    # lst.add_item("Foo", "Bar", "Baz", 0)
+    lst.set_values({"Fruit" : [("Apple", "Red", 0), ("Orange", "Orange", 0)],
+                    "Pizza" : [("Cheese", "Simple", 0), ("Pepperoni", "Yummy", 0)]})
+    lst.add_item("Fruit", "Bananna", "Yellow", 3)
     lst.show()
     win3.add(lst)
     win3.show()

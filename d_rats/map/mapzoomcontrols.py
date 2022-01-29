@@ -1,6 +1,6 @@
 '''Map Zoom Controls Module.'''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -184,6 +184,7 @@ class MapZoomControls(Gtk.Frame):
         if self.__prev_level != zoom_value:
             self.__prev_level = zoom_value
             Map.Tile.set_zoom(zoom_value)
+            Map.Draw.set_zoom_changed()
             # This should signal a map redraw event
             self.map_widget.queue_draw()
         return False
