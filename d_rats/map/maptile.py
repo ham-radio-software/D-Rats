@@ -64,6 +64,8 @@ class MapFetchError(MapFetchUrlException):
     '''Map Unexpected Fetch Error.'''
 
 
+# pylint wants only 20 public methods.
+# pylint: disable=too-many-public-methods
 class MapTile():
     '''
     Map Tile Information
@@ -86,19 +88,25 @@ class MapTile():
     _tile_lifetime = 0
     _zoom = 0
     _map_widget = None
+    _tilesize = 256
 
     def __init__(self, position=None, x_axis=None, y_axis=None):
 
         self.logger = logging.getLogger("MapTile")
         if position:
             self.position = position
-            self.x_tile, self.y_tile = self.deg2num(self.position)
+            self.x_tile, self.y_tile, self.x_fraction, self.y_fraction = \
+               self.deg2tile(self.position)
             # Convert the tile coordinates back to the latitude, longitude
-            # to be able to calculate corrections to the center.
-            self.tile_position = self.num2deg(self.x_tile, self.y_tile)
+            # as a possible way to determine a future fudge factor.
+            self.tile_position = self.num2deg(self.x_tile + self.x_fraction,
+                                              self.y_tile + self.y_fraction)
         else:
             self.position = self.num2deg(x_axis, y_axis)
-            self.x_tile, self.y_tile = self.deg2num(self.position)
+            self.x_tile = x_axis
+            self.y_tile = y_axis
+            _unused_x, unused_y, self.x_fraction, self.y_fraction = \
+                self.deg2tile(self.position)
             self.tile_position = self.position
 
     def __str__(self):
@@ -115,6 +123,16 @@ class MapTile():
         return cls._base_dir
 
     @classmethod
+    def get_tilesize(cls):
+        '''
+        Get the tile size
+
+        :returns: Tile size
+        :rtype: int
+        '''
+        return cls._tilesize
+
+    @classmethod
     def set_connected(cls, connected):
         '''
         Sets if allowed to connect to the internet to download map data.
@@ -125,7 +143,7 @@ class MapTile():
         cls._connected = connected
 
     @classmethod
-    def set_map_info(cls, base_dir, map_url, map_url_key=None):
+    def set_map_info(cls, base_dir, map_url, map_url_key):
         '''
         Sets the map url and optional access key
 
@@ -181,52 +199,116 @@ class MapTile():
         '''
         cls._zoom = zoom
 
-    # The deg2num function taken from:
+    # The deg2xxx functions derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-    def deg2num(self, position):
+    @classmethod
+    def deg2num(cls, position):
         '''
-        Degrees to number.
+        Degrees to num number.
 
         :param position: Latitude and longitude
         :type position: :class:`Map.MapPosition`
         :returns: x_tile, and y_tile on map for coordinates
-        :rtype: tuple of (int, int)
+        :rtype: tuple of (float, float)
         '''
         # lat_rad = lat_deg * math.pi / 180.0
         lat_rad = math.radians(position.latitude)
-        num = 2.0 ** self._zoom
-        xtile = int((position.longitude + 180.0) / 360.0 * num)
-        ytile = int((1.0 - math.log(math.tan(lat_rad) +
-                                    (1 / math.cos(lat_rad))) /
-                     math.pi) / 2.0 * num)
-        return (xtile, ytile)
+        num = 2.0 ** cls._zoom
+        x_coord = (position.longitude + 180.0) / 360.0 * num
+        y_coord = (1.0 - math.log(math.tan(lat_rad) +
+                                  (1 / math.cos(lat_rad))) /
+                   math.pi) / 2.0 * num
+        return (x_coord, y_coord)
 
-    # The deg2num function taken from:
+    @classmethod
+    def deg2tile(cls, position):
+        '''
+        Degrees to integer tile number and fractional portion.
+
+        :param position: Latitude and longitude
+        :type position: :class:`Map.MapPosition`
+        :returns: x_tile, and y_tile and their fractional parts on map
+        :rtype: tuple of (int, int, float, float)
+        '''
+        x_coord, y_coord = cls.deg2num(position)
+
+        x_tile = int(x_coord)
+        y_tile = int(y_coord)
+        x_fraction = x_coord - x_tile
+        y_fraction = y_coord - y_tile
+        return (x_tile, y_tile, x_fraction, y_fraction)
+
+    @classmethod
+    def deg2pixel(cls, position):
+        '''
+        Degrees to a pixel offset.
+
+        In theory this should be able to be used to plot a point based
+        on degrees to a pixel offset on a map grid, and eliminate the
+        need for fudge factors.
+
+        In reality I have not been been able to get this to work.
+        Points are being plotted at the wrong locations and the amount of
+        error in the position is different for different nearby points at
+        different zoom levels.
+
+        Leaving this hear in case someone else can figure this out.
+
+        :param position: Latitude and longitude
+        :type position: :class:`Map.MapPosition`
+        :returns: x_tile, and y_tile on map for coordinates
+        :rtype: tuple of (float, float)
+        '''
+        x_tile, y_tile, x_fraction, y_fraction = cls.deg2tile(position)
+        x_offset = cls._tilesize * (x_fraction)
+        y_offset = cls._tilesize * (y_fraction)
+        # For some reason the sign of the degrees seems to affect how to
+        # apply the offset.
+        if position.longitude >= 0:
+            x_offset = -x_offset - cls._tilesize
+        if position.latitude >= 0:
+            y_offset = -y_offset - cls._tilesize
+
+        x_coord = x_tile + x_offset
+        y_coord = y_tile + y_offset
+
+        return (x_coord, y_coord)
+
+    # The deg2num function derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-    def num2deg(self, xtile, ytile):
+    @classmethod
+    def num2deg(cls, xtile, ytile):
         '''
         Number to Degrees.
 
         :param xtile: X axis position of tile
-        :type xtile: int
+        :type xtile: float
         :param ytile: Y axis position of tile
-        :type ytile: int
+        :type ytile: float
         :returns: Map position in longitude and latitude
         :rtype: :class:`Map.MapPosition`
         '''
-        num = 2.0 ** self._zoom
+        num = 2.0 ** cls._zoom
         lon_deg = xtile / num * 360.0 - 180.0
-        lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / num)))
+        try:
+            lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / num)))
+        except OverflowError:
+            # Appears to happen when the ytile coordinate are out of
+            # range for the map.
+            lat_rad = 0
         lat_deg = math.degrees(lat_rad)
         return Map.Position(lat_deg, lon_deg)
 
+    # Can not find where this is called.
     def path_els(self):
         '''
         Path ELS.
 
-        :returns: Latitude and longitude in degrees
+        :returns: Latitude and longitude as map tile locations
+        :rtype: tuple of (int, int)
         '''
-        return self.deg2num(self.position)
+        x_tile, y_tile, _x_off, _y_off = self.deg2tile(self.position)
+        return (x_tile, y_tile)
 
     def tile_edges(self):
         '''
@@ -264,7 +346,10 @@ class MapTile():
             return None
         path = os.path.join(self._base_dir, self.path())
         if not os.path.isdir(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+            try:
+                os.makedirs(os.path.dirname(path))
+            except FileExistsError:
+                pass
         return path
 
     def _local_bad_path(self):
@@ -272,7 +357,10 @@ class MapTile():
             return None
         path = os.path.join(self._base_dir, self.bad_path())
         if not os.path.isdir(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+            try:
+                os.makedirs(os.path.dirname(path))
+            except FileExistsError:
+                pass
         return path
 
     def get_local_tile_path(self):
@@ -392,6 +480,7 @@ class MapTile():
         Threaded fetch.
 
         :param callback: Callback for fetch
+        :type callback: function
         :param args: Optional arguments
         '''
         new_args = (callback,) + args
@@ -404,6 +493,7 @@ class MapTile():
         Local Path.
 
         :returns: Local path
+        :rtype: str
         '''
         path = self._local_path()
         self.fetch()
@@ -423,18 +513,31 @@ class MapTile():
 
     def __add__(self, count):
         (x_axis, y_axis) = count
-        return MapTile(x_axis=self.x_tile + x_axis,
-                       y_axis=self.y_tile + y_axis)
+        x_new = self.x_tile + x_axis
+        y_new = self.y_tile + y_axis
+        # This can result in wrapping around the map borders
+        # need to correct it back to the existing borders.
+        map_max = (2 ** self._zoom)
+        while x_new < 0:
+            x_new += map_max
+        while x_new > map_max:
+            x_new -= map_max
+        while y_new < 0:
+            y_new += map_max
+        while y_new > map_max:
+            y_new -= map_max
+        tile = MapTile(x_axis=x_new,
+                       y_axis=y_new)
+        return tile
 
     def __sub__(self, tile):
         return (self.x_tile - tile.x_tile, self.y_tile - tile.y_tile)
 
-    def __contains__(self, point):
-        # pylint: disable=fixme
-        # FIXME for non-western!
+    def __contains__(self, pos):
         (lat_min, lon_min, lat_max, lon_max) = self.tile_edges()
-
-        lat_match = lat_min < point.latitude < lat_max
-        lon_match = lon_min < point.longitude < lon_max
+        # latitude is from -90 to + 90 and longitude is from -180 to 180
+        # For checking contains we need to normalize them by adding an offset
+        lat_match = (lat_min + 90) < (pos.latitude + 90) < (lat_max + 90)
+        lon_match = (lon_min + 180) < (pos.longitude + 180) < (lon_max + 180)
 
         return lat_match and lon_match
