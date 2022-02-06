@@ -225,7 +225,7 @@ def prepare_TextBuffer(buf):
     from gi.repository import Pango
 
     tags = buf.get_tag_table()
-    tag = Gtk.TextTag("misspelled")
+    tag = Gtk.TextTag.new("misspelled")
     tag.set_property("underline", Pango.UNDERLINE_SINGLE)
     tag.set_property("underline-set", True)
     tag.set_property("foreground", "red")
