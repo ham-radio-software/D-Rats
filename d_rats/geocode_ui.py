@@ -2,7 +2,7 @@
 '''Geocode UI.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John Malmberg - Python 3 Conversion
+# Copyright 2021-2022 John Malmberg - Python 3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,19 +20,26 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+# Needed for python2+python3 support
+import sys
+if sys.version_info[0] < 3:
+    # pylint: disable=redefined-builtin
+    class ModuleNotFoundError(ImportError):
+        '''Suppress pylint on python3 warning.'''
 
 import logging
 try:
     from urllib2 import URLError # type: ignore
 except ModuleNotFoundError:
     from urllib.error import URLError
+
+# This module is not in all distributions.
+# We do not want d-rats to fail to run if it is missing
 try:
     from geopy import geocoders
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     pass
-# python2 compatibility
-except ImportError:
-    pass
+
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -269,7 +276,6 @@ def main():
     # Each class should have their own logger.
     logger = logging.getLogger("geocode_ui_test")
 
-    import sys
     logger.info("sys.path=%s", sys.path)
 
     assist = AddressAssistant()
