@@ -49,8 +49,6 @@ class MapWidget(Gtk.DrawingArea):
     :type width: int
     :param height: Height of widget
     :type height: int
-    :param tilesize: Size of tiles, default 256
-    :type tilesize: int
     :param window: Parent window
     :type status: :class:`Map.MapWindow`
     '''
@@ -66,8 +64,10 @@ class MapWidget(Gtk.DrawingArea):
     #_color_black = None
     _x_fudge = 0
     _y_fudge = 0
+    LAT_MAX = 90
+    LON_MAX = 180
 
-    def __init__(self, width, height, tilesize=256, window=None):
+    def __init__(self, width, height, window=None):
         Gtk.DrawingArea.__init__(self)
 
         self.logger = logging.getLogger("MapWidget")
@@ -75,9 +75,9 @@ class MapWidget(Gtk.DrawingArea):
         self.width = width
 
         # size of a map tile in Gtk window dimensions
-        self.tilesize = tilesize
-        # apparently a tile is 128 * 128 pixels in a cairo_context
-        self.pixels = 128
+        self.tilesize = Map.Tile.get_tilesize()
+        # this is used for drawing the scale.
+        self.pixels = self.tilesize / 2
         # The above appear to be constants in the d-rats program.
 
         # originally commented out
@@ -96,6 +96,8 @@ class MapWidget(Gtk.DrawingArea):
                               self.tilesize * self.height)
         self.connect("draw", Map.Draw.handler)
 
+    # pylint wants a maximum of 15 local variables
+    # pylint: disable=too-many-locals
     def calculate_bounds(self):
         '''Calculate Bounds.'''
         center = Map.Tile(position=self.position)
@@ -104,13 +106,18 @@ class MapWidget(Gtk.DrawingArea):
         # delta is the mid of the tiles used to draw the map
         # delta is necessary to keep alignment between the map
         # and the station labels
-        delta = self.height/2
-        topleft = center + (-delta, -delta)
-        botright = center + (delta, delta)
-        (self._lat_min, _, _, self._lon_min) = botright.tile_edges()
-        (_, self._lon_max, self._lat_max, _) = topleft.tile_edges()
-
-        self.set_fudge()
+        delta_h = int(self.height / 2)
+        delta_w = int(self.width / 2)
+        topleft = center + (-delta_w, -delta_h)
+        botright = center + (delta_w, delta_h)
+        (lat_min, _, _, lon_min) = botright.tile_edges()
+        (_, lon_max, lat_max, _) = topleft.tile_edges()
+        # For use in comparisons, these values need to always be positive.
+        # So we must add the self.LAT_MAX and self.LON_MAX to them.
+        self._lat_min = lat_min + self.LAT_MAX
+        self._lat_max = lat_max + self.LAT_MAX
+        self._lon_min = lon_min + self.LON_MAX
+        self._lon_max = lon_max + self.LON_MAX
 
         # existing comment:
         # I have no idea why, but for some reason we can calculate the
@@ -127,72 +134,15 @@ class MapWidget(Gtk.DrawingArea):
         # should be, we record the offset and use that to shift the y in
         # further calculations for this zoom level.
 
-        # self._lng_fudge = 0
-        # self._lat_fudge = 0
+        self._y_fudge = 0
+        self._x_fudge = 0
 
-        # _south, west, north, _east = center.tile_edges()
-        # x_axis, y_axis = self.latlon2xy(Map.Position(north, west))
-        #self._lng_fudge = ((self.width / 2) * self.tilesize) - x_axis
-        #self._lat_fudge = ((self.height / 2) * self.tilesize) - y_axis
-        # currently width and height are constant of 9.
-        # delta_width = delta * self.tilesize
-        # self._lng_fudge = delta_width - x_axis
-        # self._lat_fudge = delta_width - y_axis
-
-    def set_fudge(self):
-        '''
-        Set the fudge factor.
-
-        When we request a Tile for a coordinate, we do not get a tile
-        centered on that coordinate, we get a tile containing the coordinate
-        somewhere inside it, usually the center.
-
-        We need to calculate the offset of the center point we asked for
-        from the offset of the tile that we got, in order to true up plotting
-        other points on the display.
-
-        And then after all that it appears that there is a minor correction
-        that is needed at the higher zoom levels.
-
-        :param x_fudge: X fudge factor
-        :type x_fudge: float
-        :param y_fudge: Y fudge factor
-        :type y_fudge: float
-        '''
-        def pos2axis_base(pos):
-            # What happens at the lat / long changes sign in a tile?
-            y_axis = 1 - ((pos.latitude - self._lat_min) /
-                          (self._lat_max - self._lat_min))
-            x_axis = 1 - ((pos.longitude - self._lon_min) /
-                          (self._lon_max - self._lon_min))
-            x_axis *= (self.tilesize * self.width)
-            y_axis *= (self.tilesize * self.height)
-            return (x_axis, y_axis)
-
-        center = Map.Tile(position=self.position)
-        x_center, y_center = pos2axis_base(center.tile_position)
-
-        new_x_fudge = ((int(self.height/2) + 1)  * self.tilesize) - y_center
-        new_y_fudge = ((int(self.width/2) + 1) * self.tilesize) - x_center
-
-        zoom = self.map_window.mapcontrols.zoom_control.level
-        self._y_fudge = new_y_fudge
-        self._x_fudge = new_x_fudge
-        # Below 14, fudge adjustments not visible.
-        # Have not been able to find an algorithm for these numbers.
-        # This is what it took to get my home marker correct
-        if zoom == 14:
-            self._y_fudge += -13
-        elif zoom == 15:
-            self._y_fudge += -7
-        elif zoom == 16:
-            self._y_fudge += -20
-            self._x_fudge += 18
-        elif zoom == 17:
-            self._y_fudge += -33
-        elif zoom == 18:
-            self._y_fudge += -50
-        self.logger.debug("set_fudge: (%f, %f)", self._x_fudge, self._y_fudge)
+        _south, west, north, _east = center.tile_edges()
+        x_axis, y_axis = self.latlon2xy(Map.Position(north, west))
+        delta_width = delta_w * self.tilesize
+        delta_height = delta_h * self.tilesize
+        self._x_fudge = delta_width - x_axis
+        self._y_fudge = delta_height - y_axis
 
     def export_to(self, filename, bounds):
         '''
@@ -232,9 +182,9 @@ class MapWidget(Gtk.DrawingArea):
         :returns: x and y coordinate on map
         :rtype: tuple of (float, float)
         '''
-        y_axis = 1 - ((pos.latitude - self._lat_min) /
+        y_axis = 1 - ((pos.latitude + self.LAT_MAX - self._lat_min) /
                       (self._lat_max - self._lat_min))
-        x_axis = 1 - ((pos.longitude - self._lon_min) /
+        x_axis = 1 - ((pos.longitude + self.LON_MAX - self._lon_min) /
                       (self._lon_max - self._lon_min))
 
         x_axis *= (self.tilesize * self.width)
@@ -325,7 +275,7 @@ class MapWidget(Gtk.DrawingArea):
         '''
         self.queue_draw()
 
-    def xy2latlon(self, x_axis, y_axis):
+    def xy2latlon(self, x_map, y_map):
         '''
         Translate X, Y axes to latitude and longitude.
 
@@ -334,13 +284,15 @@ class MapWidget(Gtk.DrawingArea):
         :returns: Position of the coordinate
         :rtype: :class:`map.MapPosition`
         '''
-        y_axis -= self._y_fudge
-        x_axis -= self._x_fudge
+        y_map -= self._y_fudge
+        x_map -= self._x_fudge
 
-        lon = 1 - (float(x_axis) / (self.tilesize * self.width))
-        lat = 1 - (float(y_axis) / (self.tilesize * self.height))
+        lon = 1 - (float(x_map) / (self.tilesize * self.width))
+        lat = 1 - (float(y_map) / (self.tilesize * self.height))
 
-        lat = (lat * (self._lat_max - self._lat_min)) + self._lat_min
-        lon = (lon * (self._lon_max - self._lon_min)) + self._lon_min
+        lat = (lat * (self._lat_max - self._lat_min)) + \
+            self._lat_min - self.LAT_MAX
+        lon = (lon * (self._lon_max - self._lon_min)) + \
+            self._lon_min - self.LON_MAX
 
         return Map.Position(lat, lon)

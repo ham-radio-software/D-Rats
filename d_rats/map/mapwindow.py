@@ -53,7 +53,7 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
-# We have more than 7 instance attributes
+# We have more than 7 instance attributes and more than 20 public methods
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class MapWindow(Gtk.ApplicationWindow):
     '''
@@ -907,7 +907,7 @@ class MapWindow(Gtk.ApplicationWindow):
 
     # Called by mainapp
     @staticmethod
-    def set_base_dir(base_dir, map_url, map_key=None):
+    def set_base_dir(base_dir, map_url, map_key):
         '''
         Set Base Directory.
 

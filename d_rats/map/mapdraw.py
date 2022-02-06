@@ -85,8 +85,11 @@ class MapDraw():
 
     __broken_tile = None
     __center = None
-    __old_center = None
+    __center_changed = False
     __zoom_changed = False
+    center_tile = None
+    x_base = 0.0
+    y_base = 0.0
 
     def __init__(self, map_widget, cairo_ctx):
         self.map_widget = map_widget
@@ -109,8 +112,8 @@ class MapDraw():
         :param pos: New center position
         :type pos: :class:`Map.MapPosition`
         '''
-        cls.__old_center = cls.__center
         cls.__center = pos
+        cls.__center_changed = True
 
     @classmethod
     def set_zoom_changed(cls):
@@ -119,6 +122,18 @@ class MapDraw():
         '''
         cls.__zoom_changed = True
 
+    @classmethod
+    def get_map_base(cls):
+        '''
+        Get the map base coordinates.
+
+        :returns: Map coordinates for the top left tile
+        :rtype: tuple of (float, float)
+        '''
+        return cls.x_base, cls.y_base
+
+    # pylint wants a max of 15 local variables in a method.
+    # pylint: disable=too-many-locals
     @classmethod
     def handler(cls, map_widget, cairo_ctx):
         '''
@@ -162,23 +177,36 @@ class MapDraw():
         v_page_size = vadj.get_page_size()
         self.map_visible['y_size'] = int(v_page_size)
 
-        if cls.__zoom_changed or cls.__center != cls.__old_center:
+        if cls.__zoom_changed or cls.__center_changed:
             map_widget.calculate_bounds()
 
-        if cls.__center != cls.__old_center:
+            # if cls.__center != cls.__old_center:
             # We do not know the page size of the scrollbars until we get
             # here, so a self._center change is used to let us know when
             # we need to have the program adjust the scrollbars to the new
             # center.
-            x_coord, y_coord = map_widget.latlon2xy(cls.__center)
+            if cls.__center:
+                cls.center_tile = Map.Tile(cls.__center)
 
-            hadj.set_value(x_coord - (h_page_size / 2))
-            vadj.set_value(y_coord - (v_page_size / 2))
+                # Map dimmensions in Tile Pixels
+                width = self.map_widget.width
+                map_width = width * self.map_widget.tilesize
+                delta_x = map_width / 2
+                height = self.map_widget.height
+                map_height = height * self.map_widget.tilesize
+                delta_y = map_height / 2
+
+                base = cls.center_tile + (-delta_x, -delta_y)
+                cls.x_base = base.x_tile
+                cls.y_base = base.y_tile
+
+                hadj.set_value(delta_x - (h_page_size / 2))
+                vadj.set_value(delta_y - (v_page_size / 2))
 
         self.expose_map()
         self.scale()
         self.draw_markers()
-        cls.__center = cls.__old_center
+        cls.__center_changed = False
         cls.__zoom_changed = False
         return False
 
@@ -247,6 +275,8 @@ class MapDraw():
 
         return pixbuf.get_height()
 
+    # pylint wants a max of 12 branches and 50 statements for a method.
+    # pylint: disable=too-many-branches, too-many-statements
     def draw_marker(self, point):
         '''
         Draw Marker.
@@ -258,7 +288,62 @@ class MapDraw():
 
         position = Map.Position(point.get_latitude(), point.get_longitude())
         try:
-            x_coord, y_coord = self.map_widget.latlon2xy(position)
+            x_coord1, y_coord1 = self.map_widget.latlon2xy(position)
+            zoom = self.map_widget.map_window.mapcontrols.zoom_control.level
+
+            # This is the only way that I can get my position to plot
+            # correctly from zoom levels 4-18.
+            # This is based on looking up the position of my house with a
+            # Meridian Marine GPS.
+            # I am hoping that someone can find a better solution in the
+            # future.
+            x_fudge1 = 9
+            y_fudge1 = 6
+            if zoom == 5:
+                x_fudge1 = 8
+                y_fudge1 = 5
+            elif zoom == 6:
+                x_fudge1 = 5
+                y_fudge1 = 5
+            elif zoom == 7:
+                x_fudge1 = 8
+                y_fudge1 = 10
+            elif zoom == 8:
+                x_fudge1 = 10
+                y_fudge1 = 13
+            elif zoom == 9:
+                x_fudge1 = 10
+                y_fudge1 = 13
+            elif zoom == 10:
+                x_fudge1 = 10
+                y_fudge1 = 10
+            elif zoom == 11:
+                x_fudge1 = 10
+                y_fudge1 = 10
+            elif zoom == 12:
+                x_fudge1 = 14
+                y_fudge1 = 10
+            elif zoom == 13:
+                x_fudge1 = 30
+                y_fudge1 = 18
+            elif zoom == 14:
+                x_fudge1 = 50
+                y_fudge1 = 10
+            elif zoom == 15:
+                x_fudge1 = 80
+                y_fudge1 = 0
+            elif zoom == 16:
+                x_fudge1 = 150
+                y_fudge1 = -20
+            elif zoom == 17:
+                x_fudge1 = 295
+                y_fudge1 = -40
+            elif zoom == 18:
+                x_fudge1 = 580
+                y_fudge1 = -105
+
+            x_coord = x_coord1 - x_fudge1
+            y_coord = y_coord1 - y_fudge1
 
         except ZeroDivisionError:
             return
@@ -276,7 +361,7 @@ class MapDraw():
         '''
         Draw Markers.
         '''
-        if self.__zoom_changed or self.__center != self.__old_center:
+        if self.__zoom_changed or self.__center_changed:
             # At this point we know we have to recreate the list
             # list of visible points when ever the zoom or center changes.
             self.map_widget.map_window.update_points_visible()
@@ -345,7 +430,7 @@ class MapDraw():
 
                 # this is the case  when some jpg tile file cannot be loaded -
                 # typically this was due to html content saved as jpg
-                # (due to an un-trapped http error), or due to really corrupted
+                # (due to an un-trapped http error), or due to corrupted
                 # jpg (e.g. d-rats was closed before completing file save )
                 if os.path.exists(path):
                     self.logger.info(
@@ -371,9 +456,8 @@ class MapDraw():
         center = Map.Tile(self.map_widget.position)
 
         # python2 delta_h is 4, python3 4.5
-        # map_widget.set_fudge() needs to be changed if this is changed.
-        delta_h = height / 2
-        delta_w = width  / 2
+        delta_h = int(height / 2)
+        delta_w = int(width  / 2)
 
         tilesize = self.map_widget.tilesize
         self.map_widget.map_tiles = []
