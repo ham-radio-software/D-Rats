@@ -978,15 +978,22 @@ class MainApp(Gtk.Application):
 
             # Gtk.glade.bindtextdomain("D-RATS", localedir)
             # Gtk.glade.textdomain("D-RATS")
+        except FileNotFoundError:
+            self.logger.error("_refresh_lang: Messages catalog file missing "
+                              " for %s.  Need to use 'msgfmt tool to generate.",
+                              locale)
+            gettext.install("D-RATS")
+            _ = gettext.gettext
         except LookupError:
-            self.logger.info("_refresh_lang: Unable to load language `%s'",
-                             locale, exc_info=True)
+            self.logger.error("_refresh_lang: Unable to load language `%s'",
+                              locale, exc_info=True)
             gettext.install("D-RATS")
             _ = gettext.gettext
         except IOError:
-            self.logger.info("_refresh_lang: Unable to load translation for %s",
-                             locale, exc_info=True)
+            self.logger.error("_refresh_lang: Unable to load translation for %s",
+                              locale, exc_info=True)
             gettext.install("D-RATS")
+            _ = gettext.gettext
 
     def _load_map_overlays(self):
         '''Load Map Overlays.'''
@@ -1088,7 +1095,11 @@ class MainApp(Gtk.Application):
         else:
             mapurl = self.config.get("settings", "mapurlbase")
             mapkey = None
-
+        # pylint: disable=fixme
+        # todo: A change here should trigger a refresh of the new
+        # map window after that a config reload/change is done
+        self.logger.info("_refresh_map: reconfigured mapurl to: %s", mapurl)
+        self.logger.info("_refresh_map: reconfigured mapkey to: %s", mapkey)
         Map.Window.set_base_dir(os.path.join(
             self.config.get("settings", "mapdir"), maptype), mapurl, mapkey)
 
