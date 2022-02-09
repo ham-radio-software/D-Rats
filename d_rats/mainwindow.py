@@ -3,7 +3,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -138,7 +138,16 @@ class MainWindow(MainWindowElement):
         GLib.timeout_add(3000, self.__update_status)
 
     def _delete(self, window, _event):
-        print("mainwindow/_delete")
+        '''
+        Delete Handler.
+
+        :param window: window
+        :type window: :class:`Gtk.Window`
+        :param _event: Event widget, not used
+        :type _event: :class:`Gtk.Event`
+        :returns: False if program should actually exit
+        :rtype: bool
+        '''
         if self._config.getboolean("prefs", "confirm_exit"):
             if not ask_for_confirmation("Really exit D-RATS?", window):
                 return True
@@ -147,10 +156,18 @@ class MainWindow(MainWindowElement):
         return False
 
     def _destroy(self, window):
-        print("mainwindow/_destroy")
+        '''
+        Destroy Handler.
+
+        The Destroy Handler is invoked by requesting an exit of the program.
+        Or by the Delete Handler retruning False.
+
+        :param window: Window object
+        :type window: :class:`Gtk.Window`
+        '''
         width, height = window.get_size()
 
-        #maximized = window.maximize_initially
+        # maximized = window.maximize_initially
         maximized = window.is_maximized()
         if maximized:
             self._config.set("state", "main_maximized", maximized)
@@ -158,7 +175,6 @@ class MainWindow(MainWindowElement):
             self._config.set("state", "main_size_x", str(width))
             self._config.set("state", "main_size_y", str(height))
 
-        # Gtk.main_quit()
         self._application.quit()
 
     # pylint: disable=too-many-locals, too-many-statements
@@ -231,27 +247,40 @@ class MainWindow(MainWindowElement):
             if station:
                 self.emit("ping-station", station, port)
 
-        def do_conninet(but):
-            self._config.set("state", "connected_inet", but.get_active())
-            self.logger.info("do_conninet: change on connection status to %s",
-                             but.get_active())
+        def do_conninet(button):
+            '''
+            Do Connect to the Internet.
 
-        def do_showpane(but, pane):
-            self._config.set("state", "sidepane_visible", but.get_active())
-            if but.get_active():
+            :param button: Internet Connection Checkbox
+            :type button: :class:`Gtk.CheckMenuItem`
+            '''
+            active = button.get_active()
+            self._config.set("state", "connected_inet", str(active))
+            self.logger.info("do_conninet: change on connection status to %s",
+                             active)
+
+        def do_showpane(button, pane):
+            '''
+            Do show the station pane.
+
+            :param button: Show Station Pane Button
+            :type button: :class:`Gtk.CheckMenuItem'
+            :param pane: Station display pane
+            :type pane: :class:`Gtk.Box`
+            '''
+            active = button.get_active()
+            self._config.set("state", "sidepane_visible", str(active))
+            if active:
                 pane.show()
             else:
                 pane.hide()
 
         def do_dq(_but):
-
             cfg = self._config
             #xxxxx
             wtree = Gtk.Builder()
             wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
             wtree.set_translation_domain("D-RATS")
-            #wtree = Gtk.glade.XML(c.ship_obj_fn("ui/mainwindow.glade"),
-            #                      "dquery_dialog", "D-RATS")
             dlg = wtree.get_object("dquery_dialog")
             cmd = wtree.get_object("dq_cmd")
             dlg.set_modal(True)
