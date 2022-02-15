@@ -87,9 +87,6 @@ class MapDraw():
     __center = None
     __center_changed = False
     __zoom_changed = False
-    center_tile = None
-    x_base = 0.0
-    y_base = 0.0
 
     def __init__(self, map_widget, cairo_ctx):
         self.map_widget = map_widget
@@ -121,16 +118,6 @@ class MapDraw():
         Sets that the zoom level changed.
         '''
         cls.__zoom_changed = True
-
-    @classmethod
-    def get_map_base(cls):
-        '''
-        Get the map base coordinates.
-
-        :returns: Map coordinates for the top left tile
-        :rtype: tuple of (float, float)
-        '''
-        return cls.x_base, cls.y_base
 
     # pylint wants a max of 15 local variables in a method.
     # pylint: disable=too-many-locals
@@ -180,28 +167,14 @@ class MapDraw():
         if cls.__zoom_changed or cls.__center_changed:
             map_widget.calculate_bounds()
 
-            # if cls.__center != cls.__old_center:
             # We do not know the page size of the scrollbars until we get
-            # here, so a self._center change is used to let us know when
+            # here, so self._center change is used to let us know when
             # we need to have the program adjust the scrollbars to the new
             # center.
             if cls.__center:
-                cls.center_tile = Map.Tile(cls.__center)
-
-                # Map dimmensions in Tile Pixels
-                width = self.map_widget.width
-                map_width = width * self.map_widget.tilesize
-                delta_x = map_width / 2
-                height = self.map_widget.height
-                map_height = height * self.map_widget.tilesize
-                delta_y = map_height / 2
-
-                base = cls.center_tile + (-delta_x, -delta_y)
-                cls.x_base = base.x_tile
-                cls.y_base = base.y_tile
-
-                hadj.set_value(delta_x - (h_page_size / 2))
-                vadj.set_value(delta_y - (v_page_size / 2))
+                display_width, display_height = Map.Tile.get_display_limits()
+                hadj.set_value((display_width - h_page_size) / 2)
+                vadj.set_value((display_height - v_page_size) / 2)
 
         self.expose_map()
         self.scale()
@@ -269,11 +242,16 @@ class MapDraw():
         :rtype: int
         '''
         self.cairo_ctx.save()
-        Gdk.cairo_set_source_pixbuf(self.cairo_ctx, pixbuf, x_coord, y_coord)
+        half_width = pixbuf.get_width() / 2
+        height = pixbuf.get_height()
+        half_height = height / 2
+        Gdk.cairo_set_source_pixbuf(self.cairo_ctx, pixbuf,
+                                    x_coord - half_width,
+                                    y_coord - half_height)
         self.cairo_ctx.paint()
         self.cairo_ctx.restore()
 
-        return pixbuf.get_height()
+        return height
 
     # pylint wants a max of 12 branches and 50 statements for a method.
     # pylint: disable=too-many-branches, too-many-statements
@@ -284,67 +262,9 @@ class MapDraw():
         :param point: point to draw
         :type point: :class:`MapPoint`
         '''
-        color = "yellow"
-
         position = Map.Position(point.get_latitude(), point.get_longitude())
         try:
-            x_coord1, y_coord1 = self.map_widget.latlon2xy(position)
-            zoom = self.map_widget.map_window.mapcontrols.zoom_control.level
-
-            # This is the only way that I can get my position to plot
-            # correctly from zoom levels 4-18.
-            # This is based on looking up the position of my house with a
-            # Meridian Marine GPS.
-            # I am hoping that someone can find a better solution in the
-            # future.
-            x_fudge1 = 9
-            y_fudge1 = 6
-            if zoom == 5:
-                x_fudge1 = 8
-                y_fudge1 = 5
-            elif zoom == 6:
-                x_fudge1 = 5
-                y_fudge1 = 5
-            elif zoom == 7:
-                x_fudge1 = 8
-                y_fudge1 = 10
-            elif zoom == 8:
-                x_fudge1 = 10
-                y_fudge1 = 13
-            elif zoom == 9:
-                x_fudge1 = 10
-                y_fudge1 = 13
-            elif zoom == 10:
-                x_fudge1 = 10
-                y_fudge1 = 10
-            elif zoom == 11:
-                x_fudge1 = 10
-                y_fudge1 = 10
-            elif zoom == 12:
-                x_fudge1 = 14
-                y_fudge1 = 10
-            elif zoom == 13:
-                x_fudge1 = 30
-                y_fudge1 = 18
-            elif zoom == 14:
-                x_fudge1 = 50
-                y_fudge1 = 10
-            elif zoom == 15:
-                x_fudge1 = 80
-                y_fudge1 = 0
-            elif zoom == 16:
-                x_fudge1 = 150
-                y_fudge1 = -20
-            elif zoom == 17:
-                x_fudge1 = 295
-                y_fudge1 = -40
-            elif zoom == 18:
-                x_fudge1 = 580
-                y_fudge1 = -105
-
-            x_coord = x_coord1 - x_fudge1
-            y_coord = y_coord1 - y_fudge1
-
+            x_coord, y_coord = Map.Tile.deg2display(position)
         except ZeroDivisionError:
             return
 
@@ -353,9 +273,10 @@ class MapDraw():
             self.draw_cross_marker_at(x_coord, y_coord)
         else:
             img = point.get_icon()
+            offset = 0
             if img:
-                y_coord += (4 + self.draw_image_at(x_coord, y_coord, img))
-            self.draw_text_marker_at(x_coord, y_coord, label, color)
+                offset = self.draw_image_at(x_coord, y_coord, img)
+            self.draw_text_marker_at(x_coord, y_coord, offset, label)
 
     def draw_markers(self):
         '''
@@ -369,7 +290,7 @@ class MapDraw():
         for point in self.map_widget.map_window.points_visible:
             self.draw_marker(point)
 
-    def draw_text_marker_at(self, x_coord, y_coord, text, color="yellow"):
+    def draw_text_marker_at(self, x_coord, y_coord, icon_height, text):
         '''
         Draw Text Marker At Location on Map.
 
@@ -377,12 +298,17 @@ class MapDraw():
         :type x_coord: float
         :param y_coord: y position for tile
         :type y_coord: float
+        :param icon_height: icon height
+        :type icon_height: int
         :param text: Text for marker
         :type text: str
-        :param color: Color of text, default 'yellow'
-        :type color str
         '''
+        color = "yellow"
         # setting the size for the text marker
+        y_offset = 0
+        if icon_height:
+            # Position text just below icon
+            y_offset = icon_height / 2 + 1
         zoom = Map.ZoomControls.get_level()
         if zoom < 12:
             size = 'size="x-small"'
@@ -395,8 +321,13 @@ class MapDraw():
         pango_layout = self.map_widget.create_pango_layout("")
         markup = '<span %s background="%s">%s</span>' % (size, color, text)
         pango_layout.set_markup(markup)
+        width, height = pango_layout.get_pixel_size()
         self.cairo_ctx.save()
-        self.cairo_ctx.move_to(x_coord, y_coord)
+        # make sure to center the text under the point
+        if not y_offset:
+            # If no icon center text over position
+            y_offset = -height / 2
+        self.cairo_ctx.move_to(x_coord - width/2, y_coord + y_offset)
         PangoCairo.show_layout(self.cairo_ctx, pango_layout)
         self.cairo_ctx.stroke()
         self.cairo_ctx.restore()
@@ -450,16 +381,12 @@ class MapDraw():
         '''
         Expose the Map.
         '''
-        width = self.map_widget.width
-        height = self.map_widget.height
+        width, height = Map.Tile.get_display_tile_limits()
         self.load_ctx = LoadContext(0, (width * height))
-        center = Map.Tile(self.map_widget.position)
+        center = Map.Tile.center
+        delta_w, delta_h = Map.Tile.get_display_center()
 
-        # python2 delta_h is 4, python3 4.5
-        delta_h = int(height / 2)
-        delta_w = int(width  / 2)
-
-        tilesize = self.map_widget.tilesize
+        tilesize = Map.Tile.get_tilesize()
         self.map_widget.map_tiles = []
         for i in range(0, width):
             for j in range(0, height):
@@ -494,11 +421,10 @@ class MapDraw():
         :param pixels: Tile size in pixels, default=128
         :type pixels: int
         '''
-        # Need to find out about magic number 128 for pixels.
         pango_layout = self.map_widget.map_scale_pango_layout()
         pango_width, pango_height = pango_layout.get_pixel_size()
 
-        pixels = self.map_widget.pixels
+        pixels = Map.Tile.get_tilesize() / 2
         self.cairo_ctx.save()
 
         self.cairo_ctx.set_source_rgba(0.0, 0.0, 0.0) # default for black
