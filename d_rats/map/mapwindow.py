@@ -156,6 +156,19 @@ class MapWindow(Gtk.ApplicationWindow):
         self.marker_menu = Gtk.Menu.new_from_model(self.marker_model)
         self.marker_menu.attach_to_widget(self)
 
+        # create the INFO WINDOW which is shown over the map clicking
+        # the left mouse button
+        self.info_window = Gtk.Window(type=Gtk.WindowType.POPUP)
+        self.info_window.set_type_hint(Gdk.WindowTypeHint.MENU)
+        self.info_window.set_decorated(False)
+        self.info_window.set_name("map_info_window")
+        # modify_bg deprecated for override_background_color
+        # override_background_color deprecated, use Gtk.StyleProvider and
+        # a CSS style class or modifying drawing through the draw signal with
+        # Cairo.
+        # self.info_window.modify_bg(Gtk.StateType.NORMAL,
+        #                           Gdk.color_parse("yellow"))
+
     def add_map_source(self, source):
         '''
         Add Map Source.
@@ -346,7 +359,7 @@ class MapWindow(Gtk.ApplicationWindow):
             shutil.rmtree(base_dir, True)
             self.map_widget.queue_draw()
 
-    def item_editsources_handler(self,_action, _value):
+    def item_editsources_handler(self, _action, _value):
         '''
         Edit Sources Handler.
 
@@ -548,7 +561,7 @@ class MapWindow(Gtk.ApplicationWindow):
         mx_axis = x_axis + int(hadj.get_value())
         my_axis = y_axis + int(vadj.get_value())
 
-        position = self.map_widget.xy2latlon(mx_axis, my_axis)
+        position = Map.Tile.display2deg(mx_axis, my_axis)
 
         self.logger.info("Button %i at %i,%i",
                          event.button, mx_axis, my_axis)
@@ -593,7 +606,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :rtype: bool
         '''
         if not self.__last_motion:
-            GLib.timeout_add(10, self._mouse_motion_handler)
+            GLib.timeout_add(5, self._mouse_motion_handler)
         self.__last_motion = (time.time(), event.x, event.y)
 
     # pylint: disable=too-many-locals
@@ -603,63 +616,66 @@ class MapWindow(Gtk.ApplicationWindow):
 
         time_motion, x_axis, y_axis = self.__last_motion
         if (time.time() - time_motion) < 0.5:
-             # self.info_window.hide()
+            self.info_window.hide()
             return True
 
-        position = self.map_widget.xy2latlon(x_axis, y_axis)
+        position = Map.Tile.display2deg(x_axis, y_axis)
+        hadj = self.scrollw.get_hadjustment()
+        vadj = self.scrollw.get_vadjustment()
+        mx_axis = x_axis - int(hadj.get_value())
+        my_axis = y_axis - int(vadj.get_value())
 
-        # hadj = self.scrollw.get_hadjustment()
-        # vadj = self.scrollw.get_vadjustment()
-        # mx_axis = x_axis - int(hadj.get_value())
-        # my_axis = y_axis - int(vadj.get_value())
-
-        #hit = False
-
+        hit = False
         for source in self.map_sources:
             if not source.get_visible():
                 continue
             for point in source.get_points():
                 if not point.get_visible():
                     continue
-                # try:
-                #    _x, _y = self.map_widget.latlon2xy(point.get_latitude(),
-                #                                       point.get_longitude())
-                # except ZeroDivisionError:
-                #    continue
+                try:
+                    pos = Map.Position(point.get_latitude(),
+                                       point.get_longitude())
+                    point_x, point_y = Map.Tile.deg2display(pos)
+                except ZeroDivisionError:
+                    print("ZeroDivisionError")
+                    continue
 
-                # dx_axis = abs(x_axis - _x)
-                # dy_axis = abs(y_axis - _y)
+                dx_axis = abs(x_axis - point_x)
+                dy_axis = abs(y_axis - point_y)
 
-                # if dx_axis < 20 and dy_axis < 20:
-                #    hit = True
+                if dx_axis >= 20 or dy_axis >= 20:
+                    continue
 
-                #    date = time.ctime(point.get_timestamp())
+                hit = True
 
-                #    text = "<b>Station:</b> %s" % point.get_name() + \
-                #        "\n<b>Latitude:</b> %.5f" % point.get_latitude() + \
-                #        "\n<b>Longitude:</b> %.5f"% point.get_longitude() + \
-                #        "\n<b>Last update:</b> %s" % date
+                date = time.ctime(point.get_timestamp())
 
-                #    text += "\n<b>Info</b>: %s" % point.get_comment()
+                # span is temp hack until we get css implemented.
+                text = '<span background="yellow">' + \
+                       "<b>Station:</b> %s" % point.get_name() + \
+                       "\n<b>Latitude:</b> %.5f" % point.get_latitude() + \
+                       "\n<b>Longitude:</b> %.5f"% point.get_longitude() + \
+                       "\n<b>Last update:</b> %s" % date
 
-                #    label = Gtk.Label()
-                #    label.set_markup(text)
-                #    label.show()
-                    # for child in self.info_window.get_children():
-                    #     self.info_window.remove(child)
-                    # self.info_window.add(label)
+                text += "\n<b>Info</b>: %s" % point.get_comment()
+                text += "</span>"
+                label = Gtk.Label()
+                label.set_markup(text)
+                label.show()
+                for child in self.info_window.get_children():
+                    self.info_window.remove(child)
+                self.info_window.add(label)
 
-                    # posx, posy = self.get_position()
-                    # posx += mx_axis + 10
-                    # posy += my_axis - 10
+                posx, posy = self.get_position()
+                posx += mx_axis + 10
+                posy += my_axis - 10
 
-                    # self.info_window.move(int(posx), int(posy))
-                    # self.info_window.show()
+                self.info_window.move(int(posx), int(posy))
+                self.info_window.show()
+                break
 
-                    # break
-
-        # if not hit:
-            # self.info_window.hide()
+        if not hit:
+            self.info_window.hide()
 
         self.statusbox.sb_coords.pop(self.STATUS_COORD)
         self.statusbox.sb_coords.push(self.STATUS_COORD,
