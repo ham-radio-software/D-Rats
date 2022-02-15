@@ -100,14 +100,13 @@ class MapWidget(Gtk.DrawingArea):
     # pylint: disable=too-many-locals
     def calculate_bounds(self):
         '''Calculate Bounds.'''
-        center = Map.Tile(position=self.position)
+        center = Map.Tile.center
 
         # here we set the bounds for the map into the window
         # delta is the mid of the tiles used to draw the map
         # delta is necessary to keep alignment between the map
         # and the station labels
-        delta_h = int(self.height / 2)
-        delta_w = int(self.width / 2)
+        delta_h, delta_w = Map.Tile.get_display_center()
         topleft = center + (-delta_w, -delta_h)
         botright = center + (delta_w, delta_h)
         (lat_min, _, _, lon_min) = botright.tile_edges()
@@ -118,31 +117,6 @@ class MapWidget(Gtk.DrawingArea):
         self._lat_max = lat_max + self.LAT_MAX
         self._lon_min = lon_min + self.LON_MAX
         self._lon_max = lon_max + self.LON_MAX
-
-        # existing comment:
-        # I have no idea why, but for some reason we can calculate the
-        # longitude (x) just fine, but not the latitude (y).  The result
-        # of either latlon2xy() or tile_edges() is bad, which causes the
-        # y calculation of a given latitude to be off by some amount.
-        # The amount grows large at small values of zoom (zoomed out) and
-        # starts to seriously affect the correctness of marker placement.
-        # Until I figure out why that is, we calculate a fudge factor below.
-        #
-        # To do this, we ask the center tile for its NW corner's
-        # coordinates.  We then ask latlon2xy() (with fudge of zero) what
-        # the corresponding x,y is.  Since we know what the correct value
-        # should be, we record the offset and use that to shift the y in
-        # further calculations for this zoom level.
-
-        self._y_fudge = 0
-        self._x_fudge = 0
-
-        _south, west, north, _east = center.tile_edges()
-        x_axis, y_axis = self.latlon2xy(Map.Position(north, west))
-        delta_width = delta_w * self.tilesize
-        delta_height = delta_h * self.tilesize
-        self._x_fudge = delta_width - x_axis
-        self._y_fudge = delta_height - y_axis
 
     def export_to(self, filename, bounds):
         '''
@@ -173,27 +147,6 @@ class MapWidget(Gtk.DrawingArea):
                                             width, height)
         pixbuf.savev(filename, "png", [], [])
 
-    def latlon2xy(self, pos):
-        '''
-        Translate Latitude and Longitude to X and Y map coordinates
-
-        :param pos: postion in latitude and longitude
-        :type pos: :class:`Map.MapPosition`
-        :returns: x and y coordinate on map
-        :rtype: tuple of (float, float)
-        '''
-        y_axis = 1 - ((pos.latitude + self.LAT_MAX - self._lat_min) /
-                      (self._lat_max - self._lat_min))
-        x_axis = 1 - ((pos.longitude + self.LON_MAX - self._lon_min) /
-                      (self._lon_max - self._lon_min))
-
-        x_axis *= (self.tilesize * self.width)
-        y_axis *= (self.tilesize * self.height)
-
-        y_axis += self._y_fudge
-        x_axis += self._x_fudge
-        return (x_axis, y_axis)
-
     def map_scale_pango_layout(self):
         '''
         Map Scale Pango Layout.
@@ -201,8 +154,8 @@ class MapWidget(Gtk.DrawingArea):
         :returns: Map scale text in a pango layout
         :rtype: :class:`Pango.Layout`
         '''
-        pos_a = self.xy2latlon(self.tilesize, self.tilesize)
-        pos_b = self.xy2latlon(self.tilesize * 2, self.tilesize)
+        pos_a = Map.Tile.display2deg(self.tilesize, self.tilesize)
+        pos_b = Map.Tile.display2deg(self.tilesize * 2, self.tilesize)
 
         # calculate width of one tile to show below the ladder scale
         d_width = pos_a.distance(pos_b) * (float(self.pixels) / self.tilesize)
@@ -255,6 +208,7 @@ class MapWidget(Gtk.DrawingArea):
         # The scroll adjustments have no value until being exposed
         # So we need to tell the expose handler to center them.
         Map.Draw.set_center(position)
+        Map.Tile.set_center(position)
         self.queue_draw()
 
     def value_x_event(self, _widget):
@@ -274,25 +228,3 @@ class MapWidget(Gtk.DrawingArea):
         :type _widget: :class:`Gtk.Adjustment`
         '''
         self.queue_draw()
-
-    def xy2latlon(self, x_map, y_map):
-        '''
-        Translate X, Y axes to latitude and longitude.
-
-        :param x_axis: X Axis
-        :param y_axis: Y Axis
-        :returns: Position of the coordinate
-        :rtype: :class:`map.MapPosition`
-        '''
-        y_map -= self._y_fudge
-        x_map -= self._x_fudge
-
-        lon = 1 - (float(x_map) / (self.tilesize * self.width))
-        lat = 1 - (float(y_map) / (self.tilesize * self.height))
-
-        lat = (lat * (self._lat_max - self._lat_min)) + \
-            self._lat_min - self.LAT_MAX
-        lon = (lon * (self._lon_max - self._lon_min)) + \
-            self._lon_min - self.LON_MAX
-
-        return Map.Position(lat, lon)

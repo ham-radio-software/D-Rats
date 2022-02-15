@@ -87,8 +87,19 @@ class MapTile():
     _proxy = None
     _tile_lifetime = 0
     _zoom = 0
+    _num_tiles = 0
     _map_widget = None
     _tilesize = 256
+    _display_height = 9 * 256
+    _display_width = 9 * 256
+    _display_height_tiles = 9
+    _display_width_tiles = 9
+    _half_height = 4
+    _half_width = 4
+    _x_origin = 0
+    _y_origin = 0
+    _center = None
+    center = None
 
     def __init__(self, position=None, x_axis=None, y_axis=None):
 
@@ -133,6 +144,69 @@ class MapTile():
         return cls._tilesize
 
     @classmethod
+    def _set_x_origin(cls):
+        cls.center = Map.Tile(cls._center)
+        cls._half_height = int(cls._display_height_tiles / 2)
+        cls._half_width = int(cls._display_width_tiles / 2)
+        cls._x_origin = cls.center.x_tile - cls._half_height
+        cls._y_origin = cls.center.y_tile - cls._half_width
+
+    @classmethod
+    def get_display_center(cls):
+        '''
+        Get the display center tile location.
+
+        :returns: Center tile location of the display
+        :rtype: tuple of (int, int)
+        '''
+        return (cls._half_width, cls._half_height)
+
+    @classmethod
+    def get_display_limits(cls):
+        '''
+        Get the number of display pixels on each axis
+
+        :returns: Number of display pixels for each axis of the display
+        :rtype: tuple of (int, int)
+        '''
+        return (cls._display_width, cls._display_height)
+
+    @classmethod
+    def get_display_tile_limits(cls):
+        '''
+        Get the number of display tiles on each axis
+
+        :returns: Number of tiles for each axis of the display
+        :rtype: tuple of (int, int)
+        '''
+        return (cls._display_width_tiles, cls._display_height_tiles)
+
+    @classmethod
+    def get_display_origin(cls):
+        '''
+        Get Display Origin.
+
+        This is the offset from the Map Tile x/y coordinates and the
+        the upper left corner of the displayed map.
+
+        :returns: Offest from Map Tile to the Displayed map
+        '''
+        return (cls._x_origin, cls._y_origin)
+
+    @classmethod
+    def set_center(cls, pos):
+        '''
+        Set Center.
+
+        Set the Center coordinates.
+
+        :param pos: New center position
+        :type pos: :class:`Map.MapPosition`
+        '''
+        cls._center = pos
+        cls._set_x_origin()
+
+    @classmethod
     def set_connected(cls, connected):
         '''
         Sets if allowed to connect to the internet to download map data.
@@ -168,6 +242,8 @@ class MapTile():
         :param map_widget: Map display widget
         :type: map_widget: :class:`Map.MapWidget`'''
         cls._map_widget = map_widget
+        cls._display_height_tiles = map_widget.height
+        cls._display_width_tiles = map_widget.width
 
     @classmethod
     def set_proxy(cls, proxy):
@@ -198,6 +274,10 @@ class MapTile():
         :type zoom: int
         '''
         cls._zoom = zoom
+        cls._num_tiles = pow(2, cls._zoom)
+        if not cls._center:
+            return
+        cls._set_x_origin()
 
     # The deg2xxx functions derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
@@ -213,11 +293,10 @@ class MapTile():
         '''
         # lat_rad = lat_deg * math.pi / 180.0
         lat_rad = math.radians(position.latitude)
-        num = 2.0 ** cls._zoom
-        x_coord = (position.longitude + 180.0) / 360.0 * num
+        x_coord = (position.longitude + 180.0) / 360.0 * cls._num_tiles
         y_coord = (1.0 - math.log(math.tan(lat_rad) +
                                   (1 / math.cos(lat_rad))) /
-                   math.pi) / 2.0 * num
+                   math.pi) / 2.0 * cls._num_tiles
         return (x_coord, y_coord)
 
     @classmethod
@@ -239,40 +318,21 @@ class MapTile():
         return (x_tile, y_tile, x_fraction, y_fraction)
 
     @classmethod
-    def deg2pixel(cls, position):
+    def deg2display(cls, position):
         '''
-        Degrees to a pixel offset.
-
-        In theory this should be able to be used to plot a point based
-        on degrees to a pixel offset on a map grid, and eliminate the
-        need for fudge factors.
-
-        In reality I have not been been able to get this to work.
-        Points are being plotted at the wrong locations and the amount of
-        error in the position is different for different nearby points at
-        different zoom levels.
-
-        Leaving this hear in case someone else can figure this out.
+        Degrees to a display offset
 
         :param position: Latitude and longitude
         :type position: :class:`Map.MapPosition`
         :returns: x_tile, and y_tile on map for coordinates
         :rtype: tuple of (float, float)
         '''
-        x_tile, y_tile, x_fraction, y_fraction = cls.deg2tile(position)
-        x_offset = cls._tilesize * (x_fraction)
-        y_offset = cls._tilesize * (y_fraction)
-        # For some reason the sign of the degrees seems to affect how to
-        # apply the offset.
-        if position.longitude >= 0:
-            x_offset = -x_offset - cls._tilesize
-        if position.latitude >= 0:
-            y_offset = -y_offset - cls._tilesize
-
-        x_coord = x_tile + x_offset
-        y_coord = y_tile + y_offset
-
-        return (x_coord, y_coord)
+        x_tile_decimal, y_tile_decimal = cls.deg2num(position)
+        x_tile_decimal -= cls._x_origin
+        y_tile_decimal -= cls._y_origin
+        x_display = x_tile_decimal * cls._tilesize
+        y_display = y_tile_decimal * cls._tilesize
+        return (x_display, y_display)
 
     # The deg2num function derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
@@ -285,19 +345,39 @@ class MapTile():
         :type xtile: float
         :param ytile: Y axis position of tile
         :type ytile: float
-        :returns: Map position in longitude and latitude
+        :returns: Map position in longitude and latitude degrees
         :rtype: :class:`Map.MapPosition`
         '''
-        num = 2.0 ** cls._zoom
-        lon_deg = xtile / num * 360.0 - 180.0
+        lon_deg = xtile / cls._num_tiles * 360.0 - 180.0
         try:
-            lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / num)))
+            lat_rad = math.atan(math.sinh(math.pi * 
+                                          (1 - 2 * ytile / cls._num_tiles)))
         except OverflowError:
             # Appears to happen when the ytile coordinate are out of
             # range for the map.
             lat_rad = 0
         lat_deg = math.degrees(lat_rad)
         return Map.Position(lat_deg, lon_deg)
+
+    @classmethod
+    def display2deg(cls, display_x, display_y):
+        '''
+        Display X to Y coordinate to degrees.
+
+        Convert a coordinate on a display to degrees
+
+        :param display_x: Display horizontal position
+        :type display_y: float
+        :param display_y: Display vertical position
+        :type display_y: float
+        :returns: Map position in longitude and latitude degrees
+        :rtype: :class:`Map.MapPosition`
+        '''
+        x_tile_decimal = display_x / cls._tilesize
+        y_tile_decimal = display_y / cls._tilesize
+        tile_pos = cls.num2deg(x_tile_decimal + cls._x_origin,
+                               y_tile_decimal + cls._y_origin)
+        return tile_pos
 
     # Can not find where this is called.
     def path_els(self):
@@ -517,7 +597,7 @@ class MapTile():
         y_new = self.y_tile + y_axis
         # This can result in wrapping around the map borders
         # need to correct it back to the existing borders.
-        map_max = (2 ** self._zoom)
+        map_max = self._num_tiles
         while x_new < 0:
             x_new += map_max
         while x_new > map_max:
