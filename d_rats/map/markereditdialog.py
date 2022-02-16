@@ -33,6 +33,7 @@ from .. import inputdialog
 from .. import miscwidgets
 from .. import utils
 from ..gps import DPRS_TO_APRS
+from ..geocode_ui import AddressAssistant
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -56,16 +57,37 @@ class MarkerEditDialog(inputdialog.FieldDialog):
             if icon:
                 self.icons.append((icon, sym))
 
+        self.address_assist = AddressAssistant()
+        lookup_button = Gtk.Button.new_with_label(_("By Address"))
         self.add_field(_("Group"), miscwidgets.make_choice([], True))
-        self.add_field(_("Name"), Gtk.Entry())
-        self.add_field(_("Latitude"), miscwidgets.LatLonEntry())
-        self.add_field(_("Longitude"), miscwidgets.LatLonEntry())
-        self.add_field(_("Lookup"), Gtk.Button.new_with_label(_("By Address")))
+        self.name_entry = Gtk.Entry()
+        self.add_field(_("Name"), self.name_entry)
+        self.lat_entry = miscwidgets.LatLonEntry()
+        self.add_field(_("Latitude"), self.lat_entry)
+        self.lon_entry = miscwidgets.LatLonEntry()
+        self.add_field(_("Longitude"), self.lon_entry)
+        if self.address_assist.geocoders:
+            lookup_button = Gtk.Button.new_with_label(_("By Address"))
+            lookup_button.connect("clicked", self.do_address)
+            self.add_field(_("Lookup"), lookup_button)
         self.add_field(_("Comment"), Gtk.Entry())
         self.add_field(_("Icon"), miscwidgets.make_pixbuf_choice(self.icons))
 
         self._point = None
         self.logger.info("init done")
+
+    def do_address(self, _button):
+        '''
+        Do Address Lookup.
+
+        :param _button: Button widget, unused
+        :type _button: :class:`Gtk.Button`
+        '''
+        run_status = self.address_assist.run()
+        if run_status == Gtk.ResponseType.OK:
+            self.name_entry.set_text(self.address_assist.place)
+            self.lat_entry.set_text("%.5f" % self.address_assist.lat)
+            self.lon_entry.set_text("%.5f" % self.address_assist.lon)
 
     def set_groups(self, groups, group=None):
         '''
