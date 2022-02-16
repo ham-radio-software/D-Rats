@@ -83,6 +83,8 @@ class MapWindow(Gtk.ApplicationWindow):
     STATUS_CENTER = 1
     STATUS_GPS = 2
 
+    # pylint wants only 50 statements per method
+    # pylint: disable=too-many-statements
     def __init__(self, application, config):
         Gtk.ApplicationWindow.__init__(self, application=application)
 
@@ -198,7 +200,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :param point: Point to update
         :type point: :class:`MapPoint`
         '''
-        # (_lat, _lon) = self.map.get_center()
         center = GPSPosition(self.map_widget.position.latitude,
                              self.map_widget.position.longitude)
         this = GPSPosition(point.get_latitude(), point.get_longitude())
@@ -836,15 +837,6 @@ class MapWindow(Gtk.ApplicationWindow):
         :param group: Optional group
         :returns: Tuple of (point, group) or (None, None)
         '''
-        # def do_address(_button, latw, lonw, namew):
-        #    dlg = geocode_ui.AddressAssistant()
-        #    run_status = dlg.run()
-        #    if run_status == Gtk.ResponseType.OK:
-        #        if not namew.get_text():
-        #            namew.set_text(dlg.place)
-        #        latw.set_text("%.5f" % dlg.lat)
-        #        lonw.set_text("%.5f" % dlg.lon)
-
         dialog = Map.MarkerEditDialog()
 
         sources = []
