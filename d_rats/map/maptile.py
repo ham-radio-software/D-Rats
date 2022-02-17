@@ -26,13 +26,12 @@ import os
 import logging
 import math
 import threading
+import ssl
 import time
 import urllib.request
 
 import gi
 gi.require_version("Gtk", "3.0")
-#from gi.repository import Gtk
-#from gi.repository import Gdk
 from gi.repository import GLib
 
 from .. import map as Map
@@ -56,8 +55,16 @@ class MapNotConnected(MapFetchUrlException):
     '''Not connected Error.'''
 
 
-class MapTileNotFound(MapFetchUrlException):
+class MapTileNotFetched(MapFetchUrlException):
+    '''Map Tile Not Fetched.'''
+
+
+class MapTileNotFound(MapTileNotFetched):
     '''Map Tile Not Found.'''
+
+
+class MapTileCertError(MapTileNotFetched):
+    '''Map Tile Certificate Error.'''
 
 
 class MapFetchError(MapFetchUrlException):
@@ -350,7 +357,7 @@ class MapTile():
         '''
         lon_deg = xtile / cls._num_tiles * 360.0 - 180.0
         try:
-            lat_rad = math.atan(math.sinh(math.pi * 
+            lat_rad = math.atan(math.sinh(math.pi *
                                           (1 - 2 * ytile / cls._num_tiles)))
         except OverflowError:
             # Appears to happen when the ytile coordinate are out of
@@ -495,13 +502,13 @@ class MapTile():
                 if self._map_widget:
                     self._map_widget.queue_draw()
                 return True
-            except MapTileNotFound:
+            except MapTileNotFetched as err:
                 self.logger.info("fetch: created %s",
                                  self._local_bad_path())
                 with open(self._local_bad_path(), 'w'):
                     pass
-                self.logger.info("fetch: [%i] Not found `%s'",
-                                 tile_num, url)
+                self.logger.info("fetch: [%i] Not fetched `%s': %s",
+                                 tile_num, url, err)
             except MapFetchUrlException:
                 self.logger.info("fetch: [%i] Failed to fetch `%s'",
                                  tile_num, url, exc_info=True)
@@ -513,7 +520,8 @@ class MapTile():
 
         :param local: Local file name to store contents
         :raises: MapNotConnected(MapFetchUrlException) if not connected
-        :raises: MapTileNotFound(MapFetchUrlException) if tile is not available
+        :raises: MapTileNotFound(MapTileNotFetched) if tile is not available
+        :raises: MapTileCertError(MapTileNotFetched) if https not verified
         :raises: MapFetchError(MapFetchUrlException) Any other error
         '''
         # for setup of d-rats user_agent
@@ -535,9 +543,12 @@ class MapTile():
 
         try:
             data = urllib.request.urlopen(req)
-        except urllib.error.HTTPError as err:
-            if err.code == 404:
+        except (urllib.error.HTTPError, urllib.error.URLError) as err:
+            if hasattr(err, 'code') and err.code == 404:
                 raise MapTileNotFound("404 error code")
+            if hasattr(err, 'reason') and \
+                    isinstance(err.reason, ssl.SSLCertVerificationError):
+                raise MapTileCertError(err.reason.verify_message)
             self.logger.info("HTTP error while retrieving tile", exc_info=True)
             raise MapFetchError(err)
 
