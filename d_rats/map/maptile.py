@@ -90,7 +90,7 @@ class MapTile():
     _base_dir = None
     _connected = False
     _map_key = None
-    _map_url_key = None
+    _map_url = None
     _proxy = None
     _tile_lifetime = 0
     _zoom = 0
@@ -598,8 +598,8 @@ class MapTile():
         :rtype: str
         '''
         remote_path = self._map_url + (self.path())
-        if self._map_url_key:
-            remote_path += self._map_url_key
+        if self._map_key:
+            remote_path += self._map_key
         return remote_path
 
     def __add__(self, count):
