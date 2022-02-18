@@ -9,6 +9,11 @@ import logging
 import subprocess
 import sys
 
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Pango
+
 
 class SpellException(Exception):
     '''Generic Spell Exception.'''
@@ -27,7 +32,9 @@ class Spelling:
     Spelling.
 
     :param aspell: Spelling program, default 'aspell'
+    :type aspell: str
     :param persist: Keep subprocess to spelling program running
+    :type persis: bool
     '''
 
     def __init__(self, aspell="aspell", persist=True):
@@ -71,9 +78,11 @@ class Spelling:
         Lookup Word.
 
         :param wiq: wiq string
+        :type wiq: str
         :returns: List of matching words
-        :raises: SpellNoSpellCheckerError if no spelling program found.
-        :raises: SpellBadResponseError if spell program has bad response.
+        :rtype: list of str
+        :raises: :class:`SpellNoSpellCheckerError` if no spelling program found.
+        :raises: :class:`SpellBadResponseError` if program has bad response.
         '''
         if not self._spell_good:
             raise SpellNoSpellCheckerError("Program %s present" % self.__aspell)
@@ -121,6 +130,7 @@ class Spelling:
         Test.
 
         :returns: True if test passes
+        :rtype: bool
         '''
         try:
             spell = self.lookup_word("speling")
@@ -148,8 +158,11 @@ def test_word(spell, word):
     Test Word.
 
     :param spell: Spelling object
+    :type spell: :class:`Spelling`
     :param word: Word pattern to check
-    :returns: list of words
+    :type word: str
+    :returns: list of words that may match a mis-spelled word
+    :rtype: list of str
     '''
     logger = logging.getLogger("sell_test_word")
     spell.stdin.write(word + "\n")
@@ -173,6 +186,7 @@ def get_spell():
     Get Spell.
 
     :returns: Spelling object
+    :rtype: :class:`Spelling`
     '''
     # m this is executed when d-rats starts
     # pylint: disable=global-statement
@@ -193,7 +207,7 @@ def __do_fly_spell(buffer):
 
     text = buffer.get_text(start_iter, end_iter)
     word = text.strip()
-    #print "Got: '%s' (%s)" % (text, word)
+    # print "Got: '%s' (%s)" % (text, word)
 
     if not word:
         return
@@ -218,15 +232,11 @@ def prepare_TextBuffer(buf):
     Prepare Text Buffer.
 
     :param buf: Buffer widget
+    :type buf: :class:`Gtk.TextBuffer'
     '''
-    import gi
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
-    from gi.repository import Pango
-
     tags = buf.get_tag_table()
     tag = Gtk.TextTag.new("misspelled")
-    tag.set_property("underline", Pango.UNDERLINE_SINGLE)
+    tag.set_property("underline", Pango.Underline.SINGLE)
     tag.set_property("underline-set", True)
     tag.set_property("foreground", "red")
     tags.add(tag)
@@ -242,6 +252,11 @@ def main():
     logger = logging.getLogger("spell_test")
 
     spell = Spelling()
+
+    # just to make sure that this code is tested.
+    entry_buf = Gtk.TextBuffer.new()
+    prepare_TextBuffer(entry_buf)
+
     result = spell.test()
     if not result:
         logger.info("Spell sanity check failed.")
