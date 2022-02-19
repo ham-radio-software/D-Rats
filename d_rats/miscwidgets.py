@@ -126,6 +126,7 @@ class KeyedListWidget(Gtk.Box):
 
         self.__store = Gtk.ListStore(*types)
         self.__view = Gtk.TreeView.new_with_model(self.__store)
+        self.__view.set_hexpand(True)
 
         self.pack_start(self.__view, 1, 1, 1)
 
@@ -172,23 +173,32 @@ class KeyedListWidget(Gtk.Box):
     def _make_view(self):
         colnum = -1
 
-        for typ, cap in self.columns:
+        # In order to get the column width correct for the boolean
+        # column options, we need to know how may pixels per character
+        # are currently being used.
+        layout = self.create_pango_layout("12345")
+        width, _height = layout.get_pixel_size()
+        pix_char = width / 5
+        for data_type, caption in self.columns:
             colnum += 1
             if colnum == 0:
                 continue # Key column
 
-            if typ in [GObject.TYPE_STRING,
-                       GObject.TYPE_INT,
-                       GObject.TYPE_FLOAT]:
+            if data_type in [GObject.TYPE_STRING,
+                             GObject.TYPE_INT,
+                             GObject.TYPE_FLOAT]:
                 rend = Gtk.CellRendererText()
                 rend.set_property("ellipsize", Pango.EllipsizeMode.END)
-                column = Gtk.TreeViewColumn(cap, rend, text=colnum)
-            elif typ in [GObject.TYPE_BOOLEAN]:
+                column = Gtk.TreeViewColumn(caption, rend, text=colnum)
+                column.set_expand(True)
+            elif data_type in [GObject.TYPE_BOOLEAN]:
                 rend = Gtk.CellRendererToggle()
                 rend.connect("toggled", self._toggle, colnum)
-                column = Gtk.TreeViewColumn(cap, rend, active=colnum)
+                column = Gtk.TreeViewColumn(caption, rend, active=colnum)
+                column.set_fixed_width((len(caption) + 1) * pix_char)
             else:
-                raise KeyedListWidgetMakeViewError("Unsupported type %s" % typ)
+                raise KeyedListWidgetMakeViewError("Unsupported type %s" %
+                                                   data_type)
 
             column.set_sort_column_id(colnum)
             self.__view.append_column(column)

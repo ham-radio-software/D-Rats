@@ -3,7 +3,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -994,6 +994,7 @@ class DratsPanel(Gtk.Grid):
                     hbox.pack_start(i, 0, 0, 0)
                 else:
                     hbox.pack_start(i, 1, 1, 0)
+                    i.set_hexpand(True)
                 self.vals.append(i)
             else:
                 hbox.pack_start(i, 0, 0, 0)
