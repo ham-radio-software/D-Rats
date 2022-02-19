@@ -90,7 +90,7 @@
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
+                <property name="fill">False</property>
                 <property name="position">0</property>
               </packing>
             </child>
@@ -181,6 +181,7 @@
                                 <child internal-child="entry">
                                   <object class="GtkEntry">
                                     <property name="can_focus">False</property>
+                                    <property name="width_chars">24</property>
                                   </object>
                                 </child>
                               </object>
@@ -217,7 +218,7 @@
                           </object>
                           <packing>
                             <property name="menu_label">serial</property>
-                            <property name="tab_fill">False</property>
+                            <property name="tab_expand">True</property>
                           </packing>
                         </child>
                         <child>
@@ -240,6 +241,7 @@
                               <object class="GtkEntry" id="net_host">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
+                                <property name="width_chars">80</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -297,7 +299,7 @@
                           <packing>
                             <property name="menu_label">network</property>
                             <property name="position">1</property>
-                            <property name="tab_fill">False</property>
+                            <property name="tab_expand">True</property>
                           </packing>
                         </child>
                         <child>
@@ -398,6 +400,7 @@ passed through a digipeater</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="tooltip_text" translatable="yes">AX.25 Digi path (CALL1,CALL2,...)</property>
+                                <property name="width_chars">80</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -453,7 +456,7 @@ the TNC (not the rate over the air)</property>
                           <packing>
                             <property name="menu_label">tnc</property>
                             <property name="position">2</property>
-                            <property name="tab_fill">False</property>
+                            <property name="tab_expand">True</property>
                           </packing>
                         </child>
                         <child>
@@ -476,7 +479,7 @@ the TNC (not the rate over the air)</property>
                           <packing>
                             <property name="menu_label">dongle</property>
                             <property name="position">3</property>
-                            <property name="tab_fill">False</property>
+                            <property name="tab_expand">True</property>
                           </packing>
                         </child>
                         <child>
@@ -498,6 +501,7 @@ the TNC (not the rate over the air)</property>
                               <object class="GtkEntry" id="agw_addr">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
+                                <property name="width_chars">35</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -597,7 +601,7 @@ the TNC (not the rate over the air)</property>
                           <packing>
                             <property name="menu_label">agwpe</property>
                             <property name="position">4</property>
-                            <property name="tab_fill">False</property>
+                            <property name="tab_expand">True</property>
                           </packing>
                         </child>
                       </object>
