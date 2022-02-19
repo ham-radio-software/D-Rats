@@ -117,7 +117,7 @@ class Platform():
         :param filename: filename passed in
         :type filename: str
         :returns: filename passed in adjusted for platform if needed
-        :rtype str:
+        :rtype: str
         '''
         return filename
 
@@ -138,7 +138,7 @@ class Platform():
         Config File.
 
         :returns: Configuration file path
-        :rtype str:
+        :rtype: str
         '''
         return os.path.join(self.config_dir(),
                             self.filter_filename(filename))
@@ -149,7 +149,7 @@ class Platform():
 
         :param _path: Path to file
         :type _path: str
-        :raises: NotImplementedError
+        :raises: :class:`NotImplementedError`
         '''
         raise NotImplementedError("The base class can't do that")
 
@@ -159,7 +159,7 @@ class Platform():
 
         :param _path: Path to file
         :type _path: str
-        :raises: NotImplementedError
+        :raises: :class:`NotImplementedError`
         '''
         raise NotImplementedError("The base class can't do that")
 
@@ -675,22 +675,15 @@ class Win32Platform(Platform):
         # pylint: disable=import-error
         try:
             import win32file # type: ignore
-        except ImportError:
-            self.logger.info("list_serial_ports: failed to load win32file %s",
-                             exc_info=True)
-        # pylint: disable=import-error
-        try:
             import pywintypes # type: ignore
+            import win32con # type: ignore
         except ImportError:
-            self.logger.info("list_serial_ports: failed to load pywintypes %s",
+            self.logger.info("Python win32api related packaging missing",
                              exc_info=True)
-
             return []
-        import win32con # type: ignore
 
         ports = []
         for i in range(1, 257):
-            # pylint: disable=broad-except
             try:
                 portname = "COM%i" % i
                 mode = win32con.GENERIC_READ | win32con.GENERIC_WRITE
@@ -722,16 +715,19 @@ class Win32Platform(Platform):
         :rtype: str
         '''
         # pylint: disable=import-error
-        import win32gui # type: ignore
-
         try:
-            fname, _, _ = win32gui.GetOpenFileNameW()
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("gui_open_file: Failed to get filename: %s",
-                             "broad-exception", exc_info=True)
+            import win32gui # type: ignore
+            import pywintypes # type: ignore
+        except ImportError:
+            self.logger.info("Python win32api related packaging missing",
+                             exc_info=True)
             return None
 
+        try:
+            fname, _filter, __flags = win32gui.GetOpenFileNameW()
+        except pywintypes.error as err:
+            self.logger.info("gui_open_file: Failed to get filename: %s", err)
+            return None
         return str(fname)
 
     def gui_save_file(self, start_dir=None, default_name=None):
@@ -746,16 +742,20 @@ class Win32Platform(Platform):
         :rtype: str
         '''
         # pylint: disable=import-error
-        import win32gui # type: ignore
-
         try:
-            fname, _, _ = win32gui.GetSaveFileNameW(File=default_name)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("gui_save_file: Failed to get filename: %s",
-                             "broad-exception", exc_info=True)
+            import win32gui # type: ignore
+            import pywintypes # type: ignore
+        except ImportError:
+            self.logger.info("Python win32api related packaging missing",
+                             exc_info=True)
             return None
 
+        try:
+            fname, _filter, _flags = \
+                win32gui.GetSaveFileNameW(File=default_name)
+        except pywintypes.error as err:
+            self.logger.info("gui_save_file: Failed to get filename: %s", err)
+            return None
         return str(fname)
 
     def gui_select_dir(self, start_dir=None):
@@ -768,17 +768,20 @@ class Win32Platform(Platform):
         :rtype: str
         '''
         # pylint: disable=import-error
-        from win32com.shell import shell # type: ignore
-
         try:
-            pidl, _, _ = shell.SHBrowseForFolder()
-            fname = shell.SHGetPathFromIDList(pidl)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("gui_select_dir: failed to get directory %s",
-                             "broad-exception", exc_info=True)
+            from win32com.shell import shell # type: ignore
+        except ImportError:
+            self.logger.info("Python win32com related packaging missing",
+                             exc_info=True)
             return None
 
+        pidl, _display_name, _ilmage_list = shell.SHBrowseForFolder()
+        if not pidl:
+            self.logger.info("gui_select_dir: failed to get directory")
+            return None
+        fname = shell.SHGetPathFromIDList(pidl)
+        if not isinstance(fname, str):
+            fname = fname.decode('utf-8', 'replace')
         return str(fname)
 
     def os_version_string(self):
@@ -795,7 +798,7 @@ class Win32Platform(Platform):
             self.logger.info("os_version_string: Failed to load win32api",
                              exc_info=True)
             return "Windows Unknown."
-        #platform: try to identify windows version
+        # platform: try to identify Microsoft Windows version
         vers = {"11.0": "Windows 11",
                 "10.0": "Windows 10",
                 "6.2": "Windows 8->10",
@@ -806,10 +809,12 @@ class Win32Platform(Platform):
                 "5.0": "Windows 2000",
                }
         # pylint: disable=undefined-variable
-        (pform, pver, _build, _, _) = win32api.GetVersionEx() # type: ignore
-        return vers.get(str(pform) + "." + \
-            str(pver), "Win32 (Unknown %i.%i)" % (pform, pver)) + \
-            " " + str(win32api.GetVersionEx()) # type: ignore
+        (major_version, minor_version, _build_number, _platform_id, _version) \
+            = win32api.GetVersionEx() # type: ignore
+        return vers.get(str(major_version) + "." + str(minor_version),
+                        "Win32 (Unknown %i.%i)" %
+                        (major_version, minor_version)) + \
+                        " " + str(win32api.GetVersionEx()) # type: ignore
 
     def play_sound(self, soundfile):
         '''
@@ -868,11 +873,15 @@ def do_test():
     logger.info("Log file (foo): %s", pform.log_file("foo"))
     logger.info("Serial ports: %s", pform.list_serial_ports())
     logger.info("OS Version: %s", pform.os_version_string())
- #  pform.open_text_file("d-rats.py")
 
- #   logger.info("Open file: %s", pform.gui_open_file())
- #   logger.info("Save file: %s", pform.gui_save_file(default_name="Foo.txt"))
- #   logger.info("Open folder: %s", pform.gui_select_dir("/tmp"))
+    if len(sys.argv) > 1:
+
+        pform.open_text_file("d-rats.py")
+
+        logger.info("Open file: %s", pform.gui_open_file())
+        logger.info("Save file: %s",
+                    pform.gui_save_file(default_name="Foo.txt"))
+        logger.info("Open folder: %s", pform.gui_select_dir("/tmp"))
 
 
 if __name__ == "__main__":
