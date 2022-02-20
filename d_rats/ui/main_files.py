@@ -2,7 +2,7 @@
 '''Main Files'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -60,6 +60,8 @@ class FileView():
     def __init__(self, view, path, config):
         self._view = view
         self._path = path
+        if path and not os.path.isdir(path):
+            os.makedirs(path, exist_ok=True)
 
         self._store = Gtk.ListStore(GObject.TYPE_OBJECT,
                                     GObject.TYPE_STRING,
@@ -82,6 +84,8 @@ class FileView():
 
         :param path: Path to set.
         '''
+        if not os.path.isdir(path):
+            os.makedirs(path, exist_ok=True)
         self._path = path
 
     def refresh(self):
@@ -161,7 +165,17 @@ class RemoteFileView(FileView):
         self.logger = logging.getLogger("RemoteFileV")
 
     # pylint: disable=too-many-locals
-    def _file_list_cb(self, job, state, result):
+    def _file_list_cb(self, _job, state, result):
+        '''
+        File List Callback.
+
+        :param _job: Unused RPC job
+        :type _job: :class:`rpc.RPCFileListJob`
+        :param state: State of the connetion
+        :type state: str
+        :param result: Result of the job
+        :type result: dict
+        '''
         if state != "complete":
             self.logger.info("_file_list_cb : Incomplete job")
             return
@@ -183,7 +197,9 @@ class RemoteFileView(FileView):
                                      " Unable to parse file size",
                                      exc_info=True)
                 try:
-                    units_str = units.decode('utf-8', 'replace')
+                    units_str = units
+                    if not isinstance(units, str):
+                        units_str = units.decode('utf-8', 'replace')
                     size <<= unit_decoder[units_str]
                 except KeyError:
                     self.logger.info("_file_list_cb:"
