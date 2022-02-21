@@ -1157,6 +1157,8 @@ def make_choice(options, editable=True, default=None):
     :param editable: Default True
     :type editable: bool
     :param default: Default None
+    :returns: selection dialog
+    :rtype: :class:`Gtk.ComboBox.Text`
     '''
     logger = logging.getLogger("make_choice")
     if editable:
