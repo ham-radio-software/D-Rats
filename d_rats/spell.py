@@ -111,7 +111,7 @@ class Spelling:
         self.__pipe.stdin.write("%s%s" %(wiq, os.linesep))
         suggest_str = self.__pipe.stdout.readline()
 
-        self.logger.info("spell: suggest_str = %s", suggest_str)
+        self.logger.debug("spell: suggest_str = %s", suggest_str)
         if not self.__persist:
             self.__close_aspell()
 
@@ -205,7 +205,7 @@ def __do_fly_spell(buffer):
     if end_iter.inside_word():
         end_iter.forward_word_end()
 
-    text = buffer.get_text(start_iter, end_iter)
+    text = buffer.get_text(start_iter, end_iter, False)
     word = text.strip()
     # print "Got: '%s' (%s)" % (text, word)
 
@@ -247,7 +247,7 @@ def prepare_TextBuffer(buf):
 def main():
     '''Unit test.'''
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     logger = logging.getLogger("spell_test")
 
