@@ -291,18 +291,15 @@ class MapUSGSRiver(MapPointThreaded):
         #      "&column_name=alt_va" % self.__site
 
         platform = dplatform.get_platform()
-        # print("url", url)
         try:
             filter_filename, _headers = platform.retrieve_url(url)
             content = open(filter_filename).read()
-        # pylint: disable=broad-except
         except urllib.error.HTTPError as err:
             self.set_name("NSGS NWIS Site %s" % self.__site)
             if err.code == 400:
                 self.logger.info("__parse_site [NSGS] Failed %s: %s %s",
                                  self.__site, err.code, err.reason)
                 return
-            print("err", type(err), dir(err), err.code, err.reason)
             self.logger.info("__parse_site [NSGS] Failed to fetch info for %s",
                              self.__site, exc_info=True)
             return
@@ -330,14 +327,16 @@ class MapUSGSRiver(MapPointThreaded):
         try:
             file_name, _headers = platform.retrieve_url(url)
             line = open(file_name).readlines()[-1]
-        # pylint: disable=broad-except
-        except Exception:
+        except urllib.error.HTTPError as err:
+            self.set_comment("No data")
+            self.set_timestamp(time.time())
+            if err.code == 400:
+                self.logger.info("__parse_level: [NSGS] Failed %s: %s %s",
+                                 self.__site, err.code, err.reason)
+                return
             self.logger.info("__parse_level: [NSGS] Failed to fetch "
                              "info for site %s",
                              self.__site, exc_info=True)
-            self.set_comment("No data")
-            self.set_timestamp(time.time())
-
             return
 
         fields = line.split("\t")
@@ -369,11 +368,14 @@ class MapNBDCBuoy(MapPointThreaded):
         try:
             fname, _headers = platform.retrieve_url(self.__url)
             content = open(fname).read()
-        # pylint: disable=broad-except
-        except Exception:
+        except urllib.error.HTTPError as err:
+            self.set_name("NBDC %s" % self.__buoy)
+            if err.code == 400:
+                self.logger.info("do_update: [NBDC] Failed %s: %s %s",
+                                 self.__buoy, err.code, err.reason)
+                return
             self.logger.info("do_update: [NBDC] Failed to fetch info for %i",
                              self.__buoy, exc_info=True)
-            self.set_name("NBDC %s" % self.__buoy)
             return
 
         try:
@@ -576,19 +578,16 @@ class MapFileSource(MapSource):
 
         try:
             input_handle = open(filename)
-        # pylint: disable=broad-except
-        except Exception as err:
-            msg = "Failed to open %s: (%s) %s" % (filename, type(err), err)
-            self.logger.info("Failed to open %s", filename, exc_info=True)
+        except (PermissionError, FileNotFoundError) as err:
+            msg = "Failed to open %s: %s" % (filename, err)
+            self.logger.info("Failed to open %s: %s")
             raise MapSourceFailedToConnect(msg)
 
         lines = input_handle.readlines()
         for line in lines:
             try:
                 point = self.__parse_line(line)
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("Failed to parse", exc_info=True)
+            except MapSourcePointError:
                 continue
 
             self._points[point.get_name()] = point
@@ -635,15 +634,13 @@ class MapFileSource(MapSource):
         return MapFileSource(name, "Static file", path)
 
     # open_source_by_name = Callable(_open_source_by_name)
-
-    # pylint: disable=no-self-use
     def __parse_line(self, line):
+
         try:
             ident, icon, lat, lon, alt, comment, show = line.split(",", 6)
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("parse_line broad-execpt", exc_info=True)
-            raise MapSourcePointError(str(err))
+        except ValueError:
+            self.logger.info("parse_line failed (%s)")
+            raise MapSourcePointError
 
         if alt:
             alt = float(alt)
@@ -697,7 +694,6 @@ class MapUSGSRiverSource(MapSource):
         self._mutable = False
 
         for site in sites:
-            print("MapUSGSRiverSource site:", site)
             point = MapUSGSRiver(site)
             point.connect("updated", self._point_updated)
 
@@ -844,7 +840,7 @@ class MapNBDCBuoySource(MapSource):
         :returns: filenames for sources
         :rtype: list of str
         '''
-          # pylint: disable=no-member
+        # pylint: disable=no-member
         if not config.has_section("buoys"):
             return []
         # pylint: disable=no-member

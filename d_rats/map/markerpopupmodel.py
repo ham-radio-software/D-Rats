@@ -69,10 +69,6 @@ class MarkerPopupModel(Gio.Menu):
         :param window: The map window
         :type window: :class:`Map.MapWindow`
         '''
-        print("setup menu")
-        params_type = GLib.VariantType.new('r')
-        print("params_type", type(params_type))
-
         self.action_center.connect('activate', window.marker_center_handler)
         window.add_action(self.action_center)
 
@@ -92,9 +88,7 @@ class MarkerPopupModel(Gio.Menu):
         :type ident: str
         '''
         group_var = GLib.Variant.new_string(group)
-        print("group_var", type(group_var))
         ident_var = GLib.Variant.new_string(ident)
-        print("ident_var", type(ident_var))
         params = GLib.Variant.new_tuple(group_var, ident_var)
         self.action_center.change_state(params)
         self.action_delete.change_state(params)
