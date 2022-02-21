@@ -1,6 +1,6 @@
 '''Map Marker Dialog Module.'''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -46,7 +46,6 @@ class MarkerEditDialog(inputdialog.FieldDialog):
 
     def __init__(self):
         inputdialog.FieldDialog.__init__(self, title=_("Add Marker"))
-        # Each class should have their own logger.
         self.logger = logging.getLogger("MarkerEditDialog")
         self.logger.info("class init")
 
@@ -102,12 +101,12 @@ class MarkerEditDialog(inputdialog.FieldDialog):
             grpsel.append_text(grp)
 
         if group is not None:
-            children = grpsel.get_children()
-            children.set_text(group)
+            group_entry = grpsel.get_child()
+            group_entry.set_text(group)
             grpsel.set_sensitive(False)
         else:
-            children = grpsel.get_children()
-            children[0].set_text(_("Misc"))
+            group_entry = grpsel.get_child()
+            group_entry.set_text(_("Misc"))
 
     # pylint: disable=arguments-differ
     def get_group(self):
@@ -117,8 +116,8 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         :returns: Group name for marker
         :rtype: str
         '''
-        children = self.get_field(_("Group")).get_children()
-        return children[0].get_text()
+        group_entry = self.get_field(_("Group")).get_child()
+        return group_entry.get_text()
 
     def set_point(self, point):
         '''

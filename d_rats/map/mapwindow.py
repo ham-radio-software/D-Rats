@@ -465,16 +465,18 @@ class MapWindow(Gtk.ApplicationWindow):
         :param _value: Value for action, Unused
         :type _value: :class:`Gio.VariantType`
         '''
-        print("self", type(self))
         state = action.get_state()
         group_var = state.get_child_value(0)
         ident_var = state.get_child_value(1)
-        print("group_var", type(group_var))
-        print("ident_var", type(ident_var))
         group = group_var.get_string()
         ident = ident_var.get_string()
-        print("group", group)
-        print("ident", ident)
+        for source in self.map_sources:
+            if source.get_name() == group:
+                point = source.get_point_by_name(ident)
+                position = Map.Position(point.get_latitude(),
+                                        point.get_longitude())
+                self.recenter(position)
+                break
 
     def marker_delete_handler(self, action, _value):
         '''
@@ -485,16 +487,26 @@ class MapWindow(Gtk.ApplicationWindow):
         :param _value: Value for action, Unused
         :type _value: :class:`Gio.VariantType`
         '''
-        print("self", type(self))
         state = action.get_state()
         group_var = state.get_child_value(0)
         ident_var = state.get_child_value(1)
-        print("group_var", type(group_var))
-        print("ident_var", type(ident_var))
         group = group_var.get_string()
         ident = ident_var.get_string()
-        print("group", group)
-        print("ident", ident)
+        for source in self.map_sources:
+            if source.get_name() == group:
+                if not source.get_mutable():
+                    # We probably should bring up an error indicator
+                    # instead of seemingly ignoring the request
+                    # or find a way to disable the delete option for
+                    # read only sources.
+                    self.logger.info("marker_delete_handler: "
+                                     "Source %s is read-only", group)
+                    return
+                self.logger.info("marker_delete_handler: "
+                                 "Deleting %s/%s", group, ident)
+                point = source.get_point_by_name(ident)
+                source.del_point(point)
+                source.save()
 
     def marker_edit_handler(self, action, _value):
         '''
@@ -505,16 +517,27 @@ class MapWindow(Gtk.ApplicationWindow):
         :param value: Value for action, Unused
         :type value: :class:`Gio.VariantType`
         '''
-        print("self", type(self))
         state = action.get_state()
         group_var = state.get_child_value(0)
         ident_var = state.get_child_value(1)
-        print("group_var", type(group_var))
-        print("ident_var", type(ident_var))
         group = group_var.get_string()
         ident = ident_var.get_string()
-        print("group", group)
-        print("ident", ident)
+        for source in self.map_sources:
+            if source.get_name() == group:
+                if not source.get_mutable():
+                    # We probably should bring up the dialog in read-only
+                    # instead of seemingly ignoring the request
+                    self.logger.info("marker_edit_handler: "
+                                     "Source %s is read-only", group)
+                    return
+                point = source.get_point_by_name(ident)
+                old_point = point.dup()
+                new_point, group = self.prompt_to_set_marker(point, group)
+                if new_point:
+                    source.del_point(old_point)
+                    source.add_point(new_point)
+                    source.save()
+                break
 
     def _make_menu(self):
         '''
@@ -638,7 +661,8 @@ class MapWindow(Gtk.ApplicationWindow):
                                        point.get_longitude())
                     point_x, point_y = Map.Tile.deg2display(pos)
                 except ZeroDivisionError:
-                    print("ZeroDivisionError")
+                    # Does this happen anymore?
+                    self.logger.info("ZeroDivisionError %s", pos)
                     continue
 
                 dx_axis = abs(x_axis - point_x)
@@ -813,12 +837,12 @@ class MapWindow(Gtk.ApplicationWindow):
             except AttributeError:
                 # This happens when unit testing because mainapp has not
                 # been setup so nothing is returned for get-station-list
-                self.logger.info('prompt_to_send_log: failed to send',
-                                 exc_info=True)
+                self.logger.info('prompt_to_send_log: failed to send'
+                                 ' No station list available.')
             except Exception as err:
                 # Eventually this handler should be removed.
-                print("Mapdiplay.MapWindow.prompt_to_send_loc",
-                      " Broad Exception (%s) %s" % (type(err), err))
+                self.logger.info("prompt_to_send_loc: Broad Exception",
+                                 exc_info=True)
                 # utils.log_exception()
                 except_dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
                                                   parent=dialog)
@@ -834,8 +858,11 @@ class MapWindow(Gtk.ApplicationWindow):
         Prompt to set marker.
 
         :param point: Point to set marker on
+        :type point: :class:`MapPoint`
         :param group: Optional group
+        :type group: str
         :returns: Tuple of (point, group) or (None, None)
+        :rtype: tuple of (:class:`MapPoint', str)
         '''
         dialog = Map.MarkerEditDialog()
 
