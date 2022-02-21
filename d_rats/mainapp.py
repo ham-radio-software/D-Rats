@@ -720,7 +720,9 @@ class MainApp(Gtk.Application):
         Chat session.
 
         :param portname: Port name for session
+        :type portname: str
         :returns: Chat Session object
+        :rtype: :class:`sessions.chat.ChatSession`
         '''
         return self.smgr[portname][0].get_session(lid=1)
 
@@ -1286,9 +1288,13 @@ class MainApp(Gtk.Application):
         listening from the arriving messages
 
         :param _obj: unused
+        :type _obj: :class:`ui.main_chat.ChatTab`
         :param station: Station
+        :type station: :class:`str`
         :param port: Radio port
+        :type port: :class:`str`
         :param msg: Chat message
+        :type msg: :class:`str`
         :param raw: True if raw mode
         :type raw: bool
         '''

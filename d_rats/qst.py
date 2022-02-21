@@ -3,7 +3,7 @@
 '''QST'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -246,11 +246,8 @@ class QSTFile(QSTText):
         size_limit = self.config.getint("settings", "qst_size_limit")
         try:
             file_handle = open(self.text)
-            # f = NetFile(self.text)
-        # pylint: disable=bare-except
-        except:
-            self.logger.info("Unable to open file `%s'", self.text,
-                             exc_info=True)
+        except (PermissionError, FileNotFoundError) as err:
+            self.logger.info("Unable to open file `%s': %s", self.text, err)
             return None
 
         text = file_handle.read()
@@ -328,7 +325,7 @@ class QSTGPSA(QSTGPS):
         if not "::" in self.text:
             # add "/" that was removed from gps.py to send message
             # and not in Weather WXGPS-A
-            self.text = ("/"+self.text) 
+            self.text = ("/"+self.text)
             fix.set_station(fix.station, self.text[:200])
             self.text = self.text[1:]
 
@@ -583,11 +580,9 @@ class QSTOpenWeather(QSTThreadedText):
 
         try:
             t_qst, s_qst = self.text.split("/", 2)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("Unable to split weather QST %s",
-                             self.text,
-                             exc_info=True)
+        except ValueError as err:
+            self.logger.info("Unable to split weather QST %s: %s",
+                             self.text, err)
             return None
 
 #---to be restore when forecasts are done
@@ -730,8 +725,8 @@ class QSTOpenWeather(QSTThreadedText):
         return None
 
 #---to be restore when forecats are done
-    #    except Exception as e:
-    #        printlog(("Qst       : Error getting weather: %s" % e))
+    #    except SomeException as err:
+    #        self.logger.info("do_qst: Error getting weather: %s" % err))
     #        return None
 
         # Code not reachable
@@ -755,8 +750,8 @@ class QSTStation(QSTGPSA):
         QSTGPSA.__init__(self, config, content, key)
         self.logger = logging.getLogger("QSTStation")
 
-    # pylint: disable=no-self-use
-    def get_source(self, name):
+    @staticmethod
+    def get_source(name):
         '''
         Get Map Source for name.
 
@@ -773,7 +768,8 @@ class QSTStation(QSTGPSA):
 
         return None
 
-    def get_station(self, source, station):
+    @staticmethod
+    def get_station(source, station):
         '''
         Get Station from source.
 
@@ -797,9 +793,8 @@ class QSTStation(QSTGPSA):
         '''
         try:
             (group, station) = self.text.split("::", 1)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("QSTStation Error", exc_info=True)
+        except ValueError as err:
+            self.logger.info("QSTStation Error: %s", err)
             return None
 
         source = self.get_source(group)
@@ -1071,11 +1066,10 @@ class QSTGPSEditWidget(QSTEditWidget):
         else:
             self.__msg.set_text("ON D-RATS")
 
-        dprs.connect("clicked", self.prompt_for_DPRS)
+        dprs.connect("clicked", self.prompt_for_dprs)
         hbox.pack_start(dprs, 0, 0, 0)
 
-    # pylint: disable=invalid-name
-    def prompt_for_DPRS(self, _button):
+    def prompt_for_dprs(self, _button):
         '''
         Prompt For DPRS
 
@@ -1326,9 +1320,8 @@ class QSTWUEditWidget(QSTEditWidget):
         '''
         try:
             t_qst, s_qst = content.split("/", 2)
-        # pylint: disable=bare-except
-        except:
-            self.logger.info("Unable to split `%s'", content, exc_info=True)
+        except ValueError:
+            self.logger.info("Unable to split `%s'", content)
             t_qst = _("Current")
             s_qst = _("UNKNOWN")
 
@@ -1394,14 +1387,11 @@ class QSTEditDialog(Gtk.Dialog):
 
         if self._config.has_section(self._ident):
             combo_select(self._type, self._config.get(self._ident, "type"))
-            self._freq.child.set_text(self._config.get(self._ident, "freq"))
+            config_freq = self._config.get(self._ident, "freq")
+            self._freq.get_child().set_text(config_freq)
             self._select_type(self._type)
             self.__current.from_qst(self._config.get(self._ident, "content"))
-            try:
-                combo_select(self._port, self._config.get(self._ident, "port"))
-            # pylint: disable=bare-except
-            except:
-                pass
+            combo_select(self._port, self._config.get(self._ident, "port"))
         else:
             self._select_type(self._type)
 

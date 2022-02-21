@@ -19,15 +19,18 @@
 
 # this is the user interface for the chat tab
 
+import ast
 import logging
 import os
 import time
 import re
 from datetime import datetime
+from six.moves.configparser import NoSectionError # type: ignore
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import Pango
 from gi.repository import GLib
@@ -263,7 +266,7 @@ class ChatQST(MainWindowElement):
         qst_id = store[path][idcol]
         freq = store[path][fcol]
 
-        self._config.set(qst_id, "enabled", val)
+        self._config.set(qst_id, "enabled", str(val))
 
         qst_object, _qst_c = self._qsts[qst_id]
         self._qsts[qst_id] = qst_object, self._remaining_for(freq) * 60
@@ -302,8 +305,8 @@ class ChatQST(MainWindowElement):
             self.reconfigure()
         dialog.destroy()
 
-    # pylint: disable=no-self-use
-    def _remaining_for(self, freq):
+    @staticmethod
+    def _remaining_for(freq):
         if freq.startswith(":"):
             n_min = int(freq[1:])
             c_min = datetime.now().minute
@@ -501,8 +504,8 @@ class ChatTab(MainWindowTab):
         cur = self.__filtertabs.get_current_page()
         return self.__filtertabs.get_nth_page(cur).get_child()
 
-    # pylint: disable=no-self-use
-    def _maybe_highlight_header(self, buffer, mark):
+    @staticmethod
+    def _maybe_highlight_header(buffer, mark):
         start = buffer.get_iter_at_mark(mark)
         flags = Gtk.TextSearchFlags.TEXT_ONLY
         # The forward_search method returns None when a match is not
@@ -614,27 +617,51 @@ class ChatTab(MainWindowTab):
         self.emit("user-send-chat", dcall, port, text, False)
 
     def _send_msg(self, _qm, msg, conf_key, raw, dest):
+        '''
+        Send Message Handler
+
+        :param _qm: Widget signaling handler
+        :type qm: :class:`MainWindowElement`
+        :param msg: Message to send
+        :type msg; str
+        :param conf_key: Name of radio port to use
+        :type conf_key: str
+        :param raw: Flag to send raw data
+        :type raw: bool
+        :param dest: Destinations for message
+        :type dest: :class:`Gtk.ComboBoxText`
+        '''
         current_text = _("Current")
         if conf_key:
             try:
                 port = self._config.get(conf_key, "port")
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("_send_msg of conf_key broad-except",
-                                 exc_info=True)
+            except NoSectionError:
+                self.logger.info("_send_msg: "
+                                 "QST not found in configuration, deleted?")
+                return
+            except KeyError:
+                self.logger.info("_send_msg: "
+                                 "Radio port %s not in QST configuration.")
                 port = current_text
         else:
             port = current_text
 
         if port == current_text:
-            # port = dest.get_active_text()
-            port = dest.get_active()
+            port = dest.get_active_text()
             self.emit("user-send-chat", "CQCQCQ", port, msg, raw)
         elif port == _("All"):
             for i in self.__ports:
                 self.emit("user-send-chat", "CQCQCQ", i, msg, raw)
 
     def _bcast_file(self, _but, dest):
+        '''
+        Broadcast file handler.
+
+        :param _but: Widget signaling hander
+        :type _but: :class:`Gtk.Button'
+        :param dest: Destinations for sending
+        :type dest: :class:`Gtk.ComboBoxText
+        '''
         download_dir = self._config.get("prefs", "download_dir")
         file_name = self._config.platform.gui_open_file(download_dir)
         if not file_name:
@@ -642,9 +669,7 @@ class ChatTab(MainWindowTab):
 
         try:
             file_handle = open(file_name, 'r')
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("_bcast_file broad-except", exc_info=True)
+        except (PermissionError, FileNotFoundError) as err:
             display_error(_("Unable to open file %s: %s") % (file_name, err))
             return
 
@@ -655,8 +680,7 @@ class ChatTab(MainWindowTab):
             display_error(_("File is too large to send (>8KB)"))
             return
 
-        # port = dest.get_active_text()
-        port = dest.get_active()
+        port = dest.get_active_text()
         self.emit("user-send-chat", "CQCQCQ", port, "\r\n" + data, False)
 
     def _clear(self, _but):
@@ -721,15 +745,26 @@ class ChatTab(MainWindowTab):
         self._config.platform.open_text_file(file_name)
 
     def _enter_to_send(self, view, event, dest):
-        if event.keyval == 65293:
+        '''
+        Enter to Send hander.
+
+        :param view: Widget that signaled handler
+        :type view: :class:`Gtk.TextView`
+        :param event: Event key to handel
+        :type event: :class:`Gdk.EventKey`
+        :param dest: Destinations for sending
+        :type dest: :class:`Gtk.ComboBoxText
+        :returns: True if message is sent
+        :rtype: bool
+        '''
+        if event.keyval == Gdk.KEY_Return:
             # print("_enter_to_send dest=%s" % dest)
             self._send_button(None, dest, view)
             return True
-        if event.keyval >= 65470 and event.keyval <= 65482:
-            index = event.keyval - 65470
+        if event.keyval >= Gdk.KEY_F1 and event.keyval <= Gdk.KEY_F13:
+            index = event.keyval - Gdk.KEY_F1
             msgs = sorted(self._config.options("quick"))
-            # port = dest.get_active_text()
-            port = dest.get_active()
+            port = dest.get_active_text()
             if index < len(msgs):
                 msg = self._config.get("quick", msgs[index])
                 self.emit("user-send-chat", "CQCQCQ", port, msg, False)
@@ -905,8 +940,10 @@ class ChatTab(MainWindowTab):
 
         self.__filters = {}
 
-        # pylint: disable=eval-used
-        filters = eval(self._config.get("state", "filters"))
+        conf_filters = self._config.get("state", "filters")
+        filters = []
+        if conf_filters:
+            filters = ast.literal_eval(conf_filters)
         while None in filters:
             filters.remove(None)
         filters.insert(0, None) # Main catch-all
@@ -955,8 +992,7 @@ class ChatTab(MainWindowTab):
         '''
         # pylint: disable=unbalanced-tuple-unpacking
         dest, = self._getw("destination")
-        # return dest.get_active_text()
-        return dest.get_active()
+        return dest.get_active_text()
 
     def selected(self):
         '''Process selected tab.'''
