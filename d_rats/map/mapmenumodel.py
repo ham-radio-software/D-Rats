@@ -1,6 +1,6 @@
 '''Map Window Menu Model Module.'''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -26,9 +26,7 @@ from __future__ import unicode_literals
 
 import gi
 gi.require_version("Gtk", "3.0")
-
 from gi.repository import Gio
-
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -81,7 +79,6 @@ class MapMenuModel(Gio.Menu):
         :param window: The map window
         :type window: :class:`Map.MapWindow`
         '''
-
         action_refresh = Gio.SimpleAction.new('refresh', None)
         action_refresh.connect('activate', window.item_refresh_handler)
         window.add_action(action_refresh)
@@ -102,6 +99,8 @@ class MapMenuModel(Gio.Menu):
         action_printablevis.connect('activate',
                                     window.item_printablevis_handler)
         window.add_action(action_printablevis)
+        window.application.set_accels_for_action('win.printablevis',
+                                                 ['<Control><Alt>P'])
 
         # action_save = Gio.SimpleAction.new('save', None)
         # action_save.connect('activate', window.item_save_handler)
@@ -110,3 +109,5 @@ class MapMenuModel(Gio.Menu):
         action_savevis = Gio.SimpleAction.new('savevis', None)
         action_savevis.connect('activate', window.item_savevis_handler)
         window.add_action(action_savevis)
+        window.application.set_accels_for_action('win.savevis',
+                                                 ['<Control><Alt>S'])
