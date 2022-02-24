@@ -89,6 +89,7 @@ class MapWindow(Gtk.ApplicationWindow):
         Gtk.ApplicationWindow.__init__(self, application=application)
 
         self.logger = logging.getLogger("MapWindow")
+        self.application = application
 
         self.connect("destroy", self.ev_destroy)
         self.connect("delete_event", self.ev_delete)
