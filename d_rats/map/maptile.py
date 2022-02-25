@@ -71,8 +71,8 @@ class MapFetchError(MapFetchUrlException):
     '''Map Unexpected Fetch Error.'''
 
 
-# pylint wants only 20 public methods.
-# pylint: disable=too-many-public-methods
+# pylint wants only 20 public methods. and 7 instance attributes
+# pylint: disable=too-many-public-methods, too-many-instance-attributes
 class MapTile():
     '''
     Map Tile Information
@@ -86,7 +86,6 @@ class MapTile():
     :type x_axis: float
     :param y_axis: Y axis of tile on map, default None
     '''
-
     _base_dir = None
     _connected = False
     _map_key = None
@@ -107,6 +106,8 @@ class MapTile():
     _y_origin = 0
     _center = None
     center = None
+    _last_fetch_time = None
+    _last_fetch_lock = threading.Lock()
 
     def __init__(self, position=None, x_axis=None, y_axis=None):
 
@@ -559,22 +560,43 @@ class MapTile():
         local_file.close()
         return True
 
-    def _thread(self, callback, *args):
-        if self.fetch():
-            fname = self._local_path()
-        else:
-            fname = None
-        GLib.idle_add(callback, fname, *args)
+    @classmethod
+    def _update_fetch_time(cls, value):
+        # Must be called only while locked
+        cls._last_fetch_time = value
 
-    def threaded_fetch(self, callback, *args):
+    def _tile_draw_handler(self, widget):
+        self._last_fetch_lock.acquire()
+        if self._last_fetch_time is None:
+            status = False
+        elif (time.time() - self._last_fetch_time) < 1.0:
+            status = True
+        else:
+            GLib.idle_add(widget.queue_draw)
+            MapTile._update_fetch_time(None)
+            status = False
+        self._last_fetch_lock.release()
+        return status
+
+    def _thread(self, widget, *_args):
+        if self.fetch():
+            self._last_fetch_lock.acquire()
+            if self._last_fetch_time is None:
+                MapTile._update_fetch_time(time.time())
+                GLib.timeout_add(1000, self._tile_draw_handler, widget)
+            self._last_fetch_lock.release()
+
+    def threaded_fetch(self, widget):
         '''
         Threaded fetch.
 
+        :param widget: Widget to signal a draw for
+        :type widget: :class:`map.MqpWidget`
         :param callback: Callback for fetch
         :type callback: function
         :param args: Optional arguments
         '''
-        new_args = (callback,) + args
+        new_args = (widget,)
         tfetch = threading.Thread(target=self._thread, args=new_args)
         tfetch.setDaemon(True)
         tfetch.start()

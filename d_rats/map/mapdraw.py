@@ -404,12 +404,9 @@ class MapDraw():
                     self.draw_tile(None,
                                    tilesize * i,
                                    tilesize * j)
-                    tile.threaded_fetch(self.draw_tile,
-                                        tilesize * i,
-                                        tilesize * j)
+                    tile.threaded_fetch(self.map_widget)
                 self.progress(message)
                 self.map_widget.map_tiles.append(tile)
-        #self.emit("new-tiles-loaded")
 
     # pylint: disable=too-many-locals
     def scale(self):
