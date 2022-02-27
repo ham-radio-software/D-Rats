@@ -770,14 +770,19 @@ class Win32Platform(Platform):
         # pylint: disable=import-error
         try:
             from win32com.shell import shell # type: ignore
+            import pywintypes # type: ignore
         except ImportError:
             self.logger.info("Python win32com related packaging missing",
                              exc_info=True)
             return None
 
-        pidl, _display_name, _ilmage_list = shell.SHBrowseForFolder()
+        try:
+            err = "No error detected"
+            pidl, _display_name, _ilmage_list = shell.SHBrowseForFolder()
+        except pywintypes.com_error as err:
+            pidl = None
         if not pidl:
-            self.logger.info("gui_select_dir: failed to get directory")
+            self.logger.info("gui_select_dir: failed to get directory: %s", err)
             return None
         fname = shell.SHGetPathFromIDList(pidl)
         if not isinstance(fname, str):
