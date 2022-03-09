@@ -62,8 +62,6 @@ class MapWidget(Gtk.DrawingArea):
     #                          ()),
     #    }
     #_color_black = None
-    _x_fudge = 0
-    _y_fudge = 0
     LAT_MAX = 90
     LON_MAX = 180
 

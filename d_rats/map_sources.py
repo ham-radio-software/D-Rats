@@ -28,6 +28,8 @@ import os
 import urllib
 from glob import glob
 from lxml import etree
+from six.moves.configparser import NoSectionError # type: ignore
+from six.moves.configparser import NoOptionError # type: ignore
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -95,7 +97,12 @@ class MapPoint(GObject.GObject):
         pass
 
     def dup(self):
-        '''Dup.'''
+        '''
+        Duplicate a MapPoint.
+
+        :returns: Copy of this object
+        :rtype: :class:`MapPoint`
+        '''
         point = MapPoint()
 
         for i in ["latitude", "longitude", "altitude", "name",
@@ -112,7 +119,6 @@ class MapPoint(GObject.GObject):
 
         attrname = "_MapPoint__%s" % name
 
-        #print self.__dict__.keys()
         if not hasattr(self, attrname):
             raise ValueError("No such attribute `%s'" % attrname)
 
@@ -190,13 +196,27 @@ class MapStation(MapPoint):
 
 
 def _xdoc_getnodeval(doc, nodespec, namespaces=None):
+    '''
+    XDOC Get node value.
+
+    :param doc: Source document
+    :type doc: :class:`etree._Element`
+    :param nodespec: node to look up
+    :type nodespec: str
+    :param namespaces: Name space data
+    :type namespaces: dict
+    :raises: :class:`MapStationDataError` if no items found
+    :raises: :class:`MapStationNodeError` if node is not unique
+    :returns: requested content
+    :rtype: str
+    '''
     items = doc.xpath(nodespec, namespaces=namespaces)
     if not items:
         raise MapStationDataError("No data for %s" % nodespec)
     if len(items) > 1:
         raise MapStationNodeError("Too many nodes")
 
-    return items[0].getContent()
+    return items[0].text
 
 
 class MapPointThreaded(MapPoint):
@@ -277,16 +297,6 @@ class MapUSGSRiver(MapPointThreaded):
         url = "http://waterservices.usgs.gov/nwis/site/" \
               "?format=mapper&sites=%s&siteOutput=expanded&siteStatus=all" % \
               self.__site
-        #url = "http://waterservices.usgs.gov/nwis/iv" \
-        #      "?search_site_no=%s" \
-        #      "&format=sitefile_output" \
-        #      "&sitefile_output_format=xml" \
-        #      "&column_name=agency_cd" \
-        #      "&column_name=site_no" \
-        #      "&column_name=station_nm" \
-        #      "&column_name=dec_lat_va" \
-        #      "&column_name=dec_long_va" \
-        #      "&column_name=alt_va" % self.__site
 
         platform = dplatform.get_platform()
         try:
@@ -304,21 +314,13 @@ class MapUSGSRiver(MapPointThreaded):
 
         pattern = r'encoding="UTF-8"'
         content = re.sub(pattern, '', content)
-        # doc = etree.fromstring(content)
         doc = etree.fromstring(content)
 
-        # base = "/usgs_nwis/site/"
-
-        # self._basename = _xdoc_getnodeval(doc, base + "station_nm")
         sites = doc[0]
         site = sites[0]
-        # self.set_name(self._basename)
         self.set_name(site.get('sna'))
         self.set_latitude(float(site.get('lat')))
         self.set_longitude(float(site.get('lng')))
-        # self.set_latitude(float(_xdoc_getnodeval(doc, base + "dec_lat_va")))
-        # self.set_longitude(float(_xdoc_getnodeval(doc, base + "dec_long_va")))
-        # self.set_altitude(float(_xdoc_getnodeval(doc, base + "alt_va")))
 
     def __parse_level(self):
         url = \
@@ -343,7 +345,6 @@ class MapUSGSRiver(MapPointThreaded):
 
         fields = line.split("\t")
 
-        #self._height_ft = float(fields[3])
         self._height_ft = float(fields[4])
         self.set_comment("River height: %.1f ft" % self._height_ft)
         self.set_timestamp(time.time())
@@ -358,7 +359,6 @@ class MapNBDCBuoy(MapPointThreaded):
 
     def __init__(self, buoy):
         MapPointThreaded.__init__(self)
-
         self.logger = logging.getLogger("MapNBDCBuoy")
         self.__buoy = buoy
         self.__url = "http://www.ndbc.noaa.gov/data/latest_obs/%s.rss" % buoy
@@ -377,14 +377,13 @@ class MapNBDCBuoy(MapPointThreaded):
                 self.logger.info("do_update: [NBDC] Failed %s: %s %s",
                                  self.__buoy, err.code, err.reason)
                 return
-            self.logger.info("do_update: [NBDC] Failed to fetch info for %i",
+            self.logger.info("do_update: [NBDC] Failed to fetch info for %s",
                              self.__buoy, exc_info=True)
             return
 
         try:
-            doc = etree.parse(content)
-        # pylint: disable=broad-except
-        except Exception:
+            doc = etree.fromstring(content)
+        except (etree.ParseError, etree.ParserError):
             self.logger.info("do_update: [NBDC] Failed to parse document %s",
                              self.__url, exc_info=True)
             self.set_name("NBDC Unknown Buoy %s" % self.__buoy)
@@ -397,8 +396,7 @@ class MapNBDCBuoy(MapPointThreaded):
 
         try:
             descrip = _xdoc_getnodeval(doc, base + "description", namespaces)
-        # pylint: disable=broad-except
-        except Exception:
+        except MapStationException:
             self.logger.info("do_update :[Buoy %s] Unable to get description",
                              self.__buoy, exc_info=True)
             return
@@ -412,8 +410,7 @@ class MapNBDCBuoy(MapPointThreaded):
             slat, slon = _xdoc_getnodeval(doc,
                                           base + "georss:point",
                                           namespaces).split(" ", 1)
-        # pylint: disable=broad-except
-        except Exception:
+        except MapStationException:
             utils.log_exception()
             self.logger.info("do_update: [Buoy %s]: Result has no georss:point",
                              self.__buoy, exc_info=True)
@@ -467,6 +464,7 @@ class MapSource(GObject.GObject):
         Add Point.
 
         :param point: Point to add
+        :type point: :class:`MapPoint`
         '''
         had = point.get_name() in self._points
         self._points[point.get_name()] = point
@@ -480,6 +478,7 @@ class MapSource(GObject.GObject):
         Delete Point.
 
         :param point: Point to delete
+        :type point: :class:`MapPoint`
         '''
         del self._points[point.get_name()]
         self.emit("point-deleted", point)
@@ -489,6 +488,7 @@ class MapSource(GObject.GObject):
         Get Points.
 
         :returns: List of points
+        :rtype: list of :class:`MapPoint`
         '''
         return list(self._points.values())
 
@@ -498,6 +498,7 @@ class MapSource(GObject.GObject):
 
         :param name: Name of point
         :returns: Point data
+        :rtype: :class:`MapPoint`
         '''
         return self._points[name]
 
@@ -506,6 +507,7 @@ class MapSource(GObject.GObject):
         Get Color.
 
         :returns: Color property
+        :rtype: str
         '''
         return self._color
 
@@ -514,6 +516,7 @@ class MapSource(GObject.GObject):
         Get Name.
 
         :returns: Name
+        :rtype: str
         '''
         return self._name
 
@@ -522,6 +525,7 @@ class MapSource(GObject.GObject):
         Set Name.
 
         :param name: Name of source
+        :type name: str
         '''
         self._name = name
 
@@ -530,6 +534,7 @@ class MapSource(GObject.GObject):
         Get Description.
 
         :returns: Description
+        :rtype: str
         '''
         return self._description
 
@@ -538,6 +543,7 @@ class MapSource(GObject.GObject):
         Get Visible.
 
         :returns: Visible state
+        :rtype: bool
         '''
         return self._visible
 
@@ -546,6 +552,7 @@ class MapSource(GObject.GObject):
         Set Visible.
 
         :param visible: Visible state
+        :type visible: bool
         '''
         self._visible = visible
 
@@ -553,7 +560,9 @@ class MapSource(GObject.GObject):
         '''
         Get Mutable.
 
-        :returns: Mutable state.'''
+        :returns: Mutable state
+        :rtype: bool
+        '''
         return self._mutable
 
 
@@ -720,15 +729,12 @@ class MapUSGSRiverSource(MapSource):
         # pylint: disable=no-member
         if not config.has_option("rivers", name):
             return None
-        print("MapUSGSRiverSource.opensource by name:", name)
         # pylint: disable=no-member
         sites = tuple(config.get("rivers", name).split(","))
-        print("MapUSGSRiverSource.opensource by name sites", *sites)
         try:
             # pylint: disable=no-member
             _name = config.get("rivers", "%s.label" % name)
-        # pylint: disable=broad-except
-        except Exception:
+        except (NoSectionError, NoOptionError):
             logger = logging.getLogger("MapUSGSRiverSource_static:")
             logger.info("_open_source_by_name: No option %s.label",
                         name, exc_info=True)
@@ -755,7 +761,12 @@ class MapUSGSRiverSource(MapSource):
         return [x for x in options if not x.endswith(".label")]
 
     def packed_name(self):
-        '''Packed Name.'''
+        '''
+        Packed Name.
+
+        :returns: fixed up or packed name
+        :rtype: str
+        '''
         name = []
         for i in self.get_name():
             if (ord(i) > ord("A") and ord(i) < ord("Z")) or\
@@ -772,7 +783,12 @@ class MapUSGSRiverSource(MapSource):
             self.emit("point-updated", point)
 
     def get_sites(self):
-        '''Get Sites.'''
+        '''
+        Get Sites.
+
+        :returns: sites for source
+        :rtype: str
+        '''
         return self.__sites
 
 
@@ -822,14 +838,12 @@ class MapNBDCBuoySource(MapSource):
         try:
             # pylint: disable=no-member
             _name = config.get("buoys", "%s.label" % name)
-        # pylint: disable=broad-except
-        except Exception:
+        except (NoSectionError, NoOptionError):
             logger = logging.getLogger("MapNBDCBuoySource")
             logger.info("_open_source_by_name: No option %s.label",
                         name, exc_info=True)
             _name = name
         sites = tuple([x for x in _sites])
-        print("opensource by name: sites", *sites)
 
         return MapNBDCBuoySource(_name, "NBDC Buoys", *sites)
 
@@ -852,7 +866,12 @@ class MapNBDCBuoySource(MapSource):
         return [x for x in options if not x.endswith(".label")]
 
     def packed_name(self):
-        '''Packed name.'''
+        '''
+        Packed name.
+
+        :returns: Fixed up or packed name
+        :rtype; str
+        '''
         name = []
         for i in self.get_name():
             if (ord(i) > ord("A") and ord(i) < ord("Z")) or\
@@ -869,5 +888,10 @@ class MapNBDCBuoySource(MapSource):
             self.emit("point-updated", point)
 
     def get_buoys(self):
-        '''Get Buoys.'''
+        '''
+        Get Buoys.
+
+        :returns: buoys for source
+        :rtype: str
+        '''
         return self.__buoys

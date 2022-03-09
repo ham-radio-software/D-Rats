@@ -2,6 +2,7 @@
 '''Map Source Editor.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +23,6 @@ from __future__ import print_function
 import logging
 import os
 import shutil
-# from glob import glob
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -91,8 +91,7 @@ class MapSourcesEditor():
                     self.__store.append((stype,
                                          sed.get_source().get_name(),
                                          sed))
-                # pylint: disable=broad-except
-                except Exception:
+                except (NameError, FileNotFoundError):
                     utils.log_exception()
                     self.logger.info("Failed to open source %s:%s; %s",
                                      stype, key,
@@ -164,8 +163,8 @@ class MapSourcesEditor():
         col = Gtk.TreeViewColumn(_("Name"), Gtk.CellRendererText(), text=1)
         self.__view.append_column(col)
 
-    # pylint: disable=no-self-use
-    def _setup_typesel(self, wtree):
+    @staticmethod
+    def _setup_typesel(wtree):
         choice = miscwidgets.make_choice(list(SOURCE_TYPES.keys()),
                                          False,
                                          "Static")
