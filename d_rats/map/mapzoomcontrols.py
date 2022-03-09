@@ -50,7 +50,7 @@ class MapZoomControls(Gtk.Frame):
     '''
 
     # mm here the allowed zoom levels are from 2 to 17 (increased to 18)
-    ZOOM_MIN = 2
+    ZOOM_MIN = 3
     ZOOM_MAX = 18
     ZOOM_DEFAULT = 14
 

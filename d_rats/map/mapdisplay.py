@@ -120,22 +120,12 @@ class MapDisplay(Gtk.Application):
 
         # self.map.clear_map_sources()
 
-        # wb8tyw - The USGS has changed their URL and API
-        # We need to recode that class to the new API.
-        # The Map code also needs to be fixed to use lxml.
         source_types = [map_sources.MapFileSource,
                         map_sources.MapUSGSRiverSource,
                         map_sources.MapNBDCBuoySource]
 
         for stype in source_types:
-            try:
-                sources = stype.enumerate(self.config)
-            except (TypeError, ValueError):
-                # ValueError from lxml conversion needed.
-                self.logger.info("_load_map_overlays not working.  "
-                                 "USGS changed URls/APIs.",
-                                 exc_info=True)
-                sources = []
+            sources = stype.enumerate(self.config)
 
             for sname in sources:
                 source = stype.open_source_by_name(self.config, sname)

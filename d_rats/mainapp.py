@@ -1006,9 +1006,9 @@ class MainApp(Gtk.Application):
         # wb8tyw - The USGS has changed their URL and API
         # We need to recode that class to the new API.
         # The Map code also needs to be fixed to use lxml.
-        source_types = [map_sources.MapFileSource]
-                        # map_sources.MapUSGSRiverSource,
-                        # map_sources.MapNBDCBuoySource]
+        source_types = [map_sources.MapFileSource,
+                        map_sources.MapUSGSRiverSource,
+                        map_sources.MapNBDCBuoySource]
 
         for stype in source_types:
             try:
