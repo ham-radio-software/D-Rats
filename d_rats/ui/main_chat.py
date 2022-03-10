@@ -89,6 +89,7 @@ class ChatQM(MainWindowElement):
     Chat QM.
 
     :param wtree: Widget Tree object
+    :type wtree: :class:`Gtk.Builder`
     :param config: Configuration object
     :type config: :class:`DratsConfig`
     '''
@@ -103,7 +104,6 @@ class ChatQM(MainWindowElement):
 
     def __init__(self, wtree, config):
         MainWindowElement.__init__(self, wtree, config, "chat", _("Chat"))
-
         self.logger = logging.getLogger("ChatQM")
         # pylint: disable=unbalanced-tuple-unpacking
         qm_add, qm_rem, qm_list = self._getw("qm_add", "qm_remove",
@@ -127,12 +127,30 @@ class ChatQM(MainWindowElement):
         qm_rem.connect("clicked", self._rem_qm, qm_list)
 
     def _send_qm(self, view, path, _col):
+        '''
+        Send Quick Mesage Selected Handler.
+
+        :param view: View holding Quick Messages
+        :type view: :class:`Gtk.TreeView`
+        :param path: Path to the Quick Message
+        :type path: :class:`Gtk.TreePath`
+        :param _col: Column for QST message, unused
+        :type _col: :class:`Gtk.TextViewColumn`
+        '''
         model = view.get_model()
         query_iter = model.get_iter(path)
         text = model.get(query_iter, 0)[0]
         self.emit("user-sent-qm", text, "")
 
     def _add_qm(self, _button, store):
+        '''
+        Add Quick Message Button Handler.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.Button`
+        :param store: Storage for quick message
+        :type store: :class:`Gtk.ListStore`
+        '''
         dialog = inputdialog.TextInputDialog(title=_("Add Quick Message"))
         dialog.label.set_text(_("Enter text for the new quick message:"))
         result = dialog.run()
@@ -143,6 +161,14 @@ class ChatQM(MainWindowElement):
         dialog.destroy()
 
     def _rem_qm(self, _button, view):
+        '''
+        Remove Quick Messages Button Handler.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.Button`
+        :param view: Selected quick message
+        :type view: :class:`Gtk.TextMark`
+        '''
         (store, query_iter) = view.get_selection().get_selected()
         if not query_iter:
             return
@@ -156,6 +182,14 @@ class ChatQM(MainWindowElement):
         self._config.remove_option("quick", key)
 
     def _reorder_rows(self, model, _path):
+        '''
+        Reorder Rows Event Handler.
+
+        :param model: Model holding Quick Messages
+        :type model: :class:`Gtk.ListStore`
+        :param _path: Path to item selected, unused
+        :type _path: :class:`Gtk.TreePath`
+        '''
         for row_i in self._config.options("quick"):
             self._config.remove_option("quick", row_i)
 
@@ -174,6 +208,7 @@ class ChatQST(MainWindowElement):
     Chat QST.
 
     :param wtree: Widget Tree object
+    :type wtree: :class:`Gtk.Builder`
     :param config: configuration object
     :type config: :class:`DratsConfig`
     '''
@@ -207,6 +242,19 @@ class ChatQST(MainWindowElement):
         qst_list.connect("row-activated", self._send_qst)
 
         def render_remaining(_col, rend, model, qst_iter, _data):
+            '''
+            Render Remaining.
+
+            :param _col: Column to render, unused
+            :type _col: `Gtk.TreeViewColumn`
+            :param _rend: Cell Renderer, unused
+            :type _rend: :class:`Gtk.CellRenderProgress`
+            :param model: Model for holding data
+            :type model: :class:`Gtk.ListStore`
+            :param qst_iter: Iterator for model data
+            :type qst_iter: :class:`Gtk.TreeIter`
+            :param _data: Data, unused
+            '''
             qst_id, qst_e = model.get(qst_iter, 0, 5)
             try:
                 _qst_object, qst_c = self._qsts[qst_id]
@@ -254,6 +302,18 @@ class ChatQST(MainWindowElement):
         GLib.timeout_add(1000, self._tick)
 
     def _send_qst(self, view, path, _col):
+        '''
+        Send QST Event Handler.
+
+        Sends the selected QST now.
+
+        :param view: View containing item
+        :type view: :class:`Gtk.TreeView`
+        :param path: Path to selected item
+        :type path: :class:`Gtk.TreePath`
+        :param _col: Column selected, unsued
+        :type _col: :class:`Gtk.TreeViewColumn`
+        '''
         store = view.get_model()
         qst_id = store[path][0]
 
@@ -262,6 +322,22 @@ class ChatQST(MainWindowElement):
 
     # pylint: disable=too-many-arguments
     def _toggle_qst(self, _rend, path, store, enbcol, idcol, fcol):
+        '''
+        Toggle QST Event Handler.
+
+        :param _rend: Cell Renderer, unused
+        :type _rend: :class:`Gtk.CellRenderToggle`
+        :param path: Path name for QST
+        :type path: str
+        :param store: Storage of QSTs
+        :type store: :class:`Gtk.ListStore`
+        :param enbcol: Column for QST enable
+        :type enbcol: int
+        :param idcol: Column for QST identification
+        :type idcol: int
+        :param fcol: Column for QST frequency
+        :type fcol: int
+        '''
         val = store[path][enbcol] = not store[path][enbcol]
         qst_id = store[path][idcol]
         freq = store[path][fcol]
@@ -272,6 +348,14 @@ class ChatQST(MainWindowElement):
         self._qsts[qst_id] = qst_object, self._remaining_for(freq) * 60
 
     def _add_qst(self, _button, _view):
+        '''
+        Add QST Button Handler.
+
+        :param _button: Button activated, unused
+        :type button: :class:`Gtk.Button`
+        :parm _view: View for button, unused
+        :type _view: :class:`Gtk.TreeView`
+        '''
         dialog = qst.QSTEditDialog(self._config,
                                    "qst_%s" % time.strftime("%Y%m%d%H%M%S"))
         if dialog.run() == Gtk.ResponseType.OK:
@@ -280,6 +364,14 @@ class ChatQST(MainWindowElement):
         dialog.destroy()
 
     def _rem_qst(self, _button, view):
+        '''
+        Remove QST Event Handler.
+
+        :param _button: Button activated, unused
+        :type button: :class:`Gtk.Button`
+        :parm view: View for button
+        :type view: :class:`Gtk.TreeView`
+        '''
         (model, qst_iter) = view.get_selection().get_selected()
         if not qst_iter:
             return
@@ -293,6 +385,14 @@ class ChatQST(MainWindowElement):
         self._store.remove(qst_iter)
 
     def _edit_qst(self, _button, view):
+        '''
+        Edit QST Button Handler.
+
+        :param _button: Edit button, unused
+        :type _button: :class:`Gtk.Button`
+        :param view: Select QST to edit
+        :type view: :class:`Gtk.TreeView`
+        '''
         (model, qst_iter) = view.get_selection().get_selected()
         if not qst_iter:
             return
@@ -307,6 +407,13 @@ class ChatQST(MainWindowElement):
 
     @staticmethod
     def _remaining_for(freq):
+        '''
+        Remaining For QST to fire.
+        :param freq: Frequency to fire
+        :type freq: str
+        :returns: Number of seconds remaining
+        :rtype: int
+        '''
         if freq.startswith(":"):
             n_min = int(freq[1:])
             c_min = datetime.now().minute
@@ -319,9 +426,25 @@ class ChatQST(MainWindowElement):
         return cnt
 
     def _qst_fired(self, qst_object, content, key):
+        '''
+        QST Fired Event Handler.
+
+        :param qst_object: QST to fire
+        :type qst_object: :class:`QSTText`
+        :param content: Content to send
+        :type content: str
+        :param key: QST key name
+        :type key: str
+        '''
         self.emit("qst-fired", content, key, qst_object.raw)
 
     def _tick(self):
+        '''
+        Tick For QST Send Countdown.
+
+        :returns: True
+        :rtype: bool
+        '''
         qst_iter = self._store.get_iter_first()
         while qst_iter:
             qst_i, _t, qst_f, qst_p, _c, qst_e = self._store.get(qst_iter,
@@ -382,6 +505,7 @@ class ChatTab(MainWindowTab):
     Chat Tab.
 
     :param wtree: Widget Tree object
+    :type wtree: :class:`Gtk.Builder`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -483,29 +607,62 @@ class ChatTab(MainWindowTab):
         self._display_line(line, incoming, "default", *attrs, **kwargs)
 
     def _highlight_tab(self, num):
+        '''
+        Highlight Tab.
+
+        :param num: Tab number to highlight
+        :type num: int
+        '''
         child = self.__filtertabs.get_nth_page(num)
         label = self.__filtertabs.get_tab_label(child)
         mkup = "<span color='red'>%s</span>" % label.get_text()
         label.set_markup(mkup)
 
     def _unhighlight_tab(self, num):
+        '''
+        Remove Tab Highlight.
+
+        :param num: Tab number to highlight
+        :type num: int
+        '''
         child = self.__filtertabs.get_nth_page(num)
         label = self.__filtertabs.get_tab_label(child)
         label.set_markup(label.get_text())
 
     def _display_matching_filter(self, text):
+        '''
+        Display Matching Filter.
+
+        :parm text: Filter to select display
+        :type text: str
+        :returns: Display matchign filter
+        :rtype: :class:`Gtk.TextView`
+        '''
         for filter_item, display in self.__filters.copy().items():
             if filter_item and filter_item in text:
                 return display
-
         return self.__filters[None]
 
     def _display_selected(self):
+        '''
+        Display Selected.
+
+        :returns: Selected text
+        :rtype: :class:`Gtk.TextView`
+        '''
         cur = self.__filtertabs.get_current_page()
         return self.__filtertabs.get_nth_page(cur).get_child()
 
     @staticmethod
     def _maybe_highlight_header(buffer, mark):
+        '''
+        Maybe Highlight Header.
+
+        :param buffer: Buffer to use
+        :type buffer: :class:`Gtk.TextBuffer`
+        :param mark: Mark for start of search
+        :type mark: :class:`Gtk.TextMark`
+        '''
         start = buffer.get_iter_at_mark(mark)
         flags = Gtk.TextSearchFlags.TEXT_ONLY
         # The forward_search method returns None when a match is not
@@ -525,12 +682,30 @@ class ChatTab(MainWindowTab):
         buffer.apply_tag_by_name("bold", start, end)
 
     def _display_for_channel(self, channel):
+        '''
+        Display For Channel.
+
+        :param channel: Channel filter
+        :type chanel: str
+        :returns: View displaying the channel
+        :rtype: :class:`Gtk.TextView`
+        '''
         if channel in self.__filters:
             return self.__filters[channel]
         return None
 
     # pylint: disable=too-many-locals
     def _display_line(self, text, apply_filters, *attrs, **kwargs):
+        '''
+        Display Line.
+
+        :param text: Text to display
+        :type text: str
+        :param apply_filters: Flag to apply filters
+        :type apply_filters: bool
+        :param *attrs: Attributes for line
+        :param **kwargs: Key word arguments
+        '''
         # self.logger.info("_display_line: text: %s", text)
         match = re.match("^([^#].*)(#[^/]+)//(.*)$", text)
         # self.logger.info("_display_line: match: %s", match)
@@ -593,6 +768,16 @@ class ChatTab(MainWindowTab):
             self._notice()
 
     def _send_button(self, _button, dest, entry):
+        '''
+        Send Button Event Hander.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`GtkButton`
+        :param dest: Destination to send to
+        :type dest: :class:`Gtk.ComboBoxText`
+        :param entry: Entry to get data to send
+        :type entry: :class:`Gtk.TextView`
+        '''
         buffer = entry.get_buffer()
         start, end = buffer.get_bounds()
         text = buffer.get_text(start, end, True)
@@ -618,7 +803,7 @@ class ChatTab(MainWindowTab):
 
     def _send_msg(self, _qm, msg, conf_key, raw, dest):
         '''
-        Send Message Handler
+        Send Message Event Handler
 
         :param _qm: Widget signaling handler
         :type qm: :class:`MainWindowElement`
@@ -655,7 +840,7 @@ class ChatTab(MainWindowTab):
 
     def _bcast_file(self, _but, dest):
         '''
-        Broadcast file handler.
+        Broadcast File Event handler.
 
         :param _but: Widget signaling hander
         :type _but: :class:`Gtk.Button'
@@ -683,11 +868,27 @@ class ChatTab(MainWindowTab):
         port = dest.get_active_text()
         self.emit("user-send-chat", "CQCQCQ", port, "\r\n" + data, False)
 
-    def _clear(self, _but):
+    def _clear(self, _button):
+        '''
+        Main Menu Clear Button Handler.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
         display = self._display_selected()
         display.get_buffer().set_text("")
 
     def _tab_selected(self, _tabs, _page, num):
+        '''
+        Tab Selected Event Handler.
+
+        :param _tabs: Tabs container, unused
+        :type _tabs: :class:`Gtk.Notebook`
+        :param _page: Selected tab in container, unused
+        :type _page: :class:`Gtk.ScrolledWindow`
+        :param num: Tab number
+        :type num: int
+        '''
         #
         self._unhighlight_tab(num)
 
@@ -698,6 +899,16 @@ class ChatTab(MainWindowTab):
         self.__tb_buttons[_("Remove Filter")].set_sensitive(num != 0)
 
     def _tab_reordered(self, _tabs, _page, _num):
+        '''
+        Tab Reordered Event Handler.
+
+        :param _tabs: Tabs container, unused
+        :type _tabs: :class:`Gtk.Notebook`
+        :param _page: Selected tab in container, unused
+        :type _page: :class:`Gtk.ScrolledWindow`
+        :param _num: Tab number, unused
+        :type _num: int
+        '''
         self._save_filters()
 
     def _save_filters(self):
@@ -713,7 +924,13 @@ class ChatTab(MainWindowTab):
 
         self._config.set("state", "filters", str(filters))
 
-    def _add_filter(self, _but):
+    def _add_filter(self, _button):
+        '''
+        Add Filter Button Handler.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.Button`
+        '''
         dialog = inputdialog.TextInputDialog(title=_("Create filter"))
         dialog.label.set_text(_("Enter a filter search string:"))
         result = dialog.run()
@@ -727,7 +944,13 @@ class ChatTab(MainWindowTab):
             self._build_filter(text)
             self._save_filters()
 
-    def _del_filter(self, _but):
+    def _del_filter(self, _button):
+        '''
+        Delete Filter Button Handler
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.Button`
+        '''
         idx = self.__filtertabs.get_current_page()
         page = self.__filtertabs.get_nth_page(idx)
         text = self.__filtertabs.get_tab_label(page).get_text()
@@ -739,14 +962,20 @@ class ChatTab(MainWindowTab):
             display_error("Mainchat  : Cannot remove Main tab")
         self._save_filters()
 
-    def _view_log(self, _but):
+    def _view_log(self, _button):
+        '''
+        View Log Button Handler.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
         display = self._display_selected()
         file_name = display.get_buffer().get_logfile()
         self._config.platform.open_text_file(file_name)
 
     def _enter_to_send(self, view, event, dest):
         '''
-        Enter to Send hander.
+        Enter Key to Send hander.
 
         :param view: Widget that signaled handler
         :type view: :class:`Gtk.TextView`
@@ -758,7 +987,6 @@ class ChatTab(MainWindowTab):
         :rtype: bool
         '''
         if event.keyval == Gdk.KEY_Return:
-            # print("_enter_to_send dest=%s" % dest)
             self._send_button(None, dest, view)
             return True
         if event.keyval >= Gdk.KEY_F1 and event.keyval <= Gdk.KEY_F13:
@@ -772,6 +1000,12 @@ class ChatTab(MainWindowTab):
         return False
 
     def _join_channel(self, _button):
+        '''
+        Join Channel Button Handler.
+
+        :param _button: Button activated, unused
+        :type _button: :class:`Gtk.ToolButton`
+        '''
         while True:
             dialog = inputdialog.TextInputDialog(title=_("Join Channel"))
             dialog.label.set_text(_("Enter channel name:"))
@@ -796,6 +1030,14 @@ class ChatTab(MainWindowTab):
                             "alphanumeric string"))
 
     def _query_user(self, _button):
+        '''
+        Query User Event Button.
+
+        Used for opening a private chat.
+
+        :param _button: Button activated, unused
+        :type _button: :class;`Gtk.ToolButton`
+        '''
         while True:
             dialog = inputdialog.TextInputDialog(title=_("Query User"))
             dialog.label.set_text(_("Enter station:"))
@@ -854,6 +1096,12 @@ class ChatTab(MainWindowTab):
             count += 1
 
     def _reconfigure_colors(self, buffer):
+        '''
+        Reconfigure Colors.
+
+        :param buffer: Buffer to reconfigure
+        :type buffer: :class:`Gtk.TextBuffer`
+        '''
         tags = buffer.get_tag_table()
 
         if not tags.lookup("incomingcolor"):
@@ -892,11 +1140,23 @@ class ChatTab(MainWindowTab):
 
 
     def _reconfigure_font(self, display):
+        '''
+        Reconfigure Font.
+
+        :param display: Display to configure
+        :type display: :class:`Gtk.TextView`
+        '''
         fontname = self._config.get("prefs", "font")
         font = Pango.FontDescription(fontname)
         display.modify_font(font)
 
     def _build_filter(self, text):
+        '''
+        Build Filter.
+
+        :param text: Text for filtering
+        :type text: str
+        '''
         if text is not None:
             ffn = self._config.platform.filter_filename(text)
         else:
