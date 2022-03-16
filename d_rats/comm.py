@@ -40,15 +40,15 @@ class DataPathIOError(DataPathError):
     '''Data Path IO Error'''
 
 
-ASCII_XON = chr(17)
-ASCII_XOFF = chr(19)
+ASCII_XON = 17 # chr(17)
+ASCII_XOFF = 19 # chr(19)
 
 FEND = 0xC0
 FESC = 0xDB
 TFEND = 0xDC
 TFESC = 0xDD
 
-TNC_DEBUG = True
+TNC_DEBUG = False
 
 
 def kiss_escape_frame(frame):
@@ -56,20 +56,21 @@ def kiss_escape_frame(frame):
     KISS escape frame.
 
     :param frame: Frame of data
+    :type frame: bytes
     :returns: Buffer with frame escaped
-    :rtype: str
+    :rtype: bytearray
     '''
-    escaped = ""
+    escaped = bytearray()
 
-    for char in frame:
-        if ord(char) == FEND:
-            escaped += chr(FESC)
-            escaped += chr(TFEND)
-        elif ord(char) == FESC:
-            escaped += chr(FESC)
-            escaped += chr(TFESC)
+    for byte in frame:
+        if byte == FEND:
+            escaped.append(FESC)
+            escaped.append(TFEND)
+        elif byte == FESC:
+            escaped.append(FESC)
+            escaped.append(TFESC)
         else:
-            escaped += char
+            escaped.append(byte)
 
     return escaped
 
@@ -80,7 +81,9 @@ def kiss_send_frame(frame, port=0):
 
     :param frame: Frame to send
     :param port: Port to send frame from
-    :returns: Buffer sent
+    :type port: int
+    :returns: Buffer to send
+    :rtype: bytes
     '''
     cmd = (port & 0x0F) << 4
 
@@ -100,10 +103,11 @@ def kiss_buf_has_frame(buf):
     Kiss Buffer has frame?
 
     :param buf: Kiss buffer
+    :param buf: bytes
     :returns: True if this is a KISS frame
     :rtype: bool
     '''
-    return buf.count(chr(FEND)) >= 2
+    return buf.count(FEND) >= 2
 
 
 # pylint: disable=too-many-branches
@@ -112,52 +116,55 @@ def kiss_recv_frame(buf):
     KISS Receive frame.
 
     :param buf: Raw buffer for frame
+    :type buf: bytes
     :returns: Data fame with escapes processed.
+    :rtype: tuple of (bytearray, bytearray)
     '''
+    data = bytearray()
+    out_buf = bytearray()
     if not buf:
-        return "", ""
+        return data, out_buf
 
-    data = ""
     inframe = False
 
     logger = logging.getLogger("comm:kiss_recv_frame")
-    _buf = ""
-    _lst = "0" # Make sure we don't choke trying to ord() this
-    for char in buf:
-        if ord(char) == FEND:
+    escaped_char = 0
+    for byte in buf:
+        if byte == FEND:
             if not inframe:
                 inframe = True
             else:
-                data += _buf[1:]
-                _buf = ""
+                data += out_buf[1:-2]
+                # fcs = out_buf[-2:] currently not checking.
+                out_buf = b""
                 inframe = False
-        elif ord(char) == FESC:
+        elif byte == FESC:
             pass # Ignore this and wait for the next character
-        elif ord(_lst) == FESC:
-            if ord(char) == TFEND:
-                _buf += chr(FEND)
-            elif ord(char) == TFESC:
-                _buf += chr(FESC)
+        elif escaped_char == FESC:
+            if byte == TFEND:
+                out_buf.append(FEND)
+            elif byte == TFESC:
+                out_buf.append(FESC)
             else:
-                logger.info("[TNC] Bad escape of 0x%x", ord(char))
+                logger.info("[TNC] Bad escape of 0x%x", byte)
                 break
         elif inframe:
-            _buf += char
+            out_buf.append(byte)
         else:
-            logger.info("[TNC] Out-of-frame garbage: 0x%x", ord(char))
-        _lst = char
+            logger.info("[TNC] Out-of-frame garbage: 0x%x", byte)
+        escaped_char = byte
 
     if TNC_DEBUG:
         logger.info("[TNC] Data:")
         utils.hexprintlog(data)
 
-    if not inframe and _buf:
+    if not inframe and out_buf:
         # There was not a partial frame started at the end of the data
         logger.info("[TNC] Dumping non-frame data trailer")
-        utils.hexprintlog(_buf)
-        _buf = ""
+        utils.hexprintlog(out_buf)
+        out_buf = b""
 
-    return data, _buf
+    return data, out_buf
 
 
 # pylint: disable=too-many-ancestors
@@ -166,6 +173,7 @@ class TNCSerial(serial.Serial):
     TNC Serial.
 
     :param tncport: Optional tnc port
+    :type tncport: str
     :param kwargs: Key word arguments
     '''
     def __init__(self, **kwargs):
@@ -177,7 +185,7 @@ class TNCSerial(serial.Serial):
             self.__tncport = 0
         serial.Serial.__init__(self, **kwargs)
 
-        self.__buffer = ""
+        self.__buffer = b""
         self.__tstamp = 0
 
     def reconnect(self):
@@ -192,6 +200,7 @@ class TNCSerial(serial.Serial):
         Write.
 
         :param data: Data to write
+        :type data: bytes
         '''
         serial.Serial.write(self, kiss_send_frame(data, self.__tncport))
 
@@ -202,21 +211,26 @@ class TNCSerial(serial.Serial):
         Read.
 
         :param size: Number of bytes to read
+        :type size: int
         :returns: Read frame data
+        :rtype: bytes
         '''
-        if size != 1024:
-            self.logger.info("read: Buffer is %i, expected to be 1024.", size)
-        if self.__buffer:
-            self.logger.info("read: Buffer is %i before read",
-                             len(self.__buffer))
-        self.__buffer += serial.Serial.read(self, 1024)
+        read_buffer = serial.Serial.read(self, 1024)
+        framedata = b""
+        if isinstance(read_buffer, str):
+            self.__buffer += read_buffer.encode('utf-8', 'replace')
+        else:
+            self.__buffer += read_buffer
 
-        framedata = ""
         if kiss_buf_has_frame(self.__buffer):
             framedata, self.__buffer = kiss_recv_frame(self.__buffer)
-        elif not self.__buffer:
+        elif self.__buffer:
+            self.logger.info("read: [TNC] read_buffer (%i b)",
+                             len(read_buffer))
+            utils.hexprintlog(read_buffer)
             self.logger.info("read: [TNC] Buffer partially-filled (%i b)",
                              len(self.__buffer))
+            utils.hexprintlog(self.__buffer)
 
         return framedata
 
@@ -261,7 +275,7 @@ class SWFSerial(serial.Serial):
         :returns: True if data transmissions are allowed
         '''
         time.sleep(0.01)
-        if serial.Serial.inWaiting(self) == 0:
+        if self.in_waiting == 0:
             return self.state
         char = serial.Serial.read(self, 1)
         if char == ASCII_XOFF:
@@ -274,7 +288,7 @@ class SWFSerial(serial.Serial):
             self.state = True
         elif len(char) == 1:
             self.logger.info("is_xon: Aiee! Read a non-XOFF char: 0x%02x `%s`",
-                             ord(char), char)
+                             char, char)
             self.state = True
             self.logger.info("is_xon: Assuming IXANY behavior")
 
@@ -309,6 +323,7 @@ class SWFSerial(serial.Serial):
         Write.
 
         :param data: Buffer to write
+        :type data: bytes
         '''
         old_to = self.timeout
         self.timeout = 0.01
@@ -325,7 +340,8 @@ class SWFSerial(serial.Serial):
 
         :param size: Number of bytes to read
         :type size: int
-        :returns: bytes of data read
+        :returns: data read
+        :rtype: bytes
         '''
         return serial.Serial.read(self, size)
 
@@ -368,6 +384,7 @@ class DataPath():
         Read.
 
         :param size: Number of bytes to read
+        :type size: int
         :raises: DataPathIOError always
         '''
         raise DataPathIOError("Can't read from base class")
@@ -410,6 +427,7 @@ class AGWDataPath(DataPath):
     AGW Data Path.
 
     :param pathspec: Path to AGW device
+    :param pathspec: str
     :param timeout: Timeout in seconds, default 0
     :type timeout: float
     '''
@@ -430,7 +448,7 @@ class AGWDataPath(DataPath):
             self._agw = agw.AGWConnection(self._addr, int(self._port),
                                           self.timeout)
             self._agw.enable_raw()
-        except Exception:
+        except (BlockingIOError, socket.error):
             self.logger.info("connect: AGWPE broad-exception on connect",
                              exc_info=True)
             raise DataPathNotConnectedError("Unable to connect to AGWPE")
@@ -451,7 +469,8 @@ class AGWDataPath(DataPath):
 
         :param size: Number of bytes to read, Ignored.
         :type size: int
-        :returns: bytes of data read
+        :returns: data read
+        :rtype: bytes
         '''
         return agw.receive_data(self._agw)
 
@@ -460,6 +479,7 @@ class AGWDataPath(DataPath):
         Write.
 
         :param buf: Data to transmit
+        :type buf: bytes
         '''
         agw.transmit_data(self._agw, "CQ", ["SRC", "RELAY"], buf)
 
@@ -480,6 +500,7 @@ class AGWDataPath(DataPath):
         Get AGW Connection.
 
         :returns: AGW gateway object
+        :rtype: :class:`agw.AGWConnection`
         '''
         return self._agw
 
@@ -488,6 +509,7 @@ class AGWDataPath(DataPath):
         Read all waiting.
 
         :returns: received data
+        :rtype: bytes
         '''
         return agw.receive_data(self._agw)
 
@@ -497,7 +519,7 @@ class SerialDataPath(DataPath):
     Serial Data Path.
 
     :param pathspec: Path to serial device
-    :type pathspec: tuple
+    :type pathspec: tuple of (str, int)
     :param timeout: Time out in seconds, default 0.25
     :type timeout: float
     '''
@@ -521,11 +543,29 @@ class SerialDataPath(DataPath):
                                      timeout=self.timeout,
                                      writeTimeout=self.timeout,
                                      xonxoff=0)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("connect: Serial broad-exception on connect",
-                             exc_info=True)
-            raise DataPathNotConnectedError("Unable to open serial port")
+            # Compliant Serial port standards require:
+            # DTR signal must be enabled when an application has the port
+            # opened.
+            # The DTR signal enable tells the other device that your
+            # application is alive, so it data from it is valid.
+            # RTS signal must be enabled before sending any data.
+            # python pySerial versions have changed what they set these
+            # signals to by default, so we can not trust that the defaults
+            # meet what the standards require.
+            # if you do not make sure that these are set, you can waste
+            # a lot of time trying to find out why things are not working.
+            # Also note at least one TNC vendor has the wrong wiring on
+            # their serial port, so it needs a special cable to work when
+            # connected to a system that expects standard compliant wiring.
+            self._serial.dtr = True
+            self._serial.rts = True
+        except (ValueError, serial.SerialException) as err:
+            raise DataPathNotConnectedError("Unable to open serial port %s" %
+                                            err)
+        # pylint: disable=fixme
+        # FIXME
+        # The serial port needs settings for Monitoring DSR and optionally CD
+        # signals.
 
     def disconnect(self):
         '''
@@ -534,6 +574,11 @@ class SerialDataPath(DataPath):
         Closes the serial connection
         '''
         if self._serial:
+            # Compliant Serial port protocols require that DTS be disabled
+            # when the connection is closed.
+            # RTS should also be disabled, but should not matter.
+            self._serial.dtr = False
+            self._serial.rts = False
             self._serial.close()
         self._serial = None
 
@@ -552,17 +597,16 @@ class SerialDataPath(DataPath):
 
         :param size: Number of bytes to read
         :type size: int
-        :returns: bytes of data read
+        :returns: data read
+        :rtype: bytes
         :raises: DataPathIOError on read error
         '''
         try:
             data = self._serial.read(size)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("read: Serial read broad-exception",
-                             exc_info=True)
+        except serial.SerialException as err:
             utils.log_exception()
-            raise DataPathIOError("Failed to read from serial port")
+            raise DataPathIOError("Failed to read from serial port %s" %
+                                  err)
 
         return data
 
@@ -571,9 +615,12 @@ class SerialDataPath(DataPath):
         Read All Waiting.
 
         :returns: Read data
+        :rtype: bytes
         '''
         data = self.read(1)
-        data += self.read(self._serial.inWaiting())
+        waiting = self._serial.in_waiting
+        if waiting:
+            data += self.read(waiting)
         return data
 
     def write(self, buf):
@@ -581,16 +628,14 @@ class SerialDataPath(DataPath):
         Write.
 
         :param buf: Buffer to write
+        :type buf: bytes
         :raises: DataPathIOError on write failure
         '''
         try:
             self._serial.write(buf)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("write: Serial write broad-exception:",
-                             exc_info=True)
+        except (serial.SerialException, serial.SerialTimeoutException) as err:
             utils.log_exception()
-            raise DataPathIOError("Failed to write to serial port")
+            raise DataPathIOError("Failed to write to serial port %s" % err)
 
     def is_connected(self):
         '''
@@ -614,6 +659,7 @@ class TNCDataPath(SerialDataPath):
     TNC Data Path.
 
     :param pathspec: Path to serial device
+    :type pathspec: tuple of (str, int)
     :param timeout: Time out in seconds, default 0.25
     :type timeout: float
     '''
@@ -623,25 +669,23 @@ class TNCDataPath(SerialDataPath):
         self.logger = logging.getLogger("TNCDataPath")
 
     def connect(self):
-        '''Connect.'''
+        '''
+        Connect.
+
+        :raises: :class:`DataPathNotConnectedError` on write error
+        '''
         if ":" in self.port:
             self.port, tncport = self.port.split(":", 1)
             tncport = int(tncport)
         else:
             tncport = 0
 
-        try:
-            self._serial = TNCSerial(port=self.port,
-                                     tncport=tncport,
-                                     baudrate=self.baud,
-                                     timeout=self.timeout,
-                                     writeTimeout=self.timeout*10,
-                                     xonxoff=0)
-        except Exception:
-            self.logger.info("connect: TNC broad-exception on connect",
-                             exc_info=True)
-            utils.log_exception()
-            raise DataPathNotConnectedError("Unable to open serial port")
+        self._serial = TNCSerial(port=self.port,
+                                 tncport=tncport,
+                                 baudrate=self.baud,
+                                 timeout=self.timeout,
+                                 writeTimeout=self.timeout*10,
+                                 xonxoff=0)
 
     def __str__(self):
         return "[TNC %s@%s]" % (self.port, self.baud)
@@ -691,12 +735,14 @@ def compute_fcs(data):
     Compute Frame Check.
 
     :param data: data for check
+    :type data: bytes
     :returns: 16 bit frame check
+    :rtype: int
     '''
     fcs = 0xffff
 
     for byte in data:
-        fcs = (fcs >> 8) ^ fcstab[(fcs ^ ord(byte)) & 0xff]
+        fcs = (fcs >> 8) ^ fcstab[(fcs ^ byte) & 0xff]
 
     return (~fcs) & 0xffff
 
@@ -706,13 +752,14 @@ class TNCAX25DataPath(TNCDataPath):
     TNC AX25 Data Path.
 
     :param pathspec: Path to TNC
+    :type pathspec: str
     :param kwargs: Key word arguments
     '''
     def __init__(self, pathspec, **kwargs):
-        # self.logger = logging.getLogger("TNCAX25DataPath")
+        self.logger = logging.getLogger("TNCAX25DataPath")
         (port, rate, self.__call, self.__path) = pathspec
 
-        self.__buffer = ""
+        self.__buffer = b""
         TNCDataPath.__init__(self, (port, rate), **kwargs)
 
     def __str__(self):
@@ -722,7 +769,8 @@ class TNCAX25DataPath(TNCDataPath):
         '''
         Write.
 
-        :param: Buffer to write
+        :param buf: Buffer to write
+        :type buf: bytes
         '''
         spath = [self.__call,] + self.__path.split(",")
         src = ""
@@ -734,12 +782,14 @@ class TNCAX25DataPath(TNCDataPath):
         call, sid = agw.ssid("DRATS")
         dst = "".join([chr(ord(x) << 1) for x in call])
         dst += agw.encode_ssid(sid)
+        send_dst = dst.encode('utf-8', 'replace')
+        send_src = src.encode('utf-8', 'replace')
 
         hdr = struct.pack("7s%isBB" % len(src),
-                          dst,     # Dest call
-                          src,     # Source path
-                          0x03,    # Control
-                          0xF0)    # PID: No layer 3
+                          send_dst,     # Dest call
+                          send_src,     # Source path
+                          0x03,         # Control
+                          0xF0)         # PID: No layer 3
 
         fcs = compute_fcs(hdr + buf)
         data = hdr + buf + struct.pack(">H", fcs)
@@ -755,13 +805,13 @@ class TNCAX25DataPath(TNCDataPath):
         :param size: Number of bytes to read
         :type size: int
         :returns: bytes of data read
+        :rtype: bytes
         '''
         while len(self.__buffer) < size:
             chunk = TNCDataPath.read(self, 1)
             if not chunk:
                 break
             self.__buffer += chunk
-
         data = self.__buffer[:size]
         self.__buffer = self.__buffer[size:]
         return data
@@ -829,6 +879,7 @@ class SocketDataPath(DataPath):
             :param timeout: Timeout in seconds, default 30.
             :type timeout: float
             :returns: Tuple of count and line
+            :raises: :class:`DataPathNotConnectedError` on write error
             '''
             line = readline(sock, timeout)
             # python3 line is a bytes object
@@ -840,12 +891,9 @@ class SocketDataPath(DataPath):
             try:
                 code, string = text_line.split(" ", 1)
                 code = int(code)
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("getline: broad-exception parsing line '%s'",
-                                 line, exc_info=True)
+            except ValueError:
+                self.logger.info("getline: Error parsing line '%s'", line)
                 raise DataPathNotConnectedError("Conversation error")
-
             return code, string
 
         try:
@@ -881,7 +929,11 @@ class SocketDataPath(DataPath):
             raise DataPathNotConnectedError("Authentication failed: %s" % line)
 
     def connect(self):
-        '''Connect.'''
+        '''
+        Connect.
+
+        :raises: :class:`DataPathNotConnectedError` on write error
+        '''
         # pylint: disable=broad-except
         try:
             self.logger.info("connection to %s %s", self.host, self.port)
@@ -903,6 +955,7 @@ class SocketDataPath(DataPath):
             self.do_auth()
 
     def disconnect(self):
+        '''Disconnect Socket.'''
         if self._socket:
             self._socket.close()
         self._socket = None
@@ -914,6 +967,7 @@ class SocketDataPath(DataPath):
         :param size: Number of bytes to read
         :type size: int
         :returns: bytestring of data read
+        :raises: :class:`DataPathIOError` on write error
         '''
         data = b''
         end = time.time() + self.timeout
@@ -951,7 +1005,9 @@ class SocketDataPath(DataPath):
         '''
         Read All Waiting.
 
-        :returns: bytestring data
+        :returns: Read data
+        :rtype: bytes
+        :raises: :class:`DataPathIOError` on write error
         '''
         if not self._socket:
             raise DataPathIOError("Socket disconnected")
@@ -988,6 +1044,8 @@ class SocketDataPath(DataPath):
         Write.
 
         :param buf: Buffer to write
+        :type buf: bytes
+        :raises: :class:`DataPathIOError` on write error
         '''
         ba_buf = buf
         # print('comm/write type(buf) = %s' % type(buf))
@@ -1000,9 +1058,11 @@ class SocketDataPath(DataPath):
             ba_buf = buf.encode('utf-8', 'replace')
             # print("  type(ba_buf) %s" % type(ba_buf))
         # print("ba_buf = %s" % ba_buf)
+        # pylint: disable=broad-except
         try:
             self._socket.sendall(ba_buf)
-        # pylint: disable=broad-except
+        except ConnectionResetError:
+            raise DataPathIOError("Socket write failed - Connection Reset")
         except Exception:
             self.logger.info("write: Socket write broad-except",
                              exc_info=True)
