@@ -1,8 +1,10 @@
 #!/usr/bin/python
 '''Main Chat'''
+# pylint wants 1000 lines/per module, this has over 1280
+# pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -311,7 +313,7 @@ class ChatQST(MainWindowElement):
         :type view: :class:`Gtk.TreeView`
         :param path: Path to selected item
         :type path: :class:`Gtk.TreePath`
-        :param _col: Column selected, unsued
+        :param _col: Column selected, unused
         :type _col: :class:`Gtk.TreeViewColumn`
         '''
         store = view.get_model()
@@ -706,13 +708,7 @@ class ChatTab(MainWindowTab):
         :param *attrs: Attributes for line
         :param **kwargs: Key word arguments
         '''
-        # self.logger.info("_display_line: text: %s", text)
         match = re.match("^([^#].*)(#[^/]+)//(.*)$", text)
-        # self.logger.info("_display_line: match: %s", match)
-        # self.logger.info("_display: kwargs: %s", kwargs)
-        # self.logger.info("_display: apply_filters: %s", apply_filters)
-        # self.logger.info("_display: attrs: %s", attrs)
-        # private channel
         if "priv_src" in kwargs.keys():
             channel = "@%s" % kwargs["priv_src"]
             display = self._display_for_channel(channel)
@@ -740,24 +736,16 @@ class ChatTab(MainWindowTab):
 
         if not display:
             # We don't have anywhere to display this, so ignore it
+            # old comment above, wondering if we should log this?
             return
 
         buffer = display.get_buffer()
-        scroll_window = display.get_parent()
 
         (_start, end) = buffer.get_bounds()
         mark = buffer.create_mark(None, end, True)
         buffer.insert_with_tags_by_name(end, text + os.linesep, *attrs)
         self._maybe_highlight_header(buffer, mark)
         buffer.delete_mark(mark)
-
-        adj = scroll_window.get_vadjustment()
-        bot_scrolled = (adj.get_value() ==
-                        (adj.get_upper() - adj.get_page_size()))
-
-        endmark = buffer.get_mark("end")
-        if bot_scrolled:
-            display.scroll_to_mark(endmark, 0.0, True, 0, 1)
 
         tabnum = self.__filtertabs.page_num(display.get_parent())
         if tabnum != self.__filtertabs.get_current_page() and \
@@ -1150,6 +1138,26 @@ class ChatTab(MainWindowTab):
         font = Pango.FontDescription(fontname)
         display.modify_font(font)
 
+    @staticmethod
+    def _textview_changed(text_buffer, display):
+        '''
+        TextView Changed Handler.
+
+        :param: text_buffer: Buffer that was changed
+        :type: text_buffer: :class:`Gtk.TextBuffer`
+        :param display: Scroll window for text buffer
+        :type display: :class:`Gtk.TextView`
+        '''
+        scroll_window = display.get_parent()
+        adj = scroll_window.get_vadjustment()
+        upper = adj.get_upper()
+        page_size = adj.get_page_size()
+        value = adj.get_value()
+        new_value = upper - page_size
+        if value != new_value:
+            endmark = text_buffer.get_mark("end")
+            display.scroll_to_mark(endmark, 0.0, True, 0, 1)
+
     def _build_filter(self, text):
         '''
         Build Filter.
@@ -1177,6 +1185,7 @@ class ChatTab(MainWindowTab):
 
         display.show()
         scroll_window.show()
+        buffer.connect("changed", self._textview_changed, display)
 
         if text:
             lab = Gtk.Label.new(text)
