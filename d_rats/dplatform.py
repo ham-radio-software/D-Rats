@@ -694,7 +694,8 @@ class Win32Platform(Platform):
                 port = None
 
             except pywintypes.error as err:
-                if err.args[0] != 2:
+                # Error code 5 Apparently if the serial port is in use.
+                if err.args[0] not in [2, 5]:
                     self.logger.info("list_serial_ports", exc_info=True)
 
         return ports
