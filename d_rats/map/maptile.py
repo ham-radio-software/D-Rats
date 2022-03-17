@@ -22,13 +22,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
 import logging
 import math
-import threading
+import os
 import ssl
+import threading
 import time
 import urllib.request
+
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -85,6 +86,7 @@ class MapTile():
     :param x_axis: X axis of tile on map, default None
     :type x_axis: float
     :param y_axis: Y axis of tile on map, default None
+    :type y_axis: float
     '''
     _base_dir = None
     _connected = False
@@ -547,9 +549,11 @@ class MapTile():
         except (urllib.error.HTTPError, urllib.error.URLError) as err:
             if hasattr(err, 'code') and err.code == 404:
                 raise MapTileNotFound("404 error code")
-            if hasattr(err, 'reason') and \
-                    isinstance(err.reason, ssl.SSLCertVerificationError):
-                raise MapTileCertError(err.reason.verify_message)
+            if hasattr(err, 'reason'):
+                if isinstance(err.reason, ssl.SSLCertVerificationError):
+                    raise MapTileCertError(err.reason.verify_message)
+                if isinstance(err.reason, OSError):
+                    raise MapTileNotFound(str(err.reason))
             self.logger.info("HTTP error while retrieving tile", exc_info=True)
             raise MapFetchError(err)
 
