@@ -394,7 +394,12 @@ class MainWindow(MainWindowElement):
         self.__window.set_urgency_hint(False)
 
     def __update_status(self):
-        # printlog("Mainwin", "  : updating status")
+        '''
+        Update Status Handler.
+
+        :returns: True
+        :rtype: bool
+        '''
         if (time.time() - self.__last_status) > 30:
             status_bar = self._wtree.get_object("statusbar")
             ident = status_bar.get_context_id("default")
@@ -433,20 +438,20 @@ def main():
     # pylint: disable=invalid-name
     logger = logging.getLogger("MainWindow")
 
-    wtree = Gtk.Builder()
-    wtree.add_from_file("ui/mainwindow.glade")
-    #wtree = Gtk.glade.XML("ui/mainwindow.glade", "mainwindow")
-
     from d_rats import config
-    conf = config.DratsConfig(None)
+    config = config.DratsConfig(None)
+
+    wtree = Gtk.Builder()
+    file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
+    wtree.add_from_file(file_name)
 
     def test(_chat, station, msg):
         logger.info("%s->%s", station, msg)
 
-    chat = ChatTab(wtree, conf)
+    chat = ChatTab(wtree, config)
     chat.connect("user-send-chat", test)
 
-    _msgs = MessagesTab(wtree, conf)
+    _msgs = MessagesTab(wtree, config)
 
     Gtk.main()
 

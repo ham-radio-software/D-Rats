@@ -3,7 +3,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -61,7 +61,8 @@ class Platform():
     def __init__(self, basepath):
         self.logger = logging.getLogger("Platform")
         self._base = basepath
-        self._source_dir = os.path.abspath(".")
+        my_dir = os.path.realpath(os.path.dirname(__file__))
+        self._source_dir = os.path.dirname(my_dir)
         self._connected = True
 
     def __str__(self):
@@ -351,7 +352,6 @@ class UnixPlatform(Platform):
         if not basepath:
             basepath = os.path.abspath(os.path.join(self.default_dir(),
                                                     ".d-rats-ev"))
-
         if not os.path.isdir(basepath):
             os.mkdir(basepath)
 
