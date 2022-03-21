@@ -2,7 +2,7 @@
 '''Transport'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ class BlockQueue():
         Enqueue
 
         :param block: Block to queue a lock for
+        :type block: :class:`DDT2Frame`
         '''
         self._lock.acquire()
         self._queue.insert(0, block)
@@ -54,6 +55,7 @@ class BlockQueue():
         Requeue a lock.
 
         :param block: Block to return
+        :type block: :class:`DDT2Frame`
         '''
         self._lock.acquire()
         self._queue.append(block)
@@ -61,9 +63,10 @@ class BlockQueue():
 
     def dequeue(self):
         '''
-        Dequeue a lock
+        Dequeue a block
 
-        :returns: lock dequeued
+        :returns: block dequeued
+        :rtype: :class:`DDT2Frame`
         '''
         self._lock.acquire()
         if self._queue:
@@ -79,6 +82,7 @@ class BlockQueue():
         Dequeue all locks
 
         :returns: Queue of locks that were released
+        :rtype: list of :class:`DDT2Frame`
         '''
         self._lock.acquire()
         locks = self._queue
@@ -91,7 +95,8 @@ class BlockQueue():
         '''
         Peek
 
-        :returns: Lock element
+        :returns: block
+        :rtype: :class:`DDT2Frame`
         '''
         self._lock.acquire()
         if self._queue:
@@ -107,6 +112,7 @@ class BlockQueue():
         Peek All.
 
         :returns: queue of locks
+        :rtype: list of :class:`DDT2Frame`
         '''
         self._lock.acquire()
         queue = self._queue
@@ -156,6 +162,7 @@ class Transporter():
         self.pipe = pipe
         self.inbuf = b''
         self.enabled = True
+        self.was_connected = False
         self.inhandler = inhandler
         self.compat = kwargs.get("compat", False)
         self.warmup_length = kwargs.get("warmup_length", 8)
@@ -165,7 +172,7 @@ class Transporter():
         self.msg_fn = kwargs.get("msg_fn", None)
         self.name = kwargs.get("port_name", "")
         self.hexdump = False
-
+        self.shutdown = False
         self.thread = threading.Thread(target=self.worker,
                                        args=(authfn,))
         self.thread.setDaemon(True)
@@ -184,16 +191,19 @@ class Transporter():
             except comm.DataPathIOError as err:
                 if not self.pipe.can_reconnect:
                     break
-                self.logger.info("__send: Data path IO error: %s", err)
+                self.logger.info("__send: %s Data path IO error: %s",
+                                 self.pipe, err)
                 try:
                     time.sleep(i)
-                    self.logger.info("__send: Attempting reconnect...")
+                    self.logger.info("__send: %s Attempting reconnect...",
+                                     self.pipe)
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
 
         # Need to put connection info in this exception
-        raise comm.DataPathIOError("Unable to reconnect")
+        raise comm.DataPathNotConnectedError("Unable to reconnect %s" %
+                                             self.pipe)
 
     def __recv(self):
         data = b""
@@ -203,15 +213,18 @@ class Transporter():
             except comm.DataPathIOError as err:
                 if not self.pipe.can_reconnect:
                     break
-                self.logger.info("__recv: Data path IO error: %s", err)
+                self.logger.info("__recv: %s Data path IO error: %s",
+                                 self.pipe, err)
                 try:
                     time.sleep(i)
-                    self.logger.info("__recv: Attempting reconnect...")
+                    self.logger.info("__recv: %s Attempting reconnect...",
+                                     self.pipe)
                     self.pipe.reconnect()
                 except comm.DataPathNotConnectedError:
                     pass
         # Need to put connection info in this exception
-        raise comm.DataPathIOError("Unable to reconnect")
+        raise comm.DataPathNotConnectedError("Unable to reconnect %s" %
+                                             self.pipe)
 
     def get_input(self):
         '''Get Input.'''
@@ -254,20 +267,19 @@ class Transporter():
             frame = ddt2.DDT2EncodedFrame()
             try:
                 if frame.unpack(block):
-                    self.logger.debug("parse_blocks: Got a block: %s", frame)
+                    self.logger.debug("parse_blocks: %s Got a block: %s",
+                                      self.pipe, frame)
                     self._handle_frame(frame)
                 elif self.compat:
                     self._send_text_block(block)
                 else:
-                    self.logger.info("parse_blocks: Found a broken block "
+                    self.logger.info("parse_blocks: %s Found a broken block "
                                      "(S:%i E:%i len(buf):%i",
-                                     start, end, len(self.inbuf))
+                                     self.pipe, start, end, len(self.inbuf))
                     utils.hexprintlog(block)
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("parse_blocks: Failed to process block",
-                                 exc_info=True)
-                utils.log_exception()
+            except comm.DataPathError:
+                self.logger.info("parse_blocks: %s Failed to process block",
+                                 self.pipe, exc_info=True)
 
     def _match_gps(self):
         # NMEA-style
@@ -285,7 +297,8 @@ class Transporter():
         if match:
             return bytearray(match.group(1), 'utf-8', 'replace')
         if u"$$CRC" in inbuf_str:
-            self.logger.info("_match_gps: Didn't match:\n%s", repr(self.inbuf))
+            self.logger.info("_match_gps: %s Didn't match:\n%s",
+                             self.pipe, repr(self.inbuf))
         return None
 
     def _send_text_block(self, string):
@@ -295,7 +308,8 @@ class Transporter():
         frame.s_station = "CQCQCQ"
         frame.d_station = "CQCQCQ"
         if isinstance(string, str):
-            self.logger.info("_send_text_block: Called with str data!")
+            self.logger.info("_send_text_block: %s Called with str data!",
+                             self.pipe)
             ascii_data = utils.filter_to_ascii(string)
         else:
             ascii_data = utils.filter_to_ascii_bytes(string)
@@ -311,7 +325,8 @@ class Transporter():
                 self.inbuf = bytearray(new_inbuf, 'utf-8', 'replace')
             else:
                 self.inbuf = new_inbuf
-            self.logger.info("_parse_gps: Found GPS string: %s", repr(result))
+            self.logger.info("_parse_gps: %s Found GPS string: %s",
+                             self.pipe, repr(result))
             self._send_text_block(result)
 
     def parse_gps(self):
@@ -338,8 +353,8 @@ class Transporter():
                     # long before transmitting
                     delay = self.force_delay
 
-                self.logger.info("send_frames: Waiting %.1f sec before "
-                                 "transmitting", delay)
+                self.logger.info("send_frames: %s Waiting %.1f sec before "
+                                 "transmitting", self.pipe, delay)
                 time.sleep(delay)
                 delayed = True
 
@@ -353,10 +368,12 @@ class Transporter():
                 warmup_f.d_station = "!"
                 warmup_f.data = ("\x01" * self.warmup_length)
                 warmup_f.set_compress(False)
-                self.logger.info("send_frames: Sending warm-up: %s", warmup_f)
+                self.logger.info("send_frames: %s Sending warm-up: %s",
+                                 self.pipe, warmup_f)
                 self.__send(warmup_f.get_packed())
 
-            self.logger.debug("send_frames: Sending block: %s", frame)
+            self.logger.debug("send_frames: %s Sending block: %s",
+                              self.pipe, frame)
             # pylint: disable=protected-access
             frame._xmit_s = time.time()
             self.__send(frame.get_packed())
@@ -372,6 +389,24 @@ class Transporter():
         :returns: Boolean if time is > self.compat_delay
         '''
         return (time.time() - self.last_recv) > self.compat_delay
+
+
+    def auth_connect(self, authfn):
+        '''
+        Authorized Connection.
+
+        :param authfn: Authorization Function
+        :type authfn: function
+        '''
+        if authfn and not authfn(self.pipe):
+            if self.msg_fn:
+                self.msg_fn("Authentication failed")
+            self.enabled = False
+        elif self.msg_fn:
+            self.msg_fn("Connected")
+            # We connected once:
+            if self.pipe.can_reconnect:
+                self.was_connected = True
 
     # pylint: disable=too-many-branches
     def worker(self, authfn):
@@ -392,52 +427,60 @@ class Transporter():
                                  self.pipe, err)
                 return
 
-        if authfn and not authfn(self.pipe):
-            if self.msg_fn:
-                self.msg_fn("Authentication failed")
-            self.enabled = False
-        elif self.msg_fn:
-            self.msg_fn("Connected")
+        self.auth_connect(authfn)
 
         while self.enabled:
-            # pylint: disable=broad-except
-            try:
-                self.get_input()
-            except comm.DataPathIOError:
-                self.logger.info("worker: Unable to reconnect!")
-                self.enabled = False
-                break
-            except Exception:
-                self.logger.info("worker: Exception while getting input",
-                                 exc_info=True)
-                utils.log_exception()
-                self.enabled = False
-                break
+            while self.enabled:
+                if self.shutdown:
+                    break
+                try:
+                    self.get_input()
+                except comm.DataPathError:
+                    self.logger.info("worker: %s Unable to reconnect!",
+                                     self.pipe)
+                    self.enabled = False
+                    break
 
-            self.parse_blocks()
-            self.parse_gps()
+                self.parse_blocks()
+                self.parse_gps()
 
-            if self.inbuf and self.compat_is_time():
-                if self.compat:
-                    self._send_text_block(self.inbuf)
-                else:
-                    self.logger.info("worker: ### Unconverted data: %s",
-                                     self.inbuf)
-                self.inbuf = b""
+                if self.inbuf and self.compat_is_time():
+                    if self.compat:
+                        self._send_text_block(self.inbuf)
+                    else:
+                        self.logger.info("worker: %s ### Unconverted data: %s",
+                                         self.pipe, self.inbuf)
+                    self.inbuf = b""
 
-            try:
-                self.send_frames()
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("worker: Exception while sending frames",
-                                 exc_info=True)
-                self.enabled = False
-                break
+                try:
+                    self.send_frames()
+                except comm.DataPathError:
+                    self.logger.info("worker: %s Exception while sending frames",
+                                     self.pipe, exc_info=True)
+                    self.enabled = False
+                    break
+
+            if self.was_connected:
+                self.logger.info("__worker: %s Waiting for reconnection...",
+                                 self.pipe)
+                while not self.enabled:
+                    # Should be a retry delay parameter
+                    time.sleep(5)
+                    try:
+                        self.logger.debug("__worker: %s "
+                                          "Attempting reconnect...", self.pipe)
+                        self.pipe.reconnect()
+                        self.enabled = True
+                        self.auth_connect(authfn)
+                    except comm.DataPathNotConnectedError:
+                        pass
 
     def disable(self):
         '''Disable transport.'''
         self.inhandler = None
         self.enabled = False
+        self.was_connected = False
+        self.shutdown = True
         self.thread.join()
 
     def send_frame(self, frame):
@@ -448,8 +491,8 @@ class Transporter():
         :type frame: :class:`DDT2Frame`
         '''
         if not self.enabled:
-            self.logger.info("send_frame: Refusing to queue block for "
-                             "dead transport")
+            self.logger.info("send_frame: %s Refusing to queue block for "
+                             "dead transport", self.pipe)
             return
         self.outq.enqueue(frame)
 
@@ -467,6 +510,7 @@ class Transporter():
         Flush blocks
 
         :param ident: Session id
+        :type ident: int
         '''
         # This should really call a flush method in the blockqueue with a
         # test function
@@ -474,13 +518,13 @@ class Transporter():
         # pylint: disable=protected-access
         for block in self.outq._queue[:]:
             if block.session == ident:
-                self.logger.info("flush_block: %s", block)
+                self.logger.info("flush_block: %s %s", self.pipe, block)
                 try:
                     # pylint: disable=protected-access
                     self.outq._queue.remove(block)
                 except ValueError:
-                    self.logger.info("flush_block: Block disappeared "
-                                     "while flushing?")
+                    self.logger.info("flush_block: %s Block disappeared "
+                                     "while flushing?", self.pipe)
         self.outq.unlock()
 
     def __str__(self):
@@ -500,6 +544,7 @@ class TestPipe():
         self.logger = logging.getLogger("TestPipe")
         self.make_fake_data(src, dst)
         self.buf = None
+        self._name = "TestPipe"
 
     def make_fake_data(self, src, dst):
         '''
@@ -541,8 +586,8 @@ class TestPipe():
 
         self.logger.info("make_fake_data: %s", self.buf)
 
-    # pylint: disable=no-self-use
-    def is_connected(self):
+    @staticmethod
+    def is_connected():
         '''
         Is Connected?
 
@@ -566,12 +611,17 @@ class TestPipe():
 
         return buf
 
-    def write(self, _buf):
+    @staticmethod
+    def write(_buf):
         '''
         Write - Does nothing
 
         :param _buf: buffer to write
         '''
+
+    def __str__(self):
+        return self._name
+
 
 def test_simple():
     '''Unit test for module'''
