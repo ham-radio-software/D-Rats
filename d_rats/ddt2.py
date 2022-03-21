@@ -397,19 +397,12 @@ class DDT2EncodedFrame(DDT2Frame):
             h_index = val.index(ENCODED_HEADER) + len(ENCODED_TRAILER)
             t_index = val.rindex(ENCODED_TRAILER)
             payload = val[h_index:t_index]
-        # pylint: disable=broad-except
-        except Exception:
+        except ValueError:
             self.logger.info("unpack: Block has no header/trailer",
                              exc_info=True)
             return False
 
-        try:
-            decoded = decode(payload)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("unpack: Unable to decode frame", exc_info=True)
-            return False
-
+        decoded = decode(payload)
         return DDT2Frame.unpack(self, decoded)
 
 
@@ -475,14 +468,9 @@ def test_crap(logger):
     :param logger: Logger object
     '''
     frame = DDT2EncodedFrame()
-    try:
-        if frame.unpack(b"[SOB]foobar[EOB]"):
-            logger.info("FAIL")
-        else:
-            logger.info("PASS")
-    # pylint: disable=broad-except
-    except Exception:
-        logger.info("Generic Exception", exc_info=True)
+    if frame.unpack(b"[SOB]foobar[EOB]"):
+        logger.info("FAIL")
+    else:
         logger.info("PASS")
 
 
