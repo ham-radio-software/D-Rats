@@ -402,7 +402,7 @@ class FilesTab(MainWindowTab):
 
         if self._remote:
             station = self._remote.get_path()
-            self._remote.outstanding[fname] = os.stat(file_name).sit_size
+            self._remote.outstanding[fname] = os.stat(file_name).st_size
         else:
             station = ssel.get_active_text().upper()
 
