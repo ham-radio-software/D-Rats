@@ -139,7 +139,12 @@ class FileTransferSession(stateful.StatefulSession):
         base_name = os.path.basename(filename)
         try:
             fname = base_name.encode('utf-8', 'replace')
-            offer = struct.pack("I", len(data)) + fname
+            # The offer data needs to be encoded in little endian to be
+            # compatible with most existing d-rats deployment as that is
+            # the native endian for x86.
+            # Normal convention is to integers in network data protocols
+            # to be in big-endian format.
+            offer = struct.pack("<I", len(data)) + fname
             self.write(offer)
         except base.SessionClosedError:
             self.logger.info("send_file: "
@@ -233,7 +238,11 @@ class FileTransferSession(stateful.StatefulSession):
             self.status(_("No start block received!"))
             return None
 
-        size, = struct.unpack("I", data[:4])
+        # The size data comes in as little endian to be compatible with
+        # most existing d-rats deployment as that is the native endian for x86.
+        # Normal convention is to integers in network data protocols
+        # to be in big-endian format.
+        size, = struct.unpack("<I", data[:4])
         name = data[4:].decode('utf-8', 'replace')
 
         if os.path.isdir(dest_dir):
