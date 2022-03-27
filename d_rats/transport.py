@@ -29,8 +29,9 @@ from six.moves import range # type: ignore
 
 from . import utils
 from . import ddt2
-from . import comm
-
+from .dratsexception import DataPathError
+from .dratsexception import DataPathIOError
+from .dratsexception import DataPathNotConnectedError
 
 class BlockQueue():
     '''Block Queue.'''
@@ -188,7 +189,7 @@ class Transporter():
                     print("Transporter.__send/pipe", type(self.pipe))
                     utils.hexprintlog(data)
                 return self.pipe.write(data)
-            except comm.DataPathIOError as err:
+            except DataPathIOError as err:
                 if not self.pipe.can_reconnect:
                     break
                 self.logger.info("__send: %s Data path IO error: %s",
@@ -198,19 +199,18 @@ class Transporter():
                     self.logger.info("__send: %s Attempting reconnect...",
                                      self.pipe)
                     self.pipe.reconnect()
-                except comm.DataPathNotConnectedError:
+                except DataPathNotConnectedError:
                     pass
 
         # Need to put connection info in this exception
-        raise comm.DataPathNotConnectedError("Unable to reconnect %s" %
-                                             self.pipe)
+        raise DataPathNotConnectedError("Unable to reconnect %s" % self.pipe)
 
     def __recv(self):
         data = b""
         for i in range(0, 10):
             try:
                 return self.pipe.read_all_waiting()
-            except comm.DataPathIOError as err:
+            except DataPathIOError as err:
                 if not self.pipe.can_reconnect:
                     break
                 self.logger.info("__recv: %s Data path IO error: %s",
@@ -220,11 +220,10 @@ class Transporter():
                     self.logger.info("__recv: %s Attempting reconnect...",
                                      self.pipe)
                     self.pipe.reconnect()
-                except comm.DataPathNotConnectedError:
+                except DataPathNotConnectedError:
                     pass
         # Need to put connection info in this exception
-        raise comm.DataPathNotConnectedError("Unable to reconnect %s" %
-                                             self.pipe)
+        raise DataPathNotConnectedError("Unable to reconnect %s" % self.pipe)
 
     def get_input(self):
         '''Get Input.'''
@@ -277,7 +276,7 @@ class Transporter():
                                      "(S:%i E:%i len(buf):%i",
                                      self.pipe, start, end, len(self.inbuf))
                     utils.hexprintlog(block)
-            except comm.DataPathError:
+            except DataPathError:
                 self.logger.info("parse_blocks: %s Failed to process block",
                                  self.pipe, exc_info=True)
 
@@ -420,7 +419,7 @@ class Transporter():
 
             try:
                 self.pipe.connect()
-            except comm.DataPathNotConnectedError as err:
+            except DataPathNotConnectedError as err:
                 if self.msg_fn:
                     self.msg_fn("Unable to connect (%s)" % err)
                 self.logger.info("worker: Comm %s did not connect: %s",
@@ -435,7 +434,7 @@ class Transporter():
                     break
                 try:
                     self.get_input()
-                except comm.DataPathError:
+                except DataPathError:
                     self.logger.info("worker: %s Unable to reconnect!",
                                      self.pipe)
                     self.enabled = False
@@ -454,7 +453,7 @@ class Transporter():
 
                 try:
                     self.send_frames()
-                except comm.DataPathError:
+                except DataPathError:
                     self.logger.info("worker: %s Exception while sending frames",
                                      self.pipe, exc_info=True)
                     self.enabled = False
@@ -472,7 +471,7 @@ class Transporter():
                         self.pipe.reconnect()
                         self.enabled = True
                         self.auth_connect(authfn)
-                    except comm.DataPathNotConnectedError:
+                    except DataPathNotConnectedError:
                         pass
 
     def disable(self):

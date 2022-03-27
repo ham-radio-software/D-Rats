@@ -16,28 +16,14 @@ import serial
 
 from . import utils
 from . import agw
+from .dratsexception import DataPathIOError
+from .dratsexception import DataPathNotConnectedError
 
 # Needed for python2+python3 support
 if sys.version_info[0] < 3:
     # pylint: disable=redefined-builtin
     class BlockingIOError(socket.error):
         '''Suppress pylint on python3 warning.'''
-
-
-class CommException(Exception):
-    '''Generic Comm Exception.'''
-
-
-class DataPathError(CommException):
-    '''Data Path Error.'''
-
-
-class DataPathNotConnectedError(DataPathError):
-    '''Data Path Not Connected Error.'''
-
-
-class DataPathIOError(DataPathError):
-    '''Data Path IO Error'''
 
 
 ASCII_XON = 17 # chr(17)
@@ -888,14 +874,14 @@ class TNCAX25DataPath(TNCDataPath):
         send_dst = dst.encode('utf-8', 'replace')
         send_src = src.encode('utf-8', 'replace')
 
-        hdr = struct.pack("7s%isBB" % len(src),
+        hdr = struct.pack("!7s%isBB" % len(src),
                           send_dst,     # Dest call
                           send_src,     # Source path
                           0x03,         # Control
                           0xF0)         # PID: No layer 3
 
         fcs = compute_fcs(hdr + buf)
-        data = hdr + buf + struct.pack(">H", fcs)
+        data = hdr + buf + struct.pack("!H", fcs)
 
         # self.logger.info("write: Transmitting AX.25 Frame:")
         #utils.hexprintlog(data)
