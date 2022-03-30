@@ -1,6 +1,9 @@
 #ifndef _LZHUF_H
 #define _LZHUF_H
 
+#include <errno.h>
+#include <stdio.h>
+
 
 // Added by MARTIN
 #ifndef log
@@ -8,15 +11,12 @@
 #endif
 void no_log(int s,const char *fmt, ...);
 
-#include <stdio.h>
-
 int pwait(void *event); // Some sort of signal to let other threads run?
 
 #include <stdint.h>
 typedef int32_t int32;
 typedef int16_t int16;
 
-//#define errno 0
 #define NULLFILE 0
 
 struct lzhufstruct* AllocStruct();
