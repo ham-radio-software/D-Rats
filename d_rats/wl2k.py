@@ -3,9 +3,8 @@
 # pylint: disable=too-many-lines
 from __future__ import absolute_import
 from __future__ import print_function
-# import csv
 
-import sys
+import logging
 import os
 import socket
 import tempfile
@@ -21,20 +20,15 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
-# from six.moves import range
 
-sys.path.insert(0, "..")
+# sys.path.insert(0, "..")
 
 from d_rats import version
 from d_rats import dplatform
 from d_rats import formgui
-# from d_rats import utils
 from d_rats import signals
 from d_rats.ddt2 import calc_checksum
-# from d_rats.ui import main_events
 from d_rats import agw
-#importing printlog() wrapper
-from .debug import printlog
 
 
 FBB_BLOCK_HDR = 1
@@ -68,6 +62,7 @@ def run_lzhuf(cmd, data):
     :param data: Data to process
     :type data: bytes
     '''
+    logger = logging.getLogger("run_lzhuf")
     platform = dplatform.get_platform()
 
     cwd = tempfile.mkdtemp()
@@ -86,8 +81,6 @@ def run_lzhuf(cmd, data):
 
     if os.name == "nt":
         lzhuf = "LZHUF_1.EXE"
-    elif os.name == "darwin":
-        raise Exception("Not supported on MacOS")
     else:
         lzhuf = "lzhuf"
 
@@ -96,10 +89,10 @@ def run_lzhuf(cmd, data):
     shutil.copy(os.path.abspath(lzhuf_path), cwd)
     run = [lzhuf_path, cmd, "input", "output"]
 
-    printlog("wl2k       : Running %s in %s" % (run, cwd))
+    logger.info("Running %s in %s", run, cwd)
 
     ret = subprocess.call(run, cwd=cwd, **kwargs)
-    printlog("wl2k       : LZHUF returned %s" % ret)
+    logger.info("LZHUF returned %s", ret)
     if ret:
         return None
 
@@ -168,6 +161,8 @@ class WinLinkAttachment:
         return self.__content
 
 
+# pylint wants only 7 instance attributes for a class
+# pylint: disable=too-many-instance-attributes
 class WinLinkMessage:
     '''
     WinLink Message.
@@ -177,6 +172,7 @@ class WinLinkMessage:
     :raises: broad exception if offset support requested
     '''
     def __init__(self, header=None):
+        self.logger = logging.getLogger("WinLinkMessage")
         self.__name = ""
         self.__content = ""
         self.__usize = self.__csize = 0
@@ -200,6 +196,8 @@ class WinLinkMessage:
     def __encode_lzhuf(data):
         return run_lzhuf_encode(data)
 
+    # pylint wants only 5 arguments per method
+    # pylint: disable=too-many-arguments
     def encode_message(self, src, dst, name, body, attachments):
         '''
         Encode Message.
@@ -240,6 +238,8 @@ class WinLinkMessage:
 
         self.set_content(msg, name)
 
+    # pylint wants only 15 local variables per method
+    # pylint: disable=too-many-locals
     def create_form(self, config, callsign):
         '''
         Create Form.
@@ -292,8 +292,8 @@ class WinLinkMessage:
             for att in files:
                 length, name = att.split(" ", 1)
                 filedata = rest[2:int(length)+2] # Length includes leading CRLF
-                printlog("WL2k", "      : File %s %i (%i)" %
-                         (name, len(filedata), int(length)))
+                self.logger.info("create_form: File %s %i (%i)",
+                                 name, len(filedata), int(length))
                 rest = rest[int(length)+2:]
                 form.add_attachment(name, filedata)
 
@@ -335,7 +335,7 @@ class WinLinkMessage:
 
         i = 0
         while True:
-            printlog("wl2k       : Reading at %i" % i)
+            self.logger.info("read_from_socket: Reading at %i", i)
             block_type = ord(self.recv_exactly(sock, 1))
 
             if chr(block_type) == "*":
@@ -344,23 +344,25 @@ class WinLinkMessage:
 
             if block_type not in list(FBB_BLOCK_TYPES.keys()):
                 i += 1
-                printlog("wl2k       : Got %x (%c) while reading %i" %
-                         (block_type, chr(block_type), i))
+                self.logger.info("read_from_socket: "
+                                 "Got %x (%c) while reading %i",
+                                 block_type, chr(block_type), i)
                 continue
 
-            printlog("wl2k       : Found %s at %i" %
-                     (FBB_BLOCK_TYPES.get(block_type, "unknown"), i))
+            self.logger.info("read_from_socket: Found %s at %i",
+                             FBB_BLOCK_TYPES.get(block_type, "unknown"), i)
             size = ord(self.recv_exactly(sock, 1))
             i += 2 # Account for the type and size
 
             if block_type == FBB_BLOCK_HDR:
                 header = self.recv_exactly(sock, size)
                 self.__name, offset, _foo = header.split("\0")
-                printlog("wl2k       : Name is `%s' offset %s\n" %
-                         (self.__name, offset))
+                self.logger.info("read_from_socket: Name is `%s' offset %s\n",
+                                 self.__name, offset)
                 i += size
             elif block_type == FBB_BLOCK_DAT:
-                printlog("wl2k       : Reading data block %i bytes" % size)
+                self.logger.info("read_from_socket: "
+                                 "Reading data block %i bytes", size)
                 data += self.recv_exactly(sock, size)
                 i += size
             elif block_type == FBB_BLOCK_EOF:
@@ -368,22 +370,23 @@ class WinLinkMessage:
                 for i in data:
                     content_size += ord(i)
                 if (content_size % 256) != 0:
-                    printlog("wl2k       : Ack! %i left from content_size %i" %
-                             (content_size, size))
+                    self.logger.info("read_from_socket: "
+                                     "Ack! %i left from content_size %i",
+                                     content_size, size)
 
                 break
 
-        printlog("wl2k       : Got data: %i bytes" % len(data))
+        self.logger.info("read_from_socket: Got data: %i bytes", len(data))
         self.__content = self.__decode_lzhuf(data)
         if self.__content is None:
             raise Exception("Failed to decode compressed message")
 
         if len(data) != self.__csize:
-            printlog("wl2k       : Compressed "
-                     "size %i != %i" % (len(data), self.__csize))
+            self.logger.info("read_from_socket: Compressed size %i != %i",
+                             len(data), self.__csize)
         if len(self.__content) != self.__usize:
-            printlog("wl2k       : Uncompressed "
-                     "size %i != %i" % (len(self.__content), self.__usize))
+            self.logger.info("read_from_socket: Uncompressed size %i != %i",
+                             len(self.__content), self.__usize)
 
     def send_to_socket(self, sock):
         '''
@@ -471,6 +474,7 @@ class WinLinkCMS:
     :type callsign: str
     '''
     def __init__(self, callsign):
+        self.logger = logging.getLogger("WinLinkCMS")
         self._callsign = callsign
         self.__messages = []
         self._conn = None
@@ -485,7 +489,7 @@ class WinLinkCMS:
 
     # pylint: disable=no-self-use
     def _login(self):
-        '''Login internal'''
+        '''Login internal.'''
 
     # pylint: disable=no-self-use
     def __ssid(self):
@@ -495,11 +499,11 @@ class WinLinkCMS:
         '''
         Send Internal.
 
-        :param string: Text to send
-        :type string: str
+        :param string: data to send
+        :type string: bytes
         '''
-        printlog("wl2k       :  -> %s" % string)
-        self._conn.send(string + "\r")
+        self.logger.info("_send:  -> %s", string)
+        self._conn.send(string + b"\r")
 
     def __recv(self):
         '''
@@ -511,7 +515,7 @@ class WinLinkCMS:
         resp = b""
         while not resp.endswith(b"\r"):
             resp += self._conn.recv(1)
-        printlog("wl2k       :  <- %s" % escaped(resp))
+        self.logger.info("__recv:  <- %s", escaped(resp))
         return resp
 
     def _recv(self):
@@ -563,7 +567,8 @@ class WinLinkCMS:
             resp = self._recv()
             for line in resp.split("\r"):
                 if line.startswith("FC"):
-                    printlog("wl2k       : Creating message for %s" % line)
+                    self.logger.info("__get_list: Creating message for %s",
+                                     line)
                     msgs.append(WinLinkMessage(line))
                 elif line.startswith("F>"):
                     reading = False
@@ -574,7 +579,7 @@ class WinLinkCMS:
                 elif not line:
                     pass
                 else:
-                    printlog("wl2k       : Invalid line: %s" % line)
+                    self.logger.info("__get_list: Invalid line: %s", line)
                     raise Exception("Conversation error (%s while listing)" %
                                     line)
 
@@ -595,7 +600,7 @@ class WinLinkCMS:
             self._send("FS %s" % ("Y" * len(self.__messages)))
 
             for msg in self.__messages:
-                printlog("WL2k", "      : Getting message...")
+                self.logger.info("get_message: Getting message...")
                 try:
                     msg.read_from_socket(self._conn)
                 # pylint: disable=broad-except, try-except-raise
@@ -684,6 +689,7 @@ class WinLinkTelnet(WinLinkCMS):
         self.__port = port
         self.__passwd = passwd
         WinLinkCMS.__init__(self, callsign)
+        self.logger = logging.getLogger("WinLinkTelnet")
 
     def __ssid(self):
         return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
@@ -826,6 +832,7 @@ class WinLinkRMSPacket(WinLinkCMS):
         self.__remote = remote
         self.__agw = agw_conn
         WinLinkCMS.__init__(self, callsign)
+        self.logger = logging.getLogger("WinLinkRMSPacket")
 
     def _connect(self):
         self._conn = agw.AGW_AX25_Connection(self.__agw, self._callsign)
@@ -864,6 +871,8 @@ class WinLinkThread(threading.Thread, GObject.GObject):
 
     def __init__(self, config, callsign, callssid=None, send_msgs=None):
         threading.Thread.__init__(self)
+        self.logger = logging.getLogger("WinLinkThread")
+
         self.setDaemon(True)
         GObject.GObject.__init__(self)
 
@@ -941,8 +950,8 @@ class WinLinkThread(threading.Thread, GObject.GObject):
             wlm = WinLinkMessage()
             wlm.set_id(mid)
             wlm.set_content(message_thread.get_content(), subj)
-            printlog("wl2k       : m  : %s" % message)
-            printlog("wl2k       : mt : %s" % message_thread)
+            self.logger.info("message: %s", message)
+            self.logger.info("mesage_thread : %s", message_thread)
             winlink.send_messages([wlm])
 
         return "Complete"
@@ -961,6 +970,7 @@ class WinLinkTelnetThread(WinLinkThread):
 
     def __init__(self, *args, **kwargs):
         WinLinkThread.__init__(self, *args, **kwargs)
+        self.logger = logging.getLogger("WinLinkTelnetThread")
 
     def wl2k_connect(self):
         '''
@@ -980,6 +990,7 @@ class WinLinkAGWThread(WinLinkThread):
 
     def __init__(self, *args, **kwargs):
         WinLinkThread.__init__(self, *args, **kwargs)
+        self.logger = logging.getLogger("WinLinkAGWThread")
         self.__agwconn = None
 
     def set_agw_conn(self, agwconn):
@@ -1012,9 +1023,11 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
     '''
     mode = mainapp.config.get("settings", "msg_wl2k_mode")
 
+    logger = logging.getLogger("wl2k_auto_thread")
+
     # May need for AGW
     # call = config.get("user", "callsign")
-    printlog("wl2k       : WL2K Mode is: %s" % mode)
+    logger.info("WL2K Mode is: %s", mode)
     if mode == "Network":
         message_thread = WinLinkTelnetThread(mainapp.config, *args, **kwargs)
     elif mode == "RMS":
@@ -1034,17 +1047,23 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
 
 def main():
     '''Unit Test.'''
+
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+
+    logger = logging.getLogger("wl2k_test")
+
     # pylint: disable=using-constant-test
     if True:
         # wl = WinLinkTelnet("KK7DS", "sandiego.winlink.org")
         agwc = agw.AGWConnection("127.0.0.1", 8000, 0.5)
         winlink = WinLinkRMSPacket("KK7DS", "N7AAM-11", agwc)
         count = winlink.get_messages()
-        printlog("wl2k       : %i messages" % count)
+        logger.info("%i messages", count)
         for i in range(0, count):
-            printlog("wl2k       : --Message"
-                     " %i--\n%s\n--End--\n\n" %
-                     (i, winlink.get_message(i).get_content()))
+            logger.info("--Message %i--\n%s\n--End--\n\n",
+                        i, winlink.get_message(i).get_content())
     # code here commented out as currently unreachable
     # and appears to be currently broken.
 #    else:
