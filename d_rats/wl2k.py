@@ -29,6 +29,76 @@ from d_rats import formgui
 from d_rats import signals
 from d_rats.ddt2 import calc_checksum
 from d_rats import agw
+from d_rats.dratsexception import DataPathIOError
+# from d_rats.dratsexception import DataPathNotConnectedError
+
+
+class Wl2kAutoThreadUnknownMode(DataPathIOError):
+    '''Unknown WinLink mode error.'''
+
+
+class Wl2kAutoThreadNoSuchPort(DataPathIOError):
+    '''No such port error.'''
+
+
+class Wl2kCMSBadSSID(DataPathIOError):
+    '''Error parssing SSID.'''
+
+
+class Wl2kCMSNoPrompt(DataPathIOError):
+    '''No prompt received error.'''
+
+
+class Wl2kCMSInvalidLine(DataPathIOError):
+    '''Invalid Line received error.'''
+
+
+class Wl2kCMSNotImplemented(DataPathIOError):
+    '''Winlink CMS Feature not implemented.'''
+
+
+class Wl2kCMSServerError(DataPathIOError):
+    '''Communications with server error.'''
+
+
+class Wl2kCMSRefusedMessages(DataPathIOError):
+    '''Server refused some some messages error.'''
+
+
+class Wl2kMessageDecodeError(DataPathIOError):
+    '''Error decoding message.'''
+
+
+class Wl2kMessageHeaderError(DataPathIOError):
+    '''Error with the Winlink Message header.'''
+
+
+class Wl2kMessageOffsetNotSupported(DataPathIOError):
+    '''Offset not supported in Winlink messages.'''
+
+
+class Wl2kMessageSocketReadError(DataPathIOError):
+    '''Error reading from the socket.'''
+
+
+class Wl2kTelnetNoHello(DataPathIOError):
+    '''Did not see hello message from server error.'''
+
+
+class Wl2kTelnetNoChallenge(DataPathIOError):
+    '''Did not see challenge message from server error.'''
+
+
+class Wl2kTelnetNoPassword(DataPathIOError):
+    '''Did not see password message from server error.'''
+
+
+class Wl2kTelnetNoLogin(DataPathIOError):
+    '''Did not see login message from server error.'''
+
+
+class Wl2kClassStubMethodError(Exception):
+    '''Base class stub method should not be called error.'''
 
 
 FBB_BLOCK_HDR = 1
@@ -72,6 +142,7 @@ def run_lzhuf(cmd, data):
     file_handle.close()
 
     kwargs = {}
+    # pylint only works for platform it is run on
     # pylint: disable=no-member
     if subprocess.mswindows:
         child = subprocess.STARTUPINFO()
@@ -169,7 +240,7 @@ class WinLinkMessage:
 
     :param header: Header for message, default None
     :type header: str
-    :raises: broad exception if offset support requested
+    :raises: :class:`Wl2kMessageOffsetNotSupported` if offset support requested
     '''
     def __init__(self, header=None):
         self.logger = logging.getLogger("WinLinkMessage")
@@ -186,7 +257,8 @@ class WinLinkMessage:
             self.__csize = int(csize)
 
             if int(off) != 0:
-                raise Exception("Offset support not implemented")
+                raise Wl2kMessageOffsetNotSupported(
+                    "Offset support not implemented")
 
     @staticmethod
     def __decode_lzhuf(data):
@@ -250,6 +322,7 @@ class WinLinkMessage:
         :type callsign: str
         :returns: Form filename
         :rtype: str
+        :raises: :class:`Wl2kMessageHeaderError` if unable to parse header
         '''
         mail = email.message_from_string(self.__content)
 
@@ -265,7 +338,8 @@ class WinLinkMessage:
         try:
             body_length = int(body)
         except ValueError:
-            raise Exception("Error parsing Body header length `%s'" % body)
+            raise Wl2kMessageHeaderError(
+                "Error parsing Body header length `%s'" % body)
 
         body_start = self.__content.index("\r\n\r\n") + 4
         rest = self.__content[body_start + body_length:]
@@ -330,6 +404,10 @@ class WinLinkMessage:
 
         :param sock: Socket to read from
         :type sock: socket.socket
+        :raises: :class:`Wl2kMessageSocketReadError` if bad data read in
+        from the socket
+        :raises: :class:`Wl2kMessageDecodeError` if message can not be
+        decoded
         '''
         data = b""
 
@@ -340,7 +418,8 @@ class WinLinkMessage:
 
             if chr(block_type) == "*":
                 msg = sock.recv(1024)
-                raise Exception("Error getting message: %s" % msg)
+                raise Wl2kMessageSocketReadError("Error getting message: %s" %
+                                                 msg)
 
             if block_type not in list(FBB_BLOCK_TYPES.keys()):
                 i += 1
@@ -379,7 +458,7 @@ class WinLinkMessage:
         self.logger.info("read_from_socket: Got data: %i bytes", len(data))
         self.__content = self.__decode_lzhuf(data)
         if self.__content is None:
-            raise Exception("Failed to decode compressed message")
+            raise Wl2kMessageDecodeError("Failed to decode compressed message")
 
         if len(data) != self.__csize:
             self.logger.info("read_from_socket: Compressed size %i != %i",
@@ -479,20 +558,45 @@ class WinLinkCMS:
         self.__messages = []
         self._conn = None
 
-    # pylint: disable=no-self-use
     def _connect(self):
-        '''Connect internal.'''
+        '''
+        Connect internal.
 
-    # pylint: disable=no-self-use
+        :raises: :class:`Wl2kClassStubMethodError`
+        '''
+        # Needs to exist to make pylint happy
+        # Needs to possibly return to make pylance happy
+        # but this method should never get called.
+        if not self._conn:
+            raise Wl2kClassStubMethodError(type(self))
+
     def _disconnect(self):
-        '''Disconnect internal.'''
+        '''
+        Disconnect internal.
 
-    # pylint: disable=no-self-use
+        :raises: :class:`Wl2kClassStubMethodError`
+        '''
+        # Needs to exist to make pylint/pylance happy
+        # Needs to possibly return to make pylance happy
+        # but this method should never get called.
+        if not self._conn:
+            raise Wl2kClassStubMethodError(type(self))
+
     def _login(self):
-        '''Login internal.'''
+        '''
+        Login internal.
 
-    # pylint: disable=no-self-use
-    def __ssid(self):
+        :raises: :class:`Wl2kClassStubMethodError`
+        '''
+        # Needs to exist to make pylint happy
+        # Needs to possibly return to make pylance happy
+        # but this method should never get called.
+        if not self._conn:
+            raise Wl2kClassStubMethodError(type(self))
+
+
+    @staticmethod
+    def __ssid():
         return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
 
     def _send(self, string):
@@ -536,20 +640,19 @@ class WinLinkCMS:
 
         :param recv_ssid: incoming SSID
         :type recv_ssid: str
-        :raises broad exception if SSID can not be parsed
-        :raises broad exception if prompt not received
+        :raises: :class:`Wl2kCMSBadSSID` if SSID can not be parsed
+        :raises: :class:`Wl2kCMSNoPrompt` if prompt not received
         '''
         try:
             _sw, _ver, _caps = recv_ssid[1:-1].split("-")
-        # pylint: disable=broad-except
-        except Exception:
-            raise Exception("Conversation error (unparsable SSID `%s')" %
-                            recv_ssid)
+        except ValueError:
+            raise Wl2kCMSBadSSID(
+                "Conversation error (unparsable SSID `%s')" % recv_ssid)
 
         self._send(self.__ssid())
         prompt = self._recv().strip()
         if not prompt.endswith(">"):
-            raise Exception("Conversation error (never got prompt)")
+            raise Wl2kCMSNoPrompt("Conversation error (never got prompt)")
 
     def __get_list(self):
         '''
@@ -557,7 +660,7 @@ class WinLinkCMS:
 
         :returns: List of messages
         :rtype: list of :class:`WinLinkMessage`
-        :raises: broad exception if invalid line found.
+        :raises: :class:`Wl2kCMSInvalidLine` if invalid line found.
         '''
         self._send("FF")
 
@@ -580,8 +683,8 @@ class WinLinkCMS:
                     pass
                 else:
                     self.logger.info("__get_list: Invalid line: %s", line)
-                    raise Exception("Conversation error (%s while listing)" %
-                                    line)
+                    raise Wl2kCMSInvalidLine(
+                        "Conversation error (%s while listing)" % line)
 
         return msgs
 
@@ -601,11 +704,7 @@ class WinLinkCMS:
 
             for msg in self.__messages:
                 self.logger.info("get_message: Getting message...")
-                try:
-                    msg.read_from_socket(self._conn)
-                # pylint: disable=broad-except, try-except-raise
-                except Exception:
-                    raise
+                msg.read_from_socket(self._conn)
 
             self._send("FQ")
 
@@ -620,7 +719,7 @@ class WinLinkCMS:
         :param index: Index to message
         :type index: int
         :returns: Windlink message
-        :rtype: :class:`WinLinkMessage`
+        :rtype: :class:`Wl2kMessage`
         '''
         return self.__messages[index]
 
@@ -629,15 +728,17 @@ class WinLinkCMS:
         Send Messages.
 
         :param mesages: WinLink messages
-        :type message: list of :class:`WinLinkMessage`
+        :type message: list of :class:`Wl2kMessage`
         :returns: Number of messages sent.
         :rtype: int
-        :raises: Broad Exception if more than one message in list
-        :raises: Broad Exception if error talking to server
-        :raises: broad Exception if Server refused some messages
+        :raises: :class:`Wl2kCMSNotImplemented` if more than one message
+        in list
+        :raises: :class:`Wl2kCMSServerError` if error talking to server
+        :raises: :class:`Wl2kCMSRefusedMessages` if server refused some
+        messages
         '''
         if len(messages) != 1:
-            raise Exception("Sorry, batch not implemented yet")
+            raise Wl2kCMSNotImplemented("Sorry, batch not implemented yet")
 
         self._connect()
         self._login()
@@ -655,11 +756,12 @@ class WinLinkCMS:
         resp = self._recv()
 
         if not resp.startswith("FS"):
-            raise Exception("Error talking to server: %s" % resp)
+            raise Wl2kCMSServerError("Error talking to server: %s" % resp)
 
         _fs, accepts = resp.split()
         if len(accepts) != len(messages):
-            raise Exception("Server refused some of my messages?!")
+            raise Wl2kCMSRefusedMessages(
+                "Server refused some of my messages?!")
 
         for msg in messages:
             msg.send_to_socket(self._conn)
@@ -691,59 +793,12 @@ class WinLinkTelnet(WinLinkCMS):
         WinLinkCMS.__init__(self, callsign)
         self.logger = logging.getLogger("WinLinkTelnet")
 
-    def __ssid(self):
+    @staticmethod
+    def __ssid():
         return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
 
     def _connect(self):
         '''Connect.'''
-
-        # pylint: disable=invalid-name, unused-variable
-        class sock_file:
-            '''Sock File.'''
-            def __init__(self):
-                self.__s = 0
-
-            def read(self, read_len):
-                '''
-                Read
-
-                :param len: maximum bytes to receive
-                :type len int
-                :returns: Data received
-                :rtype: bytes
-                '''
-                # pylint: disable=no-member
-                return self.__s.recv(read_len)
-
-            def write(self, buf):
-                '''
-                Write.
-
-                :param buf: buffer
-                :type buf: bytes
-                :returns: number of bytes sent
-                :rtype: int
-                '''
-                # pylint: disable=no-member
-                return self.__s.send(buf)
-
-            def connect(self, spec):
-                '''
-                Connect.
-
-                :param spec: spec
-                :type spec: ?
-                :returns: socket
-                :rtype: int
-                '''
-                # pylint: disable=no-member
-                return self.__s.connect(spec)
-
-            def close(self):
-                '''Close.'''
-                # pylint: disable=no-member
-                self.__s.close()
-
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._conn.connect((self.__server, self.__port))
 
@@ -751,43 +806,55 @@ class WinLinkTelnet(WinLinkCMS):
         self._conn.close()
 
     def _login(self):
+        '''
+        Login Internal
+
+        :raises: :class:`Wl2kCMSBadSSID` if SSID can not be parsed
+        :raises: :class:`Wl2kCMSNoPrompt` if no prompt seen
+        :raises: :class:`Wl2kTelnetNoChallenge` if challenge message not seen
+        :raises: :class:`Wl2kTelnetNoHello` if hello message not seen
+        :raises: :class:`Wl2kTelnetNoLogin` if login message not seen
+        :raises: :class:`Wl2kTelnetNoPassword` if password message not seen
+        '''
 
         resp = self._recv()
 
         resp = self._recv()
         if not resp.startswith("Callsign :"):
-            raise Exception("Conversation error (never saw login)")
+            raise Wl2kTelnetNoLogin("Conversation error (never saw login)")
 
         self._send(self._callsign)
         resp = self._recv()
         if not resp.startswith("Password :"):
-            raise Exception("Conversation error (never saw password)")
+            raise Wl2kTelnetNoPassword("Conversation error (never saw password)")
 
         self._send("CMSTELNET")
         resp = self._recv()
 
         try:
             _sw, _ver, _caps = resp[1:-1].split("-")
-        # pylint: disable=broad-except
-        except Exception:
-            raise Exception("Conversation error (unparsable SSID `%s')" % resp)
+        except ValueError:
+            raise Wl2kCMSBadSSID(
+                "Conversation error (unparsable SSID `%s')" % resp)
 
         resp = self._recv().strip()
         if not resp.endswith(">"):
-            raise Exception("Conversation error (never got prompt)")
+            raise Wl2kCMSNoPrompt("Conversation error (never got prompt)")
 
         if self.__passwd:
             self._send("FF")
 
             resp = self._recv().strip()
             if not resp.startswith("Login ["):
-                raise Exception("Conversation error (never saw challenge)")
+                raise Wl2kTelnetNoChallenge(
+                    "Conversation error (never saw challenge)")
 
             chall = resp[7:-2]
 
             resp = self._recv().strip()
             if not resp.endswith(">"):
-                raise Exception("Conversation error (never got prompt)")
+                raise Wl2kCMSNoPrompt(
+                    "Conversation error (never got prompt)")
 
             passwd = "_" + self.__passwd
 
@@ -808,11 +875,13 @@ class WinLinkTelnet(WinLinkCMS):
 
             resp = self._recv()
             if not resp.startswith("Hello "):
-                raise Exception("Conversation error (never saw hello)")
+                raise Wl2kTelnetNoHello(
+                    "Conversation error (never saw hello)")
 
             resp = self._recv().strip()
             if not resp.endswith(">"):
-                raise Exception("Conversation error (never got prompt)")
+                raise Wl2kCMSNoPrompt(
+                    "Conversation error (never got prompt)")
 
         self._send(self.__ssid())
 
@@ -886,15 +955,21 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         if send_msgs:
             self.__send_msgs = send_msgs
 
-    # pylint: disable=no-self-use
     def wl2k_connect(self):
         '''
         Winlink 2K Connect.
 
         :returns: Winlink connection
         :rtype: :class:`WinLinkCMS`
+        :raises: :class:`Wl2kClassStubMethodError`
         '''
-        return None
+        # Needs to exist to make pylint happy
+        # Needs to possibly return something other than None to make
+        # pylint happy.
+        # but this method should never get called.
+        if self._callsign != 'Garbage Text':
+            raise Wl2kClassStubMethodError(type(self))
+        return WinLinkCMS("")
 
     def _emit(self, *args):
         '''
@@ -909,7 +984,6 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         :returns: status of run
         :rtype: str
         '''
-        # pylint: disable=assignment-from-none
         winlink = self.wl2k_connect()
         count = winlink.get_messages()
         for i in range(0, count):
@@ -934,7 +1008,6 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         '''
         _server = self._config.get("prefs", "msg_wl2k_server") # type: ignore
         _port = self._config.getint("prefs", "msg_wl2k_port")
-        # pylint: disable=assignment-from-none
         winlink = self.wl2k_connect()
         for message_thread in self.__send_msgs:
 
@@ -1020,6 +1093,8 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
     :type mainapp: :class:`MainApp`
     :returns: Telnet thread
     :rtype: :class:`WinLinkTelnetThread`
+    :raises: :class:`Wl2kAutoThreadNoSuchPort` if AGW port does not exist
+    :raises: :class:`Wl2kAutoThreadUnknownMode` for unknown WinLink modes
     '''
     mode = mainapp.config.get("settings", "msg_wl2k_mode")
 
@@ -1034,14 +1109,15 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
         # TEMPORARY
         port = mainapp.config.get("prefs", "msg_wl2k_rmsport")
         if port not in mainapp.sm:
-            raise Exception("No such AGW port %s for WL2K" % port)
+            raise Wl2kAutoThreadNoSuchPort(
+                "No such AGW port %s for WL2K" % port)
 
         agw_conn = mainapp.sm[port][0].pipe.get_agw_connection()
         # a = agw.AGWConnection("127.0.0.1", 8000, 0.5)
         message_thread = WinLinkAGWThread(mainapp.config, *args, **kwargs)
         message_thread.set_agw_conn(agw_conn)
     else:
-        raise Exception("Unknown WL2K mode: %s" % mode)
+        raise Wl2kAutoThreadUnknownMode("Unknown WL2K mode: %s" % mode)
 
     return message_thread
 
