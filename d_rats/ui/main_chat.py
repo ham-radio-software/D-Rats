@@ -80,7 +80,7 @@ class LoggedTextBuffer(Gtk.TextBuffer):
         :param log_iter: log entry
         :param text: Log text
         :type text: str
-        :param *attrs: Additional attributes
+        :param attrs: Additional attributes
         '''
         Gtk.TextBuffer.insert_with_tags_by_name(self, log_iter, text, *attrs)
         self.__logfile.write(text)
@@ -591,8 +591,8 @@ class ChatTab(MainWindowTab):
         :type text: str
         :param incoming: Message is incoming
         :type incoming: bool
-        :param *attrs: Additional attributes
-        :param *kwargs: Key word arguments
+        :param attrs: Additional attributes
+        :param kwargs: Key word arguments
         '''
         if (time.time() - self._last_date) > 600:
             stamp = time.strftime("%Y-%m-%d %H:%M:%S")

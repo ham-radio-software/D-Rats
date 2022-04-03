@@ -2,7 +2,7 @@
 '''Session Manager'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ class SessionManager():
     Session Manager.
 
     :param pipe: pipe for connection
+    :type pipe: :class:`comm.DataPath`
     :param station: Call sign for session
     :type station: str
     '''
@@ -68,9 +69,10 @@ class SessionManager():
 
     def set_comm(self, pipe, **kwargs):
         '''
-        Set Comm
+        Set Comm.
 
         :param pipe: pipe for communication
+        :type pipe: :class:`comm.DataPath`
         :param kwargs: Key word arguments
         '''
         self.pipe = pipe
@@ -115,9 +117,11 @@ class SessionManager():
         :param session: Session for call back
         :type session: :class:`Session`
         :param reason: Reason for callback
+        :type reason: str
         '''
         for function, data in self.session_cb.copy().items():
             try:
+                # function is SessionCoordinator method?
                 function(data, reason, session)
             # pylint: disable=broad-except
             except Exception:
@@ -139,7 +143,7 @@ class SessionManager():
 
     def shutdown(self, force=False):
         '''
-        Shutdown Session
+        Shutdown Session.
 
         :param force: force the shutdown, Default False
         :type force: bool
@@ -149,6 +153,7 @@ class SessionManager():
 
         # pylint: disable=protected-access
         if self.control._id in list(self.sessions):
+            # control._id is an int.
             # pylint: disable=protected-access
             del self.sessions[self.control._id]
 
@@ -164,6 +169,7 @@ class SessionManager():
         Incoming Session Frame
 
         :param frame: Received frame
+        :type frame: :class:`ddt2.DTD2Frame`
         '''
         # manage incoming sessions
         # record time for marking sessions
@@ -230,8 +236,8 @@ class SessionManager():
         :param session: Session to use
         :type session: :class:`Session`
         :param block: Block for sending
+        :type block: :class:`ddt2.DTD2Frame`
         '''
-
         self.last_frame = time.time()
 
         if not block.d_station:
@@ -251,6 +257,12 @@ class SessionManager():
         self.tport.send_frame(block)
 
     def _get_new_session_id(self):
+        '''
+        Get new session ID number.
+
+        :returns: ID number
+        :rtype: int
+        '''
         self._sid_lock.acquire()
         if self._sid_counter >= 255:
             for ident in range(0, 255):
@@ -265,6 +277,18 @@ class SessionManager():
         return ident
 
     def _register_session(self, session, dest, reason):
+        '''
+        Register Session.
+
+        :param session: new session
+        :type session: :class:`sessions.base.Session`
+        :param dest: Destination for session
+        :type dest: str
+        :param reason: Reason for session
+        :type reason: str
+        :returns: Session Identification Number
+        :rtype int
+        '''
         ident = self._get_new_session_id()
         if ident is None:
             # pylint: disable=fixme
@@ -338,6 +362,7 @@ class SessionManager():
         Set identity of sniffer session.
 
         :param ident: Identity to set
+        :type ident: int
         '''
         self.sniff_session = ident
 
@@ -366,6 +391,7 @@ class SessionManager():
         End Session.
 
         :param ident:  Session to end
+        :type ident: int
         '''
         try:
             del self.sessions[ident]
@@ -379,9 +405,12 @@ class SessionManager():
         '''
         Get Session
 
-        :param rid: Optional receive ID
-        :param rst: Optional rst value
-        :param lid: Optional lid value
+        :param rid: Remote ID, optional
+        :type rid: int
+        :param rst: Remote station, Optional
+        :type rst: str
+        :param lid: Local id value, optional
+        :type lid: int
         :returns: Session that matches request
         :rtype: :class:`Session`
         '''

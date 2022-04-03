@@ -251,7 +251,7 @@ class TNCSerial(serial.Serial):
         :type size: int
         :returns: Read frame data
         :rtype: bytes
-        :raises: :class:`DatapathNotConnectedError` on disconnect.
+        :raises: :class:`DatapathNotConnectedError` on disconnect
         '''
         if self.use_dsr and not self.dsr:
             raise DataPathNotConnectedError("Serial port disconnected %s" %
@@ -1057,9 +1057,10 @@ class SocketDataPath(DataPath):
 
         :param size: Number of bytes to read
         :type size: int
-        :returns: bytestring of data read
+        :returns: bytes of data read
+        :rtype: bytes
         :raises: :class:`DataPathIOError` on write error
-        :raises: :class:`DataPathNotConnectedError on socket disconnect
+        :raises: :class:`DataPathNotConnectedError` on socket disconnect
         '''
         data = b''
         end = time.time() + self.timeout

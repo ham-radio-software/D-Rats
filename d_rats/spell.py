@@ -232,7 +232,7 @@ def prepare_TextBuffer(buf):
     Prepare Text Buffer.
 
     :param buf: Buffer widget
-    :type buf: :class:`Gtk.TextBuffer'
+    :type buf: :class:`Gtk.TextBuffer`
     '''
     tags = buf.get_tag_table()
     tag = Gtk.TextTag.new("misspelled")

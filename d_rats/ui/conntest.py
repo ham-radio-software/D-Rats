@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -345,7 +345,7 @@ class ConnTestAssistant(Gtk.Assistant):
         '''
         Set Test Value.
 
-        :param *pairs: list of name value pairs
+        :param pairs: list of name value pairs
         '''
         if len(pairs) % 2:
             self.logger.info("Ack! need name=value pairs!")

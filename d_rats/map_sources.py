@@ -764,7 +764,7 @@ class MapUSGSRiverSource(MapSource):
         '''
         Packed Name.
 
-        :returns: fixed up or packed name
+        :returns: Fixed up or packed name
         :rtype: str
         '''
         name = []
@@ -800,7 +800,7 @@ class MapNBDCBuoySource(MapSource):
     :type name: str
     :param description: Description of source
     :type description: str
-    :param *buoys: Optional buoy information
+    :param buoys: Optional buoy information
     '''
 
     def __init__(self, name, description, *buoys):
@@ -867,10 +867,10 @@ class MapNBDCBuoySource(MapSource):
 
     def packed_name(self):
         '''
-        Packed name.
+        Packed Name.
 
         :returns: Fixed up or packed name
-        :rtype; str
+        :rtype: str
         '''
         name = []
         for i in self.get_name():

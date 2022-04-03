@@ -2,7 +2,7 @@
 '''Main Stations'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -577,7 +577,7 @@ class StationsList(MainWindowTab):
         Get Stations.
 
         :returns: known stations
-        :rtype list of :class:`Station`
+        :rtype: list of :class:`station_status.Station`
         '''
         stations = []
         store = self.__view.get_model()

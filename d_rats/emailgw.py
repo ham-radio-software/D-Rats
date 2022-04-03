@@ -1,7 +1,8 @@
 #!/usr/bin/python
-'''Email Gateway'''
+'''Email Gateway.'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -76,10 +77,13 @@ def create_form_from_mail(config, mail, tmpfn):
     Create form from mail.
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param mail: Mail message
     :param tmpfn: Temporary filename
+    :type tmpfn: str
     :returns: Form
-    :raises: NoUsablePartError if unable to parse form
+    :rtype: :class:`formgui.FormFile`
+    :raises: :class:`NoUsablePartError` if unable to parse form
     '''
     subject = mail.get("Subject", "[no subject]")
     sender = mail.get("From", "Unknown <devnull@nowhere.com>")
@@ -146,11 +150,17 @@ class MailThread(threading.Thread, GObject.GObject):
     Mail Thread.
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param host: Email host
+    :param host: str
     :param user: User account
+    :param user: str
     :param password: Password for account
+    :type password: str
     :param port: Email port, default 110
+    :type port: int
     :param ssl: Use ssl, default False
+    :type ssl: bool
     '''
 
     __gsignals__ = {
@@ -234,6 +244,7 @@ class MailThread(threading.Thread, GObject.GObject):
         Fetch mails.
 
         :returns: List of mesages
+        :rtype: list
         '''
         self.message("Querying %s:%i" % (self.server, self.port))
 
@@ -312,9 +323,13 @@ class AccountMailThread(MailThread):
     Account Mail Thread.
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param account: Account name
-    :raises BadAccountSettingsError if unable to parse account settings
-    :raises UnsupportedActionError if an unsupported transfer is requested
+    :type account: str
+    :raises: :class:`BadAccountSettingsError` if unable to parse account
+             settings
+    :raises: :class:`UnsupportedActionError` if an unsupported transfer is
+             requested
     '''
 
     def __init__(self, config, account):
@@ -457,9 +472,13 @@ def validate_outgoing(config, callsign, emailaddr):
     Validate Outgoing message.
 
     :param config: config object
+    :type config: :class:`DratsConfig`
     :param callsign: call sign of outgoing message
+    :type callsign: str
     :param emailaddr: Email address to send to
+    :type emailaddr: str
     :returns: True if message is validated
+    :rtype: bool
     '''
     return __validate_access(config, callsign, emailaddr, ["Both", "Outgoing"])
 
@@ -469,9 +488,13 @@ def validate_incoming(config, callsign, emailaddr):
     Validate Incoming message.
 
     :param config: Config object
+    :type config: :class:`DratsConfig`
     :param callsign: Call sign message is from
+    :type callsign: str
     :param emailaddr: E-mail address of message
+    :type emailaddr: str
     :returns: True if message is validated
+    :rtype: bool
     '''
     return __validate_access(config, callsign, emailaddr, ["Both", "Incoming"])
 

@@ -344,7 +344,7 @@ class AGWConnection:
         Receive a block of data.
 
         :param size: Size of buffer still needed
-        :type size int
+        :type size: int
         :returns: True if data received
         :rtype: bool
         '''
@@ -741,7 +741,7 @@ def test_server(host="127.0.0.1", port=8000):
     Test Server.
 
     :param host: host address to listen on, default '127.0.0.1'
-    :type host : str
+    :type host: str
     :param port: Port to listen on, default 80000
     :type port: int
     '''
