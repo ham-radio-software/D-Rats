@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -189,7 +190,9 @@ class FieldDialog(Gtk.Dialog):
 
         :param label: Label of field
         :param widget: Widget to receive field
-        :param _validator
+        :param _validator: Validator for field, default None, Unused
+        :param full: Fill the space in the containing box
+        :type full: bool
         '''
         if full:
             box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)

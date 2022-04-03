@@ -2,6 +2,7 @@
 '''Main Events'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,7 +73,7 @@ class Event():
     :param message: Event message
     :param evtype: event type, Default EVENT_INFO
     :type evtype: int
-    :raises: :class:`InvalidEventType' if the event type validation fails
+    :raises: :class:`InvalidEventType` if the event type validation fails
     '''
 
     def __init__(self, group_id, message, evtype=EVENT_INFO):

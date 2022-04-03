@@ -409,9 +409,8 @@ class WinLinkMessage:
         :param sock: Socket to read from
         :type sock: socket.socket
         :raises: :class:`Wl2kMessageSocketReadError` if bad data read in
-        from the socket
-        :raises: :class:`Wl2kMessageDecodeError` if message can not be
-        decoded
+                 from the socket
+        :raises: :class:`Wl2kMessageDecodeError` if message can not be decoded
         '''
         data = b""
 
@@ -534,7 +533,7 @@ class WinLinkMessage:
         Set Identification.
 
         :param ident: identification text
-        :type str
+        :type ident: str
         '''
         self.__id = ident
 
@@ -738,10 +737,10 @@ class WinLinkCMS:
         :returns: Number of messages sent.
         :rtype: int
         :raises: :class:`Wl2kCMSNotImplemented` if more than one message
-        in list
+                 in list
         :raises: :class:`Wl2kCMSServerError` if error talking to server
         :raises: :class:`Wl2kCMSRefusedMessages` if server refused some
-        messages
+                 messages
         '''
         if len(messages) != 1:
             raise Wl2kCMSNotImplemented("Sorry, batch not implemented yet")
@@ -1133,7 +1132,7 @@ def test_agw_server(host="127.0.0.1", port=8000):
     Test Server.
 
     :param host: host address to listen on, default '127.0.0.1'
-    :type host : str
+    :type host: str
     :param port: Port to listen on, default 80000
     :type port: int
     '''

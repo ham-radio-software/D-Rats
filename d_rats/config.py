@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''D-Rats Configuration Module'''
+'''D-Rats Configuration Module.'''
 
 from __future__ import absolute_import
 from __future__ import print_function
@@ -253,6 +253,7 @@ def color_string(color):
 
     :param color: Color object
     :returns: String with color
+    :rtype: str
     '''
     try:
         return color.to_string()
@@ -473,7 +474,9 @@ class AddressLookup(Gtk.Button):
     :param caption: Caption for lookup
     :type caption: str
     :param latw: Latitude
+    :type latw: float
     :param lonw: Longitude
+    :type latw: float
     :param window: Window object, default=None
     '''
 
@@ -489,7 +492,9 @@ class AddressLookup(Gtk.Button):
 
         :param _me: Unused
         :param latw: latitude
+        :type latw: float
         :param latw: Longitude
+        :type latw: float
         :param window: Parent window
         '''
         assistant = geocode_ui.AddressAssistant()
@@ -890,6 +895,7 @@ class DratsListConfigWidget(DratsConfigWidget):
         Set Sort Column.
 
         :param col: Column to sort
+        :type col: int
         '''
         self.listw.set_sort_column(col)
 
@@ -898,6 +904,7 @@ class DratsListConfigWidget(DratsConfigWidget):
         Add to list.
 
         :param cols: list of columns
+        :type cols: list
         :param make_key: key for columns, default None
         '''
         def item_set(_listwidget, _key):
@@ -979,7 +986,7 @@ class DratsPanel(Gtk.Grid):
         set information for a widget.
         :param title: Title for widget
         :type title: str
-        :param *args: Optional arguments
+        :param args: Optional arguments
         '''
 
         hbox = Gtk.Box.new(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
@@ -1011,7 +1018,7 @@ class DratsPanel(Gtk.Grid):
 
         :param title: title of message group
         :type title: str
-        :param *args: Optional arguments
+        :param args: Optional arguments
         '''
         if len(args) % 2:
             raise ConfigMessageGroupError("Need label,widget pairs")
@@ -1472,7 +1479,7 @@ class DratsRadioPanel(DratsPanel):
 
         :param _title: Title of view, Unused
         :type _title: str
-        :param *widgets: Widgets to place in view
+        :param widgets: Widgets to place in view
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
         widgets[0].show()
@@ -1696,7 +1703,6 @@ class DratsMessagePanel(DratsPanel):
 
 class DratsNetworkPanel(DratsPanel):
     '''D-Rats Network Panel'''
-    # pass
 
 
 class DratsTCPPanel(DratsPanel):
@@ -1711,7 +1717,7 @@ class DratsTCPPanel(DratsPanel):
         set information for a widget.
         :param _title: Title for widget, Unused
         :type _title: str
-        :param *args: Optional arguments
+        :param args: Optional arguments
         '''
 
         #self.attach(widgets[0], 0, 2, 0, 1)
@@ -1983,7 +1989,7 @@ class DratsInEmailPanel(DratsPanel):
         set information for a widget
         :param _title: Title for widget
         :type _title: str
-        :param *args: Optional arguments
+        :param args: Optional arguments
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
 
@@ -2207,9 +2213,10 @@ class DratsEmailAccessPanel(DratsPanel):
         Make View.
 
         set information for a widget.
+
         :param _title: Title for widget, Unused
         :type _title: str
-        :param *args: Optional arguments
+        :param args: Optional arguments
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
 
@@ -2490,6 +2497,7 @@ class DratsConfig(configparser.ConfigParser):
 
     :param: _mainapp: Unused
     :param: _safe: Unused, default=False
+    :type _safe: bool
     '''
 
     def __init__(self, _mainapp, _safe=False):
@@ -2549,6 +2557,7 @@ class DratsConfig(configparser.ConfigParser):
         Show.
 
         :returns: True if the result is ok.
+        :rtype: bool
         '''
         drats_ui = DratsConfigUI(self, parent)
         result = drats_ui.run()
@@ -2571,8 +2580,12 @@ class DratsConfig(configparser.ConfigParser):
         Get Boolean value.
 
         :param sec: Section of parameter file
+        :type sec: str
         :param key: Key in section
-        :returns: Boolean value'''
+        :type key: str
+        :returns: Boolean value
+        :rtype: bool
+        '''
         try:
             return configparser.ConfigParser.getboolean(self, sec, key)
         # pylint: disable=broad-except
@@ -2587,8 +2600,12 @@ class DratsConfig(configparser.ConfigParser):
         Get Integer.
 
         :param sec: Section of parameter file
+        :type sec: str
         :param key: Key in section
-        :returns: integer value.'''
+        :type key: str
+        :returns: integer value.
+        :rtype: int
+        '''
         return int(float(configparser.ConfigParser.get(self, sec, key)))
 
     def form_source_dir(self):
@@ -2596,7 +2613,9 @@ class DratsConfig(configparser.ConfigParser):
         Form Source Directory.
 
         Directory is created if if does not exist.
+
         :returns: Form storage directory
+        :rtype: str
         '''
         form_dir = os.path.join(self.platform.config_dir(), "Form_Templates")
         if not os.path.isdir(form_dir):
@@ -2606,10 +2625,12 @@ class DratsConfig(configparser.ConfigParser):
 
     def form_store_dir(self):
         '''
-        Form Store directroy.
+        Form Store directory.
 
         Directroy is created if it does not exist.
+
         :returns: Form storage directory
+        :rtype: str
         '''
         form_dir = os.path.join(self.platform.config_dir(), "messages")
         if not os.path.isdir(form_dir):
@@ -2622,7 +2643,9 @@ class DratsConfig(configparser.ConfigParser):
         Ship Object Filename.
 
         :param name: Filename for object
+        :type name: str
         :returns: Path for object
+        :rtype: str
         '''
         return os.path.join(self.platform.source_dir(), name)
 
@@ -2631,7 +2654,9 @@ class DratsConfig(configparser.ConfigParser):
         Ship Image.
 
         :param name: Name of the image file
+        :type name: str
         :returns: GdkPixbuf of image
+        :rtype: :class:`GdkPixbuf.Pixbuf`
         '''
         path = self.ship_obj_fn(os.path.join("images", name))
         return GdkPixbuf.Pixbuf.new_from_file(path)

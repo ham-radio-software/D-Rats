@@ -210,7 +210,7 @@ class KeyedListWidget(Gtk.Box):
         Set Item.
 
         :param key: Key for item
-        :param *values: Values to set for item
+        :param values: Values to set for item
         '''
         iter_val = self.__store.get_iter_first()
         while iter_val:
@@ -334,7 +334,7 @@ class KeyedListWidget(Gtk.Box):
         :type str:
         :param handler: Handler function
         :type handler: function
-        :param *args: Arguments for signal
+        :param args: Arguments for signal
         '''
         if signame == "item-toggled":
             self.__toggle_connected = True
@@ -555,7 +555,7 @@ class ListWidget(Gtk.Box):
         '''
         Remove Item.
 
-        :param *vals: Items to remove
+        :param vals: Items to remove
         :raises: :class:`DelItemError` if not enough vals
         '''
         self.logger.info("remove_item %s", vals)
@@ -879,7 +879,7 @@ class TreeWidget(ListWidget):
 
         :param parent: Parent of item
         :type parent: str
-        :param *vals: Optional vals
+        :param vals: Optional vals
         :raises: :class:`SetItemError` if item is not found
         '''
         iter_val = self._iter_of(vals[self._key],
@@ -967,7 +967,7 @@ class LatLonEntry(Gtk.Entry):
     '''
     Latitude Longitude Entry.
 
-    :param *args: Optional gtkEntry arguments
+    :param args: Optional gtkEntry arguments
     '''
     def __init__(self, *args):
         Gtk.Entry.__init__(self, *args)
@@ -1120,11 +1120,13 @@ class YesNoDialog(Gtk.Dialog):
     Yes No Dialog.
 
      Does not appear to be currently used.
+
     :param title: Dialog title, Default ''
     :type title: str
     :param parent: Parent widget, default None
     :type parent: :class:`Gtk.Widget`
-    :param buttons: list of (button, response) tuples, Default None
+    :param buttons: list of button tuples, Default None
+    :type buttons: list of (:class:`Gtk.Widget`, response)
     '''
 
     def __init__(self, title="", parent=None, buttons=None):
@@ -1186,7 +1188,7 @@ class FilenameBox(Gtk.Box):
     File Name Box.
 
     :params find_dir: Find directory, default False
-    :type find_dir; bool
+    :type find_dir: bool
     :param types: types, default []
     :type types: list
     '''

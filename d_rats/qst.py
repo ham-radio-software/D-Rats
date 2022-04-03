@@ -824,8 +824,8 @@ class QSTEditWidget(Gtk.Box):
     '''
     QST Edit Widget.
 
-    :param *a: :class:`Gtk.Box` arguments
-    :param **k: :class: `Gtk.Box` Keyword arguments
+    :param a: :class:`Gtk.Box` arguments
+    :param k: :class: `Gtk.Box` Keyword arguments
     '''
 
     def __init__(self, *a, **k):
