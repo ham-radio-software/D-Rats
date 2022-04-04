@@ -7,6 +7,7 @@ from __future__ import print_function
 import logging
 import os
 import socket
+import sys
 import tempfile
 import subprocess
 import shutil
@@ -142,9 +143,7 @@ def run_lzhuf(cmd, data):
     file_handle.close()
 
     kwargs = {}
-    # pylint only works for platform it is run on
-    # pylint: disable=no-member
-    if subprocess.mswindows:
+    if sys.platform == 'win32':
         child = subprocess.STARTUPINFO()
         child.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         child.wShowWindow = subprocess.SW_HIDE
@@ -545,8 +544,8 @@ class WinLinkMessage:
         :rtype: bytes
         '''
         proposal_str = "FC %s %s %i %i 0" % (self.__type, self.__id,
-                                            self.__usize, self.__csize)
-        return proposal.encode('utf-8', 'replace')
+                                             self.__usize, self.__csize)
+        return proposal_str.encode('utf-8', 'replace')
 
 class WinLinkCMS:
     '''
@@ -600,6 +599,12 @@ class WinLinkCMS:
 
     @staticmethod
     def ssid():
+        '''
+        Return a w2lk Session information.
+
+        :returns: Program name and capabilities encoded as text.
+        :rtype: bytes
+        '''
         ssid_str = "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION_NUM
         return ssid_str.encode('utf-8', 'replace')
 
@@ -867,10 +872,10 @@ class WinLinkTelnet(WinLinkCMS):
                 octet = random.randint(0, 255)
 
                 if octet > 127 and rem > todo:
-                    cresp += chr(random.randint(33, 126))
+                    cresp_str += chr(random.randint(33, 126))
                 else:
                     todo -= 1
-                    cresp += passwd[int(chall[todo])]
+                    cresp_str += passwd[int(chall[todo])]
                 rem -= 1
 
             self._send(cresp_str.encode('utf-8', 'replace'))
@@ -1177,7 +1182,7 @@ def test_agw_server(host="127.0.0.1", port=8000):
                 frame.len = len(ssid)
                 frame.kind = ord('D')
                 logger.info("test_server: sending %s kind %s payload %s",
-                        frame, chr(frame.kind), frame.payload)
+                            frame, chr(frame.kind), frame.payload)
                 agw_conn.send_frame(frame)
         except (ConnectionError, OSError):
             logger.info("test_server: failed", exc_info=True)
