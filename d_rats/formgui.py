@@ -2,7 +2,7 @@
 '''Form GUI'''
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1079,14 +1079,14 @@ class FormField():
         '''Update node.'''
         self.entry.update_node()
 
-# Need to inherit from object here for python2 compatibility
+
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
-# pylint: disable=useless-object-inheritance
-class FormFile(object):
+class FormFile():
     '''
     Form File.
 
     :param filename: File name for form
+    :type filename: str
     :raises: FormguiFormfileEmpty exception
     '''
     def __init__(self, filename):
@@ -1116,6 +1116,7 @@ class FormFile(object):
         Save to file.
 
         :param filename: File name to save to
+        :type filename: str
         '''
         self.doc.write(filename)
 
@@ -1124,6 +1125,7 @@ class FormFile(object):
         Export to string.
 
         :returns: result of writing the string
+        :rtype: str
         '''
         form_writer = HTMLFormWriter(self.ident, self.xsl_dir)
         return form_writer.writeString(self.doc)
@@ -1132,9 +1134,11 @@ class FormFile(object):
         '''
         Get xml.
 
-        :returns: XML serialized into a string'''
+        :returns: XML serialized into a string
+        :rtype: str
+        '''
         root = self.doc.getroot()
-        return root.tostring()
+        return etree.tostring(root)
 
     def process_form(self, doc):
         '''

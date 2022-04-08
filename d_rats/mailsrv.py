@@ -22,6 +22,7 @@ from __future__ import print_function
 import os
 from glob import glob
 
+import logging
 import threading
 import smtpd
 import asyncore
@@ -31,14 +32,6 @@ import time
 import re
 from socketserver import StreamRequestHandler
 from socketserver import TCPServer
-
-#if __name__ == "__main__":
-#    import gettext
-#    lang = gettext.translation("D-RATS",
-#                               localedir="./locale",
-#                               languages=["en"],
-#                               fallback=True)
-#    lang.install()
 
 from d_rats import utils
 from d_rats import msgrouting
@@ -75,6 +68,7 @@ class TCPServerThread(threading.Thread):
     name = "[UNNAMEDSERVER]"
 
     def __init__(self, config, server, server_address, RequestHandlerClass):
+        self.logger = logging.getLogger("TCPServerThread")
         self.__server = server(server_address, RequestHandlerClass)
         self.__server.set_config(config)
         threading.Thread.__init__(self)
@@ -83,12 +77,12 @@ class TCPServerThread(threading.Thread):
     def run(self):
         '''Run Server.'''
         self.__server.serve_forever()
-        print("%s Exiting" % self.name)
+        self.logger.info("%s Exiting", self.name)
 
     def stop(self):
         '''Stop Server.'''
         self.__server.shutdown()
-        print("%s Shutdown" % self.name)
+        self.logger.info("%s Shutdown", self.name)
 
 
 class POP3Exception(Exception):
@@ -120,6 +114,8 @@ class POP3Handler(StreamRequestHandler):
     '''
 
     def __init__(self, request, client_address, server):
+        if not hasattr(self, 'logger'):
+            self.logger = logging.getLogger("POP3Handler")
         StreamRequestHandler.__init__(self, request, client_address, server)
         self.state = None
         self._user = None
@@ -130,28 +126,28 @@ class POP3Handler(StreamRequestHandler):
         Say internal.
 
         :param what: What to say
-        :type what: str
+        :type what: bytes
         :param error: True if error, default False
         :type error: false
         '''
         if error:
-            code = "-ERR"
+            code = b"-ERR"
         else:
-            code = "+OK"
+            code = b"+OK"
 
-        self.wfile.write(code + " %s\r\n" % what)
-        print("[POP3] %s %s" % (code, what))
+        self.wfile.write(code + b" %s\r\n" % what)
+        self.logger.info("[POP3] %s %s", code, what)
 
     def _handle_user(self, args):
         '''
         Handle user internal.
 
         :param args: username
-        :type args: str
+        :type args: bytes
         :returns: True
         :rtype: bool
         '''
-        self._say("username %s accepted" % args)
+        self._say(b"username %s accepted" % args)
         self._user = args
         return True
 
@@ -159,11 +155,12 @@ class POP3Handler(StreamRequestHandler):
         '''
         _handle Password internal.
 
-        :param args: Unused
+        :param _args: arguments, unused
+        :type args: bytes
         :returns: True
         :rtype: bool
         '''
-        self._say("password accepted")
+        self._say(b"password accepted")
         return True
 
     # pylance wants a template method to have a possibility
@@ -174,8 +171,8 @@ class POP3Handler(StreamRequestHandler):
 
         :param index: Index of message
         :type index: int
-        :returns: Filename of message
-        :rtype: str
+        :returns: Mime message
+        :rtype: :class:`MIMEMultipart`
         '''
         if self.__msgcache:
             return self.__msgcache[index]
@@ -202,9 +199,9 @@ class POP3Handler(StreamRequestHandler):
         Get Messages.
 
         :param username: Username to get messages for
-        :type username: str
-        :returns: Empty list
-        :rtype: list
+        :type username: bytes
+        :returns: Empty
+        :rtype: list[:class:`MIMEMultipart`]
         '''
         if self.__msgcache:
             return self.__msgcache
@@ -216,8 +213,8 @@ class POP3Handler(StreamRequestHandler):
         '''
         Handle List internal.
 
-        :param args: arguments, unused?
-        :type args: unknown
+        :param args: arguments
+        :type args: bytes
         :returns: True
         :rtype: bool
         '''
@@ -225,17 +222,18 @@ class POP3Handler(StreamRequestHandler):
         msgs = self.get_messages(self._user)
         index = 1
         for msg in msgs:
-            print("%i %i" % (index, len(str(msg))))
-            self.wfile.write("%i %i \r\n" % (index, len(str(msg))))
+            self.logger.info("_handle_list: %i %i", index, len(str(msg)))
+            self.wfile.write(b"%i %i \r\n" % (index, len(str(msg))))
             index += 1
-        self.wfile.write(".\r\n")
+        self.wfile.write(b".\r\n")
         return True
 
     def _handle_stat(self, _args):
         '''
         Handle Stat internal.
 
-        :param args: unused
+        :param args: Arguments unused
+        :type args: bytes
         :returns: False
         :rtype: bool
         '''
@@ -243,10 +241,16 @@ class POP3Handler(StreamRequestHandler):
         size = 0
         for i in msgs:
             size += len(str(i))
-        self._say("%i %i" % (len(msgs), size))
+        self._say(b"%i %i" % (len(msgs), size))
         return False
 
     def _handle_retr(self, args):
+        '''
+        Handle retrieve of mesages internal?
+
+        :param args: Byte string containing message number
+        :type args: bytes
+        '''
         try:
             index = int(args)
         except ValueError:
@@ -254,28 +258,36 @@ class POP3Handler(StreamRequestHandler):
             raise POP3Exception("Invalid message number")
 
         msg = self.get_message(index - 1)
-        mstr = str(msg)
+        mstr_str = str(msg)
+        mstr = mstr_str.encode('utf-8', 'replace')
 
-        self._say("OK %i octets" % len(mstr))
-        self.wfile.write(mstr + "\r\n.\r\n")
+        self._say(b"OK %i octets" % len(mstr))
+        self.wfile.write(mstr + b"\r\n.\r\n")
 
     def _handle_top(self, args):
-        msg_number, lines = args.split(" ", 1)
+        '''
+        Handle top of message internal.
+
+        :param args: Arguments
+        :type args: bytes
+        '''
+        msg_number, lines = args.split(b" ", 1)
 
         msg_number = int(msg_number) - 1
         lines = int(lines)
 
-        msg = self.get_message(msg_number)
-        self._say("top of message follows")
-        self.wfile.write("\r\n".join(str(msg).split("\r\n")[:lines]))
-        self.wfile.write("\r\n.\r\n")
+        msg_str = self.get_message(msg_number)
+        msg = msg_str.encode('utf-8', 'replace')
+        self._say(b"top of message follows")
+        self.wfile.write(b"\r\n".join(str(msg).split(b"\r\n")[:lines]))
+        self.wfile.write(b"\r\n.\r\n")
 
     def _handle_dele(self, args):
         '''
         Handle Delete Internal.
 
         :param args: arguments
-        :type args: unknown
+        :type args: bytes
         '''
         try:
             index = int(args)
@@ -284,18 +296,18 @@ class POP3Handler(StreamRequestHandler):
             raise POP3Exception("Invalid message number")
 
         self.del_message(index-1)
-        self._say("Deleted")
+        self._say(b"Deleted")
 
     def _handle(self):
         '''Handle Internal.'''
         dispatch = {
-            "USER" : (("",), self._handle_user),
-            "PASS" : (("USER",), self._handle_pass),
-            "LIST" : (("PASS", "LIST", "STAT"), self._handle_list),
-            "STAT" : (("PASS", "LIST", "STAT"), self._handle_stat),
-            "RETR" : (("LIST", "STAT"), self._handle_retr),
-            "TOP"  : (("LIST", "STAT"), self._handle_top),
-            "DELE" : (("LIST", "STAT"), self._handle_dele),
+            b"USER" : ((b"",), self._handle_user),
+            b"PASS" : ((b"USER",), self._handle_pass),
+            b"LIST" : ((b"PASS", b"LIST", b"STAT"), self._handle_list),
+            b"STAT" : ((b"PASS", b"LIST", b"STAT"), self._handle_stat),
+            b"RETR" : ((b"LIST", b"STAT"), self._handle_retr),
+            b"TOP"  : ((b"LIST", b"STAT"), self._handle_top),
+            b"DELE" : ((b"LIST", b"STAT"), self._handle_dele),
             }
 
         data = self.rfile.readline().strip()
@@ -303,20 +315,20 @@ class POP3Handler(StreamRequestHandler):
             raise POP3Exception("Conversation error")
 
         try:
-            cmd, args = data.split(" ", 1)
+            cmd, args = data.split(b" ", 1)
         except ValueError:
             cmd = data
-            args = ""
+            args = b""
 
         cmd = cmd.upper()
 
-        print("[POP3] %s %s" % (cmd, args))
+        self.logger.info("[POP3] %s %s", cmd, args)
 
-        if cmd == "QUIT":
+        if cmd == b"QUIT":
             raise POP3Exit("Goodbye")
 
         if cmd not in list(dispatch.keys()):
-            self._say("Unsupported command `%s'" % cmd, True)
+            self._say(b"Unsupported command `%s'" % cmd, True)
             return
 
         states, handler = dispatch[cmd]
@@ -329,23 +341,27 @@ class POP3Handler(StreamRequestHandler):
 
     def handle(self):
         '''Handle.'''
-        self.state = ""
+        self.state = b""
 
-        self._say("D-RATS waiting")
+        self._say(b"D-RATS waiting")
 
         while True:
+            # in this case handling a broad exception is needed
+            # to prevent a protocol deadlock
             # pylint: disable=broad-except
             try:
                 self._handle()
             except POP3Exit as err:
-                self._say(err)
+                err_str = "%s" % err
+                self._say(err_str.encode('utf-8', 'replace'))
                 break
             except POP3Exception as err:
-                self._say(err, True)
+                err_str = "%s" % err
+                self._say(err_str.encode('utf-8', 'replace'), True)
                 break
             except Exception:
                 utils.log_exception()
-                self._say("Internal error", True)
+                self._say(b"Internal error", True)
                 break
 
 
@@ -359,8 +375,9 @@ class DratsPOP3Handler(POP3Handler):
     '''
 
     def __init__(self, config, *args):
+        self.logger = logging.getLogger("DratsPOP3Handler")
         self.__config = config
-        print("DRATS handler")
+        self.logger.info("Initted")
         self.__msgcache = []
         POP3Handler.__init__(self, *args)
 
@@ -369,14 +386,16 @@ class DratsPOP3Handler(POP3Handler):
         Get messages for a user.
 
         :param user: user to look up callsign
-        :type user: str
-        :returns: list of mesage filenames
-        :rtype: list of str
+        :type user: bytes
+        :returns: Mime Messages
+        :rtype: list[:class:`MIMEMultipart`]
         '''
         if self.__msgcache:
             return self.__msgcache
 
-        if username.upper() == self.__config.get("user", "callsign"):
+        self.logger.info('username %s', username)
+        username_str = username.upper().decode('utf-8', 'replace')
+        if username_str == self.__config.get("user", "callsign"):
             dir_name = os.path.join(self.__config.form_store_dir(), "Inbox")
             allmsg = True
         else:
@@ -386,17 +405,20 @@ class DratsPOP3Handler(POP3Handler):
         files = glob(os.path.join(dir_name, "*.xml"))
 
         for filename in files:
+            self.logger.info('Filename %s', filename)
             msg = msgrouting.form_to_email(self.__config, filename)
-            if not allmsg and msg["To"] != username.upper():
+            if not allmsg and msg["To"] != username_str:
                 continue
 
             name, addr = email.utils.parseaddr(msg["From"])
+            self.logger.info('From: name %s addr %s', name, addr)
             if addr == "DO_NOT_REPLY@d-rats.com":
                 addr = "%s@d-rats.com" % name.upper()
                 msg.replace_header("From", addr)
                 del msg["Reply-To"]
 
             name, addr = email.utils.parseaddr(msg["To"])
+            self.logger.info('To: name %s addr %s', name, addr)
             if not name and "@" not in addr:
                 msg.replace_header("To", "%s@d-rats.com" % addr.upper())
 
@@ -411,8 +433,8 @@ class DratsPOP3Handler(POP3Handler):
 
         :param index: Index of message
         :type index: int
-        :returns: Filename of message
-        :rtype: str
+        :returns: Mime message
+        :rtype: :class:`MIMEMultipart`
         '''
         return self.__msgcache[index]
 
@@ -462,7 +484,7 @@ class DratsPOP3Server(TCPServer):
         :param request: request
         :type request: :class:`socket.socket`
         :param client_address: client address
-        :type client_address: unknown
+        :type client_address: tuple[str, int]
         '''
         self.RequestHandlerClass(self.__config,
                                  request, client_address, self)
@@ -477,8 +499,7 @@ class DratsPOP3Server(TCPServer):
         self.__config = config
 
 
-# pylint: disable=invalid-name
-class DRATS_POP3ServerThread(TCPServerThread):
+class DratsPOP3ServerThread(TCPServerThread):
     '''
     D-RATS POP3 Server Thread.
 
@@ -489,8 +510,9 @@ class DRATS_POP3ServerThread(TCPServerThread):
     name = "[POP3]"
 
     def __init__(self, config):
+        self.logger = logging.getLogger("DratsPOP3ServerThread")
         port = config.getint("settings", "msg_pop3_port")
-        print("[POP3] Starting server on port %i" % port)
+        self.logger.info("[POP3] Starting server on port %i", port)
         TCPServerThread.__init__(self, config, DratsPOP3Server,
                                  ("0.0.0.0", port), DratsPOP3Handler)
         self.setDaemon(True)
@@ -505,25 +527,27 @@ class DratsSMTPServer(smtpd.SMTPServer):
     '''
 
     def __init__(self, config):
+        self.logger = logging.getLogger("DratsSMTPServer")
         self.__config = config
         port = config.getint("settings", "msg_smtp_port")
         smtpd.SMTPServer.__init__(self, ("0.0.0.0", port), None)
 
-    def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
+    def process_message(self, _peer, mailfrom, rcpttos, data, **kwargs):
         '''
         Process Message.
 
         :param peer: Peer to send to
-        :type peer: unknown
+        :type peer: str
         :param mailfrom: Sender information
         :type mailfrom: str
         :param rcpttos: Receiver information
         :type rcpttos: str
         :param data: Message data
-        :type data: Unknown
+        :type data: bytes
         :raises: :class:`EmailSenderError` if sender is invalid
         '''
-        msg = email.message_from_string(data)
+        self.logger.info('process_message entered')
+        msg = email.message_from_bytes(data)
         if "@" in mailfrom:
             sender, _other = mailfrom.split("@", 1)
         else:
@@ -537,14 +561,15 @@ class DratsSMTPServer(smtpd.SMTPServer):
         if recip.lower().endswith("@d-rats.com"):
             recip, _host = recip.upper().split("@", 1)
 
-        print("Sender is %s" % sender)
-        print("Recip  is %s" % recip)
+        self.logger.info("Sender is %s", sender)
+        self.logger.info("Recip  is %s", recip)
 
         mid = mkmsgid(self.__config.get("user", "callsign"))
         ffn = os.path.join(self.__config.form_store_dir(),
                            "Outbox", "%s.xml" % mid)
-        print("Storing mail at %s" % ffn)
+        self.logger.info("Storing mail at %s", ffn)
 
+        self.logger.info('process_message calling create form from e-mail')
         form = emailgw.create_form_from_mail(self.__config, msg, ffn)
         form.set_path_src(sender)
         form.set_path_dst(recip)
@@ -553,11 +578,11 @@ class DratsSMTPServer(smtpd.SMTPServer):
             msgrouting.msg_unlock(ffn)
 
 
-# pylint: disable=invalid-name
-class DRATS_SMTPServerThread(threading.Thread):
+class DratsSMTPServerThread(threading.Thread):
     '''D-Rats SMTP Server Thread.'''
 
     def __init__(self, config):
+        self.logger = logging.getLogger("DratsSMTPServerThread")
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self.__config = config
@@ -565,10 +590,10 @@ class DRATS_SMTPServerThread(threading.Thread):
 
     def run(self):
         '''Run SMTP Server.'''
-        print("[SMTP] Starting server")
+        self.logger.info("[SMTP] Starting server")
         self.__server = DratsSMTPServer(self.__config)
         asyncore.loop(timeout=1)
-        print("[SMTP] Stopped")
+        self.logger.info("[SMTP] Stopped")
 
     def stop(self):
         '''Stop SMTP Server.'''
@@ -580,8 +605,15 @@ class DRATS_SMTPServerThread(threading.Thread):
 def main():
     '''Main program for unit testing.'''
 
+    from d_rats import config
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+
     pop3s = DratsPOP3Server(("localhost", 9090), DratsPOP3Handler)
-    pop3s.set_config(None)
+    my_config = config.DratsConfig(None)
+
+    pop3s.set_config(my_config)
     pop3s.serve_forever()
 
 if __name__ == "__main__":

@@ -23,22 +23,18 @@ from __future__ import print_function
 import os
 import threading
 import poplib
-import smtplib
-import email
+# import smtplib
+
 import re
 import random
 import time
-from six.moves import range
-try:
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.base import MIMEBase
-    from email.mime.text import MIMEText
-except ImportError:
-    # Python 2.4
-    from email import MIMEMultipart
-    from email import MIMEBase
-    from email import MIMEText
-    import rfc822
+
+import email
+from email.utils import parseaddr
+# from email.message import Message
+# from email.mime.base import MIMEBase
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -53,6 +49,11 @@ from .ui import main_events
 from . import signals
 from . import utils
 from . import msgrouting
+
+
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
 
 class EmailGatewayException(Exception):
@@ -81,7 +82,7 @@ def create_form_from_mail(config, mail, tmpfn):
     :param mail: Mail message
     :param tmpfn: Temporary filename
     :type tmpfn: str
-    :returns: Form
+    :returns: Form containing message
     :rtype: :class:`formgui.FormFile`
     :raises: :class:`NoUsablePartError` if unable to parse form
     '''
@@ -128,7 +129,7 @@ def create_form_from_mail(config, mail, tmpfn):
     else:
         printlog("emailgw", "   : Email from %s: %s" % (sender, subject))
 
-        recip, _addr = rfc822.parseaddr(mail.get("To", "UNKNOWN"))
+        recip, _addr = parseaddr(mail.get("To", "UNKNOWN"))
 
         efn = os.path.join(config.form_source_dir(), "email.xml")
         form = formgui.FormFile(efn)
@@ -527,7 +528,6 @@ def main():
             '''Get Boolean dummy function, returns False.'''
             return False
 
-    import gettext
     # pylint: disable=invalid-name
     lang = gettext.translation("D-RATS",
                                localedir="./locale",
