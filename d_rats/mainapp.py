@@ -925,7 +925,7 @@ class MainApp(Gtk.Application):
 
         try:
             if self.config.getboolean("settings", "msg_smtp_server"):
-                smtpsrv = mailsrv.DRATS_SMTPServerThread(self.config)
+                smtpsrv = mailsrv.DratsSMTPServerThread(self.config)
                 smtpsrv.start()
                 self.mail_threads["SMTPSRV"] = smtpsrv
         # pylint: disable=broad-except
@@ -939,7 +939,7 @@ class MainApp(Gtk.Application):
 
         try:
             if self.config.getboolean("settings", "msg_pop3_server"):
-                pop3srv = mailsrv.DRATS_POP3ServerThread(self.config)
+                pop3srv = mailsrv.DratsPOP3ServerThread(self.config)
                 pop3srv.start()
                 self.mail_threads["POP3SRV"] = pop3srv
         # pylint: disable=broad-except

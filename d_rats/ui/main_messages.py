@@ -3,7 +3,7 @@
 # pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ from gi.repository import Pango
 # pyright: reportMissingModuleSource=false
 from six.moves.configparser import ConfigParser
 from six.moves.configparser import DuplicateSectionError
-
+from six.moves.configparser import NoSectionError
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import prompt_for_station, \
     display_error, prompt_for_string, set_toolbar_buttons
@@ -133,9 +133,7 @@ class MessageFolderInfo():
 
         try:
             return self._config.get(filename, prop)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("getprop broad-except", exc_info=True)
+        except NoSectionError:
             return _("Unknown")
 
     def get_msg_subject(self, filename):
