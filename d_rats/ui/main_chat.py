@@ -1277,7 +1277,7 @@ class ChatTab(MainWindowTab):
 
         # pylint: disable=unbalanced-tuple-unpacking
         entry, = self._getw("entry")
-        GObject.idle_add(entry.grab_focus)
+        GLib.idle_add(entry.grab_focus)
 
     def deselected(self):
         '''Process deselected tabs.'''

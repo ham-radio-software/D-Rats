@@ -33,6 +33,7 @@ from six.moves.configparser import NoOptionError # type: ignore
 
 import gi
 gi.require_version("Gtk", "3.0")
+from gi.repository import GLib
 from gi.repository import GObject
 
 from . import utils
@@ -249,7 +250,7 @@ class MapPointThreaded(MapPoint):
 
     def __thread_fn(self):
         self.do_update()
-        GObject.idle_add(self.emit, "updated", "FOO")
+        GLib.idle_add(self.emit, "updated", "FOO")
 
 
 class MapUSGSRiver(MapPointThreaded):

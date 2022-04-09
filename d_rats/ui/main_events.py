@@ -25,6 +25,7 @@ from datetime import datetime
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import GLib
 from gi.repository import GObject
 
 from d_rats.ui.main_common import MainWindowTab
@@ -509,9 +510,9 @@ class EventTab(MainWindowTab):
             adj.set_value(adj.get_upper() - adj.get_page_size())
 
         if top_scrolled:
-            GObject.idle_add(top_scroll, adj)
+            GLib.idle_add(top_scroll, adj)
         elif bot_scrolled:
-            GObject.idle_add(bot_scroll, adj)
+            GLib.idle_add(bot_scroll, adj)
 
     def event(self, event):
         '''
@@ -519,7 +520,7 @@ class EventTab(MainWindowTab):
 
         :param event: Event to add
         '''
-        GObject.idle_add(self._event, event)
+        GLib.idle_add(self._event, event)
 
     def finalize_last(self, group):
         '''

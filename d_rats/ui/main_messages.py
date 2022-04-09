@@ -33,6 +33,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import Pango
 
@@ -987,7 +988,7 @@ class MessageList(MainWindowElement):
         data = "\x01".join(msgs)
         byte_data = data.encode('ISO-8859-1')
         sel.set(sel.get_target(), 0, byte_data)
-        GObject.idle_add(self.refresh)
+        GLib.idle_add(self.refresh)
 
 
     def _update_message_info(self, msg_iter, force=False):

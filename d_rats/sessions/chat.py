@@ -1,7 +1,7 @@
 '''Sessions Chat.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import time
 
 import gi
 gi.require_version("Gtk", "3.0")
+from gi.repository import GLib
 from gi.repository import GObject
 
 from d_rats import signals, dplatform, gps, utils, station_status
@@ -107,7 +108,7 @@ class ChatSession(stateless.StatelessSession, GObject.GObject):
                                                    pform.os_version_string())
 
     def _emit(self, signal, *args):
-        GObject.idle_add(self.emit, signal, *args)
+        GLib.idle_add(self.emit, signal, *args)
 
     def _incoming_chat(self, frame):
         self._emit("incoming-chat-message",
