@@ -643,7 +643,7 @@ class MainApp(Gtk.Application):
         def transport_msg(msg):
             _port = name
             event = main_events.Event(None, "%s: %s" % (_port, msg))
-            GObject.idle_add(self.mainwindow.tabs["event"].event, event)
+            GLib.idle_add(self.mainwindow.tabs["event"].event, event)
 
         transport_args = {
             "compat" : raw,
@@ -1205,7 +1205,7 @@ class MainApp(Gtk.Application):
             self.mainwindow.tabs["chat"].display_line(line, incoming, color,
                                                       **kwargs)
 
-        GObject.idle_add(do_incoming)
+        GLib.idle_add(do_incoming)
 
 # ---------- STANDARD SIGNAL HANDLERS --------------------
 

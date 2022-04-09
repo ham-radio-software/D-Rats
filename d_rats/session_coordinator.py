@@ -2,7 +2,7 @@
 '''Session Coordinator'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import os
 
 import gi
 gi.require_version("Gtk", "3.0")
+from gi.repository import GLib
 from gi.repository import GObject
 
 from d_rats.sessions import base
@@ -451,7 +452,7 @@ class SessionCoordinator(GObject.GObject):
         self.socket_listeners = {}
 
     def _emit(self, signal, *args):
-        GObject.idle_add(self.emit, signal, *args)
+        GLib.idle_add(self.emit, signal, *args)
 
     def session_status(self, session, msg):
         '''
@@ -708,7 +709,7 @@ class SessionCoordinator(GObject.GObject):
         :param direction: Direction of session
         :type direction: str
         '''
-        GObject.idle_add(self._new_session, session_type, session, direction)
+        GLib.idle_add(self._new_session, session_type, session, direction)
 
     def end_session(self, ident):
         '''

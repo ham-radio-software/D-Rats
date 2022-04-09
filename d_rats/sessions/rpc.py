@@ -218,7 +218,7 @@ class RPCJob(GObject.GObject):
         if not isinstance(result, dict):
             raise RPCResultNotDict("Value of result property must be dict")
         if state in self.STATES:
-            GObject.idle_add(self.emit, "state-change", state, result)
+            GLib.idle_add(self.emit, "state-change", state, result)
         else:
             raise RPCInvalidStatus("Invalid status `%s'" % state)
 
@@ -738,7 +738,7 @@ class RPCActionSet(GObject.GObject):
     def __proxy_emit(self, signal):
         def handler(_obj, *args):
             self.logger.info("Proxy emit %s: %s", signal, args)
-            GObject.idle_add(self.emit, signal, *args)
+            GLib.idle_add(self.emit, signal, *args)
 
         return handler
 

@@ -31,6 +31,7 @@ import urllib
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import GLib
 from gi.repository import GObject
 
 if not '_' in locals():
@@ -405,7 +406,7 @@ class QSTThreadedText(QSTText):
             self.logger.info("Skipping QST because no data was returned")
             return
 
-        GObject.idle_add(self.emit, "qst-fired",
+        GLib.idle_add(self.emit, "qst-fired",
                          "%s%s" % (self.prefix, msg), self.key)
 
     def fire(self):

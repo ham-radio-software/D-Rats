@@ -20,6 +20,7 @@ import random
 import gi
 
 gi.require_version("Gtk", "3.0")
+from gi.repository import GLib
 from gi.repository import GObject
 
 # sys.path.insert(0, "..")
@@ -984,7 +985,7 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         '''
         Emit signal from thread.
         '''
-        GObject.idle_add(self.emit, *args)
+        GLib.idle_add(self.emit, *args)
 
     def _run_incoming(self):
         '''

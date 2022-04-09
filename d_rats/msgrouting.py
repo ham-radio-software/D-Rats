@@ -1,7 +1,7 @@
 #
 '''Message Routing'''
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ except ImportError:
 
 import gi
 gi.require_version("Gtk", "3.0")
+from gi.repository import GLib
 from gi.repository import GObject
 
 from . import formgui
@@ -71,7 +72,7 @@ CALL_TIMEOUT_RETRY = 300
 
 MSG_LOCK_LOCK = threading.Lock()
 
-# pylint: disable=invaid-name
+# pylint: disable=invalid-name
 global_logger = logging.getLogger("MsgRouting")
 
 def __msg_lockfile(fname):
@@ -215,8 +216,12 @@ def form_to_email(config, msgfn, replyto=None):
 
     :param config: Config object
     :type config: :class:`DratsConfig`
-    :param msgfn: Message Form
+    :param msgfn: Message file name
+    :type msgfn: str
     :param replyto: Optional replyto destination
+    :type replyto: str
+    :returns: Email data
+    :rtype: :class:`MIMEMultipart`
     '''
     form = formgui.FormFile(msgfn)
     form.configure(config)
@@ -341,7 +346,7 @@ class MessageRouter(GObject.GObject):
         self.__enabled = False
 
     def _emit(self, signal, *args):
-        GObject.idle_add(self.emit, signal, *args)
+        GLib.idle_add(self.emit, signal, *args)
 
     def __proxy_emit(self, signal):
         def handler(_obj, *args):

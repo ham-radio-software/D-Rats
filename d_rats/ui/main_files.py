@@ -290,7 +290,7 @@ class FilesTab(MainWindowTab):
         self.reconfigure()
 
     def _emit(self, *args):
-        GObject.idle_add(self.emit, *args)
+        GLib.idle_add(self.emit, *args)
 
     def _stop_throb(self):
         # pylint: disable=unbalanced-tuple-unpacking
