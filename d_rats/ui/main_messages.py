@@ -40,6 +40,7 @@ from gi.repository import Pango
 # pyright: reportMissingModuleSource=false
 from six.moves.configparser import ConfigParser
 from six.moves.configparser import DuplicateSectionError
+from six.moves.configparser import NoOptionError
 from six.moves.configparser import NoSectionError
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import prompt_for_station, \
@@ -134,7 +135,7 @@ class MessageFolderInfo():
 
         try:
             return self._config.get(filename, prop)
-        except NoSectionError:
+        except (NoOptionError, NoSectionError):
             return _("Unknown")
 
     def get_msg_subject(self, filename):

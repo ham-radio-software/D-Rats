@@ -85,7 +85,7 @@ from . import map_sources
 from . import comm
 from . import sessionmgr
 from . import session_coordinator
-from . import emailgw
+# from . import emailgw
 from . import formgui
 from . import station_status
 from . import pluginsrv
@@ -96,6 +96,9 @@ from . import version
 # from . import agw
 from . import mailsrv
 
+from .emailgw import PeriodicAccountMailThread
+from .emailgw import AccountMailThread
+from .emailgw import validate_incoming
 from .ui import main_events
 from .ui.main_common import prompt_for_station
 
@@ -900,7 +903,7 @@ class MainApp(Gtk.Application):
 
     def _refresh_mail_threads(self):
         '''Refresh mail threads.'''
-        for key, value in self.mail_threads.items():
+        for key, value in self.mail_threads.copy().items():
             value.stop()
             del self.mail_threads[key]
 
@@ -910,7 +913,7 @@ class MainApp(Gtk.Application):
             if data.split(",")[-1] != "True":
                 continue
             try:
-                mthread = emailgw.PeriodicAccountMailThread(self.config, acct)
+                mthread = PeriodicAccountMailThread(self.config, acct)
             # pylint: disable=broad-except
             except Exception:
                 self.logger.info("Refresh mail threads: broad-except",
@@ -923,33 +926,23 @@ class MainApp(Gtk.Application):
             mthread.start()
             self.mail_threads[acct] = mthread
 
-        try:
-            if self.config.getboolean("settings", "msg_smtp_server"):
+        if self.config.getboolean("settings", "msg_smtp_server"):
+            try:
                 smtpsrv = mailsrv.DratsSMTPServerThread(self.config)
                 smtpsrv.start()
                 self.mail_threads["SMTPSRV"] = smtpsrv
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info(
-                "_refresh_mail_threads: Unable to start SMTP server: %s",
-                "broad-except", exc_info=True)
-            log_exception()
-            # broad/bare exceptions make debugging harder
-            raise
+            except OSError:
+                self.logger.info("_refresh_mail_threads: "
+                                 "Unable to start SMTP server", exc_info=True)
 
-        try:
-            if self.config.getboolean("settings", "msg_pop3_server"):
+        if self.config.getboolean("settings", "msg_pop3_server"):
+            try:
                 pop3srv = mailsrv.DratsPOP3ServerThread(self.config)
                 pop3srv.start()
                 self.mail_threads["POP3SRV"] = pop3srv
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info(
-                "_refresh_mail_threads: Unable to start POP3 server: %s",
-                "broad-except", exc_info=True)
-            log_exception()
-            # broad/bare exceptions make debugging harder
-            raise
+            except OSError:
+                self.logger.info("_refresh_mail_threads: "
+                                 "Unable to start POP3 server", exc_info=True)
 
     def _refresh_lang(self):
         '''Refresh Language.'''
@@ -1811,7 +1804,7 @@ class MainApp(Gtk.Application):
         elif account in list(self.mail_threads.keys()):
             self.mail_threads[account].trigger()
         else:
-            mthread = emailgw.AccountMailThread(self.config, account)
+            mthread = AccountMailThread(self.config, account)
             mthread.start()
 
     def __register_object(self, _parent, obj):
@@ -1974,7 +1967,8 @@ class MainApp(Gtk.Application):
         self.load_static_routes()
 
         try:
-            self.msgrouter = msgrouting.MessageRouter(self.config)
+            self.msgrouter = msgrouting.MessageRouter(self.config, self,
+                                                      validate_incoming)
             self.__connect_object(self.msgrouter)
             self.msgrouter.start()
         # pylint: disable=broad-except

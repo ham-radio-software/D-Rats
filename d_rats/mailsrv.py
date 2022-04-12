@@ -82,7 +82,9 @@ class TCPServerThread(threading.Thread):
     def stop(self):
         '''Stop Server.'''
         self.__server.shutdown()
+        self.__server.server_close()
         self.logger.info("%s Shutdown", self.name)
+        self.join()
 
 
 class POP3Exception(Exception):
