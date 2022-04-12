@@ -27,19 +27,11 @@ import smtplib
 import shutil
 import traceback
 from glob import glob
-from six.moves import range # type: ignore
 
-try:
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.base import MIMEBase
-    from email.mime.text import MIMEText
-    # from email.message import Message
-except ImportError:
-    # Python 2.4
-    from email import MIMEMultipart
-    from email import MIMEBase
-    from email import MIMEText
-    # from email import Message
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+# from email.message import Message
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -48,12 +40,9 @@ from gi.repository import GObject
 
 from . import formgui
 from . import signals
-#py3   from . import emailgw
 
 from . import utils
 from . import wl2k
-
-#py3   from . import mainapp
 
 
 class MsgRoutingException(Exception):
@@ -316,6 +305,10 @@ class MessageRouter(GObject.GObject):
 
     :param config: Configuration object
     :type config: :class:`DratsConfig`
+    :param mainapp: Main application
+    :type mainapp: :class:`MainApp`
+    :param validate_incoming: Incoming e-mail validation function
+    :type validate_incoming: function
     '''
 
     __gsignals__ = {
@@ -328,13 +321,22 @@ class MessageRouter(GObject.GObject):
         }
     _signals = __gsignals__
 
-    def __init__(self, config):
+    def __init__(self, config, mainapp, validate_incoming):
         GObject.GObject.__init__(self)
         self.logger = logging.getLogger("MessageRouter")
 
         self.__event = threading.Event()
 
         self.__config = config
+        # Hack, need to refactor so that nothing
+        # call routines in mainapp.
+        # Common routines should be in their own module.
+        self._mainapp = mainapp
+
+        # Hack because message logking is part of this module instead
+        # of being in its own module, causing a co-dependency of emailgw and
+        # this module that should not exist.
+        self._validate_incoming = validate_incoming
 
         self.__sent_call = {}
         self.__sent_port = {}
@@ -355,6 +357,11 @@ class MessageRouter(GObject.GObject):
         return handler
 
     def _get_routes(self):
+        '''
+        Get Routes internal.
+
+        :returns: Routes keyed by gateway
+        :rtype: dict'''
         r_file = self.__config.platform.config_file("routes.txt")
         try:
             f_handle = open(r_file)
@@ -371,10 +378,9 @@ class MessageRouter(GObject.GObject):
             try:
                 dest, gateway, _port = line.split()
                 routes[dest] = gateway
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("_get_routes: Error parsing line '%s'",
-                                 line, exc_info=True)
+            except ValueError as err:
+                self.logger.info("_get_routes: Error parsing line '%s': %s",
+                                 line, err)
 
         return routes
 
@@ -389,28 +395,34 @@ class MessageRouter(GObject.GObject):
         sys.stdout.flush()
 
     def _get_queue(self):
+        '''
+        Get queue internal.
+
+        :returns: files queued for each callsign
+        :rtype: dict
+        '''
         queue = {}
 
         q_dir = os.path.join(self.__config.form_store_dir(), "Outbox")
-        field_list = glob(os.path.join(q_dir, "*.xml"))
-        for field in field_list:
-            if not msg_lock(field):
+        filename_list = glob(os.path.join(q_dir, "*.xml"))
+        for filename in filename_list:
+            if not msg_lock(filename):
                 self.logger.info("_get_queue: Message %s is locked, skipping",
-                                 field)
+                                 filename)
                 continue
 
-            form = formgui.FormFile(field)
+            form = formgui.FormFile(filename)
             call = form.get_path_dst()
             del form
 
             if not call:
-                if msg_is_locked(field):
-                    msg_unlock(field)
+                if msg_is_locked(filename):
+                    msg_unlock(filename)
                 continue
             elif call not in queue:
-                queue[call] = [field]
+                queue[call] = [filename]
             else:
-                queue[call].append(field)
+                queue[call].append(filename)
 
         return queue
 
@@ -437,6 +449,22 @@ class MessageRouter(GObject.GObject):
 
     # pylint: disable=too-many-arguments, too-many-branches, too-many-statements
     def _route_msg(self, src, dst, path, slist, routes):
+        '''
+        Route msg internal.
+
+        :param src: Source address of message.
+        :type call: str
+        :param dst: Destination address of message.
+        :type dst: str
+        :param path: Path to route message
+        :type path: str
+        :param slist: List of active stations
+        :type slist: dict
+        :param routes: Routes for message
+        :type routes: dict
+        :returns: True
+        :rtype bool
+        '''
         invalid = []
 
         def old(call):
@@ -448,7 +476,6 @@ class MessageRouter(GObject.GObject):
 
         while True:
             # Choose the @route for @dst
-            from . import emailgw #hack to import emailgw
             if ";" in dst:
                 # Gratuitous routing takes precedence
                 route = gratuitous_next_hop(dst, path)
@@ -457,7 +484,7 @@ class MessageRouter(GObject.GObject):
                 break
             elif "@" in dst and dst not in invalid and \
                     not ":" in dst and \
-                    emailgw.validate_incoming(self.__config, src, dst):
+                    self._validate_incoming(self.__config, src, dst):
                 # Out via email
                 route = dst
             elif dst in slist and dst not in invalid:
@@ -538,6 +565,16 @@ class MessageRouter(GObject.GObject):
         return msg
 
     def _route_via_email(self, _call, msgfn):
+        '''
+        Route via email internal.
+
+        :param _call: callsign unused.
+        :type _call: str
+        :param msgfn: Message filename
+        :type msgfn: str
+        :returns: True
+        :rtype bool
+        '''
         server = self.__config.get("settings", "smtp_server")
         replyto = self.__config.get("settings", "smtp_replyto")
         tls = self.__config.getboolean("settings", "smtp_tls")
@@ -564,6 +601,20 @@ class MessageRouter(GObject.GObject):
         return True
 
     def _route_via_station(self, call, route, slist, msg):
+        '''
+        Route via station internal.
+
+        :param call: callsign for station.
+        :type call: str
+        :param route: Route for message
+        :type route: dict
+        :param slist: List of active stations
+        :type slist: dict
+        :param msg: Message
+        :type msg: str
+        :returns: True
+        :rtype bool
+        '''
         if self._sent_recently(route):
             self._p("Call %s is busy" % route)
             return False
@@ -580,6 +631,22 @@ class MessageRouter(GObject.GObject):
         return True
 
     def _route_via_wl2k(self, src, dst, msgfn):
+        '''
+        Route via wl2k internal.
+
+        :param src: source of message.
+        :type src: str
+        :param dst: Destination for message
+        :type dst: str
+        :param msgfn: Message Filename
+        :type msgfn: str
+        :returns: True
+        :rtype bool
+        '''
+        # Temporary to get diagnostics about wl2k failures.
+        self.logger.info('_route_via_station: '
+                         'src %s %s dst %s %s msgfn %s %s',
+                         type(src), src, type(dst), dst, type(msgfn), msgfn)
         _part, addr = dst.split(":")
         msg = self._form_to_wl2k_em(addr, msgfn)
 
@@ -590,8 +657,7 @@ class MessageRouter(GObject.GObject):
                 self.logger.info("_route_vi_wl2k: Failed to send via WL2K: %s",
                                  error)
 
-        from . import mainapp # Hack to force import of mainapp
-        msg_thread = wl2k.wl2k_auto_thread(mainapp.get_mainapp(),
+        msg_thread = wl2k.wl2k_auto_thread(self._mainapp,
                                            src, send_msgs=[msg])
         msg_thread.connect("mail-thread-complete", complete)
         msg_thread.connect("event", self.__proxy_emit("event"))
@@ -602,6 +668,18 @@ class MessageRouter(GObject.GObject):
         return True
 
     def _route_message(self, msg, slist, routes):
+        '''
+        Route message internal.
+
+        :param msg: message filename to send.
+        :type msg: str
+        :param slist: List of active stations
+        :type slist: dict
+        :param routes: Routes for message
+        :type routes: dict
+        :returns: True if a route found.
+        :rtype bool
+        '''
         form = formgui.FormFile(msg)
         path = form.get_path()
         emok = path[-2:] != ["EMAIL", self.__config.get("user", "callsign")]
@@ -628,18 +706,23 @@ class MessageRouter(GObject.GObject):
         return routed
 
     def _run_one(self, queue):
+        '''
+        Run one internal.
+
+        :param queue: Queue of outgoing messages
+        :type queue: dict
+        '''
         plist = self.emit("get-station-list")
         slist = {}
 
         routes = self._get_routes()
 
-        if not plist:
+        if plist:
+            for _port, stations in plist.copy().items():
+                for station in stations:
+                    slist[str(station)] = station
+        else:
             self.logger.info("_run_one: Station list was empty")
-            return
-
-        for _port, stations in plist.copy().items():
-            for station in stations:
-                slist[str(station)] = station
 
         for _dst, callq in queue.copy().items():
             for msg in callq:
