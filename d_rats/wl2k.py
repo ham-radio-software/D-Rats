@@ -115,7 +115,7 @@ FBB_BLOCK_TYPES = {FBB_BLOCK_HDR : "header",
 
 def escaped(data):
     '''
-    Escape new-lines and cariage returns in data.
+    Escape new-lines and carriage returns in data.
 
     :param data: Data to escape
     :type string: bytes
@@ -284,7 +284,7 @@ class WinLinkMessage:
         :param body: body of message
         :type body: str
         :param attachment: Attachments to message
-        :type attachment: list of :class:`WinLinkAttachment`
+        :type attachment: list[:class:`WinLinkAttachment`]
         '''
         msgid = time.strftime("D%H%M%S") + src
 
@@ -417,9 +417,9 @@ class WinLinkMessage:
         i = 0
         while True:
             self.logger.info("read_from_socket: Reading at %i", i)
-            block_type = ord(self.recv_exactly(sock, 1))
+            block_type = self.recv_exactly(sock, 1)
 
-            if chr(block_type) == "*":
+            if block_type == b"*":
                 msg = sock.recv(1024)
                 raise Wl2kMessageSocketReadError("Error getting message: %s" %
                                                  msg)
@@ -433,12 +433,12 @@ class WinLinkMessage:
 
             self.logger.info("read_from_socket: Found %s at %i",
                              FBB_BLOCK_TYPES.get(block_type, "unknown"), i)
-            size = ord(self.recv_exactly(sock, 1))
+            size = self.recv_exactly(sock, 1)
             i += 2 # Account for the type and size
 
             if block_type == FBB_BLOCK_HDR:
                 header = self.recv_exactly(sock, size)
-                self.__name, offset, _foo = header.split("\0")
+                self.__name, offset, _foo = header.split(b"\0")
                 self.logger.info("read_from_socket: Name is `%s' offset %s\n",
                                  self.__name, offset)
                 i += size
@@ -450,7 +450,7 @@ class WinLinkMessage:
             elif block_type == FBB_BLOCK_EOF:
                 content_size = size
                 for i in data:
-                    content_size += ord(i)
+                    content_size += i
                 if (content_size % 256) != 0:
                     self.logger.info("read_from_socket: "
                                      "Ack! %i left from content_size %i",
@@ -480,8 +480,9 @@ class WinLinkMessage:
         data = self.__lzh_content
 
         # filename \0 length(0) \0
-        header = self.__name + "\x00" + chr(len(data) & 0xFF) + "\x00"
-        sock.send(struct.pack("BB", FBB_BLOCK_HDR, len(header)) + header)
+        header_str = self.__name + "\x00" + chr(len(data) & 0xFF) + "\x00"
+        header = header_str.encode('utf-8', 'replace')
+        sock.send(struct.pack("<BB", FBB_BLOCK_HDR, len(header)) + header)
 
         checksum = 0
         while data:
@@ -489,13 +490,13 @@ class WinLinkMessage:
             data = data[128:]
 
             for i in chunk:
-                checksum += ord(i)
+                checksum += i
 
-            sock.send(struct.pack("BB", FBB_BLOCK_DAT, len(chunk)) + chunk)
+            sock.send(struct.pack("<BB", FBB_BLOCK_DAT, len(chunk)) + chunk)
 
         # Checksum, mod 256, two's complement
         checksum = (~checksum & 0xFF) + 1
-        sock.send(struct.pack("BB", FBB_BLOCK_EOF, sum))
+        sock.send(struct.pack("<BB", FBB_BLOCK_EOF, checksum))
 
     def get_content(self):
         '''
@@ -669,7 +670,7 @@ class WinLinkCMS:
         Get List Internal.
 
         :returns: List of messages
-        :rtype: list of :class:`WinLinkMessage`
+        :rtype: list[:class:`WinLinkMessage`]
         :raises: :class:`Wl2kCMSInvalidLine` if invalid line found.
         '''
         self._send(b'FF')
@@ -682,7 +683,7 @@ class WinLinkCMS:
                 if line.startswith(b"FC"):
                     self.logger.info("__get_list: Creating message for %s",
                                      line)
-                    msgs.append(WinLinkMessage(line))
+                    msgs.append(WinLinkMessage(line.decode('utf-8', 'replace')))
                 elif line.startswith(b"F>"):
                     reading = False
                     break
@@ -738,9 +739,9 @@ class WinLinkCMS:
         '''
         Send Messages.
 
-        :param mesages: WinLink messages
-        :type message: list of :class:`Wl2kMessage`
-        :returns: Number of messages sent.
+        :param mesages: WinLink messages to send
+        :type message: list[:class:`Wl2kMessage`]
+        :returns: Number of messages sent
         :rtype: int
         :raises: :class:`Wl2kCMSNotImplemented` if more than one message
                  in list
@@ -831,7 +832,7 @@ class WinLinkTelnet(WinLinkCMS):
         if not resp.startswith(b"Callsign :"):
             raise Wl2kTelnetNoLogin("Conversation error (never saw login)")
 
-        self._send(self._callsign)
+        self._send(self._callsign.encode('utf-8', 'replace'))
         resp = self._recv()
         if not resp.startswith(b"Password :"):
             raise Wl2kTelnetNoPassword("Conversation error (never saw password)")
@@ -869,14 +870,15 @@ class WinLinkTelnet(WinLinkCMS):
             rem = 6
             todo = 3
             cresp_str = ""
+            zero = ord('0')
             while rem > 0:
                 octet = random.randint(0, 255)
 
-                if octet > 127 and rem > todo:
+                if octet > 127 and rem > todo or todo <= 0:
                     cresp_str += chr(random.randint(33, 126))
                 else:
                     todo -= 1
-                    cresp_str += passwd[int(chall[todo])]
+                    cresp_str += passwd[chall[todo] - zero]
                 rem -= 1
 
             self._send(cresp_str.encode('utf-8', 'replace'))
@@ -935,7 +937,7 @@ class WinLinkThread(threading.Thread, GObject.GObject):
     :param callssid: Call sign with session ID, default None
     :type callssid: str
     :param send_msgs: mesages to send, default []
-    :type send_msgs: list of messages
+    :type send_msgs: list[:class:`WinLinkMessage`]
     '''
 
     __gsignals__ = {
@@ -961,7 +963,7 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         self._config = config
         self._callsign = callsign
         self._callssid = callssid
-        self._send_messages = []
+        self.__send_msgs = []
         if send_msgs:
             self.__send_msgs = send_msgs
 
@@ -1016,16 +1018,16 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         :returns: "Complete" when all messages sent
         :rtype: str
         '''
-        _server = self._config.get("prefs", "msg_wl2k_server") # type: ignore
-        _port = self._config.getint("prefs", "msg_wl2k_port")
+        # _server = self._config.get("prefs", "msg_wl2k_server")
+        # _port = self._config.getint("prefs", "msg_wl2k_port")
         winlink = self.wl2k_connect()
         for message_thread in self.__send_msgs:
 
-            message = re.search("Mid: (.*)\r\nSubject: (.*)\r\n",
+            message = re.search(b"Mid: (.*)\r\nSubject: (.*)\r\n",
                                 message_thread.get_content())
             if message:
-                mid = message.groups()[0]
-                subj = message.groups()[1]
+                mid = message.groups()[0].decode('utf-8', 'replace')
+                subj = message.groups()[1].decode('utf-8', 'replace')
             else:
                 mid = time.strftime("%H%M%SDRATS")
                 subj = "Message"
