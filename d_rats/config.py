@@ -2022,7 +2022,11 @@ class DratsInEmailPanel(DratsPanel):
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
-        list_widget.del_item(list_widget.get_selected())
+        vals = list_widget.get_selected()
+        if not vals:
+            self.logger.info("but_rem: Nothing selected for remove!")
+            return
+        list_widget.del_item(vals)
 
     # pylint: disable=too-many-branches
     def prompt_for_acct(self, fields):
@@ -2119,7 +2123,12 @@ class DratsInEmailPanel(DratsPanel):
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
         '''
+        # The code that sets up this button should not activate it
+        # unless the button has something to do.
         vals = list_widget.get_item(list_widget.get_selected())
+        if not vals:
+            self.logger.info("but_edit: Nothing selected for editing!")
+            return
         fields = [(_("Server"), str, vals[1]),
                   (_("Username"), str, vals[2]),
                   (_("Password"), str, vals[3]),

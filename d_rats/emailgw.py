@@ -20,28 +20,21 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import os
 import threading
 import poplib
-# import smtplib
-
 import re
 import random
 import time
 
 import email
 from email.utils import parseaddr
-# from email.message import Message
-# from email.mime.base import MIMEBase
-# from email.mime.multipart import MIMEMultipart
-# from email.mime.text import MIMEText
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
-
-#importing printlog() wrapper
-from .debug import printlog
+from gi.repository import GLib
 
 from . import dplatform
 from . import formgui
@@ -72,7 +65,8 @@ class UnsupportedActionError(EmailGatewayException):
     '''Unsupported action.'''
 
 
-# pylint: disable=too-many-branches
+# pylint wants only 15 local variables
+# pylint: disable=too-many-branches, too-many-locals
 def create_form_from_mail(config, mail, tmpfn):
     '''
     Create form from mail.
@@ -80,17 +74,25 @@ def create_form_from_mail(config, mail, tmpfn):
     :param config: Config object
     :type config: :class:`DratsConfig`
     :param mail: Mail message
+    :type message: :class:`EmailMessage`
     :param tmpfn: Temporary filename
     :type tmpfn: str
     :returns: Form containing message
     :rtype: :class:`formgui.FormFile`
     :raises: :class:`NoUsablePartError` if unable to parse form
     '''
+    logger = logging.getLogger("emailgw:create_form_from_mail")
+
     subject = mail.get("Subject", "[no subject]")
-    sender = mail.get("From", "Unknown <devnull@nowhere.com>")
+    # Note: example.com, example.org, and example.net are the only domains
+    # that should every be used as placeholders or samples for mail that
+    # should not get delivered.
+    # Use of any other domain allows that program to be used in a
+    # distributed denial of service attack
+    sender = mail.get("From", "Unknown <devnull@example.com>")
 
     xml = None
-    body = ""
+    body = b""
 
     if mail.is_multipart():
         html = None
@@ -114,8 +116,7 @@ def create_form_from_mail(config, mail, tmpfn):
 
     messageid = mail.get("Message-ID", time.strftime("%m%d%Y%H%M%S"))
     if not msgrouting.msg_lock(tmpfn):
-        printlog("emailgw",
-                 "   : AIEE: Unable to lock incoming email message file!")
+        logger.info("AIEE: Unable to lock incoming email message file!")
 
     if xml:
         file_handle = open(tmpfn, "w")
@@ -127,9 +128,11 @@ def create_form_from_mail(config, mail, tmpfn):
             recip, _addr = recip.split("%", 1)
             recip = recip.upper()
     else:
-        printlog("emailgw", "   : Email from %s: %s" % (sender, subject))
+        logger.info("Email from %s: %s", sender, subject)
 
-        recip, _addr = parseaddr(mail.get("To", "UNKNOWN"))
+        recip, addr = parseaddr(mail.get("To", "UNKNOWN"))
+        if not recip:
+            recip = addr
 
         efn = os.path.join(config.form_source_dir(), "email.xml")
         form = formgui.FormFile(efn)
@@ -146,6 +149,8 @@ def create_form_from_mail(config, mail, tmpfn):
     return form
 
 
+# pylint wants only 7 instance attributes
+# pylint: disable=too-many-instance-attributes
 class MailThread(threading.Thread, GObject.GObject):
     '''
     Mail Thread.
@@ -153,9 +158,9 @@ class MailThread(threading.Thread, GObject.GObject):
     :param config: Config object
     :type config: :class:`DratsConfig`
     :param host: Email host
-    :param host: str
+    :type host: str
     :param user: User account
-    :param user: str
+    :type user: str
     :param password: Password for account
     :type password: str
     :param port: Email port, default 110
@@ -177,13 +182,11 @@ class MailThread(threading.Thread, GObject.GObject):
 
     _signals = __gsignals__
 
-    def _emit(self, signal, *args):
-        GObject.idle_add(self.emit, signal, *args)
-
     # pylint: disable=too-many-arguments
     def __init__(self, config, host, user, pasw, port=110, ssl=False):
         threading.Thread.__init__(self)
         GObject.GObject.__init__(self)
+        self.logger = logging.getLogger("MailThread")
         self.setDaemon(True)
 
         self.username = user
@@ -196,21 +199,25 @@ class MailThread(threading.Thread, GObject.GObject):
 
         self._coerce_call = None
 
+    def _emit(self, signal, *args):
+        GLib.idle_add(self.emit, signal, *args)
+
     def message(self, message):
         '''
-        Message.
+        Log a Message.
 
-        :param message: Message to send
+        :param message: Message to log
+        :type message: :class:`EmailMessage`
         '''
-        printlog("emailgw",
-                 "   : [MAIL %s@%s] %s" %
-                 (self.username, self.server, message))
+        self.logger.info("[MAIL %s@%s] %s",
+                         self.username, self.server, message)
 
     def create_form_from_mail(self, mail):
         '''
         Create form from mail.
 
         :param mail: Mail message
+        :type message: :class:`EmailMessage`
         '''
         ident = self.config.get("user", "callsign") + \
             time.strftime("%m%d%Y%H%M%S") + \
@@ -221,18 +228,17 @@ class MailThread(threading.Thread, GObject.GObject):
                            "%s.xml" % mid)
         try:
             form = create_form_from_mail(self.config, mail, ffn)
-        # pylint: disable=broad-except
-        except Exception as err:
-            printlog("emailgw",
-                     "   : Failed to create form from mail: %s -%s-" %
-                     (type(err), err))
+        except NoUsablePartError as err:
+            self.logger.info("create_form_from_mail: "
+                             "Failed to create form from mail: %s", err)
             return
 
         if self._coerce_call:
-            printlog("emailgw", "   : Coercing to %s" % self._coerce_call)
+            self.logger.info("create_form_from_mail: "
+                             "Coercing to %s", self._coerce_call)
             form.set_path_dst(self._coerce_call)
         else:
-            printlog("emailgw", "   : Not coercing")
+            self.logger.info("create_from_from_email: Not coercing")
 
         form.add_path_element("EMAIL")
         form.add_path_element(self.config.get("user", "callsign"))
@@ -245,7 +251,7 @@ class MailThread(threading.Thread, GObject.GObject):
         Fetch mails.
 
         :returns: List of mesages
-        :rtype: list
+        :rtype: list[:class:`EmailMessage`]
         '''
         self.message("Querying %s:%i" % (self.server, self.port))
 
@@ -264,9 +270,9 @@ class MailThread(threading.Thread, GObject.GObject):
         for i in range(num):
             self.message("Fetching %i/%i" % (i+1, num))
             result = server.retr(i+1)
-            server.dele(i+1)
-            message = email.message_from_string("\r\n".join(result[1]))
+            message = email.message_from_bytes(b"\r\n".join(result[1]))
             messages.append(message)
+            server.dele(i+1)
 
         server.quit()
 
@@ -281,12 +287,8 @@ class MailThread(threading.Thread, GObject.GObject):
         else:
             try:
                 mails = self.fetch_mails()
-            # pylint: disable=broad-except
-            except Exception as err:
-                result = "Failed (%s -%s-)" % (type(err), err)
-            printlog("emailgw",
-                     "   : MailThread/run broad exception %s -%s-" %
-                     (type(err), err))
+            except (poplib.error_proto, ConnectionError, OSError) as err:
+                result = "Failed (%s)" % (err)
 
             if mails:
                 for mail in mails:
@@ -316,6 +318,7 @@ class CoercedMailThread(MailThread):
         call = str(args[-1])
         args = args[:-1]
         MailThread.__init__(self, *args)
+        self.logger = logging.getLogger("CoercedMailThread")
         self._coerce_call = call
 
 
@@ -357,7 +360,7 @@ class AccountMailThread(MailThread):
 
         ssl = ssl == "True"
         if not port:
-            port = ssl and 995 or 110
+            port = 995 if ssl else 110
         else:
             port = int(port)
 
@@ -367,12 +370,14 @@ class AccountMailThread(MailThread):
         self.enabled = enb == "True"
 
         MailThread.__init__(self, config, host, user, pasw, port, ssl)
+        self.logger = logging.getLogger("AccountMailThread")
 
     def do_chat_from_mail(self, mail):
         '''
         Do Chat from mail.
 
-        :param mail: mail object
+        :param mail: mail message
+        :type mail: :class:`EmailMessage`
         '''
         if mail.is_multipart():
             body = None
@@ -409,10 +414,8 @@ class AccountMailThread(MailThread):
         mails = []
         try:
             mails = self.fetch_mails()
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.message("Failed to retrieve messages: %s -%s-" %
-                         (type(err), err))
+        except (poplib.error_proto, ConnectionError, OSError) as err:
+            self.message("Failed to retrieve messages: %s" % err)
         for mail in mails:
             self.__action(mail)
             if mails:
@@ -424,7 +427,22 @@ class AccountMailThread(MailThread):
 
 
 class PeriodicAccountMailThread(AccountMailThread):
-    '''Periodic Account Mail Thread.'''
+    '''
+    Periodic Account Mail Thread.
+
+    :param config: Config object
+    :type config: :class:`DratsConfig`
+    :param account: Account name
+    :type account: str
+    :raises: :class:`BadAccountSettingsError` if unable to parse account
+             settings
+    :raises: :class:`UnsupportedActionError` if an unsupported transfer is
+             requested
+    '''
+
+    def __init__(self, config, account):
+        AccountMailThread.__init__(self, config, account)
+        self.logger = logging.getLogger("PeriodicAccountMailThread")
 
     def run(self):
         '''Run periodic thread.'''
@@ -448,6 +466,21 @@ class PeriodicAccountMailThread(AccountMailThread):
 
 
 def __validate_access(config, callsign, emailaddr, types):
+    '''
+    Validate Access internal.
+
+    :param config: D-Rats configuration
+    :type config: :class:`DratsConfig`
+    :param callsign: call sign of outgoing message
+    :type callsign: str
+    :param emailaddr: Email address to send to
+    :type emailaddr: str
+    :param types: Types of access
+    :type types: list[str]
+    :returns: True if message is validated
+    :rtype: bool
+    '''
+    logger = logging.getLogger("emailgw:validate_access")
     rules = config.options("email_access")
 
     for rule in rules:
@@ -463,7 +496,7 @@ def __validate_access(config, callsign, emailaddr, types):
             # print "%s -> %s does not match %s,%s,%s" % (callsign, emailaddr,
             #                                             call, access, filter)
 
-    printlog("emailgw", "   : No match found")
+    logger.info("No match found")
 
     return False
 
@@ -515,8 +548,8 @@ def main():
         def list_add_form(self, *args, **kwargs):
             '''List add form dummy function.'''
 
-        # pylint: disable=no-self-use
-        def get_stamp(self):
+        @staticmethod
+        def get_stamp():
             '''Returns "FOO".'''
             return "FOO"
 
@@ -528,7 +561,13 @@ def main():
             '''Get Boolean dummy function, returns False.'''
             return False
 
-    # pylint: disable=invalid-name
+
+    # You may need to edit this based on if you actually have an agwpe
+    # driver installed, or the port is in use.
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                        datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO)
+
     lang = gettext.translation("D-RATS",
                                localedir="./locale",
                                languages=["en"],
@@ -541,7 +580,4 @@ def main():
 
 
 if __name__ == "__main__":
-    if not __package__:
-        # pylint: disable=redefined-builtin
-        __package__ = '__main__'
     main()

@@ -709,13 +709,10 @@ class MessageFolders(MainWindowElement):
                              subj, msg_type, read, send, recp)
 
             try:
+                # Make sure that destination does not exist
                 dst.delete(os.path.basename(fname))
-            # pylint: disable=broad-except
-            except Exception:
-                # Possibly temp diagnostic until we find the specific
-                # expected exceptions.
-                self.logger.info("_dragged_to: broad-exception", exc_info=True)
-                # pass
+            except FileNotFoundError:
+                pass
             newfn = dst.create_msg(os.path.basename(fname))
             shutil.copy(fname, newfn)
             src.delete(fname)

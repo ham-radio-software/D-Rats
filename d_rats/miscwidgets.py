@@ -279,11 +279,8 @@ class KeyedListWidget(Gtk.Box):
         try:
             (store, iter_val) = self.__view.get_selection().get_selected()
             return store.get(iter_val, 0)[0]
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("get_selected:"
-                             " Unable to find selected: broad-exception",
-                             exc_info=True)
+        except TypeError:
+            self.logger.info("get_selected: Nothing was selected")
             return None
 
     def select_item(self, key):
