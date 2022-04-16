@@ -1318,7 +1318,9 @@ class FormFile():
         Set field value.
 
         :param field_id: Field id to set value on
+        :type field_id: str
         :param value: Value to set
+        :type value: str
         '''
         els = self.__get_xpath("//form/field[@id='%s']/entry" % field_id)
         self.logger.info("Setting %s to %s (%i)", field_id, value, len(els))
