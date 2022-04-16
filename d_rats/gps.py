@@ -254,8 +254,7 @@ def value_with_units(value):
     return "%.2f %s" % (value * scale, units)
 
 
-# pylint: disable=invalid-name
-def NMEA_checksum(string):
+def nmea_checksum(string):
     '''
     NMEA Checksum.
 
@@ -271,8 +270,7 @@ def NMEA_checksum(string):
     return "*%02x" % checksum
 
 
-# pylint: invalid-name
-def GPSA_checksum(string):
+def gpsa_checksum(string):
     '''
     GPSA Checksum.
 
@@ -297,8 +295,7 @@ def GPSA_checksum(string):
     return calc(string)
 
 
-# pylint: disable=invalid-name
-def DPRS_checksum(callsign, msg):
+def dprs_checksum(callsign, msg):
     '''
     DPRS Checksum.
 
@@ -549,8 +546,7 @@ class GPSPosition():
         self.date = datetime.datetime.now()
         self.speed = None
         self.direction = None
-        # pylint: disable=invalid-name
-        self.APRSIcon = None
+        self.aprs_icon = None
         self._original_comment = ""
         self.latitude = None
         self.longitude = None
@@ -576,7 +572,7 @@ class GPSPosition():
         astidx = self.comment.rindex("*")
         checksum = self.comment[astidx:]
 
-        calc_checksum = DPRS_checksum(self.station, self.comment[:astidx])
+        calc_checksum = dprs_checksum(self.station, self.comment[:astidx])
 
         if int(calc_checksum[1:], 16) != int(checksum[1:], 16):
             self.logger.info("_parse_dprs_comment: Failed to parse "
@@ -593,7 +589,7 @@ class GPSPosition():
 
             raise GpsDprsChecksumError("DPRS checksum failed")
 
-        self.APRSIcon = dprs_to_aprs(symbol)
+        self.aprs_icon = dprs_to_aprs(symbol)
         self.comment = self.comment[4:astidx].strip()
 
     def __iadd__(self, update):
@@ -624,8 +620,8 @@ class GPSPosition():
             # pylint: disable=protected-access
             self._original_comment = update._original_comment
 
-        if update.APRSIcon:
-            self.APRSIcon = update.APRSIcon
+        if update.aprs_icon:
+            self.aprs_icon = update.aprs_icon
 
         return self
 
@@ -719,8 +715,7 @@ class GPSPosition():
 
         return sta
 
-    # pylint: disable=invalid-name
-    def to_NMEA_GGA(self, _ssid=" "):
+    def to_nmea_gga(self, _ssid=" "):
         '''
         To NMEA GGA.
 
@@ -750,7 +745,7 @@ class GPSPosition():
             com = self.comment
 
         return "$%s%s\r\n%-8.8s,%-20.20s\r\n" % (data,
-                                                 NMEA_checksum(data),
+                                                 nmea_checksum(data),
                                                  sta,
                                                  com)
 
@@ -789,12 +784,11 @@ class GPSPosition():
         sta = self.station_format()
 
         return "$%s%s\r\n%-8.8s,%-20.20s\r\n" % (data,
-                                                 NMEA_checksum(data),
+                                                 nmea_checksum(data),
                                                  sta,
                                                  self.comment)
 
-    # pylint: disable=invalid-name
-    def to_APRS(self, dest="APRATS", symtab="/", symbol=">"):
+    def to_aprs(self, dest="APRATS", symtab="/", symbol=">"):
         '''
         To APRS.
 
@@ -857,7 +851,7 @@ class GPSPosition():
 
         sta_str += "\r"
 
-        return "$$CRC%04X,%s\n" % (GPSA_checksum(sta_str), sta_str)
+        return "$$CRC%04X,%s\n" % (gpsa_checksum(sta_str), sta_str)
 
     def set_station(self, station, comment="D-RATS"):
         '''
@@ -992,7 +986,7 @@ class NMEAGPSPosition(GPSPosition):
         segment = string[1:idx]
 
         csum = csum.upper()
-        calc_csum = NMEA_checksum(segment).upper()
+        calc_csum = nmea_checksum(segment).upper()
 
         if csum != calc_csum:
             self.logger.info("_test_checksum: Failed checksum: %s != %s",
@@ -1157,7 +1151,7 @@ class APRSGPSPosition(GPSPosition):
             return
 
         crc = match.group(1)
-        calc_crc = "%04X" % GPSA_checksum(match.group(2))
+        calc_crc = "%04X" % gpsa_checksum(match.group(2))
 
         if crc != calc_crc:
             self.logger.info("_parse_GPSA: APRS CRC mismatch: %s != %s (%s)",
@@ -1208,7 +1202,7 @@ class APRSGPSPosition(GPSPosition):
         self.longitude = nmea2deg(float(match.group(7)), match.group(8))
         self.comment = match.group(10).strip()
         self._original_comment = self.comment
-        self.APRSIcon = match.group(6) + match.group(9)
+        self.aprs_icon = match.group(6) + match.group(9)
 
         if len(match.groups()) == 11 and match.group(11):
             _, alt = match.group(11).split("=")

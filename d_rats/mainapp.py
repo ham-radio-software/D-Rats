@@ -1135,15 +1135,15 @@ class MainApp(Gtk.Application):
 
         try:
             comment = self.config.get("settings", "default_gps_comment")
-            fix.APRSIcon = gps.dprs_to_aprs(comment)
+            fix.aprs_icon = gps.dprs_to_aprs(comment)
         # pylint: disable=broad-except
         except Exception:
             self.logger.info("_refresh_location broad-except", exc_info=True)
             log_exception()
-            fix.APRSIcon = "\\?"
+            fix.aprs_icon = "\\?"
             # broad/bare exceptions make debugging harder
             raise
-        self.__map_point.set_icon_from_aprs_sym(fix.APRSIcon)
+        self.__map_point.set_icon_from_aprs_sym(fix.aprs_icon)
 
         self.stations_overlay.add_point(self.__map_point)
         self.map.update_gps_status(self.gps.status_string())
@@ -1510,12 +1510,12 @@ class MainApp(Gtk.Application):
                                        fix.longitude,
                                        fix.altitude,
                                        fix.comment)
-        if fix.APRSIcon is None:
+        if fix.aprs_icon is None:
             point.set_icon_from_aprs_sym('\\?')
             self.logger.info(
-                "__incoming_gps_fix: APRSIcon missing - forced to: \\? ")
+                "__incoming_gps_fix: aprs_icon missing - forced to: \\? ")
         else:
-            point.set_icon_from_aprs_sym(fix.APRSIcon)
+            point.set_icon_from_aprs_sym(fix.aprs_icon)
 
         source.add_point(point)
         source.save()

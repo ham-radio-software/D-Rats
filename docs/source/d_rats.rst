@@ -285,14 +285,6 @@ d\_rats.station\_status module
     :undoc-members:
     :show-inheritance:
 
-d\_rats.subst module
---------------------
-
-.. automodule:: d_rats.subst
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 d\_rats.transport module
 ------------------------
 
