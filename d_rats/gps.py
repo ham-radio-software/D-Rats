@@ -30,16 +30,13 @@ import tempfile
 import datetime
 
 import threading
-#from typing import Match
 
 import socket
 
 from math import pi, cos, acos, sin, atan2
 import serial
-from six.moves import range # type: ignore
 
 from . import dplatform
-from . import subst
 
 from . import utils
 
@@ -365,6 +362,7 @@ def deg2dm(decdeg):
     :param decdeg: Degrees value
     :type decdeg: float
     :returns: Tuple of degree and minutes
+    :rtype: tuple[float, float]
     '''
     deg = int(decdeg)
     minutes = (decdeg - deg) * 60.0
@@ -495,7 +493,7 @@ def parse_date(string, fmt):
     :param fmt: Format string
     :param fnt: str
     :returns: date and time information
-    :rtype: datetime
+    :rtype: datetime.datetime
     :raises: GpsDateParseError if date is not parsable.
     '''
     try:
@@ -674,15 +672,24 @@ class GPSPosition():
                 self.longitude,
                 alt,
                 self.date.strftime("%H:%M:%S"),
-                subst.subst_string(comment),
+                comment,
                 new_distance,
                 direct)
         else:
             return "(" + _("Invalid GPS data") + ")"
 
     @staticmethod
-    # pylint: disable=invalid-name
-    def _NMEA_format(val, latitude):
+    def _nmea_format(val, latitude):
+        '''
+        NMEA Format internal.
+
+        :param val: Input value
+        :type val: float
+        :param latitude: Flag if latitude value
+        :type latitude: bool
+        :returns: NMEA Format
+        :rtype: str
+        '''
         if latitude:
             if val > 0:
                 direction = "N"
@@ -724,8 +731,8 @@ class GPSPosition():
         '''
         date = time.strftime("%H%M%S")
 
-        lat = self._NMEA_format(self.latitude, True)
-        lon = self._NMEA_format(self.longitude, False)
+        lat = self._nmea_format(self.latitude, True)
+        lon = self._nmea_format(self.longitude, False)
 
         data = "GPGGA,%s,%s,%s,1,%i,0,%i,M,0,M,," % ( \
             date,
@@ -747,8 +754,8 @@ class GPSPosition():
                                                  sta,
                                                  com)
 
-    # pylint: disable=invalid-name
-    def to_NMEA_RMC(self):
+    # Nothing currently seems to be calling this.
+    def to_nmea_rmc(self):
         '''
         To NMEA RMC.
 
@@ -758,8 +765,8 @@ class GPSPosition():
         tstamp = time.strftime("%H%M%S")
         dstamp = time.strftime("%d%m%y")
 
-        lat = self._NMEA_format(self.latitude, True)
-        lon = self._NMEA_format(self.longitude, False)
+        lat = self._nmea_format(self.latitude, True)
+        lon = self._nmea_format(self.longitude, False)
 
         if self.speed:
             speed = "%03.1f" % self.speed
@@ -974,7 +981,6 @@ class NMEAGPSPosition(GPSPosition):
         else:
             self.logger.info("Unsupported GPS sentence type: %s", sentence)
 
-    # pylint: disable=no-self-use
     def _test_checksum(self, string, csum):
         try:
             idx = string.index("*")
@@ -1099,7 +1105,6 @@ class NMEAGPSPosition(GPSPosition):
     def _from_NMEA_GPRMC(self, string):
         try:
             self._parse_GPRMC(string)
-        # pylint: disable=broad-except
         except GpsGprmcException as err:
             import traceback
             import sys
@@ -1119,7 +1124,6 @@ class APRSGPSPosition(GPSPosition):
 
         self._from_APRS(message)
 
-    # pylint: disable=no-self-use
     def _parse_date(self, string):
         # prefix = string[0]
         suffix = string[-1]
@@ -1342,10 +1346,13 @@ class GPSSource():
 
         try:
             self.serial = serial.Serial(port=port, baudrate=rate, timeout=1)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("Unable to open port `%s' broad-except",
-                             port, exc_info=True)
+            # Must assert these signals anytime you open a serial port
+            # or people can waste debugging time.
+            self.serial.dtr = True
+            self.serial.rts = True
+
+        except (ValueError, serial.SerialException):
+            self.logger.info("Unable to open port `%s'", port)
             self.broken = _("Unable to open GPS port")
 
         self.thread = None
@@ -1478,10 +1485,8 @@ class NetworkGPSSource(GPSSource):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((host, port))
             self.sock.settimeout(10)
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("connect: Unable to connect: broad-except",
-                             exc_info=True)
+        except (ConnectionError, OSError) as err:
+            self.logger.info("connect: Unable to connect: %s", err)
             self.broken = _("Unable to connect") + ": %s" % err
             self.sock = None
             return False
@@ -1501,13 +1506,10 @@ class NetworkGPSSource(GPSSource):
             try:
                 data = self.sock.recv(1024)
 
-            # pylint: disable=broad-except
-            except Exception:
+            except (ConnectionError, OSError):
                 self.sock.close()
                 self.sock = None
-                self.logger.info("gpsthread: "
-                                 "GPSd Socket closed. broad-except",
-                                 exc_info=True)
+                self.logger.info("gpsthread: GPSd Socket closed.")
                 continue
 
             if not isinstance(data, str):
