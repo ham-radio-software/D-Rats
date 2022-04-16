@@ -293,7 +293,7 @@ class QSTGPS(QSTText):
         fix.set_station(fix.station, self.text[:20])
 
         if fix.valid:
-            return fix.to_NMEA_GGA()
+            return fix.to_nmea_gga()
         return None
 
 
@@ -321,7 +321,7 @@ class QSTGPSA(QSTGPS):
             self.text = self.text[1:]
 
         if fix.valid:
-            return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
+            return fix.to_aprs(symtab=self.config.get("settings", "aprssymtab"),
                                symbol=self.config.get("settings", "aprssymbol"))
         return None
 
@@ -368,10 +368,10 @@ class QSTWX(QSTGPS):
             fix.set_station(fix.station, wx_line[:200])
 
         if fix.valid:
-            return fix.to_APRS(symtab="/",
+            return fix.to_aprs(symtab="/",
                                symbol="_")
 #       WX symbol will be used for WXGPS-A.
-#       return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
+#       return fix.to_aprs(symtab=self.config.get("settings", "aprssymtab"),
 #                          symbol=self.config.get("settings", "aprssymbol")
         self.logger.info("do_qst: "
                          "GPS postition is not valid, so not sent")

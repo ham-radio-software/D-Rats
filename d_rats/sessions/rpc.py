@@ -762,13 +762,13 @@ class RPCActionSet(GObject.GObject):
         if rqcall in (mycall, "."):
             rqcall = None
         try:
-            #obtaining current position from config or local gps
+            # obtaining current position from config or local gps
             fix = self.emit("get-current-position", rqcall)
-            #result = fix.to_NMEA_GGA()
+            # result = fix.to_nmea_gga()
             result["rc"] = "True"
             symtab = self.__config.get("settings", "aprssymtab")
             symbol = self.__config.get("settings", "aprssymbol")
-            result["msg"] = fix.to_APRS(symtab=symtab, symbol=symbol)
+            result["msg"] = fix.to_aprs(symtab=symtab, symbol=symbol)
 
         # pylint: disable=broad-except
         except Exception:
@@ -786,7 +786,7 @@ class RPCActionSet(GObject.GObject):
             self.logger.info("RPC_pos_report: port is : %s", self.__port)
             self.logger.info("RPC_pos_report: fix is: %s", fix)
             self.logger.info("RPC_pos_report: fix in NMEA GGA is: %s",
-                             fix.to_NMEA_GGA())
+                             fix.to_nmea_gga())
             self.logger.info("RPC_pos_report: fix in APRS is: %s", result)
 
             self.emit("user-send-chat",

@@ -832,7 +832,7 @@ class MapWindow(Gtk.ApplicationWindow):
                 for port in self.emit("get-station-list").keys():
                     self.emit("user-send-chat",
                               "CQCQCQ", port,
-                              fix.to_NMEA_GGA(), True)
+                              fix.to_nmea_gga(), True)
 
                 break
             except AttributeError:
