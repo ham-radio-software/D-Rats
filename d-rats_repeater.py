@@ -21,14 +21,13 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import ast
 import logging
 import os
 import threading
 import time
 import socket
-import sys
-import six.moves.configparser # type: ignore
-# import os
+import configparser
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -49,45 +48,13 @@ from d_rats.miscwidgets import make_choice
 from d_rats import miscwidgets
 from d_rats.config import prompt_for_port
 
-# from d_rats.comm import SWFSerial
 from d_rats import utils
 
 gettext.install("D-RATS")
 
-
-# Needed for python2+python3 support
-if sys.version_info[0] < 3:
-    # pylint: disable=redefined-builtin
-    class BlockingIOError(socket.error):
-        '''Suppress pylint on python3 warning.'''
-
-
-# WB8TYW: Can not find a caller for this function.
-def call_with_lock(lock, function, *args):
-    '''
-    Call with lock.
-
-    :param lock: Locking object
-    :param function: Function to call
-    :type function: function
-    :param args: Arguments for function
-    :returns: Result of function
-    '''
-    lock.acquire()
-    result = function(*args)
-    lock.release()
-    return result
-
-
 IN = 0
 OUT = 1
 PEEK = 2
-
-
-# pylint: disable=invalid-name
-def DEBUG(_string):
-    '''DEBUG function.'''
-    # print string
 
 
 class CallInfo:
@@ -137,6 +104,7 @@ class CallInfo:
         Last transport.
 
         :returns: Last transport heard
+        :rtype: :class:`Transporter`
         '''
         return self.__transport
 
@@ -277,14 +245,14 @@ class Repeater:
 
         new_transport.inhandler = handler
 
-    # pylint: disable=no-self-use
     def auth_exchange(self, pipe):
         '''
         Authorization Exchange.
 
         :param pipe: socket object
+        :type pipe: socket
         :returns: Data for exchange
-        :rtype: tuple of two str
+        :rtype: tuple[str, str]
         '''
         username = password = None
         count = 0
@@ -336,6 +304,7 @@ class Repeater:
         Authorize user.
 
         :param pipe: Pipe object
+        :type pipe: socket
         :return: True if authorized
         :rtype: bool
         '''
@@ -389,11 +358,7 @@ class Repeater:
 
         try:
             (csocket, addr) = self.socket.accept()
-        # python3
         except BlockingIOError:
-            return
-        # python2
-        except socket.error:
             return
 
         addr_str = "%s:%i" % addr
@@ -412,19 +377,15 @@ class Repeater:
 
         try:
             (csocket, addr) = self.gps_socket.accept()
-        # python3
         except BlockingIOError:
-            return
-        # python2
-        except socket.error:
             return
 
         addr_str = "%s:$i" % addr
         self.logger.info("accept_new_gps: Accepted new GPS client %s", addr_str)
         self.gps_sockets.append(csocket)
 
-    # pylint: disable=no-self-use
-    def listen_on(self, port):
+    @staticmethod
+    def listen_on(port):
         '''
         Listen on.
 
@@ -501,7 +462,7 @@ class RepeaterUI:
 
         '''
         self.config_fn = self.platform.config_file("repeater.config")
-        config = six.moves.configparser.ConfigParser()
+        config = configparser.ConfigParser()
         config.add_section("settings")
         config.set("settings", "devices", "[]")
         config.set("settings", "acceptnet", "True")
@@ -527,7 +488,7 @@ class RepeaterUI:
         :param ident: Path id
         :type ident: str
         :param path: Paths data
-        :type path: list of tuple
+        :type path: list[tuple]
         '''
         reqauth = self.config.get("settings", "require_auth") == "True"
         trustlocal = self.config.get("settings", "trust_local") == "True"
@@ -538,9 +499,8 @@ class RepeaterUI:
             timeout = 0
             if dev.startswith("net:"):
                 try:
-                    _net, host, port = dev.split(":", 2) # type: ignore
+                    _net, host, port = dev.split(":", 2)
                     port = int(port)
-                # pylint: disable=broad-except
                 except ValueError as err:
                     self.logger.info("add_outgoing_paths: "
                                      "Invalid net string: %s (%s)",
@@ -558,7 +518,6 @@ class RepeaterUI:
                 try:
                     _tnc, port, device = dev.split(":", 2)
                     device = int(device)
-                # pylint: disable=broad-except
                 except ValueError as err:
                     self.logger.info("add_outgoing_paths: "
                                      "Invalid tnc string: %s (%s)",
@@ -685,6 +644,7 @@ class RepeaterGUI(RepeaterUI):
         Make side buttons.
 
         :returns: Gtk.Box object with buttons
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
@@ -707,8 +667,7 @@ class RepeaterGUI(RepeaterUI):
     def load_devices(self):
         '''Load devices.'''
         try:
-            # pylint: disable=eval-used
-            devices = eval(self.config.get("settings", "devices"))
+            devices = ast.literal_eval(self.config.get("settings", "devices"))
             for device, radio in devices:
                 self.dev_list.add_item(device, radio)
         # pylint: disable=broad-except
@@ -721,6 +680,7 @@ class RepeaterGUI(RepeaterUI):
         Make Devices.
 
         :returns: Gtk.Frame object
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new("Paths")
 
@@ -755,6 +715,7 @@ class RepeaterGUI(RepeaterUI):
         Make Network.
 
         :returns: Gtk.Frame object
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new("Network")
 
@@ -827,6 +788,7 @@ class RepeaterGUI(RepeaterUI):
         Make bottom buttons.
 
         :returns: Gtk.Box object with buttons
+        :rtype: :class:`Gtk.Box`
         '''
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
@@ -852,6 +814,7 @@ class RepeaterGUI(RepeaterUI):
         Make ID for Repeater Callsign.
 
         :returns: Gtk.Frame object
+        :rtype: :class:`Gtk.Frame`
         '''
         frame = Gtk.Frame.new("Repeater Callsign")
 
@@ -1165,13 +1128,12 @@ class RepeaterConsole(RepeaterUI):
 
     def main(self):
         '''Main Routine.'''
-        # pylint: disable=eval-used
-        devices = eval(self.config.get("settings", "devices"))
+        devices = ast.literal_eval(self.config.get("settings", "devices"))
         self.add_outgoing_paths(self.config.get("settings", "id"), devices)
 
         try:
-            # pylint: disable=eval-used
-            acceptnet = eval(self.config.get("settings", "acceptnet"))
+            acceptnet = ast.literal_eval(self.config.get("settings",
+                                                         "acceptnet"))
             netport = int(self.config.get("settings", "netport"))
             gpsport = int(self.config.get("settings", "gpsport"))
             idfreq = self.config.get("settings", "idfreq")
