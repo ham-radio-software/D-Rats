@@ -1,7 +1,11 @@
 #!/usr/bin/python
-'''Weather Update?'''
+'''Weather Update.'''
+# This is apparently an incomplete work in progress.
+
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
+#
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,15 +21,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import
+
+import datetime
 import os
 
-import six.moves.urllib.request
-import six.moves.urllib.parse
-import six.moves.urllib.error
+import urllib.request
+import urllib.parse
+import urllib.error
 from lxml import etree
 
+
 class InvalidXMLError(Exception):
-    '''Invalid XML Error'''
+    '''Invalid XML Error.'''
+
 
 WEATHER_KEYS = [
     "temperature_string", "temp_f", "temp_c",
@@ -77,8 +85,7 @@ class WUObservation():
                     self.time = datetime.datetime.strptime(\
                         child.getContent(),
                         "%a, %d %B %Y %H:%M:%S %Z")
-                # pylint: disable=bare-except
-                except:
+                except ValueError:
                     self.time = child.getContent()
             elif child.name in WEATHER_KEYS:
                 self.weather[child.name] = child.getContent()
@@ -86,13 +93,23 @@ class WUObservation():
             child = child.next
 
     def from_xml(self, xml):
-        '''From xml'''
+        '''
+        From XML.
+
+        :param xml: string with XML data
+        :type xml: str
+        '''
         doc = etree.fromstring(xml)
-        return self.__parse_doc(doc)
+        self.__parse_doc(doc)
 
     def from_uri(self, uri):
-        '''From Uri'''
-        file_name, _something = six.moves.urllib.request.urlretrieve(uri)
+        '''
+        From Uri.
+
+        :param uri: URI to lookup
+        :type uri: str
+        :'''
+        file_name, _something = urllib.request.urlretrieve(uri)
         doc = etree.parse(file_name)
         os.remove(file_name)
-        return self.__parse_doc(doc)
+        self.__parse_doc(doc)
