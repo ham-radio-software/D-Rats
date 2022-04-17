@@ -3,7 +3,8 @@
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
-# This program is free software: you can redistribute it and/or modify
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -28,9 +29,12 @@ def yencode_buffer(buf, banned=None):
     yencode a buffer.
 
     :param buf: Buffer to encode
+    :type buf: bytes
     :param banned: Optional characters that must be encoded,
-                   Default is a list bytes for Radios
+                   Default bytes string to encode for Radios
+    :type banned: bytes
     :returns: Encoded buffer
+    :rtype: bytes
     '''
     if not banned:
         banned = DEFAULT_BANNED
@@ -64,7 +68,9 @@ def ydecode_buffer(buf):
     ydecode a buffer.
 
     :param buf: Buffer to decode
+    :type buf: bytes
     :returns: decoded buffer
+    :type buf: bytes
     '''
     out = b""
 
@@ -152,7 +158,7 @@ def main():
         fail = 0
         outbuf = yencode_buffer(inbuf)
         buffer = ydecode_buffer(outbuf)
-        for i in range(0, len(buffer)):
+        for i in buffer:
             if buffer[i] != inbuf[i]:
                 fail += 1
         if fail > 0:
