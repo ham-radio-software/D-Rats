@@ -41,8 +41,6 @@ if not '_' in locals():
 from .miscwidgets import make_choice
 from . import miscwidgets
 
-# py3 from . import mainapp
-
 from . import dplatform
 from . import inputdialog
 from . import cap
@@ -130,7 +128,7 @@ def do_dprs_calculator(initial=""):
     callsign = mainapp.get_mainapp().config.get("user", "callsign")
     string = "%s%s %s" % (dicon, over, mstr)
 
-    check = gps.DPRS_checksum(callsign, string)
+    check = gps.dprs_checksum(callsign, string)
 
     return string + check
 
@@ -407,7 +405,7 @@ class QSTThreadedText(QSTText):
             return
 
         GLib.idle_add(self.emit, "qst-fired",
-                         "%s%s" % (self.prefix, msg), self.key)
+                      "%s%s" % (self.prefix, msg), self.key)
 
     def fire(self):
         '''Fire.'''
