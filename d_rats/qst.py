@@ -44,7 +44,7 @@ from . import miscwidgets
 from . import dplatform
 from . import inputdialog
 from . import cap
-from . import wu
+# from . import wu
 from . import gps
 from .utils import combo_select, get_icon
 
@@ -574,7 +574,7 @@ class QSTOpenWeather(QSTThreadedText):
         :rtype: str
         '''
         weath = ""
-        _obs = wu.WUObservation()
+        # _obs = wu.WUObservation()
         owuri = self.config.get("settings", "qst_owuri")
         owappid = self.config.get("settings", "qst_owappid")
 
