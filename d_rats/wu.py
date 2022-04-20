@@ -108,7 +108,7 @@ class WUObservation():
 
         :param uri: URI to lookup
         :type uri: str
-        :'''
+        '''
         file_name, _something = urllib.request.urlretrieve(uri)
         doc = etree.parse(file_name)
         os.remove(file_name)

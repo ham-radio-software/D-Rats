@@ -322,7 +322,7 @@ class MapWindow(Gtk.ApplicationWindow):
         Get Map Sources.
 
         :returns: Map sources
-        :rtype: list of :class:`MapFileSource`
+        :rtype: list[:class:`MapFileSource`]
         '''
         return self.map_sources
 
@@ -331,7 +331,7 @@ class MapWindow(Gtk.ApplicationWindow):
         Get Visible Bounds.
 
         :returns: tuple with bounds
-        :rtype: tuple
+        :rtype: tuple[int, int, int, int]
         '''
         hadj = self.scrollw.get_hadjustment()
         vadj = self.scrollw.get_vadjustment()
@@ -758,7 +758,7 @@ class MapWindow(Gtk.ApplicationWindow):
         Printable Map Handler.
 
         :param bounds: Bounds to save
-        :type bounds: tuple of 4 elements
+        :type bounds: tuple[int, int, int, int]
         :returns: False to prevent timer retriggering
         :rtype: bool
         '''
@@ -862,8 +862,8 @@ class MapWindow(Gtk.ApplicationWindow):
         :type point: :class:`MapPoint`
         :param group: Optional group
         :type group: str
-        :returns: Tuple of (point, group) or (None, None)
-        :rtype: tuple of (:class:`MapPoint', str)
+        :returns: point and group when a marker is set.
+        :rtype: tuple [:class:`MapPoint`, str]
         '''
         dialog = Map.MarkerEditDialog()
 
@@ -898,7 +898,7 @@ class MapWindow(Gtk.ApplicationWindow):
         Save Map.
 
         :param bounds: Bounds to save, Default None
-        :type bounds: tuple of 4 elements
+        :type bounds: tuple[int, int, int, int]
         '''
         platform = dplatform.get_platform()
         fname = platform.gui_save_file(default_name="map_%s.png" % \
@@ -918,7 +918,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :param fname: Filename to save to
         :type fname: str
         :param bounds: Bounds to save
-        :type bounds: tuple of 4 elements
+        :type bounds: tuple[int, int, int, int]
         :returns: False to prevent timer retriggering
         :rtype: bool
         '''
