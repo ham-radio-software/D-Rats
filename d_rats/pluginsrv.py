@@ -266,7 +266,7 @@ class DRatsPluginProxy(GObject.GObject):
         :param timeout: Time out to wait
         :type timeout: float
         :param src_station: Optional Station to wait for message from
-        :type src_station:str
+        :type src_station: str
         :returns: Source station and chat text
         :rtype: tuple[str, str]
         '''

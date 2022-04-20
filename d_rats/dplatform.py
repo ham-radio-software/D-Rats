@@ -295,12 +295,13 @@ class Platform():
         :param command: Command to run and wait for
         :type command: str
         :returns: Command standard output in second member of tuple
-        :rtype: tuple
+        :rtype: tuple[int, str]
         '''
         pipe = subprocess.Popen(command, stdout=subprocess.PIPE)
         data = pipe.stdout.read()
+        data_str = data.decode('utf-8', 'replace')
 
-        return 0, data
+        return 0, data_str
 
     def retrieve_url(self, url):
         '''
@@ -472,6 +473,8 @@ class UnixPlatform(Platform):
 
         :param command: Command to run.
         :type command: str
+        :returns: Command status and output
+        :rtype: tuple[int, str]
         '''
         return subprocess.getstatusoutput(command)
 
@@ -568,7 +571,7 @@ class MacOSXPlatform(UnixPlatform):
         List Serial Ports.
 
         :returns: serial port names
-        :rtype: list of str
+        :rtype: list[str]
         '''
         keyspan = glob.glob("/dev/cu.KeySerial*")
         prolific = glob.glob("/dev/tty.usbserial*")
@@ -664,7 +667,7 @@ class Win32Platform(Platform):
         List Serial Ports.
 
         :returns: List of serial ports
-        :rtype: list of str
+        :rtype: list[str]
         '''
         # pylint: disable=import-error
         try:

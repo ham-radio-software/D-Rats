@@ -213,14 +213,6 @@ d\_rats.msgrouting module
     :undoc-members:
     :show-inheritance:
 
-d\_rats.platform module
------------------------
-
-.. automodule:: d_rats.platform
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 d\_rats.pluginsrv module
 ------------------------
 
