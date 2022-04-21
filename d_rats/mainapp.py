@@ -23,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 
+from configparser import NoOptionError
 import logging
 import os
 import sys
@@ -31,21 +32,10 @@ import sys
 from time import gmtime, strftime
 # import various libraries of support functions
 import time
-# import re
-# from threading import Thread, Lock
-# from select import select
 import socket
-try:
-    # pylint: disable=import-error
-    from commands import getstatusoutput # type: ignore
-except ModuleNotFoundError:
-    pass
 
 import glob
 import shutil
-# import datetime
-
-# import serial
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -85,20 +75,19 @@ from . import map_sources
 from . import comm
 from . import sessionmgr
 from . import session_coordinator
-# from . import emailgw
 from . import formgui
 from . import station_status
 from . import pluginsrv
 from . import msgrouting
 from . import wl2k
-# from . import inputdialog
 from . import version
-# from . import agw
 from . import mailsrv
 
 from .emailgw import PeriodicAccountMailThread
 from .emailgw import AccountMailThread
 from .emailgw import validate_incoming
+from .emailgw import EmailGatewayException
+from .dplatform import get_platform
 from .ui import main_events
 from .ui.main_common import prompt_for_station
 
@@ -178,8 +167,10 @@ def ping_exec(command):
     :type command: str
     :raises: MainappExecError if the ping fails.
     :returns: Output of command
+    :rtype: str
     '''
-    scmd, ocmd = getstatusoutput(command)
+    pform = get_platform()
+    scmd, ocmd = pform.run_sync(command)
     if scmd:
         raise MainappExecError("Failed to run command: %s" % command)
     return ocmd
@@ -252,7 +243,7 @@ class CallList():
         List Calls.
 
         :returns: Known call signs
-        :rtype: list of str
+        :rtype: list[str]
         '''
         return list(self.data.keys())
 
@@ -276,12 +267,8 @@ class CallList():
         '''
         try:
             del self.data[call]
-        # pylint: disable=broad-except
-        except Exception:
-            # broad/bare exceptions make debugging harder
-            self.logger.info("remove had broad-except", exc_info=True)
-            raise
-            # pass
+        except KeyError:
+            pass
 
 
 # pylint: disable=too-many-instance-attributes
@@ -382,7 +369,6 @@ class MainApp(Gtk.Application):
         self.gps = self._static_gps()
 
         self.map = None
-        # Moving map code below to do_activate()
 
         self.logger.info("load main window with self config")
         self.mainwindow = mainwindow.MainWindow(self)
@@ -407,10 +393,15 @@ class MainApp(Gtk.Application):
 
         This is to communicate the gps fixes to the D-Rats Web Map
         standalone program load server ip and port.
+
         :param lat: Latitude
+        :type lat: float
         :param lng: Longitude
-        :param station: Station, default "".
-        :param comments: Comments, default "".
+        :type lng: float
+        :param station: Station, default ""
+        :type station: str
+        :param comments: Comments, default ""
+        :type comments: float
         '''
         mapserver_ip = self.config.get("settings", "mapserver_ip")
         mapserver_port = int(self.config.get("settings", "mapserver_port"))
@@ -459,6 +450,7 @@ class MainApp(Gtk.Application):
             sock = None
         self.logger.info("Socket Created")
 
+    # pylint does not grok all gtk methods.
     # pylint: disable=arguments-differ
     def do_activate(self):
         '''
@@ -482,12 +474,17 @@ class MainApp(Gtk.Application):
         self._load_map_overlays()
         self.logger.info("invoke config refresh")
         self.refresh_config()
+        Gtk.Application.do_activate(self)
 
     def do_quit_mainloop(self):
+        '''Do Quit Main Loop.'''
+        # Temp for debugging
         print("mainapp/do_quit_mainloop")
         Gtk.Application.do_quit_mainloop(self)
 
     def do_shutdown(self):
+        '''Do Shutdown.'''
+        # Temp for debugging
         print("mainapp/do_shutdown")
         Gtk.Application.do_shutdown(self)
 
@@ -496,12 +493,18 @@ class MainApp(Gtk.Application):
         '''
         Event Shutdown
 
+        This is needed to signal all child activities that the application
+        is shutting down, in case some activities such as the map module
+        normally only hide their window on shutdown.
+
         Signaled when all holders of a reference to a widget should release
         the reference that they hold.
 
         May result in finalization of the widget if all references are released
         Any return value usage not documented in Gtk 3
-        :param application: :class:`Gtk.Application`
+
+        :param application: Application instance
+        :type application: :class:`Gtk.Application`
         '''
         print("mainapp/ev_shutdown")
         if application.map:
@@ -540,6 +543,7 @@ class MainApp(Gtk.Application):
         Make socket listeners.
 
         :param sconn: Session Connection
+        :type sconn: :class:`session_coordinator.SessionCoordinator`
         '''
         forwards = self.config.options("tcp_out")
         for forward in forwards:
@@ -548,25 +552,19 @@ class MainApp(Gtk.Application):
                     self.config.get("tcp_out", forward).split(",")
                 sport = int(sport)
                 dport = int(dport)
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("Failed to parse TCP forward config %s:",
-                                 forward, exc_info=True)
-                # return
-                # broad/bare exceptions make debugging harder
-                raise
+            except (NoOptionError, ValueError):
+                self.logger.info("Failed to parse TCP forward config %s",
+                                 forward)
+                return
 
             try:
                 sconn.create_socket_listener(sport, dport, station)
                 self.logger.info("Started socket listener %i:%i@%s",
                                  sport, dport, station)
-            # pylint: disable=broad-except
-            except Exception:
+            except session_coordinator.ListenerActiveError:
                 self.logger.info(
                     "Failed to start socket listener %i:%i@%s:",
-                    sport, dport, station, exc_info=True)
-                # broad/bare exceptions make debugging harder
-                raise
+                    sport, dport, station)
 
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     def start_comms(self, portid):
@@ -574,6 +572,7 @@ class MainApp(Gtk.Application):
         Start communications.
 
         :param portid: Port ID for communications
+        :type portid: str
         :raises: :class:`MainappPortStartedError`: if the port can not
                  be started
         '''
@@ -586,14 +585,10 @@ class MainApp(Gtk.Application):
             enb = (enb == "True")          # means port is enabled
             dosniff = (dosniff == "True")  # means traffic sniffing to be active
             raw = (raw == "True")          # means raw to be active
-        # pylint: disable=broad-except
-        except Exception:
+        except ValueError:
             self.logger.info("Start_comms: Failed to parse portspec %s",
                              spec, exc_info=True)
-            log_exception()
-            # broad/bare exceptions make debugging harder
-            raise
-            # return
+            return
 
         if not enb:
             # if port not enabled, and was already active, let's cancel it
@@ -674,12 +669,12 @@ class MainApp(Gtk.Application):
                                               rpcactions=rpcactions)
 
             def sniff_event(_sstart, src, _dst, msg, port):
-                #here print the sniffed traffic into the event tab
+                # here print the sniffed traffic into the event tab
                 if dosniff:
                     event = main_events.Event(None, "Sniffer: %s" % msg)
                     self.mainwindow.tabs["event"].event(event)
 
-                #in any case let's print the station heard into stations tab
+                # in any case let's print the station heard into stations tab
                 self.mainwindow.tabs["stations"].saw_station(src, port)
 
             sses = smgr.start_session("Sniffer",
@@ -738,12 +733,14 @@ class MainApp(Gtk.Application):
         '''
         return self.smgr[portname][0].get_session(lid=2)
 
-    # pylint: disable=invalid-name
-    def sc(self, portname):
+    def session_coordinator(self, portname):
         '''
         Session Coordinator.
 
+        :param portname: Port name for session
+        :type portname: str
         :returns: Session Coordinator for port name
+        :rtype: :class:`session_coordinator.SessionCoordinator`
         '''
         return self.smgr[portname][1]
 
@@ -768,15 +765,10 @@ class MainApp(Gtk.Application):
                 dosniff = (dosniff == "True")   # means traffic sniffing to be
                                                 # active
                 raw = (raw == "True")           # means raw to be active
-            # pylint: disable=broad-except
-            except Exception:
+            except ValueError:
                 self.logger.info(
-                    "check_comms_status: Failed to parse portspec %s: %s",
-                    spec, "broad-except", exc_info=True)
-                log_exception()
-                # broad/bare exceptions make debugging harder
-                raise
-                # return
+                    "check_comms_status: Failed to parse portspec %s",
+                    spec, exc_info=True)
 
             if name in self.__pipes:
                 self.logger.info("check_comms_status: Port %s already started!",
@@ -854,15 +846,10 @@ class MainApp(Gtk.Application):
             call = self.config.get("user", "callsign")
             mapserver_active = self.config.get("settings", "mapserver_active")
 
-        # pylint: disable=broad-except
-        except Exception:
-            # import traceback
-            # traceback.print_exc(file=sys.stdout)
+        except NoOptionError:
             self.logger.info(
-                "_static_gps: Invalid static position: broad-except",
+                "_static_gps: Invalid static position",
                 err_info=True, stack_info=True)
-            # broad/bare exceptions make debugging harder
-            raise
 
         self.logger.info("_static_gps: Configuring the Static position: %s,%s",
                          lat, lon)
@@ -914,14 +901,11 @@ class MainApp(Gtk.Application):
                 continue
             try:
                 mthread = PeriodicAccountMailThread(self.config, acct)
-            # pylint: disable=broad-except
-            except Exception:
+            except EmailGatewayException:
                 self.logger.info("Refresh mail threads: broad-except",
                                  exc_info=True)
-                log_exception()
-                # broad/bare exceptions make debugging harder
-                # raise err
                 continue
+
             self.__connect_object(mthread)
             mthread.start()
             self.mail_threads[acct] = mthread
@@ -1136,13 +1120,9 @@ class MainApp(Gtk.Application):
         try:
             comment = self.config.get("settings", "default_gps_comment")
             fix.aprs_icon = gps.dprs_to_aprs(comment)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("_refresh_location broad-except", exc_info=True)
-            log_exception()
+        except NoOptionError:
+            self.logger.info("_refresh_location", exc_info=True)
             fix.aprs_icon = "\\?"
-            # broad/bare exceptions make debugging harder
-            raise
         self.__map_point.set_icon_from_aprs_sym(fix.aprs_icon)
 
         self.stations_overlay.add_point(self.__map_point)
@@ -1254,7 +1234,7 @@ class MainApp(Gtk.Application):
         :param fname: Filename of form to send
         :param sname: Session name for sending
         '''
-        self.sc(port).send_form(station, fname, sname)
+        self.session_coordinator(port).send_form(station, fname, sname)
 
     # pylint: disable=too-many-arguments
     def __user_send_file(self, _obj, station, port, fname, sname):
@@ -1267,7 +1247,7 @@ class MainApp(Gtk.Application):
         :param fname: Filename
         :param sname: Session Name
         '''
-        self.sc(port).send_file(station, fname, sname)
+        self.session_coordinator(port).send_file(station, fname, sname)
 
     # pylint: disable=too-many-arguments
     def __user_send_chat(self, _obj, station, port, msg, raw):
@@ -1526,14 +1506,10 @@ class MainApp(Gtk.Application):
             mapserver_active = self.config.get("settings", "mapserver_active")
 
         # pylint: disable=broad-except
-        except Exception:
-            import traceback
-            traceback.print_exc(file=sys.stdout)
+        except NoOptionError:
             self.logger.info(
                 "__incoming_gps_fix: Invalid static position: broad-except",
-                exc_info=True)
-            # broad/bare exceptions make debugging harder
-            raise
+                exc_info=True, stack_info=True)
 
         # Send captured position to the mapserver to update our position sweeper
         if mapserver_active == "True":
@@ -1881,14 +1857,11 @@ class MainApp(Gtk.Application):
 
             try:
                 _routeto, station, port = line.split()
-            # pylint: disable=broad-except
-            except Exception:
+            except ValueError:
                 self.logger.info(
-                    "load_static_routes: Line %i of %s not valid: %s",
-                    lno, routes, "broad-except", exc_info=True)
-                # broad/bare exceptions make debugging harder
-                raise
-                # continue
+                    "load_static_routes: Line %i of %s not valid",
+                    lno, routes)
+                continue
 
             self.mainwindow.tabs["stations"].saw_station(station.upper(), port)
             if port in self.smgr:
@@ -1959,10 +1932,9 @@ class MainApp(Gtk.Application):
             self.__connect_object(self.plugsrv.get_proxy())
             self.plugsrv.serve_background()
 
-        except socket.error:
-            self.logger.info("Unable to start plugin server:", exc_info=True)
+        except (ConnectionError, OSError) as err:
+            self.logger.info("Unable to start plugin server: %s", err)
             self.plugsrv = None
-            raise
 
         self.load_static_routes()
 
