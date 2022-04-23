@@ -23,16 +23,10 @@ from __future__ import print_function
 import logging
 import time
 import threading
-# import os
-# import struct
-# import socket
-from six.moves import range # type: ignore
 
 from . import transport
-# from .ddt2 import DDT2EncodedFrame
 
 from .sessions import base, control, stateful, stateless
-# from .sessions import file, form, sock, sniff
 
 
 # pylint: disable=too-many-instance-attributes
@@ -224,7 +218,7 @@ class SessionManager():
             session.handler(frame)
         else:
             session.inq.enqueue(frame)
-            session.notify()
+            session.notify_event()
 
         self.logger.info("incoming: Received block %i:%i for session `%s'",
                          frame.seq, frame.type, session.name)
@@ -395,11 +389,8 @@ class SessionManager():
         '''
         try:
             del self.sessions[ident]
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("end_session:"
-                             "Unable to deregister session broad-exception",
-                             exc_info=True)
+        except KeyError:
+            self.logger.info("end_session: Unable to deregister session")
 
     def get_session(self, rid=None, rst=None, lid=None):
         '''
