@@ -26,6 +26,7 @@ import logging
 import os
 import glob
 import sys
+from configparser import NoOptionError
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -39,7 +40,6 @@ from d_rats.ui import main_events
 
 from d_rats.sessions import base, stateless
 from d_rats.version import DRATS_VERSION
-from d_rats.utils import log_exception
 
 
 if not '_' in locals():
@@ -93,12 +93,6 @@ class RPCActionSetRequired(RPCException):
     '''RPCSession needs an rpcactions parameter.'''
 
 
-if sys.version_info[0] > 2:
-    # pylint: disable=invalid-name
-    class basestring(str):
-        '''Suppress pylint on python3 warning.'''
-
-
 def encode_dict(source):
     '''
     Encode Dictionary into a string.
@@ -117,14 +111,7 @@ def encode_dict(source):
         if not isinstance(value, str):
             value = value.decode('utf-8', 'replace')
         # python 3 type must be 'str'
-        # python 2 type must be of 'basestring'
-        elif sys.version_info[0] > 2:
-            if not isinstance(value, str):
-                raise InvalidRPCDictValue(
-                    "Cannot encode non-string dict value")
-        # Have to live with this pylint warning on python3 for now.
-        # and also add a pylance ignore for it.
-        elif not isinstance(value, basestring):  # type: ignore
+        elif not isinstance(value, str):
             raise InvalidRPCDictValue("Cannot encode non-string dict value")
 
         elements.append(key + ASCII_US + value)
@@ -186,6 +173,7 @@ class RPCJob(GObject.GObject):
 
     def __init__(self, dest, desc):
         GObject.GObject.__init__(self)
+        self.logger = logging.getLogger("RPCJob")
         self.__dest = dest
         self.__desc = desc
         self._args = {}
@@ -195,6 +183,7 @@ class RPCJob(GObject.GObject):
         Get destination.
 
         :returns: Destination
+        :rtype: str
         '''
         return self.__dest
 
@@ -203,6 +192,7 @@ class RPCJob(GObject.GObject):
         Get Description.
 
         :returns: Description
+        :rtype: str
         '''
         return self.__desc
 
@@ -211,7 +201,9 @@ class RPCJob(GObject.GObject):
         Set state
 
         :param state: State to set
-        :param result: Optional dict of results
+        :type state: str
+        :param result: New result, default None
+        :type result: dict
         '''
         if result is None:
             result = {}
@@ -220,14 +212,15 @@ class RPCJob(GObject.GObject):
         if state in self.STATES:
             GLib.idle_add(self.emit, "state-change", state, result)
         else:
-            raise RPCInvalidStatus("Invalid status `%s'" % state)
+            raise RPCInvalidStatus("Invalid state `%s'" % state)
 
     def unpack(self, raw):
         '''
         Unpack the data
 
-        :returns: Unpacked data.
-        '''
+        :param raw: Incoming data
+        :type raw: dict
+       '''
         self._args = {}
         if not raw:
             self._args = {}
@@ -239,17 +232,20 @@ class RPCJob(GObject.GObject):
         Pack the data
 
         :returns: Encoded dict
+        :rtype: dict
         '''
         return encode_dict(self._args)
 
-    # pylint: disable=no-self-use, invalid-name
-    def do(self, _rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do RPC job.
 
-        :param _rpcactions: RPC Action object
+        :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
+        self.logger.info("Template class called for %s", rpcactions)
         return {"rc" : "Unsupported Job Type"}
 
 
@@ -267,7 +263,8 @@ class RPCFileListJob(RPCJob):
         '''
         Set file list.
 
-        :param file_list: List of files
+        :param file_list: List of file names
+        :type file_list: list[str]
         '''
         self._args = {}
         for item in file_list:
@@ -278,17 +275,20 @@ class RPCFileListJob(RPCJob):
         Get file list.
 
         :returns: List of files
+        :rtype: list[str]
         '''
         return list(self._args.keys())
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do File List.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_file_list(self)
+        return rpcactions.rpc_file_list(self)
 
 
 class RPCFormListJob(RPCJob):
@@ -307,17 +307,20 @@ class RPCFormListJob(RPCJob):
         Get Form List.
 
         :returns: Form list
+        :rtype: list[str]
         '''
         return []
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Get Form List.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_form_list(self)
+        return rpcactions.rpc_form_list(self)
 
 
 class RPCPullFileJob(RPCJob):
@@ -334,6 +337,7 @@ class RPCPullFileJob(RPCJob):
         Set File to pull.
 
         :param filename: Filename to pull
+        :type filename: str
         '''
         self._args = {"fn" : filename}
 
@@ -342,17 +346,20 @@ class RPCPullFileJob(RPCJob):
         Get pulled filename.
 
         :returns: Filename of file pulled
+        :rtype: str
         '''
         return self._args.get("fn", None)
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Pull File.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_file_pull(self)
+        return rpcactions.rpc_file_pull(self)
 
 
 class RPCDeleteFileJob(RPCJob):
@@ -370,6 +377,7 @@ class RPCDeleteFileJob(RPCJob):
         Set file for deletion.
 
         :param filename: Name of file
+        :type filename: str
         '''
         self._args["fn"] = filename
 
@@ -378,6 +386,7 @@ class RPCDeleteFileJob(RPCJob):
         Set Password for file deletion
 
         :param passwd: Password
+        :type passwd: str
         '''
         self._args["passwd"] = passwd
 
@@ -386,6 +395,7 @@ class RPCDeleteFileJob(RPCJob):
         Get Filename to be deleted.
 
         :returns: Filename
+        :rtype: str
         '''
         return self._args.get("fn", None)
 
@@ -394,17 +404,20 @@ class RPCDeleteFileJob(RPCJob):
         Get Password
 
         :returns: Password for deleting file
+        :rtype: str
         '''
         return self._args.get("passwd", "")
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Delete File.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_file_delete(self)
+        return rpcactions.rpc_file_delete(self)
 
 
 class RPCPullFormJob(RPCJob):
@@ -422,6 +435,7 @@ class RPCPullFormJob(RPCJob):
         Set Form.
 
         :param form: Form to send
+        :type form: str
         '''
         self._args = {"fn" : form}
 
@@ -430,17 +444,20 @@ class RPCPullFormJob(RPCJob):
         Get Form.
 
         :returns: Form from job
+        :rtype: str
         '''
         return self._args.get("fn", None)
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Pull Form.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_form_pull(self)
+        return rpcactions.rpc_form_pull(self)
 
 
 class RPCPositionReport(RPCJob):
@@ -458,6 +475,7 @@ class RPCPositionReport(RPCJob):
         Set Station
 
         :param station: Station for position report
+        :type station: str
         '''
         self._args = {"st" : station}
 
@@ -466,18 +484,20 @@ class RPCPositionReport(RPCJob):
         Get Station.
 
         :returns: Station from position report
+        :rtype: str
         '''
         return self._args.get("st", "ERROR")
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Get Position Report.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-
-        return rpcactions.RPC_pos_report(self)
+        return rpcactions.rpc_pos_report(self)
 
 
 class RPCGetVersion(RPCJob):
@@ -490,14 +510,16 @@ class RPCGetVersion(RPCJob):
     :type desc: str
     '''
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Get version.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_get_version(self)
+        return rpcactions.rpc_get_version(self)
 
 
 class RPCCheckMail(RPCJob):
@@ -510,14 +532,16 @@ class RPCCheckMail(RPCJob):
     :type desc: str
     '''
 
-    def do(self, rpcactions):
+    def do_action(self, rpcactions):
         '''
         Do Check Mail.
 
         :param rpcactions: RPC Action object
+        :type rpcactions: :class:`RPCActionSet`
         :returns: Result of RPC call
+        :rtype: dict
         '''
-        return rpcactions.RPC_check_mail(self)
+        return rpcactions.rpc_check_mail(self)
 
     # pylint: disable=too-many-arguments
     def set_account(self, host, user, pasw, port, ssl):
@@ -525,10 +549,15 @@ class RPCCheckMail(RPCJob):
         Set Mail Account.
 
         :param host: TCP/IP Host name
+        :type host: str
         :param user: User name
+        :type user: str
         :param pasw: Password for user
+        :type pasw: str
         :param port: TCP/IP port
-        :param port: SSL flag
+        :type port: str
+        :param ssl: SSL flag of 'True' or 'False'
+        :type sst: str
         '''
         self._args = {"host" : host,
                       "user" : user,
@@ -554,6 +583,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
 
     :param args: Variable arguments
     :param rpcactions: Action set for RPC session
+    :type rpcactions: :class:`RPCActionSet`
     :param kwargs: Keyword arguments
     '''
     type = base.T_RPC
@@ -582,9 +612,8 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
 
         self.handler = self.incoming_data
 
-    # pylint: disable=arguments-differ
-    def notify(self):
-        pass
+    def notify_event(self):
+        '''Notify Event Change.'''
 
     @staticmethod
     def __decode_rpccall(frame):
@@ -644,6 +673,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
         Incoming Data.
 
         :param frame: Frame of data
+        :type frame: :class:`ddt2.DDT2EncodedFrame`
         '''
         if frame.type == self.T_RPCREQ:
             try:
@@ -655,7 +685,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
                 return
 
             job.connect("state-change", self.__job_state, frame.seq)
-            result = job.do(self.__rpcactions)
+            result = job.do_action(self.__rpcactions)
             if result is not None:
                 job.set_state("complete", result)
 
@@ -742,8 +772,7 @@ class RPCActionSet(GObject.GObject):
 
         return handler
 
-    # pylint: disable=invalid-name
-    def RPC_pos_report(self, job):
+    def rpc_pos_report(self, job):
         '''
         RPC Position Report.
 
@@ -770,24 +799,21 @@ class RPCActionSet(GObject.GObject):
             symbol = self.__config.get("settings", "aprssymbol")
             result["msg"] = fix.to_aprs(symtab=symtab, symbol=symbol)
 
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("RPC_pos_report: Case KO :"
-                             "broad-exception while getting"
+        except NoOptionError:
+            self.logger.info("rpc_pos_report: Case KO: Exception while getting"
                              " position of %s",
                              rqcall, exc_type=True)
-            log_exception()
             fix = None
             result["rc"] = "False"
             result["msg"] = " No data for station '%s'" % job.get_station()
 
         if fix:
             # sending the position to transport // but this is broken!!
-            self.logger.info("RPC_pos_report: port is : %s", self.__port)
-            self.logger.info("RPC_pos_report: fix is: %s", fix)
-            self.logger.info("RPC_pos_report: fix in NMEA GGA is: %s",
+            self.logger.info("rpc_pos_report: port is : %s", self.__port)
+            self.logger.info("rpc_pos_report: fix is: %s", fix)
+            self.logger.info("rpc_pos_report: fix in NMEA GGA is: %s",
                              fix.to_nmea_gga())
-            self.logger.info("RPC_pos_report: fix in APRS is: %s", result)
+            self.logger.info("rpc_pos_report: fix in APRS is: %s", result)
 
             self.emit("user-send-chat",
                       "CQCQCQ",
@@ -795,8 +821,7 @@ class RPCActionSet(GObject.GObject):
                       result["msg"],
                       True)
 
-    # pylint: disable=invalid-name
-    def RPC_file_list(self, job):
+    def rpc_file_list(self, job):
         '''
         RPC File List.
 
@@ -831,8 +856,7 @@ class RPCActionSet(GObject.GObject):
 
         return result
 
-    # pylint: disable=invalid-name
-    def RPC_form_list(self, job):
+    def rpc_form_list(self, job):
         '''
         RPC Form List
 
@@ -854,8 +878,7 @@ class RPCActionSet(GObject.GObject):
 
         return result
 
-    # pylint: disable=invalid-name
-    def RPC_file_pull(self, job):
+    def rpc_file_pull(self, job):
         '''
         RPC File Pull.
 
@@ -886,8 +909,7 @@ class RPCActionSet(GObject.GObject):
 
         return result
 
-    # pylint: disable=invalid-name
-    def RPC_file_delete(self, job):
+    def rpc_file_delete(self, job):
         '''
         RPC File Delete.
 
@@ -901,11 +923,7 @@ class RPCActionSet(GObject.GObject):
         _permlist = self.__config.get("settings", "delete_from")
         try:
             permlist = _permlist.upper().split(",")
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("RPC_file_delete:"
-                             " upper().split() broad-exception",
-                             exc_info=True)
+        except ValueError as err:
             result["rc"] = "Access list not properly configured"
             return result
 
@@ -931,16 +949,11 @@ class RPCActionSet(GObject.GObject):
         try:
             os.remove(path)
             result["rc"] = "File %s deleted" % job.get_file()
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("RPC_file_delete"
-                             "os.remove %s broad exception",
-                             path, exc_info=True)
+        except OSError as err:
             result["rc"] = "Unable to delete %s: %s" % (job.get_file(), err)
         return result
 
-    # pylint: disable=invalid-name
-    def RPC_form_pull(self, job):
+    def rpc_form_pull(self, job):
         '''
         RPC form pull.
 
@@ -970,8 +983,7 @@ class RPCActionSet(GObject.GObject):
 
         return result
 
-    # pylint: disable=invalid-name
-    def RPC_get_version(self, _job):
+    def rpc_get_version(self, _job):
         '''
         RPC Get Version.
 
@@ -995,12 +1007,11 @@ class RPCActionSet(GObject.GObject):
                 Gtk.MICRO_VERSION)
         except ImportError:
             result["pygtkver"] = result["gtkver"] = "Unknown"
-            self.logger.info("RPC_get_version: %s", result)
+            self.logger.info("rpc_get_version: %s", result)
 
         return result
 
-    # pylint: disable=invalid-name
-    def RPC_check_mail(self, job):
+    def rpc_check_mail(self, job):
         '''
         RPC Check Mail.
 

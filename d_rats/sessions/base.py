@@ -2,7 +2,7 @@
 '''Base Session.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,9 +46,7 @@ class SessionClosedError(BaseSessionException):
     '''Session Closed Error.'''
 
 
-# Need to inherit from object for python2 compatibility
-# pylint: disable=useless-object-inheritance
-class Session(object):
+class Session():
     '''
     Session.
 
@@ -111,8 +109,8 @@ class Session(object):
         if self._sm:
             self._sm.stop_session(self)
 
-    def notify(self):
-        '''Notify.'''
+    def notify_event(self):
+        '''Notify Event Change.'''
 
     def read(self):
         '''Read.'''
@@ -139,7 +137,7 @@ class Session(object):
 
         self.state = state
         self.state_event.set()
-        self.notify()
+        self.notify_event()
         return True
 
     def get_state(self):
