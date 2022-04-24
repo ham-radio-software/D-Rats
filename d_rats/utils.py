@@ -502,19 +502,20 @@ def set_entry_hint(entry, hint, default_focused=False):
         focus(entry, None, "out")
 
 
-def port_for_station(ports, station):
+def port_for_stationid(ports, stationid):
     '''
-    Port for station
+    Port for a Station Identification.
 
-    :param ports: Radio port to look for a station in
+    :param ports: Radio port to look for a station identification in
     :type ports: dict
-    :param station: Station callsign to lookup
-    :type station: str
+    :param stationid: Station identification to lookup
+    :type stationid: str
     :returns: Port if found or none.
     '''
     for port, stations in ports.copy().items():
-        if station in stations:
-            return port
+        for station in stations:
+            if stationid == str(station):
+                return port
     return None
 
 

@@ -7,3 +7,4 @@ D-Rats
    d-rats
    d-rats_repeater
    d_rats
+   plugin_test
