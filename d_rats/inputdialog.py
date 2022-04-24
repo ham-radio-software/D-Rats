@@ -26,14 +26,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
 
 from .miscwidgets import make_choice
 
@@ -43,7 +38,9 @@ class TextInputDialog(Gtk.Dialog):
     Text Input Dialog.
 
     :param title: Title for dialog, default None
+    :type title: str
     :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Window`
     '''
 
     def __init__(self, title=None, parent=None):
@@ -78,8 +75,11 @@ class ChoiceDialog(Gtk.Dialog):
     Choice Dialog.
 
     :param choices: List of strings with choices
+    :type choices: list[str]
     :param title: Title for dialog, default None
+    :type title: str
     :param parent: Parent Widget, default None
+    :type parent: :class:`Gtk.Window`
     '''
 
     editable = False
@@ -114,8 +114,11 @@ class EditableChoiceDialog(ChoiceDialog):
 
     This class does not appear to be used.
     :param choices: List of strings with choices
+    :type choices: list[str]
     :param title: Title for dialog, defult None
+    :type tile: str
     :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Window`
     '''
 
     editable = True
@@ -132,10 +135,12 @@ class ExceptionDialog(Gtk.MessageDialog):
 
     This class does not appear to be used.
     :param exception: Exception class
+    :type exception: Exception
     :param title: Title for dialog, default None
+    :param title: str
     :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Window`
     '''
-
     def __init__(self, exception, title=None, parent=None):
         Gtk.MessageDialog.__init__(self, parent=parent)
         if title:
@@ -150,8 +155,11 @@ class FieldDialog(Gtk.Dialog):
     Field Dialog.
 
     :param title: Title of dialog, default None
+    :type title: str
     :param buttons: List of tuples for buttons, default None
+    :type buttons: list[tuple[str, :class:`GtkResponseType`]]
     :param parent: Parent widget, default None
+    :type parent: :class:`Gtk.Window`
     '''
 
     def __init__(self, title=None, buttons=None, parent=None):
@@ -172,15 +180,17 @@ class FieldDialog(Gtk.Dialog):
         self.set_modal(True)
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
 
-    # Can not find what arguments are actually different
+    # Can not find what arguments are actually different as this
+    # matches the documentation.
     # pylint: disable=arguments-differ
     def response(self, response):
         '''
         Response logging.
 
-        Writes the response to the console.
+        Writes the response to the console instead emiting it.
 
-        :param response: Response to write out.
+        :param response: Response id for emitting.
+        :type response: int
         '''
         self.logger.info("Blocking response %d", response)
 
@@ -189,7 +199,9 @@ class FieldDialog(Gtk.Dialog):
         Add field to a widget.
 
         :param label: Label of field
-        :param widget: Widget to receive field
+        :type label: str
+        :param widget: Widget for field
+        :type widget: :class:`Gtk.Widget`
         :param _validator: Validator for field, default None, Unused
         :param full: Fill the space in the containing box
         :type full: bool
@@ -224,8 +236,10 @@ class FieldDialog(Gtk.Dialog):
         '''
         Get field.
 
-        :param label:
+        :param label: label of field
+        :type label: str
         :returns: Field identified by label
+        :rtype: :class:`Gtk.Widget`
         '''
         return self.__fields.get(label, None)
 
