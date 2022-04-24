@@ -158,7 +158,7 @@ class RPCJob(GObject.GObject):
     '''
     RPC Job Parent Class.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -253,7 +253,7 @@ class RPCFileListJob(RPCJob):
     '''
     RPC File List Job.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -295,7 +295,7 @@ class RPCFormListJob(RPCJob):
     '''
     RPC Form List Job.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -326,7 +326,7 @@ class RPCFormListJob(RPCJob):
 class RPCPullFileJob(RPCJob):
     '''RPC Pull File Job.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -366,7 +366,7 @@ class RPCDeleteFileJob(RPCJob):
     '''
     RPC Delete File Job.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -424,7 +424,7 @@ class RPCPullFormJob(RPCJob):
     '''
     RPC Pull Form Job.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -464,7 +464,7 @@ class RPCPositionReport(RPCJob):
     '''
     RPC Position Report.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -504,7 +504,7 @@ class RPCGetVersion(RPCJob):
     '''
     RPC Get Version.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str
@@ -526,7 +526,7 @@ class RPCCheckMail(RPCJob):
     '''
     RPC Check Mail.
 
-    :param dest: Destintion of job
+    :param dest: Destination of job
     :type dest: str
     :param desc: Description of job
     :type desc: str

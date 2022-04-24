@@ -20,16 +20,17 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import ast
 import logging
 import os
 import threading
+
 from xmlrpc.server import SimpleXMLRPCServer
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 
+from .sessions import rpc
 from . import signals
 from . import utils
 
@@ -124,20 +125,20 @@ class DRatsPluginProxy(GObject.GObject):
             "chat" : [],
             }
 
-    def get_port(self, station):
+    def get_port(self, stationid):
         '''
-        Get port for station.
+        Get port for a station identification.
 
-        :param station: Station to get the port for
-        :type station: str
+        :param stationid: Station identification to get the port for
+        :type stationid: str
         :returns: port
         :rtype: str
         :raises: :class:`ProxyStationNotHeard` when port is not known
         '''
         ports = self.emit("get-station-list")
-        port = utils.port_for_station(ports, station)
+        port = utils.port_for_stationid(ports, stationid)
         if not port:
-            raise ProxyStationNotHeard("Station %s not heard" % station)
+            raise ProxyStationNotHeard("Station ID %s not heard" % stationid)
         return port
 
     def send_chat(self, port, message):
@@ -166,15 +167,16 @@ class DRatsPluginProxy(GObject.GObject):
         slist = self.emit("get-station-list")
         return list(slist.keys())
 
-    def send_file(self, station, filename, port=None):
+    def send_file(self, stationid, filename, port=None):
         '''
-        Send a file to station specified by filename on optional port.
+        Send a file to station identification specified by filename on
+        an optional port.
 
-        If port is not specified, the last-heard port for station will be
-        used.
+        If port is not specified, the last-heard port for station
+        identification will be used.
 
-        :param station: Destination.
-        :type station: str
+        :param stationid: Destination.
+        :type stationid: str
         :param filename: File to send.
         :type filename: str
         :param port: Optional port to use.
@@ -185,26 +187,26 @@ class DRatsPluginProxy(GObject.GObject):
                  determined.
         '''
         if not port:
-            port = self.get_port(station)
+            port = self.get_port(stationid)
 
         sname = os.path.basename(filename)
 
         self.logger.info("send_file: %s to %s on port %s",
-                         filename, station, port)
-        self.emit("user-send-file", station, port, filename, sname)
+                         filename, stationid, port)
+        self.emit("user-send-file", stationid, port, filename, sname)
 
         return 0
 
-    def submit_rpcjob(self, station, rpcname, port=None, params=None):
+    def submit_rpcjob(self, stationid, rpcname, port=None, params=None):
         '''
-        Submit an RPC job to station of type rpcname.
+        Submit an RPC job to station identification of type rpcname.
 
         Optionally specify the port to be used.
         The @params structure is a key=value list of function(value)
         items to call on the job object before submission.
 
-        :param station: Destination Station
-        :type station: str
+        :param stationid: Destination Station
+        :type stationid: str
         :param rpcname: Name of the rpcname
         :type rpcname: str
         :param port: Optional port.
@@ -215,18 +217,24 @@ class DRatsPluginProxy(GObject.GObject):
         :rtype: int
         :raises: :class:`ProxyInvalidRPCName` If an invalid RPC name used
         '''
-        if not rpcname.isalpha() or not rpcname.startswith("RPC"):
+        if not rpcname in rpc.RPC_JOBS:
             raise ProxyInvalidRPCName("Invalid RPC function call name")
 
         if not port:
-            port = self.get_port(station)
+            port = self.get_port(stationid)
 
-        job = ast.literal_eval("rpcsession.%s('%s', 'New Job')" %
-                               (rpcname, station))
+        rpc_job_class = getattr(rpc, rpcname)
+        job = rpc_job_class(stationid, 'New Job')
         if params:
             for key, val in params:
                 func = job.__getattribute__(key)
+                self.logger.info("submit_rpcjob: params"
+                                 "func %s, %s"
+                                 " key %s, %s"
+                                 " val %s, %s",
+                                 type(func), func, type(key), key, type(val), val)
                 func(val)
+
 
         ident = self.__idcount
         self.__idcount += 1
@@ -234,9 +242,7 @@ class DRatsPluginProxy(GObject.GObject):
         def record_result(_job, _state, result, ident):
             self.__persist[ident] = result
         job.connect("state-change", record_result, ident)
-
         self.emit("submit-rpc-job", job, port)
-
         return ident
 
     def get_result(self, ident):
@@ -256,21 +262,22 @@ class DRatsPluginProxy(GObject.GObject):
 
         return result
 
-    def wait_for_chat(self, timeout, src_station=None):
+    def wait_for_chat(self, timeout, src_stationid=None):
         '''
         Wait for a chat message for timeout seconds.
 
-        Optional filter src_station avoids returning until a chat message
-        from that station is received.
+        Optional filter src_stationid avoids returning until a chat message
+        from that station identification is received.
 
         :param timeout: Time out to wait
         :type timeout: float
-        :param src_station: Optional Station to wait for message from
-        :type src_station: str
-        :returns: Source station and chat text
+        :param src_stationid: Optional Station Identification to wait for
+                              message from
+        :type src_stationid: str
+        :returns: Source station identification and chat text
         :rtype: tuple[str, str]
         '''
-        event = DRatsChatEvent(src_station)
+        event = DRatsChatEvent(src_stationid)
         self.__events["chat"].append(event)
         event.wait(timeout)
 
