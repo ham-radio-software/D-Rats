@@ -20,12 +20,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-# Needed for python2+python3 support
 import sys
-if sys.version_info[0] < 3:
-    # pylint: disable=redefined-builtin
-    class ModuleNotFoundError(ImportError):
-        '''Suppress pylint on python3 warning.'''
 
 import logging
 try:
@@ -33,7 +28,7 @@ try:
 except ModuleNotFoundError:
     from urllib.error import URLError
 
-# This module is not in all distributions.
+# The geopy package is not in all platform distributions.
 # We do not want d-rats to fail to run if it is missing
 try:
     from geopy import geocoders
@@ -47,24 +42,18 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 
-# importing printlog() wrapper
-# from .debug import printlog
 from . import miscwidgets
 
 # setup of d-rats user_agent
 from . import version
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
 
 
-# pylint: disable=too-many-instance-attributes
+# pylint wants only 7 instance attributes
+# pylint disable=too-many-instance-attributes
 class AddressAssistant(Gtk.Assistant):
     '''Address Assistant for Geocode Query.'''
 
@@ -110,6 +99,7 @@ class AddressAssistant(Gtk.Assistant):
         Make Address Entry Page.
 
         :returns: Gtk.Box with page
+        :rtype: :class:`Gtk.Box`
         '''
         def complete_cb(label, page):
             self.set_page_complete(page, len(label.get_text()) > 1)
@@ -136,6 +126,7 @@ class AddressAssistant(Gtk.Assistant):
         Make Address Selection.
 
         :returns: listbox
+        :rtype: :class:`miscwidgets.ListWidget`
         '''
         cols = [(GObject.TYPE_STRING, _("Address")),
                 (GObject.TYPE_FLOAT, _("Latitude")),
@@ -152,6 +143,7 @@ class AddressAssistant(Gtk.Assistant):
         Make Address Confirm Page.
 
         :returns: Gtk.Box object with page
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
 
@@ -181,10 +173,12 @@ class AddressAssistant(Gtk.Assistant):
 
     def prepare_sel(self, _assistant, page):
         '''
-        Prepare sel.
+        Prepare selection dialog.
 
         :param _assistant: Unused
+        :type _assistant: :class:`Gtk.Assistant`
         :param page: Gtk.Box object with page
+        :type page: :class:`Gtk.Widget`
         '''
         address = self.vals["_address"].get_text()
         if not address:
@@ -213,10 +207,12 @@ class AddressAssistant(Gtk.Assistant):
 
     def prepare_conf(self, _assistant, page):
         '''
-        Prepare conf.
+        Prepare confirmation dialog.
 
         :param _assistant: Unused
-        :param _page: Gtk.Box object with page
+        :type _assistant: :class:`Gtk.Assistant`
+        :param page: Gtk.Box object with page
+        :type page: :class:`Gtk.Widget`
         '''
         self.place, self.lat, self.lon = \
             self.vals["AddressList"].get_selected(True)
@@ -229,31 +225,36 @@ class AddressAssistant(Gtk.Assistant):
 
     def prepare_page(self, assistant, page):
         '''
-        Prepare Page.
+        Prepare Page Handler.
 
-        :param _assistant: Unused
+        :param assistant: Unused
+        :type assistant: :class:`Gtk.Assistant`
         :param page: Gtk.Box object with page
+        :type page: :class:`Gtk.Widget`
         '''
         if page == self.sel_page:
-            self.logger.info("Sel")
+            self.logger.info("Selection")
             self.prepare_sel(assistant, page)
             return
         if page == self.conf_page:
-            self.logger.info("Conf")
+            self.logger.info("Confirmation")
             self.prepare_conf(assistant, page)
             return
         if page == self.entry_page:
-            self.logger.info("Ent")
+            self.logger.info("Entry")
             self.sel_page.show()
         else:
             self.logger.info("I dunno")
 
-    def exit(self, _, response):
+    def exit(self, _assistant, response):
         '''
-        Exit.
+        Cancel and Apply handler .
 
-        :param _: Unused
-        :param response: Response to exit with'''
+        :param _assistant: Unused
+        :type _assistant: :class:`Gtk.Assistant`
+        :param response: Response to exit with.
+        :type response: :class:`Gtk.ResponseType`
+        '''
         self.response = response
         Gtk.main_quit()
 
