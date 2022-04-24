@@ -43,7 +43,7 @@ class PluginProxy:
         :param ident: identification of RPC job
         :type ident: int
         :param count: Number of times to poll for result, default 10
-        :type count int
+        :type count: int
         :param delay: Delay time in seconds
         :type delay: float
         :returns: Result of call
