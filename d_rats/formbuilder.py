@@ -737,7 +737,7 @@ class FormBuilderGUI(Gtk.Dialog):
                             config=self.config,
                             parent=self)
         dialog.configure(self.config)
-        dialog.run()
+        dialog.run_dialog()
         dialog.destroy()
         os.remove(name)
 
