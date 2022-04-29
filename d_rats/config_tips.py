@@ -1,9 +1,10 @@
 #!/usr/bin/python
 '''Config Tips'''
 
-import gettext
+if not '_' in locals():
+    import gettext
+    _ = gettext.gettext
 
-gettext.install("D-RATS")
 
 TIPS_USER = {
     "latitude" : _("Your current latitude."
@@ -112,8 +113,11 @@ def get_tip(section, value):
     Get tip text.
 
     :param section: Section for tip
+    :type section: str
     :param value: Value for tip
+    :param value: str
     :returns: Tip text or None
+    :rtype: str
     '''
 
     try:
