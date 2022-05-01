@@ -2,7 +2,7 @@
 '''ddt2'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,14 +23,8 @@ from __future__ import print_function
 import logging
 import struct
 import zlib
-# import base64
 import sys
-
 import threading
-
-# import traceback
-
-from six.moves import range # type: ignore
 
 from . import yencode
 from . import utils
@@ -118,6 +112,7 @@ def decode(data):
     return yencode.ydecode_buffer(data)
 
 
+# pylint wants a max of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class DDT2Frame():
     '''DDT2 Frame'''
@@ -245,6 +240,7 @@ class DDT2Frame():
 
         return val + data
 
+    # pylint wants a max of 12 branches
     # pylint: disable=too-many-branches
     def unpack(self, val):
         '''
@@ -374,6 +370,7 @@ class DDT2EncodedFrame(DDT2Frame):
         Get packed frame.
 
         :returns: Returns encoded frame
+        :rtype: bytes
         '''
         raw = DDT2Frame.get_packed(self)
 
@@ -426,6 +423,7 @@ class DDT2RawData(DDT2Frame):
         unpack raw data.
 
         :param _val: Unused
+        :type _val: bytes
         :returns: data
         :rtype: bytes
         '''
@@ -440,6 +438,7 @@ def test_symmetric(logger, compress=True):
     Test Symmetric operations.
 
     :param logger: Logger object
+    :type logger: :class:`logging.Logger`
     :param compress: Test with compression
     :type compress: bool
     '''
@@ -466,6 +465,7 @@ def test_crap(logger):
     Test routine.
 
     :param logger: Logger object
+    :type logger: :class:`Logger`
     '''
     frame = DDT2EncodedFrame()
     if frame.unpack(b"[SOB]foobar[EOB]"):
