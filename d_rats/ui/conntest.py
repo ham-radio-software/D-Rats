@@ -26,20 +26,15 @@ from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import GLib
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
+
 
 TEST_TYPE_FIXEDMULTI = 0
 TEST_TYPE_GRADMULTI = 1
 
-# pylint: disable=invalid-name
-module_logger = logging.getLogger("ConnTest")
+MODULE_LOGGER = logging.getLogger("ConnTest")
 
 
 def calc_watchdog(size):
@@ -47,24 +42,29 @@ def calc_watchdog(size):
     Calculate Watchdog.
 
     :param size: Packet size
+    :type size: int
     :returns: Watchdog in milliseconds
+    :rtype: float
     '''
     size += 35                        # Packetization overhead
     bytes_per_sec = 950 / 8           # 950 bits per second
     sec = 10 + (size / bytes_per_sec)  # Time to transmit, plus padding
 
-    module_logger.info("Waiting %i seconds for send of %i", sec, size)
+    MODULE_LOGGER.info("Waiting %i seconds for send of %i", sec, size)
 
     return int(sec * 1000)
 
 
+# pylint wants a max of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class ConnTestAssistant(Gtk.Assistant):
     '''
     Connection Test Assistant.
 
     :param station: Station to test, default ""
+    :type station: str
     :param port: Radio port to connect to, default "DEFAULT"
+    :type port: str
     '''
     __gsignals__ = {
         "ping-echo-station" : (GObject.SignalFlags.ACTION,
@@ -119,18 +119,33 @@ class ConnTestAssistant(Gtk.Assistant):
         Make Start Page.
 
         :returns: Gtk.Box object
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
 
         def set_station(entry):
+            '''
+            Set station entry handler.
+
+            :param entry: Entry widget
+            :type entry: :class:`Gtk.Entry`
+            '''
             self.__station = entry.get_text()
             self.set_page_complete(vbox, bool(self.__station))
 
-        def set_type(_rb, test_type):
+        def set_type(_radio_button, test_type):
+            '''
+            Set type radiobutton handler.
+
+            :param _radio_button: Radio button widget
+            :type _radio_button: :class:`Gtk.RadioButton`
+            :param test_type: Test Type
+            :type test_type: int
+            '''
             self.__type = test_type
 
-            for v in self.__tests.values():
-                v.hide()
+            for value in self.__tests.values():
+                value.hide()
             self.__tests[test_type].show()
 
         box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
@@ -181,8 +196,15 @@ class ConnTestAssistant(Gtk.Assistant):
         row = 0
 
         def set_value(spin_button, name):
+            '''
+            Set value spinbutton handler.
+
+            :param spin_button: SpinButton widget
+            :type spin_button: :class:`Gtk.SpinButton`
+            :param name: Name of spinbutton
+            :type name: str
+            '''
             self.__values[name] = spin_button.get_value_as_int()
-            return False
 
         grid = Gtk.Grid()
         grid.set_column_spacing(5)
@@ -211,6 +233,7 @@ class ConnTestAssistant(Gtk.Assistant):
         Make Gradmulti Settings.
 
         :returns: Gtk.Grid object
+        :rtype: :class:`Gtk.Grid`
         '''
         rows = [
             (_("Attempts per size"), 3.0, 1.0, 10),
@@ -226,6 +249,7 @@ class ConnTestAssistant(Gtk.Assistant):
         Make Fixedmulti Settings.
 
         :returns: Gtk.Grid object
+        :rtype: :class:`Gtk.Grid`
         '''
         rows = [
             (_("Packet size"), 256, 128, 4096),
@@ -240,13 +264,14 @@ class ConnTestAssistant(Gtk.Assistant):
         Make Settings Page.
 
         :returns: Gtk.Box object
+        :rtype: :class:`Gtk.Box`
         '''
         self.__tests[TEST_TYPE_FIXEDMULTI] = self.make_fixedmulti_settings()
         self.__tests[TEST_TYPE_GRADMULTI] = self.make_gradmulti_settings()
 
         box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
-        for v in self.__tests.values():
-            box.pack_start(v, 1, 1, 1)
+        for value in self.__tests.values():
+            box.pack_start(value, 1, 1, 1)
 
         self.__tests[TEST_TYPE_FIXEDMULTI].show()
 
@@ -258,6 +283,7 @@ class ConnTestAssistant(Gtk.Assistant):
         Make Stats Table.
 
         :returns: Gtk.Grid object
+        :rtype: :class:`Gtk.Grid`
         '''
         grid = Gtk.Grid()
         grid.set_column_spacing(10)
@@ -303,6 +329,7 @@ class ConnTestAssistant(Gtk.Assistant):
         Make Test Page.
 
         :returns: Gtk.Box object
+        :rtype: :class:`Gtk.Box`
         '''
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
 
@@ -346,6 +373,7 @@ class ConnTestAssistant(Gtk.Assistant):
         Set Test Value.
 
         :param pairs: list of name value pairs
+        :type pairs: list[tuple[str, str]]
         '''
         if len(pairs) % 2:
             self.logger.info("Ack! need name=value pairs!")
@@ -361,8 +389,11 @@ class ConnTestAssistant(Gtk.Assistant):
         Set Test Status.
 
         :param status: Status of test
+        :type status: str
         :param frac: fraction data
+        :type: frac: float
         :param loss: Data loss
+        :type loss: float
         '''
         self.__test_status.set_text(status)
         self.__prog.set_fraction(frac)
@@ -377,200 +408,220 @@ class ConnTestAssistant(Gtk.Assistant):
         Test Fixedmulti.
 
         :param station: Station to test
+        :type station: str
         :param port: Radio Port
+        :type port: str
         :param size: Size of transmission
+        :type size: int
         :param packets: Packets to send
+        :type packets: int
         '''
         self.set_test_val("pt", packets, "bt", packets * size)
+
+        parent = self
 
         class TestContext():
             '''Test Context.'''
 
-            # pylint: disable=no-self-argument
-            def __init__(ctx):
-                ctx.ps = ctx.pr = 0
-                ctx.cycle = 0
+            def __init__(self):
+                self.packets_sent = self.packets_recv = 0
+                self.cycle = 0
 
-            # pylint: disable=no-self-argument
-            def update(ctx):
+            def update(self):
                 '''Update.'''
-                self.set_test_val("ps", ctx.ps, "bs", ctx.ps * size)
-                self.set_test_val("pr", ctx.pr, "br", ctx.pr * size)
+                parent.set_test_val("ps", self.packets_sent,
+                                    "bs", self.packets_sent * size)
+                parent.set_test_val("pr", self.packets_recv,
+                                    "br", self.packets_recv * size)
 
                 try:
-                    copy = ctx.pr / float(ctx.cycle)
-                    done = ctx.pr / float(packets)
+                    copy = self.packets_recv / float(self.cycle)
+                    done = self.packets_recv / float(packets)
                 except ZeroDivisionError:
                     return
-                if ctx.complete():
-                    self.set_test_complete()
-                    self.set_test_status("Complete", done, copy)
+                if self.complete():
+                    parent.set_test_complete()
+                    parent.set_test_status("Complete", done, copy)
                 else:
-                    self.set_test_status("Attempt %i of %i"  % (ctx.ps,
-                                                                packets),
-                                         done, copy)
+                    parent.set_test_status("Attempt %i of %i"  %
+                                           (self.packets_sent, packets),
+                                           done, copy)
 
-            # pylint: disable=no-self-argument
-            def complete(ctx):
+            def complete(self):
                 '''
                 Complete.
 
                 :returns: True if test is complete
+                :rtype: bool
                 '''
-                return ctx.cycle >= packets
+                return self.cycle >= packets
 
-            # pylint: disable=no-self-argument
-            def sendping(ctx):
+            def sendping(self):
                 '''Send Ping.'''
-                ctx.ps += 1
+                self.packets_sent += 1
                 data = "0" * int(size)
-                GLib.timeout_add(calc_watchdog(size), ctx.timecb, ctx.ps)
-                self.emit("ping-echo-station",
-                          station, port, data, ctx.recvcb, ctx.ps)
+                GLib.timeout_add(calc_watchdog(size), self.timecb,
+                                 self.packets_sent)
+                parent.emit("ping-echo-station",
+                            station, port, data, self.recvcb,
+                            self.packets_sent)
 
-            # pylint: disable=no-self-argument
-            def recvcb(ctx, number):
+            def recvcb(self, number):
                 '''
                 Receive Callback.
 
                 :param number: Context PS Number
+                :type number: int
                 '''
-                if ctx.ps != number:
+                if self.packets_sent != number:
                     return
 
-                ctx.pr += 1
-                ctx.cycle += 1
+                self.packets_recv += 1
+                self.cycle += 1
 
-                if not ctx.complete() and self.enabled:
-                    ctx.sendping()
-                ctx.update()
+                if not self.complete() and parent.enabled:
+                    self.sendping()
+                self.update()
 
-            # pylint: disable=no-self-argument
-            def timecb(ctx, number):
+            def timecb(self, number):
                 '''
                 Time Callback.
 
                 :param number: Context ps number
+                :type number: int
                 '''
-                if ctx.ps != number:
+                if self.packets_sent != number:
                     return
 
-                ctx.cycle += 1
+                self.cycle += 1
 
-                if not ctx.complete() and self.enabled:
-                    ctx.sendping()
-                ctx.update()
+                if not self.complete() and parent.enabled:
+                    self.sendping()
+                self.update()
 
         ctx = TestContext()
         ctx.sendping()
         ctx.update()
 
+    # pylint wants up to only 5 arguments
     # pylint: disable=too-many-arguments
     def test_gradmulti(self, station, port, att, inc, start, end):
         '''
         Test Gradmulti.
 
         :param station: Station to test
+        :type station: str
         :param port: Radio Port
-        :param att: Att value
+        :type port: str
+        :param att: Attempt value
+        :type att: int
         :param inc: Increment
+        :type inc: int
         :param start: Start Value
+        :type start: int
         :param end: End value
+        :type end: int
         '''
         ptotal = btotal = 0
-        sz = start
-        while sz <= end:
+        size = start
+        while size <= end:
             ptotal += att
-            btotal += (att * sz)
-            sz += inc
+            btotal += (att * size)
+            size += inc
 
         self.set_test_val("pt", ptotal, "bt", btotal)
+
+        parent = self
 
         class TestContext():
             '''Test Context.'''
 
-            # pylint: disable=no-self-argument
-            def __init__(ctx):
-                ctx.bs = ctx.br = ctx.ps = ctx.pr = 0
-                ctx.size = start
-                ctx.cycle = 0
+            def __init__(self):
+                self.bytes_sent = 0
+                self.bytes_recv = 0
+                self.packets_sent = 0
+                self.packets_recv = 0
+                self.size = start
+                self.cycle = 0
 
-            # pylint: disable=no-self-argument
-            def update(ctx):
+            def update(self):
                 '''Update.'''
-                self.set_test_val("ps", ctx.ps, "bs", ctx.bs)
-                self.set_test_val("pr", ctx.pr, "br", ctx.br)
+                parent.set_test_val("ps", self.packets_sent,
+                                    "bs", self.bytes_sent)
+                parent.set_test_val("pr", self.packets_recv,
+                                    "br", self.bytes_recv)
 
-                done = ctx.br / float(btotal)
-                if ctx.bs != ctx.size:
-                    copy = ctx.br / float(ctx.bs  - ctx.size)
+                done = self.bytes_recv / float(btotal)
+                if self.bytes_sent != self.size:
+                    copy = self.bytes_recv / float(self.bytes_sent  - self.size)
                 else:
-                    copy = ctx.br
+                    copy = self.bytes_recv
 
-                if ctx.complete():
-                    self.set_test_complete()
-                    self.set_test_status("Complete", done, copy)
+                if self.complete():
+                    parent.set_test_complete()
+                    parent.set_test_status("Complete", done, copy)
                 else:
-                    self.set_test_status("Attempt %i of %i at size %i" % (\
-                            ((ctx.ps - 1) % att) + 1, att, ctx.size),
-                                         done, copy)
+                    parent.set_test_status("Attempt %i of %i at size %i" %
+                                           (((self.packets_sent - 1) % att) + 1,
+                                            att, self.size),
+                                           done, copy)
 
-            # pylint: disable=no-self-argument
-            def complete(ctx):
+            def complete(self):
                 '''
                 Complete.
 
                 :returns: True if complete
+                :rtype: bool
                 '''
-                return ctx.cycle >= ptotal
+                return self.cycle >= ptotal
 
-            # pylint: disable=no-self-argument
-            def sendping(ctx):
+            def sendping(self):
                 '''Send Ping.'''
-                if ctx.ps and (ctx.ps % att) == 0:
-                    ctx.size += inc
+                if self.packets_sent and (self.packets_sent % att) == 0:
+                    self.size += inc
 
-                ctx.bs += ctx.size
-                ctx.ps += 1
+                self.bytes_sent += self.size
+                self.packets_sent += 1
 
-                data = "0" * int(ctx.size)
-                GLib.timeout_add(calc_watchdog(ctx.size), ctx.timecb, ctx.ps)
-                self.emit("ping-echo-station",
-                          station, port, data, ctx.recvb, ctx.ps)
+                data = "0" * int(self.size)
+                GLib.timeout_add(calc_watchdog(self.size), self.timecb,
+                                 self.packets_sent)
+                parent.emit("ping-echo-station",
+                            station, port, data, self.recvb, self.packets_sent)
 
-            # pylint: disable=no-self-argument
-            def recvb(ctx, number):
+            def recvb(self, number):
                 '''
                 Receive Callback.
 
                 :param number: Context ps number
+                :type number: int
                 '''
-                if ctx.ps != number:
+                if self.packets_sent != number:
                     return
 
-                ctx.pr += 1
-                ctx.br += ctx.size
-                ctx.cycle += 1
+                self.packets_recv += 1
+                self.bytes_recv += ctx.size
+                self.cycle += 1
 
-                if not ctx.complete() and self.enabled:
-                    ctx.sendping()
-                ctx.update()
+                if not self.complete() and parent.enabled:
+                    self.sendping()
+                self.update()
 
-            # pylint: disable=no-self-argument
-            def timecb(ctx, number):
+            def timecb(self, number):
                 '''
                 Time Callback.
 
                 :param number: Context ps number
+                :type number: int
                 '''
-                if ctx.ps != number:
+                if self.packets_sent != number:
                     return
 
-                ctx.cycle += 1
+                self.cycle += 1
 
-                if not ctx.complete() and self.enabled:
-                    ctx.sendping()
-                ctx.update()
+                if not self.complete() and parent.enabled:
+                    self.sendping()
+                self.update()
 
         ctx = TestContext()
         ctx.sendping()
@@ -578,9 +629,10 @@ class ConnTestAssistant(Gtk.Assistant):
 
     def start_test(self, button):
         '''
-        Start Test.
+        Start Test Handler.
 
         :param button: Button object
+        :type button: :class:`Gtk.Button`
         '''
         button.set_sensitive(False)
         self.set_page_complete(self.__test_page, False)
@@ -598,12 +650,14 @@ class ConnTestAssistant(Gtk.Assistant):
                                 self.__values[_("Starting size")],
                                 self.__values[_("Ending size")])
 
-    def exit(self, _param1, response):
+    def exit(self, _assistant, response):
         '''
-        Exit.
+        Exit Assistant Handler.
 
-        :param _param1: Unused
+        :param _assistant: Assistant widget, unused
+        :type _assistant: :class:`Gtk.Assistant`
         :param response: Exit response code
+        :type response: :class:`Gtk.ResponseType`
         '''
         self.response = response
         self.enabled = False
