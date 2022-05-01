@@ -90,12 +90,12 @@ class SessionThread():
         self.enabled = False
         self.thread.join()
 
-    # pylint: disable=no-self-use
     def worker(self, _path):
         '''
         Worker.
 
         :param _path: Unused, arguments for base case
+        :type _path: str
         '''
         self.logger.info("worker: **** EMPTY SESSION THREAD ****")
 
@@ -327,8 +327,8 @@ class SocketThread(SessionThread):
                                        retries)
         self.coord.session_status(self.session, msg)
 
-    # pylint: disable=no-self-use
-    def socket_read(self, read_sock, length, time_out=5):
+    @staticmethod
+    def socket_read(read_sock, length, time_out=5):
         '''
         Socket read.
 
@@ -375,10 +375,8 @@ class SocketThread(SessionThread):
             start_time = time.time()
             try:
                 send_data = self.socket_read(worker_sock, 512, timeout)
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("worker socket read broad-except",
-                                 exc_info=True)
+            except SocketIsClosedError as err:
+                self.logger.info("worker socket read %s", err)
                 break
             self.logger.info("worker: Waited %f sec for socket",
                              (time.time() - start_time))
@@ -407,10 +405,9 @@ class SocketThread(SessionThread):
         self.session.close()
         try:
             worker_sock.close()
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("worker sock close broad except", exc_info=True)
-            # pass
+        # On Windows, ConnectionError not based on OSError
+        except (ConnectionError, OSError):
+            pass
 
         self.logger.info("*** Socket thread exiting")
 
@@ -440,8 +437,7 @@ class SessionCoordinator(GObject.GObject):
         GObject.GObject.__init__(self)
 
         self.logger = logging.getLogger("SessionCoordinator")
-        # pylint: disable=invalid-name
-        self.sm = session_manager
+        self.session_manager = session_manager
         self.config = config
 
         self.sthreads = {}
@@ -535,12 +531,11 @@ class SessionCoordinator(GObject.GObject):
             return
 
         try:
-            session = self.sm.sessions[ident]
-        # pylint: disable=broad-except
-        except Exception:
+            session = self.session_manager.sessions[ident]
+        except KeyError as err:
             self.logger.info("cancel_session:"
-                             "Session `%i' not found",
-                             ident, exc_info=True)
+                             "Session `%i' not found: %s",
+                             ident, err)
             return
 
         if ident in self.sthreads:
@@ -563,7 +558,7 @@ class SessionCoordinator(GObject.GObject):
             self.logger.info("Starting a listener for port %i->%s:%i",
                              sport, dest, dport)
             self.socket_listeners[dport] = \
-                sock.SocketListener(self.sm, dest, sport, dport)
+                sock.SocketListener(self.session_manager, dest, sport, dport)
             self.logger.info("Started")
         else:
             raise ListenerActiveError("Listener for %i already active" % dport)
@@ -638,10 +633,9 @@ class SessionCoordinator(GObject.GObject):
         try:
             _foo, session_port = session.name.split(":", 2)
             session_port = int(session_port)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("new_socket: Invalid socket session name %s",
-                             session.name, exc_info=True)
+        except ValueError as err:
+            self.logger.info("new_socket: Invalid socket session name %s: %s",
+                             session.name, err)
             session.close()
             return
 
@@ -663,12 +657,12 @@ class SessionCoordinator(GObject.GObject):
                                                                    time_out))
                         return
 
-                raise PortNotConfigError("Port %i not configured" % session_port)
-            # pylint: disable=broad-except
-            except Exception as err:
-                msg = _("Error starting socket session: %s -%s-") % \
-                        (type(err), err)
-                self.logger.info("new_socket broad except", exc_info=True)
+                raise PortNotConfigError("Port %i not configured" %
+                                         session_port)
+
+            # On Windows, ConnectionError not based on OSError
+            except (ConnectionError, OSError, PortNotConfigError) as err:
+                msg = _("Error starting socket session: ") + str(err)
                 self.emit("session-status-update", session._id, msg)
                 session.close()
 
@@ -762,12 +756,13 @@ class SessionCoordinator(GObject.GObject):
         block_size = self.config.getint("settings", "ddt_block_size")
         outlimit = self.config.getint("settings", "ddt_block_outlimit")
 
-        file_thread = threading.Thread(target=self.sm.start_session,
-                                       kwargs={"name"      : name,
-                                               "dest"      : dest,
-                                               "cls"       : xfer,
-                                               "blocksize" : block_size,
-                                               "outlimit"  : outlimit})
+        file_thread = threading.Thread(
+            target=self.session_manager.start_session,
+            kwargs={"name"      : name,
+                    "dest"      : dest,
+                    "cls"       : xfer,
+                    "blocksize" : block_size,
+                    "outlimit"  : outlimit})
         file_thread.setDaemon(True)
         file_thread.start()
         self.logger.info("send_file: Started Session")
@@ -788,10 +783,11 @@ class SessionCoordinator(GObject.GObject):
 
         xfer = form.FormTransferSession
 
-        form_thread = threading.Thread(target=self.sm.start_session,
-                                       kwargs={"name" : name,
-                                               "dest" : dest,
-                                               "cls"  : xfer})
+        form_thread = threading.Thread(
+            target=self.session_manager.start_session,
+            kwargs={"name" : name,
+                    "dest" : dest,
+                    "cls"  : xfer})
         form_thread.setDaemon(True)
         form_thread.start()
         self.logger.info("Started form session")
