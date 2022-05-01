@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# "d-rats.py" does not comply with Snake Case nameing, so must suppress this.
 # pylint: disable=invalid-name
 '''d-rats main program'''
 #
@@ -32,22 +33,20 @@ import traceback
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from gi.repository import Gdk
+# from gi.repository import Gdk
 
 from d_rats import dplatform
 
-# This makes pylance happy with out overriding settings
-# from the invoker of the module
-if not '_' in locals():
-    _ = gettext.gettext
 
+# Default gettext function which is needed for pylance
+# This global variable will be overridden by the mainapp module.
+_ = gettext.gettext
 
-# pylint: disable=invalid-name
-module_logger = logging.getLogger("D-Rats")
+MODULE_LOGGER = logging.getLogger("D-Rats")
 
 sys.path.insert(0, os.path.join("/usr/share", "d-rats"))
 
-#import module to have spelling correction in chat and email applications
+# import module to have spelling correction in chat and email applications
 from d_rats import utils, spell
 
 spell.get_spell().test()
@@ -57,27 +56,30 @@ IGNORE_ALL = False
 # here we design the window which usually comes out at the beginning asking
 # to "ignore/ignore all" the exceptions
 
-
 def handle_exception(exctyp, value, tb):
     '''
     Handle Exception.
 
-    :param exctyp: Exception type,
+    :param exctyp: Exception type
+    :type exctype: type
     :param value: Exception value
+    :type value: Exception
     :param tb: Traceback
+    :type tb: traceback
     '''
 
     # this eventually starts the initial window with the list of errors and the
     # buttons to open log or ignore errors
 
+    # This currently needs to a global statement.
     # pylint: disable=global-statement
     global IGNORE_ALL
 
     if exctyp is KeyboardInterrupt or IGNORE_ALL:
-        return original_excepthook(exctyp, value, tb)
+        return sys.__excepthook__(exctyp, value, tb)
 
-    Gdk.pointer_ungrab(Gdk.CURRENT_TIME)
-    Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
+    # Gdk.pointer_ungrab(Gdk.CURRENT_TIME)
+    # Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
     # WB8TYW: Gdk.pointer_ungrab and Gdk_keyboard_ungrab are marked as
     # deprecated.  Documentation says to use Gdk.Seat.ungrab().
     # At this point, we do not have a seat object use and would
@@ -88,7 +90,7 @@ def handle_exception(exctyp, value, tb):
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
 
-    module_logger.info("---- GUI Exception ----\n%s\n---- End ----\n",
+    MODULE_LOGGER.info("---- GUI Exception ----\n%s\n---- End ----\n",
                        stack_info=True)
 
     msg = """
@@ -107,7 +109,6 @@ possible.
         dialog.add_button(_("Ignore"), Gtk.ResponseType.CLOSE)
         dialog.add_button(_("Ignore All"), -1)
         dialog.add_button(_("Quit"), Gtk.ResponseType.CANCEL)
-        # dialog.add_button(Gtk.STOCK_QUIT, Gtk.ResponseType.CANCEL)
         dialog.set_default_response(Gtk.ResponseType.CANCEL)
 
     while True:
@@ -129,35 +130,13 @@ possible.
 
 def install_excepthook():
     '''install Excepthook.'''
-    # saves away the original value of sys.excepthook
-    # pylint: disable=global-variable-undefined
-    global original_excepthook
-    original_excepthook = sys.excepthook
-    # invoke the manager of the initial windows to ask user what to do with
-    # exceptions
-    # sys.excepthook = handle_exception
+    sys.excepthook = handle_exception
 
 
 def uninstall_excepthook():
     '''Uninstall Excepthook.'''
     # restores the original value of sys.excepthook
-    # pylint: disable=global-variable-undefined
-    global original_excepthook
-    # sys.excepthook = ignore_exception
-
-
-def ignore_exception(_exctyp, _value, _tb):
-    '''
-    Ignore exception.
-
-    :param _exctype: Exception type, unused
-    :param _value: Exception Value, unused
-    :param _tb: Traceback, unused
-    '''
-    return
-#-------------- main d-rats module -----------------
-# --- def set_defaults(self):---
-#
+    sys.excepthook = sys.__excepthook__
 
 
 def main():
@@ -166,6 +145,8 @@ def main():
     platform = dplatform.get_platform()
     def_config_dir = platform.config_dir()
 
+    # pylint wants at least 2 public methods, but we do not need them
+    # since this is extending another class.
     # pylint: disable=too-few-public-methods
     class LoglevelAction(argparse.Action):
         '''
@@ -222,7 +203,7 @@ def main():
                         level=args.loglevel)
 
     if args.config:
-        module_logger.info("main: re-config option found -- Reconfigure D-rats")
+        MODULE_LOGGER.info("main: re-config option found -- Reconfigure D-rats")
         dplatform.get_platform(args.config)
 
     # import the D-Rats main application
@@ -234,22 +215,20 @@ def main():
     # create the mainapp with the basic options
     app = mainapp.MainApp(safe=args.safe)
 
-    module_logger.info("main: reloading app\n\n")
+    MODULE_LOGGER.info("main: reloading app\n\n")
     # finally let's open the default application triggering it differently if
     # we want to profile it (which is running the app under profile control to
     # see what happens)
     if args.profile:
-        module_logger.info("main: Executing with cprofile")
+        MODULE_LOGGER.info("main: Executing with cprofile")
         import cProfile
         cProfile.runctx('app.main()', globals(), locals())
     else:
-        #execute the main app
+        # execute the main app
         # result_code = app.main()
         result_code = 0
         app.main()
-        #restores  the original value of sys.excepthook
         uninstall_excepthook()
-        # libxml2.dumpMemory()
         sys.exit(result_code)
 
 
