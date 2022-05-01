@@ -25,7 +25,6 @@ import threading
 import re
 import time
 import random
-from six.moves import range # type: ignore
 
 from . import utils
 from . import ddt2
@@ -113,7 +112,7 @@ class BlockQueue():
         Peek All.
 
         :returns: queue of locks
-        :rtype: list of :class:`DDT2Frame`
+        :rtype: list[:class:`DDT2Frame`]
         '''
         self._lock.acquire()
         queue = self._queue
@@ -131,7 +130,7 @@ class BlockQueue():
         '''Unlock.'''
         self._lock.release()
 
-
+# pylint wants a max of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class Transporter():
     '''
@@ -176,7 +175,7 @@ class Transporter():
         self.shutdown = False
         self.thread = threading.Thread(target=self.worker,
                                        args=(authfn,))
-        self.thread.setDaemon(True)
+        self.thread.daemon = True
         self.thread.start()
 
         self.last_xmit = 0
@@ -385,7 +384,8 @@ class Transporter():
         '''
         Compat is time.
 
-        :returns: Boolean if time is > self.compat_delay
+        :returns: True if time is > self.compat_delay
+        :rtype: bool
         '''
         return (time.time() - self.last_recv) > self.compat_delay
 
@@ -407,11 +407,13 @@ class Transporter():
             if self.pipe.can_reconnect:
                 self.was_connected = True
 
+    # pylint wants a max of 12 branches
     # pylint: disable=too-many-branches
     def worker(self, authfn):
         '''Thread Worker.
 
         :param authfn: Authorization Function
+        :type authfn: function
         '''
         if not self.pipe.is_connected():
             if self.msg_fn:
@@ -591,6 +593,7 @@ class TestPipe():
         Is Connected?
 
         :returns: True
+        :rtype: bool
         '''
         return True
 
@@ -599,9 +602,10 @@ class TestPipe():
         Read all waiting data.
 
         :returns: Array of simulated data
+        :rtype: bytes
         '''
         if not self.buf:
-            return ""
+            return b""
 
         num = random.randint(1, 200)
 
@@ -616,6 +620,7 @@ class TestPipe():
         Write - Does nothing
 
         :param _buf: buffer to write
+        :type _buf: bytes
         '''
 
     def __str__(self):
