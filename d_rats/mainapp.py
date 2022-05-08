@@ -1,5 +1,6 @@
 #!/usr/bin/python
 '''mainapp'''
+# pylint wants only 1000 lines
 # pylint: disable=too-many-lines
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
@@ -46,20 +47,21 @@ from gi.repository import GLib
 
 from . import dplatform
 
-
 logging.basicConfig(level=logging.INFO)
-# pylint: disable=invalid-name
-module_logger = logging.getLogger("Mainapp")
 
-# pylint: disable=invalid-name
-debug_path = dplatform.get_platform().config_file("debug.log")
+MAINAPP_LOGGER = logging.getLogger("Mainapp")
+
+# This code is assuming that mainapp is only imported in d-rats
+# This needs to be moved to later, but before the first message is written.
+# The also needs to be integrated into the logging module.
+DEBUG_PATH = dplatform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
-    sys.stdout = open(debug_path, "w")
+    sys.stdout = open(DEBUG_PATH, "w")
     sys.stderr = sys.stdout
-    module_logger.info("Enabled debug log for Win32 systems")
+    MAINAPP_LOGGER.info("Enabled debug log for Win32 systems")
 else:
     try:
-        os.unlink(debug_path)
+        os.unlink(DEBUG_PATH)
     except OSError:
         pass
 
@@ -91,11 +93,13 @@ from .dplatform import get_platform
 from .ui import main_events
 from .ui.main_common import prompt_for_station
 
-from .utils import NetFile, log_exception, run_gtk_locked
+from .utils import NetFile, run_gtk_locked
 from .utils import init_icon_maps
 from .sessions import rpc, chat, sniff
 
 # gettext module provides message translation and catalog management
+# normally we would just set a default here, but we need to fix the
+# issue that mainapp is imported by multiple modules first.
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
@@ -107,6 +111,7 @@ MAINAPP = None
 
 # initialize the multitasking for gtk (required to manage events in gtk
 # windows and background activities)
+# Documentation indicates that this should not be done this way.
 GObject.threads_init()
 
 
@@ -138,7 +143,8 @@ def ping_file(filename):
     '''
     Ping file.
 
-    checks if the file passed as parameter can be opened
+    Checks if the file passed as parameter can be opened.
+
     :param filename: Filename to test open
     :type filename: str
     :raises: :class:`MainappFileOpenError` if unable to open file
@@ -177,7 +183,12 @@ def ping_exec(command):
 
 
 class CallList():
-    '''Call List.'''
+    '''
+    Seen Call List.
+
+    This class is updated with seen stations.
+    I can not find anything using this data.
+    '''
 
     def __init__(self):
         self.logger = logging.getLogger("CallList")
@@ -191,9 +202,12 @@ class CallList():
         '''
         Set call position.
 
+        No reference to this method found.
+
         :param call: Call sign
         :type call: str
         :param pos: Position
+        :type pos: unknown
         '''
         (call_time, _) = self.data.get(call, (0, None))
 
@@ -219,9 +233,12 @@ class CallList():
         '''
         Get call position.
 
+        No reference to this method found.
+
         :param call: Call sign
         :type call: str
         :returns: Position
+        :rtype: unknown
         '''
         (_, pos) = self.data.get(call, (0, None))
         return pos
@@ -229,6 +246,8 @@ class CallList():
     def get_call_time(self, call):
         '''
         Get call time.
+
+        No reference to this method found.
 
         :param call: Call sign
         :type call: str
@@ -271,6 +290,7 @@ class CallList():
             pass
 
 
+# pylint wants a maximum of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class MainApp(Gtk.Application):
     '''
@@ -279,7 +299,6 @@ class MainApp(Gtk.Application):
     :param __args: Not used, Ignored
     '''
 
-    #pylint: disable=too-many-statements
     def __init__(self, **_args):
         Gtk.Application.__init__(self,
                                  application_id='localhost.d-rats',
@@ -329,7 +348,7 @@ class MainApp(Gtk.Application):
         MAINAPP = self
 
         self.comm = None
-        self.smgr = {}
+        self.active_sessions = {}
         self.seen_callsigns = CallList()
         self.position = None
         self.mail_threads = {}
@@ -383,7 +402,7 @@ class MainApp(Gtk.Application):
             self.logger.info("going online")
             msg = self.config.get("prefs", "signon")
             status = station_status.STATUS_ONLINE
-            for port in self.smgr:
+            for port in self.active_sessions:
                 self.chat_session(port).advertise_status(status, msg)
         GLib.timeout_add(3000, self._refresh_location)
 
@@ -491,7 +510,7 @@ class MainApp(Gtk.Application):
     @staticmethod
     def ev_shutdown(application):
         '''
-        Event Shutdown
+        Event Shutdown Handler.
 
         This is needed to signal all child activities that the application
         is shutting down, in case some activities such as the map module
@@ -506,16 +525,10 @@ class MainApp(Gtk.Application):
         :param application: Application instance
         :type application: :class:`Gtk.Application`
         '''
+        # temp for debugging
         print("mainapp/ev_shutdown")
         if application.map:
             application.map.exiting = True
-
-    # pylint: disable=no-self-use
-    def setup_autoid(self):
-        '''setup autoid.'''
-        # WB8TYW: This appears to do nothing and is not used.
-        # pylint: disable=unused-variable
-        idtext = "(ID)"
 
     def stop_comms(self, portid):
         '''
@@ -525,11 +538,11 @@ class MainApp(Gtk.Application):
         :returns: True if all communication is stopped.
         :rtype: bool
         '''
-        if portid in self.smgr:
-            smgr, scomm = self.smgr[portid]
+        if portid in self.active_sessions:
+            smgr, scomm = self.active_sessions[portid]
             smgr.shutdown(True)
             scomm.shutdown()
-            del self.smgr[portid]
+            del self.active_sessions[portid]
 
             portspec, pipe = self.__pipes[portid]
             del self.__pipes[portid]
@@ -566,6 +579,9 @@ class MainApp(Gtk.Application):
                     "Failed to start socket listener %i:%i@%s:",
                     sport, dport, station)
 
+    # pylint wants a maximum of 15 local variables
+    # pylint wants a maximum of 12 branches
+    # pylint wants a maximum of 50 statements
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     def start_comms(self, portid):
         '''
@@ -592,8 +608,8 @@ class MainApp(Gtk.Application):
 
         if not enb:
             # if port not enabled, and was already active, let's cancel it
-            if name in self.smgr:
-                del self.smgr[name]
+            if name in self.active_sessions:
+                del self.active_sessions[name]
             return
 
         self.logger.info("start_comms: Starting port %s (%s)", portid, name)
@@ -651,7 +667,7 @@ class MainApp(Gtk.Application):
             "msg_fn" : transport_msg,
             }
 
-        if name not in self.smgr:
+        if name not in self.active_sessions:
             # if we are not chatting 1-to-1 let's do CQ
             smgr = sessionmgr.SessionManager(path, call, **transport_args)
 
@@ -669,6 +685,20 @@ class MainApp(Gtk.Application):
                                               rpcactions=rpcactions)
 
             def sniff_event(_sstart, src, _dst, msg, port):
+                '''
+                Sniff Event Handler.
+
+                :param _sstart: Sniff Session
+                :type __sstart: :class:`sniff.SniffSession`
+                :param src: Source station
+                :type src: str
+                :param _dst: Destination station
+                :type _dst: str
+                :param msg: Message
+                :type msg: bytes
+                :param port: Radio port
+                :type port: str
+                '''
                 # here print the sniffed traffic into the event tab
                 if dosniff:
                     event = main_events.Event(None, "Sniffer: %s" % msg)
@@ -691,7 +721,7 @@ class MainApp(Gtk.Application):
 
             self._make_socket_listeners(scoord)
 
-            self.smgr[name] = smgr, scoord
+            self.active_sessions[name] = smgr, scoord
 
             pingdata = self.config.get("settings", "ping_info")
             if pingdata.startswith("!"):
@@ -707,7 +737,7 @@ class MainApp(Gtk.Application):
                 pingfn = None
             chat_session.set_ping_function(pingfn)
         else:
-            smgr, _sc = self.smgr[name]
+            smgr, _sc = self.active_sessions[name]
 
             smgr.set_comm(path, **transport_args)
             smgr.set_call(call)
@@ -722,16 +752,17 @@ class MainApp(Gtk.Application):
         :returns: Chat Session object
         :rtype: :class:`sessions.chat.ChatSession`
         '''
-        return self.smgr[portname][0].get_session(lid=1)
+        return self.active_sessions[portname][0].get_session(lid=1)
 
     def rpc_session(self, portname):
         '''
         RPC session.
 
         :param portname: Port name for session
+        :type portname: str
         :returns: RPC Session object
         '''
-        return self.smgr[portname][0].get_session(lid=2)
+        return self.active_sessions[portname][0].get_session(lid=2)
 
     def session_coordinator(self, portname):
         '''
@@ -742,14 +773,14 @@ class MainApp(Gtk.Application):
         :returns: Session Coordinator for port name
         :rtype: :class:`session_coordinator.SessionCoordinator`
         '''
-        return self.smgr[portname][1]
+        return self.active_sessions[portname][1]
 
     def check_comms_status(self):
         '''Check communication statuses.'''
         # added in 0.3.10
         self.logger.info(
             "check_comms_status: Ports expected to be already started:")
-        for portid in self.smgr:
+        for portid in self.active_sessions:
             self.logger.info("check_comms_status: %s", portid)
 
         self.logger.info("check_comms_status: Checking all Ports from config:")
@@ -781,13 +812,11 @@ class MainApp(Gtk.Application):
         '''Check stations status.'''
         # added in 0.3.10
         self.logger.info("Check stations Status")
-        # pylint: disable=no-member
         station_list = self.emit("get-station-list")
         stations = []
         for portlist in station_list.values():
             stations += [str(x) for x in portlist]
-            # pylint: disable=no-member
-            station, port = prompt_for_station(stations, self._config)
+            station, port = prompt_for_station(stations, self.config)
             self.logger.info(
                 "check_stations_status: Stations %s resulting on port %s",
                 station, port)
@@ -797,7 +826,7 @@ class MainApp(Gtk.Application):
         delay = False
         self.logger.info("refresh comms")
 
-        for portid in list(self.smgr):
+        for portid in list(self.active_sessions):
             self.logger.info("_refresh_comms: Stopping %s", portid)
             if self.stop_comms(portid):
                 if sys.platform == "win32":
@@ -947,6 +976,7 @@ class MainApp(Gtk.Application):
             os.environ["LANGUAGE"] = locale
 
         try:
+            # This global statement is needed for internationalization
             # pylint: disable=global-statement
             global _
             lang = gettext.translation("D-RATS",
@@ -986,37 +1016,22 @@ class MainApp(Gtk.Application):
 
         for stype in source_types:
             try:
-                # pylint: disable=not-callable
                 sources = stype.enumerate(self.config)
-            # pylint: disable=broad-except
-            except (TypeError, ValueError):
-                self.logger.info("_load_map_overlays not working.  "
-                                 "USGS changed URls/APIs.",
-                                 exc_info=True)
-                sources = []
-            except Exception:
-                from . import utils
-                utils.log_exception()
+            except (NoOptionError, ValueError, OSError, TypeError):
                 self.logger.info(
-                    "_load_map_overlays: Failed to load source type %s: %s",
-                    stype, "broad-except", exc_info=True)
-                # broad/bare exceptions make debugging harder
-                raise
-                # continue
+                    "_load_map_overlays: Failed to load source type %s",
+                    stype, exc_info=True)
+                continue
 
             for sname in sources:
                 try:
-                    # pylint: disable=not-callable
                     source = stype.open_source_by_name(self.config, sname)
                     self.map.add_map_source(source)
-                # pylint: disable=broad-except
-                except Exception:
-                    log_exception()
+                except (NoOptionError, OSError,
+                        map_sources.MapSourceFailedToConnect):
                     self.logger.info(
-                        "_load_map_overlays: Failed to load map source %s: %s",
-                        source.get_name(), "broad-except", exc_info=True)
-                    # broad/bare exceptions make debugging harder
-                    raise
+                        "_load_map_overlays: Failed to load map source %s",
+                        source.get_name(), exc_info=True)
                 if sname == _("Stations"):
                     self.stations_overlay = source
 
@@ -1089,17 +1104,15 @@ class MainApp(Gtk.Application):
         self.map.set_title(
             "D-RATS Map Window - map in use: %s" %
             self.config.get("settings", "maptype"))
-        # self.map.connect("reload-sources",
-        #                  lambda m: self._load_map_overlays())
         self.map.set_zoom(14)
         self.map.queue_draw()
         return True
 
     def _refresh_location(self):
         '''
-        Refresh Position.
+        Refresh Position Handler
 
-        :returns: True
+        :returns: True to continue be triggered by the timer.
         :rtype: bool
         '''
         fix = self.get_position()
@@ -1130,6 +1143,7 @@ class MainApp(Gtk.Application):
 
         return True
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __chat(self, src, dst, data, incoming, port):
         '''
@@ -1153,7 +1167,7 @@ class MainApp(Gtk.Application):
         kwargs = {}
 
         if dst != "CQCQCQ":
-            #so we are messaging into a private channel
+            # so we are messaging into a private channel
             msg_to = " -> %s:" % dst
             kwargs["priv_src"] = src
         else:
@@ -1184,81 +1198,114 @@ class MainApp(Gtk.Application):
 
     def __status(self, _obj, status):
         '''
-        status internal.
+        Status Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`base.Session`
+        :type _obj: :class:`ui.main_messages.EventTab`
+        :type _obj: :class:`ui.main_messages.FilesTab`
         :param status: Status
+        :type status: str
         '''
         self.mainwindow.set_status(status)
 
     def __user_stop_session(self, _obj, sid, port, force=False):
         '''
-        User Stop Session.
+        User Stop Session Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_messages.EventTab`
         :param sid: Session ID
+        :param sid: int
         :param port: Radio port
+        :type port: str
         :param force: True to force session stop
         :type force: bool
         '''
         self.logger.info("User did stop session %i (force=%s)", sid, force)
         try:
-            smgr, _sc = self.smgr[port]
+            smgr, _sc = self.active_sessions[port]
             session = smgr.sessions[sid]
             session.close(force)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("__user_stop_session: Session `%i' not found",
-                             sid, exc_info=True)
-            # broad/bare exceptions make debugging harder
+        except KeyError as err:
+            self.logger.info("__user_stop_session: Session `%i' not found: %s",
+                             sid, err)
             raise
 
     def __user_cancel_session(self, obj, sid, port):
         '''
         User Cancel Session.
 
-        :param obj: Widget
+        :param obj: Object signaled
+        :type obj: :class:`ui.main_messages.EventTab`
         :param sid: Session ID
+        :type sid: int
         :param port: Radio port
+        :type port: str
         '''
         self.__user_stop_session(obj, sid, port, True)
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __user_send_form(self, _obj, station, port, fname, sname):
         '''
         User Send Form.
 
-        :param _obj: Unused object signal was emitted
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_messages.MessagesTab`
+        :type _obj: :class:`msgrouting.MessageRouter`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
+        :type _obj: :class:`emailgw.PeriodicAccountMailThread`
         :param station: Station to send form to
+        :type station: str
         :param port: Radio port to send to
+        :type port: str
         :param fname: Filename of form to send
+        :type fname: str
         :param sname: Session name for sending
+        :type sname: str
         '''
         self.session_coordinator(port).send_form(station, fname, sname)
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __user_send_file(self, _obj, station, port, fname, sname):
         '''
-        User Send File.
+        User Send File Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_messages.EventTab`
+        :type _obj: :class:`ui.main_messages.FilesTab`
+        :type _obj: :class:`ui.main_stations.StationsList`
+        :type _obj: :class:`pluginsrv.DRatsPluginProxy`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
         :param station: Station
+        :type station: str
         :param port: Radio Port
+        :type port: str
         :param fname: Filename
+        :type fname: str
         :param sname: Session Name
+        :type sname: str
         '''
         self.session_coordinator(port).send_file(station, fname, sname)
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __user_send_chat(self, _obj, station, port, msg, raw):
         '''
-        User send Chat.
+        User send Chat Handler.
 
         This event is generated by pluginsrv/send_chat function while
-        listening from the arriving messages
+        listening from the arriving messages.
 
-        :param _obj: unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`mainwindow.MainWindow`
         :type _obj: :class:`ui.main_chat.ChatTab`
+        :type _obj: :class:`pluginsrv.DRatsPluginProxy`
+        :type _obj: :class:`map.mapwindow.MapWindow`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
+        :type _obj: :class:`emailgw.PeriodicAccountMailThread`
         :param station: Station
         :type station: :class:`str`
         :param port: Radio port
@@ -1273,48 +1320,69 @@ class MainApp(Gtk.Application):
         else:
             self.chat_session(port).write(msg, station)
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __incoming_chat_message(self, _obj, src, dst, data, port=None):
         '''
-        Incoming Chat Message.
+        Incoming Chat Message Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_stations.StationsList`
+        :type _obj: :class:`sessions.chat.ChatSession`
         :param src: Source
+        :type src: str
         :param dst: Destination
+        :type dst: str
         :param data: Chat message data
+        :type data: str
         :param port: Radio port, Default None
+        :type port: str
         '''
         if dst not in ["CQCQCQ", self.config.get("user", "callsign")]:
             # This is not destined for us
             return
         self.__chat(src, dst, data, True, port)
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __outgoing_chat_message(self, _obj, src, dst, data, port=None):
         '''
-        Outgoing Chat Message.
+        Outgoing Chat Message Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.chat.ChatSession`
         :param src: Source
+        :type src: str
         :param dst: Destination
+        :type dst: str
         :param data: Chat data
+        :type data: str
         :param port: Radio port
+        :type port: str
         '''
         self.__chat(src, dst, data, False, port)
 
     def __get_station_list(self, _obj):
         '''
-        Get Station List.
+        Get Station List Handler.
 
         Used to get a dict of currently known stations indexed
         by the radio port the station was associated with.
 
-        :param _obj: Unused object passed to handler
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`mainwindow.MainWindow`
+        :type _obj: :class:`ui.main_messages.MessagesTab`
+        :type _obj: :class:`ui.main_messages.FilesTab`
+        :type _obj: :class:`ui.main_stations.StationsList`
+        :type _obj: :class:`pluginsrv.DRatsPluginProxy`
+        :type _obj: :class:`msgrouting.MessageRouter`
+        :type _obj: :class:`map.mapwindow.MapWindow`
+        :type _obj: :class:`emailgw.PeriodicAccountMailThread`
         :returns: station objects
         :rtype: dict
         '''
         stations = {}
-        for port, (_sm, _sc) in self.smgr.items():
+        for port, (_sm, _sc) in self.active_sessions.items():
             stations[port] = []
 
         station_list = self.mainwindow.tabs["stations"].get_stations()
@@ -1332,83 +1400,120 @@ class MainApp(Gtk.Application):
         '''
         Get Message List.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
         :param station: Station
-        :returns: Message list
+        :type station: str
+        :returns: list of message tuple of title, stamp, filename for
+                  the destination
+        :rtype: list[str, int, str]
         '''
         return self.mainwindow.tabs["messages"].get_shared_messages(station)
 
     def __submit_rpc_job(self, _obj, job, port):
         '''
-        Submit RPC Job.
+        Submit RPC Job Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_messages.FilesTab`
+        :type _obj: :class:`ui.main_stations.StationsList`
+        :type _obj: :class:`pluginsrv.DRatsPluginProxy`
         :param job: job
+        :type job: :class:`sessions.RPCJob`
         :param port: Radio Port
+        :type port: str
         '''
         self.rpc_session(port).submit(job)
 
     def __event(self, _obj, event):
         '''
-        Event.
+        Event Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_chat.ChatTab`
+        :type _obj: :class:`ui.main_messages.MessagesTab`
+        :type _obj: :class:`ui.main_messages.EventTab`
+        :type _obj: :class:`ui.main_messages.FilesTab`
+        :type _obj: :class:`ui.main_stations.StationsList`
+        :type _obj: :class:`msgrouting.MessageRouter`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
+        :type _obj: :class:`emailgw.PeriodicAccountMailThread`
         :param event: Event
+        :type event: :class:`main_events.Event`
         '''
         self.mainwindow.tabs["event"].event(event)
 
     def __config_changed(self, _obj):
         '''
-        Config Changed.
+        Config Changed Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`mainwindow.MainWindow`
         '''
         self.refresh_config()
 
     def __show_map_station(self, _obj, _station):
         '''
-        Show Map of Station.
+        Show Map of Station Handler.
 
-        :param _obj: Unused
-        :param _station: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`mainwindow.MainWindow`
+        :param _station: Station Unused
+        :type _station: str
         '''
         self.logger.info("Showing Map Window")
         self.map.show()
 
     def __ping_station(self, _obj, station, port):
         '''
-        Ping Station.
+        Ping Station Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`mainwindow.MainWindow`
+        :type _obj: :class:`ui.main_stations.StationsList`
+        :type _obj: :class:`msgrouting.MessageRouter`
         :param station: Station
+        :type station: str
         :param port: Radio port
+        :type port: str
         '''
         self.chat_session(port).ping_station(station)
 
     def __ping_station_echo(self, _obj, station, port,
                             data, callback, cb_data):
         '''
-        Ping Station Echo.
+        Ping Station Echo Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_stations.StationsList`
         :param station: Remote station
+        :type station: str
         :param port: Radio Port
+        :type port: str
         :param data: Ping data
+        :type data: str
         :param callback: Callback function
+        :type callback: function
         :param cb_data: Callback data
+        :type cb_data: str
         '''
         self.chat_session(port).ping_echo_station(station, data,
                                                   callback, cb_data)
 
     def __ping_request(self, _obj, src, dst, data, port):
         '''
-        Ping Request.
+        Ping Request Handler.
 
-        :param _obj: unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.chat.ChatSession`
         :param src: Source
+        :type src: str
         :param dst: Destination
+        :type dst: str
         :param data: Ping data
+        :type data: str
         :param port: Radio Port
+        :type port: str
         '''
         msg = "%s pinged %s [%s]" % (src, dst, port)
         if data:
@@ -1419,13 +1524,18 @@ class MainApp(Gtk.Application):
 
     def __ping_response(self, _obj, src, dst, data, port):
         '''
-        Ping Response.
+        Ping Response Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.chat.ChatSession`
         :param src: Source
+        :type src: str
         :param dst: Destination
+        :type dst: str
         :param data: Ping data
+        :type data: str
         :param port: Radio port
+        :type port: str
         '''
         msg = "%s replied to ping from %s with: %s [%s]" % (src, dst,
                                                             data, port)
@@ -1434,11 +1544,14 @@ class MainApp(Gtk.Application):
 
     def __incoming_gps_fix(self, _obj, fix, port):
         '''
-        Incoming GPS Fix.
+        Incoming GPS Fix Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.chat.ChatSession`
         :param fix: GPS fix information
+        :type fix: :class:`gps.GPSPosition`
         :param port: Radio Port
+        :type port: str
         :return: Map source
         :rtype: :class:`StaticGPSSource`
         '''
@@ -1462,17 +1575,12 @@ class MainApp(Gtk.Application):
                 self.logger.info(
                     "__incoming_gps_fix:  Creating a map source for %s",
                     station)
-                # pylint: disable=not-callable
                 maps = map_sources.MapFileSource.open_source_by_name(
                     self.config, station, True)
-            # pylint: disable=broad-except
-            except Exception:
+            except (NoOptionError, OSError,
+                    map_sources.MapSourceFailedToConnect):
                 # Unable to create or add so use "Stations" overlay
-                self.logger.info("source for station broad-except",
-                                 exc_info=True)
-                # broad/bare exceptions make debugging harder
-                raise
-                # return self.stations_overlay
+                return self.stations_overlay
 
             self.map.add_map_source(maps)
 
@@ -1500,12 +1608,10 @@ class MainApp(Gtk.Application):
         source.add_point(point)
         source.save()
 
-        #
         try:
             # load static data from configuration
             mapserver_active = self.config.get("settings", "mapserver_active")
 
-        # pylint: disable=broad-except
         except NoOptionError:
             self.logger.info(
                 "__incoming_gps_fix: Invalid static position: broad-except",
@@ -1530,12 +1636,16 @@ class MainApp(Gtk.Application):
 
     def __station_status(self, _obj, sta, stat, msg, port):
         '''
-        Station Status.
+        Station Status Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.chat.ChatSession`
         :param sta: Station
+        :type sta: str
         :param stat: Status
+        :type stat: str
         :param port: Radio Port
+        :type port: str
         '''
         self.mainwindow.tabs["stations"].saw_station(sta, port, stat, msg)
         try:
@@ -1554,11 +1664,14 @@ class MainApp(Gtk.Application):
 
     def __get_current_status(self, _obj, _port):
         '''
-        Get Current Status.
+        Get Current Status Handler.
 
-        :param _obj: Unused
-        :port _port: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.chat.ChatSession`
+        :port _port: Radio Port, Unused
+        :type _port: str
         :returns: status
+        :rtype: str
         '''
         return self.mainwindow.tabs["stations"].get_status()
 
@@ -1566,7 +1679,8 @@ class MainApp(Gtk.Application):
         '''
         Get current position.
 
-        :param _obj: Unused object that emitted signal
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
         :param station: Station to get position of
         :type station: str
         :raises: :class:`MainappStationNotFound`: if the station is not found
@@ -1586,55 +1700,68 @@ class MainApp(Gtk.Application):
                 break
         raise MainappStationNotFound("Station not found")
 
-    def __session_started(self, _obj, id_name, msg, port):
+    def __session_started(self, _obj, id_num, msg, port):
         '''
         Session Started Internal.
 
-        Don't register Chat, RPC, Sniff
+        Don't register Chat, RPC, Sniff.
+
         :param _obj: Unused
-        :param id_name: Id name
+        :param id_num: Session identification number
+        :type id_num: int
         :param msg: Message
+        :type msg: str
         :param port: Radio Port
+        :type port: str
         :returns: event widget
         :rtype: :class:`SessionEvent`
         '''
-        if id_name and id_name <= 3:
+        if id_num and id_num <= 3:
             return None
-        if id_name == 0:
+        if id_num == 0:
             msg = "Port connected"
 
-        self.logger.info("Session Started In: [SESSION %i]: %s", id_name, msg)
+        self.logger.info("Session Started In: [SESSION %i]: %s", id_num, msg)
 
-        event = main_events.SessionEvent(id_name, port, msg)
+        event = main_events.SessionEvent(id_num, port, msg)
         self.mainwindow.tabs["event"].event(event)
         return event
 
-    def __session_status_update(self, obj, id_name, msg, port):
+    def __session_status_update(self, obj, id_num, msg, port):
         '''
         Session Status Update.
 
-        :param obj: Object for status
-        :param id_name: Id name
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`session_coordinator.SessionCoordinator`
+        :param id_num: Session identification number
+        :type id_num: int
         :param msg: Message
+        :type msg: str
         :param port: Radio Port
+        :type port: str
         '''
-        self.__session_started(obj, id_name, msg, port)
+        self.__session_started(obj, id_num, msg, port)
 
-    def __session_ended(self, obj, id_name, msg, restart_info, port):
+    def __session_ended(self, obj, id_num, msg, restart_info, port):
         '''
         Session Ended.
 
-        :param obj: unused
-        :param id_name: Id Name
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`session_coordinator.SessionCoordinator`
+        :param id_num: Session identification number
+        :type id_num: int
         :param msg: Message
-        :param restart_info: Restart information
+        :type msg: str
+        :param restart_info: Restart information tuple of callsign, filename
+        :type restart_info: tuple[str, str]
         :param port: Radio port, default=None
+        :type port: str
         '''
         # Don't register Control, Chat, RPC, Sniff
-        if id_name <= 4:
+        if id_num <= 4:
             return
 
-        event = self.__session_started(obj, id_name, msg, port)
+        event = self.__session_started(obj, id_num, msg, port)
         event.set_restart_info(restart_info)
         event.set_as_final()
 
@@ -1644,19 +1771,28 @@ class MainApp(Gtk.Application):
 
         self.msgrouter.form_xfer_done(fname, port, True)
 
+    # pylint wants a max of 15 local variables
     # pylint: disable=too-many-locals
-    def __form_received(self, _obj, id_name, fname, port=None):
+    def __form_received(self, _obj, id_num, fname, port=None):
         '''
-        Form Received.
+        Form Received Handler.
 
-        :param _obj: Unused
-        :param id_name: Id name
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`msgrouting.MessageRouter`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
+        :type _obj: :class:`session_coordinator.SessionCoordinator`
+        :type _obj: :class:`emailgw.PeriodicAccountMailThread`
+        :param id_num: Session identification number
+        :type id_num: int
         :param fname: Form name
-        :param port: Radio port, default None'''
+        :type fname: str
+        :param port: Radio port, default None
+        :type port: str
+        '''
         if port:
-            id_name = "%s_%s" % (id_name, port)
+            id_num = "%s_%s" % (id_num, port)
 
-        self.logger.info("__form_received: [NEWFORM %s]: %s", id_name, fname)
+        self.logger.info("__form_received: [NEWFORM %s]: %s", id_num, fname)
         ffile = formgui.FormFile(fname)
 
         msg = '%s "%s" %s %s' % (_("Message"),
@@ -1694,81 +1830,99 @@ class MainApp(Gtk.Application):
             msgrouting.msg_unlock(fname)
         self.mainwindow.tabs["messages"].refresh_if_folder(refresh_folder)
 
-        event = main_events.FormEvent(id_name, msg)
+        event = main_events.FormEvent(id_num, msg)
         event.set_as_final()
         self.mainwindow.tabs["event"].event(event)
 
-    def __file_received(self, _obj, id_name, fname, port=None):
+    def __file_received(self, _obj, id_num, fname, port=None):
         '''
         File Received.
 
-        :param _obj: Unused
-        :param id_name: id_name
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`session_coordinator.SessionCoordinator`
+        :param id_num: Session identification number
+        :type id_num: int
         :param fname: File name
+        :type fname: str
         :param port: Radio port, default None
+        :type port: str
         '''
         if port:
-            id_name = "%s_%s" % (id_name, port)
+            id_num = "%s_%s" % (id_num, port)
         _fn = os.path.basename(fname)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Received"))
-        event = main_events.FileEvent(id_name, msg)
+        event = main_events.FileEvent(id_num, msg)
         event.set_as_final()
         self.mainwindow.tabs["files"].refresh_local()
         self.mainwindow.tabs["event"].event(event)
 
-    def __form_sent(self, _obj, id_name, fname, port=None):
+    def __form_sent(self, _obj, id_num, fname, port=None):
         '''
-        Form Sent.
+        Form Sent Handler.
 
-        :param _obj: Unused
-        :param id_name: id_name
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`msgrouting.MessageRouter`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
+        :type _obj: :class:`session_coordinator.SessionCoordinator`
+        :param id_num: id_num
+        :type id_num: int
         :param fname: Form name
+        :type fname: str
         :param port: Radio port, default None
+        :type port: str
         '''
         self.msgrouter.form_xfer_done(fname, port, False)
         if port:
-            id_name = "%s_%s" % (id_name, port)
-        self.logger.info("[FORMSENT %s]: %s", id_name, fname)
+            id_num = "%s_%s" % (id_num, port)
+        self.logger.info("[FORMSENT %s]: %s", id_num, fname)
         event = main_events.FormEvent(id, _("Message Sent"))
         event.set_as_final()
 
         self.mainwindow.tabs["messages"].message_sent(fname)
         self.mainwindow.tabs["event"].event(event)
 
-    def __file_sent(self, _obj, id_name, fname, port=None):
+    def __file_sent(self, _obj, id_num, fname, port=None):
         '''
         File sent.
 
-        :param _obj: Unused
-        :param id_name: id name
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`session_coordinator.SessionCoordinator`
+        :param id_num: Session identification number
+        :type id_num: str
         :param fname: File name
+        :type fname: str
         :param port: Radio port, default None
+        :type port: str
         '''
         if port:
-            id_name = "%s_%s" % (id_name, port)
-        self.logger.info("[FILESENT %s]: %s", id_name, fname)
+            id_num = "%s_%s" % (id_num, port)
+        self.logger.info("[FILESENT %s]: %s", id_num, fname)
         _fn = os.path.basename(fname)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Sent"))
-        event = main_events.FileEvent(id_name, msg)
+        event = main_events.FileEvent(id_num, msg)
         event.set_as_final()
         self.mainwindow.tabs["files"].file_sent(fname)
         self.mainwindow.tabs["event"].event(event)
 
     def __get_chat_port(self, _obj):
         '''
-        Get Chat Port.
+        Get Chat Port Handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`mainwindow.MainWindow`
         :returns: port used for chat
+        :rtype: str
         '''
         return self.mainwindow.tabs["chat"].get_selected_port()
 
     def __trigger_msg_router(self, _obj, account):
         '''
-        Trigger message router.
+        Trigger message router handler.
 
-        :param _obj: Unused
+        :param _obj: Object signaled, Unused
+        :type _obj: :class:`ui.main_messages.MessagesTab`
         :param account: Email account
+        :type account: str
         '''
         if not account:
             self.msgrouter.trigger()
@@ -1784,7 +1938,15 @@ class MainApp(Gtk.Application):
             mthread.start()
 
     def __register_object(self, _parent, obj):
-        '''Register Object.'''
+        '''
+        Register Object Handler.
+
+        :param _parent: Object signaled, Unused
+        :type _parent: :class:`sessions.rpc.RPCActionSet`
+        :param _obj: Object to connect to handler
+        :type _obj: :class:`GObject.GObject`
+        :type _obj: :class:`sessions.rpc.RPCActionSet`
+        '''
         self.__connect_object(obj)
 
 # ------------ END SIGNAL HANDLERS ----------------
@@ -1806,11 +1968,10 @@ class MainApp(Gtk.Application):
             elif self.handlers[signal]:
                 try:
                     obj.connect(signal, handler, *args)
-                # pylint: disable=broad-except
-                except Exception:
+                except TypeError as err:
                     self.logger.info(
                         "__connect_object: Failed to attach signal %s :%s",
-                        signal, "broad-except", exc_info=True)
+                        signal, err)
                     raise
 
     def _announce_self(self):
@@ -1832,13 +1993,8 @@ class MainApp(Gtk.Application):
         try:
             pos.set_station(self.config.get("user", "callsign"),
                             self.config.get("settings", "default_gps_comment"))
-        # pylint: disable=broad-except
-        except Exception:
-            # broad/bare exceptions make debugging harder
-            self.logger.info("get_position broad-except (%s -%s-)",
-                             exc_info=True)
-            raise
-            # pass
+        except (NoOptionError, gps.GpsDprsChecksumError):
+            pass
         return pos
 
     def load_static_routes(self):
@@ -1864,8 +2020,8 @@ class MainApp(Gtk.Application):
                 continue
 
             self.mainwindow.tabs["stations"].saw_station(station.upper(), port)
-            if port in self.smgr:
-                smgr, _sc = self.smgr[port]
+            if port in self.active_sessions:
+                smgr, _sc = self.active_sessions[port]
                 smgr.manual_heard_station(station)
 
     def clear_all_msg_locks(self):
@@ -1878,6 +2034,10 @@ class MainApp(Gtk.Application):
             self.logger.info("Removing stale message lock %s", lock)
             os.remove(lock)
 
+    # pylint wants wants a maximum of 15 local variables
+    # pylint wants a maximum of 12 branches
+    # pylint wants a maximum of 50 statements
+    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def main(self):
         '''Main.'''
         # Copy default forms before we start
@@ -1898,11 +2058,8 @@ class MainApp(Gtk.Application):
                                  fname, user_fname)
                 try:
                     shutil.copyfile(form, user_fname)
-                # pylint: disable=broad-except
-                except Exception:
-                    self.logger.info("Copyfile FAILED: broad-except",
-                                     exc_info=True)
-                    # broad/bare exceptions make debugging harder
+                except (OSError, shutil.SameFileError) as err:
+                    self.logger.info("Copyfile FAILED: %s", err)
                     raise
 
         self.clear_all_msg_locks()
@@ -1943,13 +2100,10 @@ class MainApp(Gtk.Application):
                                                       validate_incoming)
             self.__connect_object(self.msgrouter)
             self.msgrouter.start()
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("main broad exception thrown.", exc_info=True)
-            log_exception()
+        except TypeError:
+            self.logger.info("Main: MessageRouter setup failed!",
+                             exc_info=True)
             self.msgrouter = None
-            # broad/bare exceptions make debugging harder
-            raise
 
         # LOAD THE MAIN WINDOW
         self.logger.info("load the main window")
@@ -1966,10 +2120,11 @@ class MainApp(Gtk.Application):
         self.logger.info("Saving config...")
         self.config.save()
 
-        if self.config.getboolean("prefs", "dosignoff") and self.smgr:
+        if self.config.getboolean("prefs", "dosignoff") and \
+                self.active_sessions:
             msg = self.config.get("prefs", "signoff")
             status = station_status.STATUS_OFFLINE
-            for port in self.smgr:
+            for port in self.active_sessions:
                 port_session = self.chat_session(port)
                 if port_session:
                     port_session.advertise_status(status, msg)
