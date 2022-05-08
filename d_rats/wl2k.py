@@ -1121,11 +1121,11 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
     elif mode == "RMS":
         # TEMPORARY
         port = mainapp.config.get("prefs", "msg_wl2k_rmsport")
-        if port not in mainapp.sm:
+        if port not in mainapp.active_sessions:
             raise Wl2kAutoThreadNoSuchPort(
                 "No such AGW port %s for WL2K" % port)
 
-        agw_conn = mainapp.sm[port][0].pipe.get_agw_connection()
+        agw_conn = mainapp.active_sessions[port][0].pipe.get_agw_connection()
         # a = agw.AGWConnection("127.0.0.1", 8000, 0.5)
         message_thread = WinLinkAGWThread(mainapp.config, *args, **kwargs)
         message_thread.set_agw_conn(agw_conn)

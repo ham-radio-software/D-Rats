@@ -370,7 +370,7 @@ class SessionManager():
         :rtype: bool
         '''
         for ident, s_item in self.sessions.copy().items():
-            if s_item.name == s_item.name:
+            if session.name == s_item.name:
                 self.tport.flush_blocks(ident)
                 if session.get_state() != base.ST_CLSD:
                     self.control.end_session(session)
