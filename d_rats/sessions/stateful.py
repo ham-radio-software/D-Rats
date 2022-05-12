@@ -97,7 +97,7 @@ class StatefulSession(base.Session):
         self._closed = False
         self.hexdump = False
         self.thread = threading.Thread(target=self.worker)
-        self.thread.setDaemon(True)
+        self.thread.daemon = True
         self.thread.start()
 
     def notify_event(self):
@@ -292,7 +292,7 @@ class StatefulSession(base.Session):
 
         last_block = None
         for b_block in self.outstanding:
-            if b_block.sent_event.isSet():
+            if b_block.sent_event.is_set():
                 self.stats["retries"] += 1
                 b_block.sent_event.clear()
 
@@ -494,7 +494,7 @@ class StatefulSession(base.Session):
             else:
                 self.logger.info("worker: Deep sleep")
                 self.event.wait(self.IDLE_TIMEOUT)
-                if not self.event.isSet():
+                if not self.event.is_set():
                     self.logger.info("worker: Session timed out!")
                     self.set_state(base.ST_CLSD)
                     self.enabled = False
@@ -621,11 +621,11 @@ class StatefulSession(base.Session):
             self.logger.info("write: Waiting for block %i ACK to be received",
                              block.seq)
             block.sent_event.wait()
-            if block.sent_event.isSet():
+            if block.sent_event.is_set():
                 self.logger.info("write: Block %i is sent, waiting for ack",
                                  block.seq)
                 block.ackd_event.wait(timeout)
-                if block.ackd_event.isSet() and block.sent_event.isSet():
+                if block.ackd_event.is_set() and block.sent_event.is_set():
                     self.logger.info("write: %i ACK received", block.seq)
                 else:
                     self.logger.info("write: %i No ACK received "

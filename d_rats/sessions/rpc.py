@@ -711,7 +711,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
 
     def __worker(self):
         for ident, (time_stamp, att, job) in self.__jobs.copy().items():
-            if job.frame and not job.frame.sent_event.isSet():
+            if job.frame and not job.frame.sent_event.is_set():
                 # Reset timer until the block is sent
                 self.__jobs[ident] = (time.time(), att, job)
             elif (time.time() - time_stamp) > self.__t_retry:

@@ -72,7 +72,7 @@ class TCPServerThread(threading.Thread):
         self.__server = server(server_address, RequestHandlerClass)
         self.__server.set_config(config)
         threading.Thread.__init__(self)
-        self.setDaemon(True)
+        self.daemon = True
 
     def run(self):
         '''Run Server.'''
@@ -517,7 +517,7 @@ class DratsPOP3ServerThread(TCPServerThread):
         self.logger.info("[POP3] Starting server on port %i", port)
         TCPServerThread.__init__(self, config, DratsPOP3Server,
                                  ("0.0.0.0", port), DratsPOP3Handler)
-        self.setDaemon(True)
+        self.daemon = True
 
 
 class DratsSMTPServer(smtpd.SMTPServer):
@@ -586,7 +586,7 @@ class DratsSMTPServerThread(threading.Thread):
     def __init__(self, config):
         self.logger = logging.getLogger("DratsSMTPServerThread")
         threading.Thread.__init__(self)
-        self.setDaemon(True)
+        self.daemon = True
         self.__config = config
         self.__server = None
 

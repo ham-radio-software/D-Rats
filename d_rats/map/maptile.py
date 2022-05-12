@@ -602,7 +602,7 @@ class MapTile():
         '''
         new_args = (widget,)
         tfetch = threading.Thread(target=self._thread, args=new_args)
-        tfetch.setDaemon(True)
+        tfetch.daemon = True
         tfetch.start()
 
     def local_path(self):

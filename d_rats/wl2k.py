@@ -954,7 +954,7 @@ class WinLinkThread(threading.Thread, GObject.GObject):
         threading.Thread.__init__(self)
         self.logger = logging.getLogger("WinLinkThread")
 
-        self.setDaemon(True)
+        self.daemon = True
         GObject.GObject.__init__(self)
 
         if not callssid:

@@ -61,8 +61,7 @@ CALL_TIMEOUT_RETRY = 300
 
 MSG_LOCK_LOCK = threading.Lock()
 
-# pylint: disable=invalid-name
-global_logger = logging.getLogger("MsgRouting")
+MSGROUTING_LOGGER = logging.getLogger("MsgRouting")
 
 def __msg_lockfile(fname):
     name = os.path.basename(fname)
@@ -95,14 +94,14 @@ def msg_lock(fname):
         success = True
     else:
         lock = open(__msg_lockfile(fname), "r")
-        global_logger.info("msg_lock: "
-                           "------ LOCK OWNED BY -------\n%s------------\n",
-                           lock.read())
+        MSGROUTING_LOGGER.info("msg_lock: "
+                               "------ LOCK OWNED BY -------\n%s------------\n",
+                               lock.read())
         lock.close()
         success = False
     MSG_LOCK_LOCK.release()
 
-    # global_logger.info("Locked %s: %s", fname, success)
+    # MSGROUTING_LOGGER.info("Locked %s: %s", fname, success)
     return success
 
 
@@ -122,7 +121,7 @@ def msg_unlock(fname):
         success = False
     MSG_LOCK_LOCK.release()
 
-    # global_logger.info("Unlocked %s: %s", fn, success)
+    # MSGROUTING_LOGGER.info("Unlocked %s: %s", fn, success)
     return success
 
 
@@ -138,16 +137,17 @@ def gratuitous_next_hop(route, path):
     route_nodes = route.split(";")
 
     if len(path_nodes) >= len(route_nodes):
-        global_logger.info("gratuitous_next_hop: Nothing left in the routes")
+        MSGROUTING_LOGGER.info("gratuitous_next_hop: "
+                               "Nothing left in the routes")
         return None
 
 
     # pylint: disable=consider-using-enumerate
     for i in range(0, len(path_nodes)):
         if path_nodes[i] != route_nodes[i]:
-            global_logger.info("gratuitous_next_hop: "
-                               "Path element %i (%s) does not match route %s",
-                               i, path_nodes[i], route_nodes[i])
+            MSGROUTING_LOGGER.info("gratuitous_next_hop: Path element "
+                                   "%i (%s) does not match route %s",
+                                   i, path_nodes[i], route_nodes[i])
             return None
 
     return route_nodes[len(path_nodes)]
@@ -164,36 +164,36 @@ def is_sendable_dest(mycall, string):
     '''
     # Specifically for me
     if string == mycall:
-        global_logger.info("is_sendable_dest: msg for me")
+        MSGROUTING_LOGGER.info("is_sendable_dest: msg for me")
         return False
 
     # Empty string
     if not string.strip():
-        global_logger.info("is_sendable_dest: empty: %s %s",
-                           string, string.strip())
+        MSGROUTING_LOGGER.info("is_sendable_dest: empty: %s %s",
+                               string, string.strip())
         return False
 
     # Is an email address:
     if "@" in string:
-        global_logger.info("is_sendable_dest: is an Email")
+        MSGROUTING_LOGGER.info("is_sendable_dest: is an Email")
         return True
 
     # Contains lowercase characters
     if string != string.upper():
-        global_logger.info("is_sendable_dest: lowercase")
+        MSGROUTING_LOGGER.info("is_sendable_dest: lowercase")
         return False
 
     # Contains spaces
     if string != string.split()[0]:
-        global_logger.info("is_sendable_dest: spaces")
+        MSGROUTING_LOGGER.info("is_sendable_dest: spaces")
         return False
 
     # Contains a gratuitous route and we're the last in line
     if ";" in string and string.split(";")[-1] == mycall:
-        global_logger.info("is_sendable_dest: End of grat")
+        MSGROUTING_LOGGER.info("is_sendable_dest: End of grat")
         return False
 
-    global_logger.info("is_sendable_dest: default to call")
+    MSGROUTING_LOGGER.info("is_sendable_dest: default to call")
 
     # Looks like it's a candidate to be routed
     return True
@@ -743,7 +743,7 @@ class MessageRouter(GObject.GObject):
     def _run(self):
         while self.__enabled:
             if self.__config.getboolean("settings", "msg_forward") or \
-                    self.__event.isSet():
+                    self.__event.is_set():
                 # self.logger.info("_run: Running routing loop")
                 queue = self._get_queue()
 
@@ -765,7 +765,7 @@ class MessageRouter(GObject.GObject):
 
     def trigger(self):
         '''Trigger'''
-        if not self.__thread.isAlive():
+        if not self.__thread.is_alive():
             self.start()
         else:
             self.__event.set()
@@ -776,7 +776,7 @@ class MessageRouter(GObject.GObject):
         self.__enabled = True
         self.__event.clear()
         self.__thread = threading.Thread(target=self._run)
-        self.__thread.setDaemon(True)
+        self.__thread.daemon = True
         self.__thread.start()
 
     def stop(self):
