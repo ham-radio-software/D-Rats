@@ -1,5 +1,6 @@
 #!/usr/bin/python
 '''GPS Module.'''
+# pylint wants only 1000 lines
 # pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
@@ -56,8 +57,7 @@ DEGREE = u"\u00b0"
 
 DPRS_TO_APRS = {}
 
-# pylint: disable=invalid-name
-global_logger = logging.getLogger("gps")
+GPS_LOGGER = logging.getLogger("gps")
 
 
 # The DPRS to APRS mapping is pretty horrific, but the following
@@ -165,7 +165,7 @@ def dprs_to_aprs(symbol):
     :rtype: str
     '''
     if len(symbol) < 2:
-        global_logger.info("dprs_to_aprs: Invalid DPRS symbol: `%s'", symbol)
+        GPS_LOGGER.info("dprs_to_aprs: Invalid DPRS symbol: `%s'", symbol)
         return None
     return DPRS_TO_APRS.get(symbol[0:2], None)
 
@@ -223,7 +223,7 @@ def set_units(units):
     elif units == _("Metric"):
         EARTH_RADIUS = 6380.0
         EARTH_UNITS = "km"
-    global_logger.info("set_units: Set GPS units to %s", units)
+    GPS_LOGGER.info("set_units: Set GPS units to %s", units)
 
 
 def value_with_units(value):
@@ -496,8 +496,8 @@ def parse_date(string, fmt):
     try:
         return datetime.datetime.strptime(string, fmt)
     except AttributeError:
-        global_logger.info("parse_data: Enabling strptime() workaround "
-                           "for Python <= 2.4.x")
+        GPS_LOGGER.info("parse_data: Enabling strptime() workaround "
+                        "for Python <= 2.4.x")
 
     vals = {}
 
@@ -516,6 +516,7 @@ def parse_date(string, fmt):
                              vals["S"])
 
 
+# pylint wants a maximum of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class GPSPosition():
     '''
@@ -625,6 +626,7 @@ class GPSPosition():
 
         return self
 
+    # pylint wants a maximum of 12 branches
     # pylint: disable=too-many-branches
     def __str__(self):
         if self.valid:
@@ -1212,18 +1214,11 @@ class APRSGPSPosition(GPSPosition):
 
     def _from_APRS(self, string):
         self.valid = False
-        # pylint: disable=broad-except
         try:
             self._parse_GPSA(string)
-        except (TypeError, ValueError) as err:
+        except (TypeError, ValueError, re.error, GpsDateParseError) as err:
             self.logger.info("_from_APRS: Invalid APRS (%s)", err)
             return False
-
-        except Exception:
-            self.logger.info("_from_APRS: Generic Exception Invalid APRS",
-                             exc_info=True)
-            return False
-
         return self.valid
 
 
@@ -1363,7 +1358,7 @@ class GPSSource():
         self.invalid = 100
         self.enabled = True
         self.thread = threading.Thread(target=self.gpsthread)
-        self.thread.setDaemon(True)
+        self.thread.daemon = True
         self.thread.start()
 
     def stop(self):
@@ -1448,7 +1443,7 @@ class NetworkGPSSource(GPSSource):
         '''Start.'''
         self.enabled = True
         self.thread = threading.Thread(target=self.gpsthread)
-        self.thread.setDaemon(True)
+        self.thread.daemon = True
         self.thread.start()
 
     def stop(self):
@@ -1624,9 +1619,8 @@ def parse_GPS(string):
                 return APRSGPSPosition(string[string.index("$$CRC"):])
             else:
                 string = string[string.index("$")+1:]
-        # pylint: disable=broad-except
-        except Exception:
-            global_logger.info("parse_GPS: broad-except", exc_info=True)
+        except (ValueError, GpsGpggaException) as err:
+            GPS_LOGGER.info("parse_GPS: exception: %s", err)
             string = string[string.index("$")+1:]
 
     if not fixes:
@@ -1636,7 +1630,7 @@ def parse_GPS(string):
     fixes = fixes[1:]
 
     for extra in fixes:
-        global_logger.info("parse_GPS: Appending fix: %s", extra)
+        GPS_LOGGER.info("parse_GPS: Appending fix: %s", extra)
         fix += extra
 
     return fix
@@ -1673,14 +1667,14 @@ def main():
             ",,A*71\r\nKK7DS  M,LJ  DAN*C",
         "$GPRMC,230710,A,2748.1414,N,08238.5556,W,000.0,033.1,111208,004.3,W*77",
         ]
-    global_logger.info("main: -- NMEA --")
+    GPS_LOGGER.info("main: -- NMEA --")
 
     for nmea_str in nmea_strings:
         nmea_pos = NMEAGPSPosition(nmea_str)
         if nmea_pos.valid:
-            global_logger.info("main: Pass: %s", str(nmea_pos))
+            GPS_LOGGER.info("main: Pass: %s", str(nmea_pos))
         else:
-            global_logger.info("main: ** FAIL: %s", nmea_str)
+            GPS_LOGGER.info("main: ** FAIL: %s", nmea_str)
 
     aprs_strings = [
         "$$CRCCE3E,AE5PL-T>API282,DSTAR*:!3302.39N/09644.66W>/\r",
@@ -1693,14 +1687,14 @@ def main():
             ">ON D-RATS at Work\r',
         ]
 
-    global_logger.info("main:  \n-- GPS-A --")
+    GPS_LOGGER.info("main:  \n-- GPS-A --")
 
     for aprs_str in aprs_strings:
         gps_pos = APRSGPSPosition(aprs_str)
         if gps_pos.valid:
-            global_logger.info("main: Pass: %s", str(gps_pos))
+            GPS_LOGGER.info("main: Pass: %s", str(gps_pos))
         else:
-            global_logger.info("main: ** FAIL: %s", aprs_str)
+            GPS_LOGGER.info("main: ** FAIL: %s", aprs_str)
 
 
 if __name__ == "__main__":

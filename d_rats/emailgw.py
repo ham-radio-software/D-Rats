@@ -187,7 +187,7 @@ class MailThread(threading.Thread, GObject.GObject):
         threading.Thread.__init__(self)
         GObject.GObject.__init__(self)
         self.logger = logging.getLogger("MailThread")
-        self.setDaemon(True)
+        self.daemon = True
 
         self.username = user
         self.password = pasw

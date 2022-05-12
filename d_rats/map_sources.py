@@ -231,12 +231,12 @@ class MapPointThreaded(MapPoint):
         self.__ts = 0
 
     def __start_thread(self):
-        if self.__thread and self.__thread.isAlive():
+        if self.__thread and self.__thread.is_alive():
             self.logger.info("Threaded Point: Still waiting on a thread")
             return
 
         self.__thread = threading.Thread(target=self.__thread_fn)
-        self.__thread.setDaemon(True)
+        self.__thread.daemon = True
         self.__thread.start()
 
     def _retr_hook(self, method, attribute):

@@ -82,7 +82,7 @@ class SessionThread():
         self.arg = data
 
         self.thread = threading.Thread(target=self.worker, args=(data,))
-        self.thread.setDaemon(True)
+        self.thread.daemon = True
         self.thread.start()
 
     def stop(self):
@@ -763,7 +763,7 @@ class SessionCoordinator(GObject.GObject):
                     "cls"       : xfer,
                     "blocksize" : block_size,
                     "outlimit"  : outlimit})
-        file_thread.setDaemon(True)
+        file_thread.daemon = True
         file_thread.start()
         self.logger.info("send_file: Started Session")
 
@@ -788,7 +788,7 @@ class SessionCoordinator(GObject.GObject):
             kwargs={"name" : name,
                     "dest" : dest,
                     "cls"  : xfer})
-        form_thread.setDaemon(True)
+        form_thread.daemon = True
         form_thread.start()
         self.logger.info("Started form session")
 

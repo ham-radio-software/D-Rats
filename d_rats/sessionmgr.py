@@ -104,19 +104,19 @@ class SessionManager():
         '''
         self._stations_heard[station] = time.time()
 
-    def fire_session_cb(self, session, reason):
+    def fire_session_cb(self, ident, reason):
         '''
         Fire Session call back.
 
-        :param session: Session for call back
-        :type session: :class:`Session`
+        :param ident: Session identification number for call back
+        :type ident: int
         :param reason: Reason for callback
         :type reason: str
         '''
         for function, data in self.session_cb.copy().items():
             try:
                 # function is SessionCoordinator method?
-                function(data, reason, session)
+                function(data, reason, ident)
             # pylint: disable=broad-except
             except Exception:
                 self.logger.info("fire_session_cb: broad-exception",
@@ -276,7 +276,7 @@ class SessionManager():
 
         :param session: new session
         :type session: :class:`sessions.base.Session`
-        :param dest: Destination for session
+        :param dest: Destination station for session
         :type dest: str
         :param reason: Reason for session
         :type reason: str
@@ -472,7 +472,7 @@ def main():
                 logger.info("Receiving file")
                 thread = threading.Thread(target=session.recv_file,
                                           args=("/tmp",))
-                thread.setDaemon(True)
+                thread.daemon = True
                 thread.start()
                 logger.info("Done")
 

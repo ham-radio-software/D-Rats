@@ -326,7 +326,7 @@ class DRatsPluginServer(SimpleXMLRPCServer):
     def serve_background(self):
         '''Serve Background'''
         self.__thread = threading.Thread(target=self.serve_forever)
-        self.__thread.setDaemon(True)
+        self.__thread.daemon = True
         self.__thread.start()
         self.logger.info("Started serve_forever() thread")
 
