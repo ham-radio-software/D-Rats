@@ -71,7 +71,9 @@ class Event():
     Event.
 
     :param group_id: Group ID
+    :type group_id: int
     :param message: Event message
+    :type message: str
     :param evtype: event type, Default EVENT_INFO
     :type evtype: int
     :raises: :class:`InvalidEventType` if the event type validation fails
@@ -109,6 +111,7 @@ class Event():
         Set event details.
 
         :param details: Event details
+        :type details: str
         '''
         self._details = details
 
@@ -153,8 +156,11 @@ class SessionEvent(Event):
     Session Event.
 
     :param session_id: Session ID
+    :type session_id: int
     :param port_id: Port Id
+    :type port_id: str
     :param message: message for event
+    :type message: str
     '''
 
     def __init__(self, session_id, port_id, message):
@@ -170,6 +176,7 @@ class SessionEvent(Event):
         Get Port ID
 
         :returns: Port ID
+        :rtype: str
         '''
         return self.__portid
 
@@ -178,6 +185,7 @@ class SessionEvent(Event):
         Get Session ID
 
         :returns:  Session ID
+        :rtype: int
         '''
         return self.__sessionid
 
@@ -185,7 +193,8 @@ class SessionEvent(Event):
         '''
         Set Restart Information.
 
-        :param restart_info: Restart information
+        :param restart_info: Restart information of station, filename or None
+        :type restart_info: tuple[str, str]
         '''
         self.__restart_info = restart_info
 
@@ -193,7 +202,8 @@ class SessionEvent(Event):
         '''
         Get Restart Information.
 
-        :returns: Restart information
+        :returns: Restart information tuple of station, filename or None
+        :rtype: tuple[str, str]
         '''
         return self.__restart_info
 
@@ -203,12 +213,14 @@ def filter_rows(model, row_iter, evtab):
     Filter roles.
 
     :param model: Model to get romes from
-    :param row_iter: Iterated row to get
-    :param evtab: Event table
+    :type: model: :class:`EventTab`
+    :param row_iter: Iterated row to get data from.
+    :type row_iter: :class:`Gtk.TreeIter`
+    :param evtab: Event Tab Widget
+    :type: evtab: :class:`EventTab`
     :returns: True if no filter icon, or if icon matches the filter icon
     :rtype: bool
     '''
-    # Probably needs a better doc-string
     # pylint: disable=protected-access
     search = evtab._wtree.get_object("event_searchtext").get_text()
 
@@ -230,7 +242,8 @@ class EventTab(MainWindowTab):
     Event Tab.
 
     :param wtree: Widget tree
-    :param config:
+    :type wtree: :class:`Gtk.Widget`
+    :param config: D-Rats configuration
     :type config: :class:`DratsConfig`
     '''
 
@@ -248,7 +261,6 @@ class EventTab(MainWindowTab):
     def __init__(self, wtree, config):
         MainWindowTab.__init__(self, wtree, config, "event", _("Event Log"))
 
-        # Each class should have their own logger.
         self.logger = logging.getLogger("EventTab")
 
         self.__ctr = 0
@@ -314,6 +326,14 @@ class EventTab(MainWindowTab):
         self.event(event)
 
     def _mh_xfer(self, _action, event):
+        '''
+        Menu Handler Transfer Activate Handler.
+
+        :param _action: Action widget
+        :type _action: :class:`Gtk.Action`
+        :param event: Event to act on.
+        :type_event: :class:`Event`
+        '''
         action = _action.get_name()
 
         sid = event.get_sessionid()
@@ -358,6 +378,14 @@ class EventTab(MainWindowTab):
         return uim.get_object("/menu")
 
     def _mouse_cb(self, view, uievent):
+        '''
+        Mouse Button Click Event Handler.
+
+        :param view: Widget signaled
+        :type view: :class:`Gtk.TreeView`
+        :param uievent: Signaled event
+        :type uievent: :class:`Gtk.EventButton`
+        '''
         if uievent.button != 3:
             return
 
@@ -381,23 +409,26 @@ class EventTab(MainWindowTab):
             menu.popup(None, None, None, None, uievent.button, uievent.time)
 
     def _type_selected(self, typesel, filtermodel):
+        '''
+        Type Selected Change Handler.
+
+        :param typesel: Widget signaled
+        :type typesel: :class:`Gtk.Editable`
+        :param filtermodel: Filter model
+        :type filtermodel: :class:`Gtk.TreeModel`
+        '''
         event_filter = typesel.get_active_text()
         self.logger.info("_type_selected: Filter set on %s", event_filter)
         filter_type = None
-        # This needs to be fixed.  It means that the internationalization
-        # dictionaries are not being properly setup.
-        if event_filter == _("All") or event_filter == _("Tutto"):
+        if event_filter == _("All"):
             filter_type = None
-        elif event_filter == _("File Transfers") or \
-             event_filter == _("Trasferimento File"):
+        elif event_filter == _("File Transfers"):
             filter_type = EVENT_FILE_XFER
-        elif event_filter == _("Form Transfers") or \
-             event_filter == _("Trasferimento Messaggi"):
+        elif event_filter == _("Form Transfers"):
             filter_type = EVENT_FORM_XFER
         elif event_filter == _("Pings") or event_filter == _("Ping"):
             filter_type = EVENT_PING
-        elif event_filter == _("Position Reports") or \
-             event_filter == _("Rapporto di Posizione"):
+        elif event_filter == _("Position Reports"):
             filter_type = EVENT_POS_REPORT
 
         if filter_type is None:
@@ -407,8 +438,16 @@ class EventTab(MainWindowTab):
 
         filtermodel.refilter()
 
-    # pylint: disable=no-self-use
-    def _search_text(self, _searchtext, filtermodel):
+    @staticmethod
+    def _search_text(_searchtext, filtermodel):
+        '''
+        Search Text Change Handler.
+
+        :param _searchtext: Widget signaled
+        :type _searchtext: :class:`Gtk.Editable`
+        :param filtermodel: Filter model
+        :type filtermodel: :class:`Gtk.TreeModel`
+        '''
         filtermodel.refilter()
 
     def _load_pixbufs(self):
@@ -421,6 +460,12 @@ class EventTab(MainWindowTab):
             self._config.ship_img("event_posreport.png")
 
     def __change_sort(self, column):
+        '''
+        Change Sort Click Handler.
+
+        :param column: Column to change
+        :type column: :class:`Gtk.TreeViewColumn`
+        '''
         srt = column.get_sort_order()
 
         if srt == Gtk.SortType.ASCENDING:
@@ -438,8 +483,15 @@ class EventTab(MainWindowTab):
         srt = self._config.getint("state", "events_sort")
         return srt == Gtk.SortType.ASCENDING
 
-    @utils.run_gtk_locked
     def _event(self, event):
+        '''
+        _event delayed run routine.
+
+        Used to update the event window.
+
+        :param event: Event to log.
+        :type event: :class:`Event`
+        '''
         # pylint: disable=unbalanced-tuple-unpacking
         scroll_window, = self._getw("sw")
         adj = scroll_window.get_vadjustment()
@@ -491,21 +543,25 @@ class EventTab(MainWindowTab):
         # pylint: disable=protected-access
         self.emit("status", event._message)
 
-        @utils.run_gtk_locked
         def top_scroll(adj):
             '''
             Top Scroll Adjustment.
 
+            Delayed run method.
+
             :param adj: Adjustment
+            :type adj: :class:`Gtk.Adjustment`
             '''
             adj.set_value(0.0)
 
-        @utils.run_gtk_locked
         def bot_scroll(adj):
             '''
             Bottom Scroll Adjustment.
 
+            Delayed run method.
+
             :param adj: Adjustment
+            :type adj: :class:`Gtk.Adjustment`
             '''
             adj.set_value(adj.get_upper() - adj.get_page_size())
 
@@ -519,6 +575,7 @@ class EventTab(MainWindowTab):
         Add an event.
 
         :param event: Event to add
+        :type event: :class:`Event`
         '''
         GLib.idle_add(self._event, event)
 
@@ -526,7 +583,9 @@ class EventTab(MainWindowTab):
         '''
         Finalize last event.
         :param group: Event group
+        :type group: int
         :returns: True if the event is finalized, otherwise False.
+        :rtype: bool
         '''
         # Need to find out what finalizing last even means to make
         # this documentation more useful.
@@ -545,7 +604,9 @@ class EventTab(MainWindowTab):
         Get last event time for a group.
 
         :param group: Event Group
+        :type group: int
         :returns: Returns time of last event or 0 if no last event found
+        :rtype: float
         '''
         event_iter = self.store.get_iter_first()
         while event_iter:
