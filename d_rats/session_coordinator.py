@@ -35,7 +35,7 @@ from d_rats.sessions import base
 from d_rats.sessions import file as sessions_file
 from d_rats.sessions import form
 from d_rats.sessions import sock
-from .utils import run_safe, run_gtk_locked
+from .utils import run_safe
 from . import formgui
 
 # from . import emailgw
@@ -121,7 +121,15 @@ class FileBaseThread(SessionThread):
         '''
         Status call back.
 
+        Vals dict has following members
+        total_size: int
+        retries: int
+        start_time: float
+        sent_wire: int
+        msg: str
+
         :param vals: data for callback
+        :type vals: dict
         '''
         # print "GUI Status:"
         # for k,v in vals.copy().items():
@@ -672,8 +680,17 @@ class SessionCoordinator(GObject.GObject):
             self.sthreads[session._id] = SocketThread(self, session,
                                                       (new_sock, time_out))
 
-    @run_gtk_locked
     def _new_session(self, session_type, session, direction):
+        '''
+        New Session delayed run routine.
+
+        :param session_type: Session type
+        :type session_type: ?
+        :param session: Session to start
+        :type session: ?
+        :param direction: Direction of communication
+        :type direction: ?
+        '''
         # pylint: disable=protected-access
         if session._id <= 3:
             return # Skip control, chat, sniff, rpc
@@ -710,6 +727,7 @@ class SessionCoordinator(GObject.GObject):
         End Session.
 
         :param ident: Session identification
+        :type ident: int
         '''
         thread = self.sthreads.get(ident, None)
         if isinstance(thread, SessionThread):
