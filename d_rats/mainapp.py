@@ -93,7 +93,7 @@ from .dplatform import get_platform
 from .ui import main_events
 from .ui.main_common import prompt_for_station
 
-from .utils import NetFile, run_gtk_locked
+from .utils import NetFile
 from .utils import init_icon_maps
 from .sessions import rpc, chat, sniff
 
@@ -1152,11 +1152,15 @@ class MainApp(Gtk.Application):
         Here we manage the chat messages both incoming and outgoing
 
         :param src: Source
+        :type src: str
         :param dst: Destination
+        :type dst: str
         :param data: Chat data
+        :type data: str
         :param incoming: True if message is incoming
         :type incoming: bool
         :param port: Radio port
+        :type port: str
         '''
         if self.plugsrv:
             self.plugsrv.incoming_chat_message(src, dst, data)
@@ -1187,11 +1191,9 @@ class MainApp(Gtk.Application):
 
         line = "%s%s%s %s" % (portstr, src, msg_to, data)
 
-        @run_gtk_locked
         def do_incoming():
             self.mainwindow.tabs["chat"].display_line(line, incoming, color,
                                                       **kwargs)
-
         GLib.idle_add(do_incoming)
 
 # ---------- STANDARD SIGNAL HANDLERS --------------------
@@ -1406,7 +1408,7 @@ class MainApp(Gtk.Application):
         :type station: str
         :returns: list of message tuple of title, stamp, filename for
                   the destination
-        :rtype: list[str, int, str]
+        :rtype: list[tuple[str, int, str]]
         '''
         return self.mainwindow.tabs["messages"].get_shared_messages(station)
 
@@ -1438,7 +1440,7 @@ class MainApp(Gtk.Application):
         :type _obj: :class:`msgrouting.MessageRouter`
         :type _obj: :class:`sessions.rpc.RPCActionSet`
         :type _obj: :class:`emailgw.PeriodicAccountMailThread`
-        :param event: Event
+        :param event: Event to log.
         :type event: :class:`main_events.Event`
         '''
         self.mainwindow.tabs["event"].event(event)
