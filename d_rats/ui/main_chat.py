@@ -592,6 +592,9 @@ class ChatTab(MainWindowTab):
         :param incoming: Message is incoming
         :type incoming: bool
         :param attrs: Additional attributes
+        :type attrs: tuple[str]
+        :param priv_src: Source call sign, optional.
+        :type priv_src: str
         :param kwargs: Key word arguments
         '''
         if (time.time() - self._last_date) > 600:
@@ -706,7 +709,9 @@ class ChatTab(MainWindowTab):
         :param apply_filters: Flag to apply filters
         :type apply_filters: bool
         :param *attrs: Attributes for line
-        :param **kwargs: Key word arguments
+        :type attrs: tuple[str]
+        :param priv_src: Source call sign, optional.
+        :type priv_src: str
         '''
         match = re.match("^([^#].*)(#[^/]+)//(.*)$", text)
         if "priv_src" in kwargs.keys():

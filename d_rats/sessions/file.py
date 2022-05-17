@@ -1,7 +1,7 @@
 '''Sessions file.py'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,8 +71,11 @@ class FileTransferSession(stateful.StatefulSession):
     :param name: Name of session
     :type name: str
     :param status_cb: Status call back, default=None
-    :type status_cb: function
-    :param kwargs: Keyword arguments
+    :type status_cb: function(dict)
+    :param blocksize: Blocksize, default 1024
+    :type blocksize: int
+    :param outlimit: Outstanding limit, default 8
+    :type outlimit: int
     '''
 
     type = base.T_FILEXFER

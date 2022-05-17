@@ -67,7 +67,7 @@ class Station:
     '''
     Station
 
-    :param callsign: Callsign of station.
+    :param callsign: StationID of station.
     :type callsign: str
     '''
     def __init__(self, callsign):

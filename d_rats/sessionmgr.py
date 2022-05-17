@@ -127,7 +127,7 @@ class SessionManager():
         Register Session Call Back.
 
         :param function: Function to call back
-        :type function: function
+        :type function: function(any, str, int)
         :param data: Data for call back function
         '''
         self.session_cb[function] = data
@@ -325,11 +325,18 @@ class SessionManager():
 
         :param name: Name of session
         :type name: str
-        :param dest: Optional Destination of session
+        :param dest: Optional Destination station id of session
         :type dest: str
         :param cls: Optional Session class
         :type cls: :class:`Session`
+        :param status_cb: Status call back, default=None
+        :type status_cb: function(dict)
+        :param blocksize: Blocksize, default 1024
+        :type blocksize: int
+        :param outlimit: Outstanding limit, default 8
+        :type outlimit: int
         :param kwargs: Optional Key word arguments
+        :type kwargs: dict
         :returns: session that was started
         :rtype: :class:`Session`
         '''
@@ -398,7 +405,7 @@ class SessionManager():
 
         :param rid: Remote ID, optional
         :type rid: int
-        :param rst: Remote station, Optional
+        :param rst: Remote station id, Optional
         :type rst: str
         :param lid: Local id value, optional
         :type lid: int

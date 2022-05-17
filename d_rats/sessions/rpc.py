@@ -727,6 +727,7 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
         Submit Session.
 
         :param job: Job for session
+        :type job: :class:`RPCJob`
         '''
         ident = self.__get_seq()
         self.__send_job(job, ident)
