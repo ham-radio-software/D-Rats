@@ -1562,8 +1562,9 @@ class MessagesTab(MainWindowTab):
         Get Shared Messages for a destination.
 
         :param for_station:  Destination Station (Currently ignored)
-        :returns: list of messages for the destination
-        :rtype: List of tuple (title, stamp, filename)
+        :returns: list of message tuple of title, stamp, filename for
+                  the destination
+        :rtype: list[tuple[str, int, str]]
         '''
         shared = _("Inbox")
         path = os.path.join(self._config.platform.config_dir(), "messages")

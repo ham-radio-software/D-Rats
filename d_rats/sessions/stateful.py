@@ -46,7 +46,11 @@ class StatefulSession(base.Session):
     Stateful Session.
 
     :param name: Name of session
-    :param kwargs: Key word arguments
+    :type name: str
+    :param blocksize: Blocksize, default 1024
+    :type blocksize: int
+    :param outlimit: Outstanding limit, default 8
+    :type outlimit: int
     '''
 
     stateless = False

@@ -333,7 +333,7 @@ class Transporter():
             self._parse_gps()
 
     def send_frames(self):
-        '''Send Frame.'''
+        '''Send Frames.'''
         delayed = False
 
         while True:

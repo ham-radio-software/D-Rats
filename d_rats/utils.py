@@ -1,7 +1,7 @@
 #
 '''utility Methods.'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com> python3 gtk3 update
+# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com> python3 gtk3 update
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -97,6 +97,8 @@ def byte_ord(raw_data):
     return raw_data
 
 
+# pylint wants only 12 branches
+# pylint: disable=too-many-branches
 def hexprintlog(raw_data):
     '''
     Hex Print log
@@ -212,6 +214,7 @@ def run_safe(function):
     return runner
 
 
+# deprecated with Gtk 3.
 def run_gtk_locked(function):
     '''
     Run function with gtk locked.
@@ -219,6 +222,7 @@ def run_gtk_locked(function):
     :param function: Function to run
     :type function: function
     :returns: function result or raise error
+    :rtype: any
     '''
     import gi
     gi.require_version("Gdk", "3.0")
@@ -265,7 +269,7 @@ def run_or_error(function):
 
     return runner
 
-
+# possibly deprecated to be replaced by logging moodule.
 def print_stack():
     '''Print Stack'''
     import traceback
@@ -411,6 +415,7 @@ class ExternalHash():
         Update.
 
         :param val: value to write
+        :type val: bytes
         '''
         from subprocess import Popen, PIPE
         proc = Popen("md5sum", shell=True,
@@ -426,6 +431,7 @@ class ExternalHash():
         Digest
 
         :returns: List of values.
+        :rtype: list[bytes]
         '''
         return self.hval.split()[0]
 
@@ -518,7 +524,7 @@ def port_for_stationid(ports, stationid):
                 return port
     return None
 
-
+# appears unused.
 def make_error_dialog(msg, stack, buttons, msg_type, extra):
     '''
     Make Error Dialog
@@ -527,9 +533,12 @@ def make_error_dialog(msg, stack, buttons, msg_type, extra):
     :type stack: str
     :param buttons: Dialog buttons
     :type buttons: :class:`Gtk.Widget`
-    :param msg_type: Type of message
+    :param msg_type: Type of Window
+    :type msg_type: :class:`Gtk,Window`
     :param extra: Extra information
+    :type extra: function(:class:`Gtk.MessageDialog`)
     :returns: Result of running error dialog
+    :rtype: :class:`Gtk.ResponseType`
     '''
     import gi
     gi.require_version("Gtk", "3.0")
@@ -575,6 +584,7 @@ def dict_rev(target_dict, key):
     :type target_dict: dict
     :param key: value to find the key for
     :returns: Key that contains the value.
+    :rtype: any
     :raises: value_error if value is not present in target_dict.
     '''
     # Alternate implementation

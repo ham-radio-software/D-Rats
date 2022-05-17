@@ -243,6 +243,7 @@ class ChatSession(stateless.StatelessSession, GObject.GObject):
         Write raw data.
 
         :param data: Data to send
+        :type data: str or bytes
         '''
         frame = DDT2RawData()
         if isinstance(data, str):
@@ -260,6 +261,7 @@ class ChatSession(stateless.StatelessSession, GObject.GObject):
         Write chat message to destination.
 
         :param data: Data to send
+        :type data: str
         :param dest: Destination station, default "CQCQCQ"
         :type dest: str
         '''
