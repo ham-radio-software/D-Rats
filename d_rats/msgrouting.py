@@ -31,7 +31,6 @@ from glob import glob
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
-# from email.message import Message
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -63,6 +62,7 @@ MSG_LOCK_LOCK = threading.Lock()
 
 MSGROUTING_LOGGER = logging.getLogger("MsgRouting")
 
+
 def __msg_lockfile(fname):
     name = os.path.basename(fname)
     path = os.path.dirname(fname)
@@ -74,7 +74,9 @@ def msg_is_locked(fname):
     Message is locked?
 
     :param fname: Lock filename
+    :type fname: str
     :returns: True if the lock filename exists
+    :rtype: bool
     '''
     return os.path.exists(__msg_lockfile(fname))
 
@@ -84,7 +86,9 @@ def msg_lock(fname):
     Message Lock
 
     :param fname: Filename for lock
+    :type fname: str
     :returns: True if lock is successful
+    :rtype: bool
     '''
     MSG_LOCK_LOCK.acquire()
     if not msg_is_locked(fname):
@@ -110,7 +114,9 @@ def msg_unlock(fname):
     Message Unlock
 
     :param fname: Lock filename
+    :type fname: str
     :returns: True if the unlock is successful
+    :rtype: bool
     '''
     success = True
     MSG_LOCK_LOCK.acquire()
@@ -130,8 +136,11 @@ def gratuitous_next_hop(route, path):
     Gratuitous Next Hop
 
     :param route: Route information
+    :type route: str
     :param path: Route for path
+    :type path: str
     :returns: Route Nodes or None
+    :rtype: str
     '''
     path_nodes = path[1:]
     route_nodes = route.split(";")
@@ -159,8 +168,11 @@ def is_sendable_dest(mycall, string):
     Is sendable Dest?
 
     :param mycall: Callsign to check
+    :type mycall: str
     :param string: string value
-    :returns: Boolean is sendable
+    :type string: str
+    :returns: True if sendable
+    :rtype: bool
     '''
     # Specifically for me
     if string == mycall:
@@ -249,9 +261,7 @@ def form_to_email(config, msgfn, replyto=None):
                        "attachment",
                        filename="do_not_open_me")
     root.attach(payload)
-
     del form
-
     return root
 
 
@@ -262,7 +272,9 @@ def move_to_folder(config, msg, folder):
     :param config: Config object
     :type config: :class:`DratsConfig`
     :param msg: Message to move
+    :type msg: str
     :param folder: Destination folder
+    :type folder: str
     '''
     newfn = os.path.join(config.form_store_dir(),
                          folder,
@@ -279,7 +291,9 @@ def move_to_outgoing(config, msg):
     :param config: Config object
     :type config: :class:`DratsConfig`
     :param msg: Message to move
+    :type msg: str
     :returns: Result of move to folder, which does not have a return value
+    :rtype: none
     '''
     return move_to_folder(config, msg, "Outbox")
 
@@ -333,7 +347,7 @@ class MessageRouter(GObject.GObject):
         # Common routines should be in their own module.
         self._mainapp = mainapp
 
-        # Hack because message logking is part of this module instead
+        # Hack because message checking is part of this module instead
         # of being in its own module, causing a co-dependency of emailgw and
         # this module that should not exist.
         self._validate_incoming = validate_incoming
@@ -361,7 +375,8 @@ class MessageRouter(GObject.GObject):
         Get Routes internal.
 
         :returns: Routes keyed by gateway
-        :rtype: dict'''
+        :rtype: dict
+        '''
         r_file = self.__config.platform.config_file("routes.txt")
         try:
             f_handle = open(r_file)
@@ -387,12 +402,6 @@ class MessageRouter(GObject.GObject):
     def _sleep(self):
         t_limit = self.__config.getint("settings", "msg_flush")
         time.sleep(t_limit)
-
-    # pylint: disable=no-self-use
-    def _p(self, string):
-        self.logger.info("_p: [MR] %s", string)
-        import sys
-        sys.stdout.flush()
 
     def _get_queue(self):
         '''
@@ -431,8 +440,11 @@ class MessageRouter(GObject.GObject):
         Send form.
 
         :param call: Call sign to send to
+        :type call: str
         :param port: Radio port
+        :type port: str
         :param filename: Filename for message
+        :type filename: str
         '''
         self.__sent_call[call] = time.time()
         self.__sent_port[port] = time.time()
@@ -523,19 +535,20 @@ class MessageRouter(GObject.GObject):
                 break # We have a route to try
 
         if not route:
-            self._p("No route for station %s" % dst)
+            self.logger.info("_route_msg: No route for station %s", dst)
         elif old(route) and "@" not in route and ":" not in route:
             # This station is heard, but a long time ago.  Ping it first
             # and consider it unrouteable for now
             route_station = slist.get(route, None)
             self._station_pinged_incr(route)
             if route_station:
-                self._p("Pinging stale route %s" % route)
+                self.logger.info("_route_msg: Pinging stale route %s", route)
                 self._emit("ping-station", route, route_station.get_port())
             route = None
         else:
             self._station_pinged_clear(route)
-            self._p("Routing message for %s to %s" % (dst, route))
+            self.logger.info("_route_msg: Routing message for %s to %s",
+                             dst, route)
 
         return route
 
@@ -616,16 +629,18 @@ class MessageRouter(GObject.GObject):
         :rtype bool
         '''
         if self._sent_recently(route):
-            self._p("Call %s is busy" % route)
+            self.logger.info("_route_via_station: Call %s is busy", route)
             return False
 
         self.logger.info("_route_va_station: %s", slist)
         port = slist[route].get_port()
         if not self._port_free(port):
-            self._p("I think port %s is busy" % port)
+            self.logger.info("_route_via_station: I think port %s is busy",
+                             port)
             return False # likely already a transfer going here so skip it
 
-        self._p("Sending %s to %s (via %s)" % (msg, call, route))
+        self.logger.info("_route_via_station: Sending %s to %s (via %s)",
+                         msg, call, route)
         self._send_form(route, port, msg)
 
         return True
@@ -764,15 +779,15 @@ class MessageRouter(GObject.GObject):
             self.__event.wait(self.__config.getint("settings", "msg_flush"))
 
     def trigger(self):
-        '''Trigger'''
+        '''Trigger.'''
         if not self.__thread.is_alive():
             self.start()
         else:
             self.__event.set()
 
     def start(self):
-        '''Start'''
-        self._p("Starting message router thread")
+        '''Start.'''
+        self.logger.info("_route_via_station: Starting message router thread")
         self.__enabled = True
         self.__event.clear()
         self.__thread = threading.Thread(target=self._run)
@@ -780,11 +795,12 @@ class MessageRouter(GObject.GObject):
         self.__thread.start()
 
     def stop(self):
-        '''Stop'''
+        '''Stop.'''
         self.__enabled = False
         self.__thread.join()
 
-    def _update_path(self, fname, call):
+    @staticmethod
+    def _update_path(fname, call):
         form = formgui.FormFile(fname)
         form.add_path_element(call)
         form.save_to(fname)
@@ -815,10 +831,13 @@ class MessageRouter(GObject.GObject):
         Form Transfer Done.
 
         :param fname: Filename of form
+        :type fname: str
         :param port: Port for transport
+        :type port: str
         :param failed: True if the transfer failed
+        :type failed: bool
         '''
-        self._p("File %s on %s done" % (fname, port))
+        self.logger.info("form_xfer_done: File %s on %s done", fname, port)
 
         if fname and msg_is_locked(fname):
             msg_unlock(fname)
