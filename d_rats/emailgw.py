@@ -182,6 +182,7 @@ class MailThread(threading.Thread, GObject.GObject):
 
     _signals = __gsignals__
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def __init__(self, config, host, user, pasw, port=110, ssl=False):
         threading.Thread.__init__(self)
@@ -250,7 +251,7 @@ class MailThread(threading.Thread, GObject.GObject):
         '''
         Fetch mails.
 
-        :returns: List of mesages
+        :returns: List of messages
         :rtype: list[:class:`EmailMessage`]
         '''
         self.message("Querying %s:%i" % (self.server, self.port))
@@ -311,7 +312,18 @@ class CoercedMailThread(MailThread):
     '''
     Coerce Mail Thread.
 
-    :param args: MailThread arguments
+    :param config: Config object
+    :type config: :class:`DratsConfig`
+    :param host: Email host
+    :type host: str
+    :param user: User account
+    :type user: str
+    :param password: Password for account
+    :type password: str
+    :param port: Email port, default 110
+    :type port: int
+    :param ssl: Use ssl, default False
+    :type ssl: bool
     '''
 
     def __init__(self, *args):
@@ -556,8 +568,8 @@ def main():
         # pylint: disable=fixme
         # Todo: This is just to get this unit test to not crash
         # Really need parameters for a test gateway as an option.
-        # pylint: disable=no-self-use
-        def getboolean(self, _section, _param):
+        @staticmethod
+        def getboolean(_section, _param):
             '''Get Boolean dummy function, returns False.'''
             return False
 
