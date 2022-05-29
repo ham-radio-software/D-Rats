@@ -1,4 +1,5 @@
 '''Comm Module.'''
+# pylint want a max of 1000 lines per module.
 # pylint: disable=too-many-lines
 from __future__ import absolute_import
 from __future__ import print_function
@@ -18,12 +19,6 @@ from . import utils
 from . import agw
 from .dratsexception import DataPathIOError
 from .dratsexception import DataPathNotConnectedError
-
-# Needed for python2+python3 support
-if sys.version_info[0] < 3:
-    # pylint: disable=redefined-builtin
-    class BlockingIOError(socket.error):
-        '''Suppress pylint on python3 warning.'''
 
 
 ASCII_XON = 17 # chr(17)
@@ -66,6 +61,7 @@ def kiss_send_frame(frame, port=0):
     KISS Send frame.
 
     :param frame: Frame to send
+    :type frame: bytes
     :param port: Port to send frame from
     :type port: int
     :returns: Buffer to send
@@ -89,13 +85,14 @@ def kiss_buf_has_frame(buf):
     Kiss Buffer has frame?
 
     :param buf: Kiss buffer
-    :param buf: bytes
+    :type buf: bytes
     :returns: True if this is a KISS frame
     :rtype: bool
     '''
     return buf.count(FEND) >= 2
 
 
+# pylint wants only 12 branches per method/function
 # pylint: disable=too-many-branches
 def kiss_recv_frame(buf):
     '''
@@ -171,10 +168,10 @@ def kiss_recv_frame(buf):
 # require.
 
 # For cables that do not not contain the CTS/RTS signals, those signals
-# should always be jumperred at the connector if the connector has those pins.
+# should always be jumpered at the connector if the connector has those pins.
 
 # For cables that do not contain the DSR/DTR signals, those signals should
-# always be jumperred at the connector if the connector has those pins.
+# always be jumpered at the connector if the connector has those pins.
 
 # if you do not make sure that these are done for compliance with the standard
 # you can waste a lot of time trying to find out why things are not working.
@@ -189,9 +186,22 @@ class TNCSerial(serial.Serial):
     '''
     TNC Serial.
 
-    :param tncport: Optional tnc port
+    :param tncport: Optional tnc port number
     :type tncport: str
-    :param kwargs: Key word arguments
+    :param port: Path to serial port, Default None
+    :type port: str
+    :param baudrate: Baud rate, Default 9600
+    :type baudrate: int
+    :param timeout: Read timeout in seconds, Default None
+    :type timeout: float
+    :param write_timeout: Write timeout in seconds, Default None
+    :type write_timeout: float
+    :param xonxoff: Use xon/xoff flow control, Default False
+    :type xonxoff: bool
+    :param rtscts: Use RTS/CTS flow control, default False
+    :type rtscts: bool
+    :param dsr_control: Use DSR to control connections
+    :type dsr_control: bool
     '''
     def __init__(self, **kwargs):
         self.logger = logging.getLogger("TNCSerial")
@@ -200,6 +210,12 @@ class TNCSerial(serial.Serial):
             del kwargs["tncport"]
         else:
             self.__tncport = 0
+        self.use_dsr = False
+        if "dsr_control" in kwargs:
+            self.use_dsr = kwargs["dsr_control"]
+            del kwargs["dsr_control"]
+        self.dsr_seen = False
+
         serial.Serial.__init__(self, **kwargs)
         self.dtr = True
         self.rts = True
@@ -209,11 +225,6 @@ class TNCSerial(serial.Serial):
             self.name = kwargs["port"]
         self.__buffer = b""
         self.__tstamp = 0
-        self.use_dsr = False
-        if "dsr_control" in kwargs:
-            self.use_dsr = kwargs["dsr_control"]
-            del kwargs["dsr_control"]
-        self.dsr_seen = False
 
     def reconnect(self):
         '''
@@ -229,7 +240,7 @@ class TNCSerial(serial.Serial):
 
         :param data: Data to write
         :type data: bytes
-        :raises: :class:`DatapathNotConnectedError` on disconnect.
+        :raises: :class:`DataPathNotConnectedError` on disconnect.
         '''
         if self.use_dsr and not self.dsr:
             raise DataPathNotConnectedError("Serial port disconnected %s" %
@@ -251,7 +262,7 @@ class TNCSerial(serial.Serial):
         :type size: int
         :returns: Read frame data
         :rtype: bytes
-        :raises: :class:`DatapathNotConnectedError` on disconnect
+        :raises: :class:`DataPathNotConnectedError` on disconnect
         '''
         if self.use_dsr and not self.dsr:
             raise DataPathNotConnectedError("Serial port disconnected %s" %
@@ -281,12 +292,24 @@ class TNCSerial(serial.Serial):
         return framedata
 
 
-# pylint: disable=too-many-ancestors
 class SWFSerial(serial.Serial):
     '''
     SWF Serial.
 
-    :param kwargs: Key word arguments
+    :param port: Path to serial port, Default None
+    :type port: str
+    :param baudrate: Baud rate, Default 9600
+    :type baudrate: int
+    :param timeout: Read timeout in seconds, Default None
+    :type timeout: float
+    :param write_timeout: Write timeout in seconds, Default None
+    :type write_timeout: float
+    :param xonxoff: Use xon/xoff flow control, Default False
+    :type xonxoff: bool
+    :param rtscts: Use RTS/CTS flow control, default False
+    :type rtscts: bool
+    :param dsr_control: Use DSR to control connections
+    :type dsr_control: bool
     '''
 
     __swf_debug = False
@@ -294,19 +317,10 @@ class SWFSerial(serial.Serial):
     def __init__(self, **kwargs):
         self.logger = logging.getLogger("SWFSerial")
         self.logger.info("Software XON/XOFF control initialized")
-        try:
-            serial.Serial.__init__(self, **kwargs)
-            self.dtr = True
-            self.rts = True
+        serial.Serial.__init__(self, **kwargs)
+        self.dtr = True
+        self.rts = True
 
-        except TypeError:
-            if "writeTimeout" in kwargs:
-                del kwargs["writeTimeout"]
-                serial.Serial.__init__(self, **kwargs)
-            else:
-                self.logger.info("Unknown TypeError from Serial.__init__:",
-                                 exc_info=True)
-                raise
         self.name = "Unknown"
         if "port" in kwargs:
             self.name = kwargs["port"]
@@ -329,12 +343,12 @@ class SWFSerial(serial.Serial):
         self.dtr = True
         self.rts = True
 
-
     def is_xon(self):
         '''
         Is in xon state?
 
         :returns: True if data transmissions are allowed
+        :rtype: bool
         :raises: :class:`DataPathNotConnectedError` on serial port disconnect
         '''
         if self.use_dsr and not self.dsr:
@@ -439,6 +453,7 @@ class DataPath():
     Data Path.
 
     :param pathspec: Path to data.
+    :type pathspec: str
     :param timeout: Timeout in seconds, default 0.25
     :type timeout: float
     '''
@@ -483,6 +498,7 @@ class DataPath():
         Write.
 
         :param buf: Buffer to write
+        :type buf: str
         :raises: DataPathIOError always
         '''
         raise DataPathIOError("Can't write to base class")
@@ -515,7 +531,7 @@ class AGWDataPath(DataPath):
     AGW Data Path.
 
     :param pathspec: Path to AGW device
-    :param pathspec: str
+    :type pathspec: str
     :param timeout: Timeout in seconds, default 0
     :type timeout: float
     '''
@@ -536,9 +552,8 @@ class AGWDataPath(DataPath):
             self._agw = agw.AGWConnection(self._addr, int(self._port),
                                           self.timeout)
             self._agw.enable_raw()
-        except (BlockingIOError, socket.error):
-            self.logger.info("connect: AGWPE broad-exception on connect",
-                             exc_info=True)
+        except (BlockingIOError, socket.error) as err:
+            self.logger.info("connect: AGWPE exception on connect: %s", err)
             raise DataPathNotConnectedError("Unable to connect to AGWPE")
 
     def disconnect(self):
@@ -629,7 +644,7 @@ class SerialDataPath(DataPath):
             self._serial = SWFSerial(port=self.port,
                                      baudrate=self.baud,
                                      timeout=self.timeout,
-                                     writeTimeout=self.timeout,
+                                     write_timeout=self.timeout,
                                      xonxoff=0)
         except (ValueError, serial.SerialException) as err:
             raise DataPathNotConnectedError("Unable to open serial port %s" %
@@ -672,7 +687,7 @@ class SerialDataPath(DataPath):
         :returns: data read
         :rtype: bytes
         :raises: DataPathIOError on read error
-        :raises: :class:`DatapathNotConnectedError` on disconnect.
+        :raises: :class:`DataPathNotConnectedError` on disconnect.
         '''
         if self._serial.use_dsr and not self._serial.dsr:
             raise DataPathNotConnectedError("Serial port disconnected %s" %
@@ -710,7 +725,7 @@ class SerialDataPath(DataPath):
         :param buf: Buffer to write
         :type buf: bytes
         :raises: DataPathIOError on write failure
-        :raises: :class:`DatapathNotConnectedError` on disconnect.
+        :raises: :class:`DataPathNotConnectedError` on disconnect.
         '''
         if self._serial.use_dsr and not self._serial.dsr:
             raise DataPathNotConnectedError("Serial port disconnected %s" %
@@ -773,7 +788,7 @@ class TNCDataPath(SerialDataPath):
                                  tncport=tncport,
                                  baudrate=self.baud,
                                  timeout=self.timeout,
-                                 writeTimeout=self.timeout*10,
+                                 write_timeout=self.timeout*10,
                                  xonxoff=0)
 
     def __str__(self):
@@ -782,8 +797,7 @@ class TNCDataPath(SerialDataPath):
 
 # pylint: disable=fixme
 # FIXME: Move this
-# pylint: disable=invalid-name
-fcstab = [
+FCSTAB = [
     0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
     0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
     0x1081, 0x0108, 0x3393, 0x221a, 0x56a5, 0x472c, 0x75b7, 0x643e,
@@ -831,7 +845,7 @@ def compute_fcs(data):
     fcs = 0xffff
 
     for byte in data:
-        fcs = (fcs >> 8) ^ fcstab[(fcs ^ byte) & 0xff]
+        fcs = (fcs >> 8) ^ FCSTAB[(fcs ^ byte) & 0xff]
 
     return (~fcs) & 0xffff
 
@@ -842,7 +856,8 @@ class TNCAX25DataPath(TNCDataPath):
 
     :param pathspec: Path to TNC
     :type pathspec: str
-    :param kwargs: Key word arguments
+    :param timeout: Time out in seconds, default 0.25
+    :type timeout: float
     '''
     def __init__(self, pathspec, **kwargs):
         self.logger = logging.getLogger("TNCAX25DataPath")
@@ -972,7 +987,8 @@ class SocketDataPath(DataPath):
             :type sock: int
             :param timeout: Timeout in seconds, default 30.
             :type timeout: float
-            :returns: Tuple of count and line
+            :returns: Tuple of code and line
+            :rtype: tuple[int, str]
             :raises: :class:`DataPathNotConnectedError` on write error
             '''
             line = readline(sock, timeout)
