@@ -211,7 +211,7 @@ def set_units(units):
     :param units: String Imperial or Metric adjusted for language.
     :type units: str
     '''
-    # This will be tricky for getting internationalizion working right.
+    # This will be tricky for getting internationalizing working right.
     # pylint: disable=global-statement
     global EARTH_RADIUS
     # pylint: disable=global-statement
@@ -316,7 +316,7 @@ def dprs_checksum(callsign, msg):
 
 def deg2rad(deg):
     '''
-    Degrees to radans.
+    Degrees to radians.
 
     :param deg: Degrees
     :type deg: float
@@ -875,7 +875,7 @@ class GPSPosition():
         '''
         Distance From.
 
-        :param pos: Postion to get distance from
+        :param pos: Position to get distance from
         :type pos: :class:`GPSPosition`
         :returns: Distance
         :rtype: float
@@ -900,11 +900,11 @@ class GPSPosition():
         # lat_d = deg2rad(pos.latitude - self.latitude)
         lon_d = deg2rad(pos.longitude - self.longitude)
 
-        y = sin(lon_d) * cos(lat_u)
-        x = cos(lat_me) * sin(lat_u) - \
+        y_coord = sin(lon_d) * cos(lat_u)
+        x_coord = cos(lat_me) * sin(lat_u) - \
             sin(lat_me) * cos(lat_u) * cos(lon_d)
 
-        bearing = rad2deg(atan2(y, x))
+        bearing = rad2deg(atan2(y_coord, x_coord))
 
         return (bearing + 360) % 360
 
@@ -912,7 +912,8 @@ class GPSPosition():
         '''
         Set Relative to current.
 
-        :param current: current data
+        :param current: current position
+        :type current: :class:`GPSPosition`
         '''
         self.current = current
 
@@ -971,9 +972,9 @@ class NMEAGPSPosition(GPSPosition):
         self.longitude = None
 
         if sentence.startswith("$GPGGA"):
-            self._from_NMEA_GPGGA(sentence)
+            self._from_nmea_gpgga(sentence)
         elif sentence.startswith("$GPRMC"):
-            self._from_NMEA_GPRMC(sentence)
+            self._from_nmea_gprmc(sentence)
         else:
             self.logger.info("Unsupported GPS sentence type: %s", sentence)
 
@@ -996,7 +997,7 @@ class NMEAGPSPosition(GPSPosition):
 
         return csum == calc_csum
 
-    def _parse_GPGGA(self, string):
+    def _parse_gpgga(self, string):
         elements = string.split(",", 14)
         if len(elements) < 15:
             raise GpsGpggaParseError("Unable to split GPGGA" % len(elements))
@@ -1009,7 +1010,7 @@ class NMEAGPSPosition(GPSPosition):
         self.latitude = nmea2deg(float(elements[2]), elements[3])
         self.longitude = nmea2deg(float(elements[4]), elements[5])
 
-        self.logger.info("_parse_GPGGA:  %f,%f", self.latitude, self.longitude)
+        self.logger.info("_parse_gpgga:  %f,%f", self.latitude, self.longitude)
 
         self.satellites = int(elements[7])
         self.altitude = float(elements[9])
@@ -1031,7 +1032,7 @@ class NMEAGPSPosition(GPSPosition):
 
         self.valid = self._test_checksum(string, csum)
 
-    def _parse_GPRMC(self, string):
+    def _parse_gprmc(self, string):
         if "\r\n" in string:
             nmea, station = string.split("\r\n", 1)
         else:
@@ -1065,7 +1066,7 @@ class NMEAGPSPosition(GPSPosition):
 
         match = re.match(r"^.?(\*[A-z0-9]{2})", elements[end])
         if not match:
-            self.logger.info("_parse_GPRMC: Invalid end: %s", elements[end])
+            self.logger.info("_parse_gprmc: Invalid end: %s", elements[end])
             return
 
         csum = match.group(1)
@@ -1080,32 +1081,32 @@ class NMEAGPSPosition(GPSPosition):
 
         if elements[2] != "A":
             self.valid = False
-            self.logger.info("_parse_GPRMC: GPRMC marked invalid by GPS (%s)",
+            self.logger.info("_parse_gprmc: GPRMC marked invalid by GPS (%s)",
                              elements[2])
         else:
-            self.logger.info("_parse_GPRMC: GPRMC is valid")
+            self.logger.info("_parse_gprmc: GPRMC is valid")
             self.valid = self._test_checksum(string, csum)
 
-    def _from_NMEA_GPGGA(self, string):
+    def _from_nmea_gpgga(self, string):
         string = string.replace('\r', ' ')
         string = string.replace('\n', ' ')
         try:
-            self._parse_GPGGA(string)
+            self._parse_gpgga(string)
         except GpsGpggaException as err:
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            self.logger.info("_from_NMEA_GPGGA: Invalid GPS data: %s", err)
+            self.logger.info("_from_nmea_gpgga: Invalid GPS data: %s", err)
             self.valid = False
 
-    def _from_NMEA_GPRMC(self, string):
+    def _from_nmea_gprmc(self, string):
         try:
-            self._parse_GPRMC(string)
+            self._parse_gprmc(string)
         except GpsGprmcException as err:
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            self.logger.info("_from_NMEA_GPRMC: Invalid GPS data: %s", err)
+            self.logger.info("_from_nmea_gprmc: Invalid GPS data: %s", err)
             self.valid = False
 
 
@@ -1118,7 +1119,7 @@ class APRSGPSPosition(GPSPosition):
         GPSPosition.__init__(self)
         self.logger = logging.getLogger("APRSGPSPosition")
 
-        self._from_APRS(message)
+        self._from_aprs(message)
 
     def _parse_date(self, string):
         # prefix = string[0]
@@ -1147,7 +1148,7 @@ class APRSGPSPosition(GPSPosition):
 
         return date_num - delta
 
-    def _parse_GPSA(self, string):
+    def _parse_gpsa(self, string):
         match = re.match(r"^\$\$CRC([A-Z0-9]{4}),(.*)$", string)
         if not match:
             return
@@ -1162,7 +1163,7 @@ class APRSGPSPosition(GPSPosition):
 
         elements = string.split(",")
         if not elements[0].startswith("$$CRC"):
-            self.logger.info("_parse_GPSA: Missing $$CRC...")
+            self.logger.info("_parse_gpsa: Missing $$CRC...")
             return
 
         self.station, _dst = elements[1].split(">")
@@ -1188,7 +1189,7 @@ class APRSGPSPosition(GPSPosition):
 
         match = re.search(expr, data)
         if not match:
-            self.logger.info("_parse_GPSA: Did not match GPS-A: `%s'", data)
+            self.logger.info("_parse_gpsa: Did not match GPS-A: `%s'", data)
             return
 
         if match.group(1) in "!=":
@@ -1196,7 +1197,7 @@ class APRSGPSPosition(GPSPosition):
         elif match.group(2) in "@/":
             self.date = self._parse_date(match.group(1))
         else:
-            self.logger.info("_parse_GPSA: Unknown timestamp prefix: %s",
+            self.logger.info("_parse_gpsa: Unknown timestamp prefix: %s",
                              match.group(1))
             self.date = datetime.datetime.now()
 
@@ -1212,12 +1213,12 @@ class APRSGPSPosition(GPSPosition):
 
         self.valid = True
 
-    def _from_APRS(self, string):
+    def _from_aprs(self, string):
         self.valid = False
         try:
-            self._parse_GPSA(string)
+            self._parse_gpsa(string)
         except (TypeError, ValueError, re.error, GpsDateParseError) as err:
-            self.logger.info("_from_APRS: Invalid APRS (%s)", err)
+            self.logger.info("_from_aprs: Invalid APRS (%s)", err)
             return False
         return self.valid
 
