@@ -434,7 +434,7 @@ class MainApp(Gtk.Application):
                   '"comments": "%s","timestamp": "%s"  }' \
                   % (flat, flng, station, comments,
                      strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-        self.logger.info("preparing our gpsfix in JSON :%s", message)
+        self.logger.info("preparing our gps fix in JSON :%s", message)
 
         try:
             # create an AF_INET, STREAM socket (TCP)
@@ -1792,9 +1792,11 @@ class MainApp(Gtk.Application):
         :type port: str
         '''
         if port:
-            id_num = "%s_%s" % (id_num, port)
+            id_str = "%s_%s" % (id_num, port)
+        else:
+            id_str = str(id_num)
 
-        self.logger.info("__form_received: [NEWFORM %s]: %s", id_num, fname)
+        self.logger.info("__form_received: [NEWFORM %s]: %s", id_str, fname)
         ffile = formgui.FormFile(fname)
 
         msg = '%s "%s" %s %s' % (_("Message"),
@@ -1832,7 +1834,7 @@ class MainApp(Gtk.Application):
             msgrouting.msg_unlock(fname)
         self.mainwindow.tabs["messages"].refresh_if_folder(refresh_folder)
 
-        event = main_events.FormEvent(id_num, msg)
+        event = main_events.FormEvent(id_str, msg)
         event.set_as_final()
         self.mainwindow.tabs["event"].event(event)
 
@@ -1850,10 +1852,12 @@ class MainApp(Gtk.Application):
         :type port: str
         '''
         if port:
-            id_num = "%s_%s" % (id_num, port)
+            id_str = "%s_%s" % (id_num, port)
+        else:
+            id_str = str(id_num)
         _fn = os.path.basename(fname)
         msg = '%s "%s" %s' % (_("File"), _fn, _("Received"))
-        event = main_events.FileEvent(id_num, msg)
+        event = main_events.FileEvent(id_str, msg)
         event.set_as_final()
         self.mainwindow.tabs["files"].refresh_local()
         self.mainwindow.tabs["event"].event(event)
@@ -1875,8 +1879,10 @@ class MainApp(Gtk.Application):
         '''
         self.msgrouter.form_xfer_done(fname, port, False)
         if port:
-            id_num = "%s_%s" % (id_num, port)
-        self.logger.info("[FORMSENT %s]: %s", id_num, fname)
+            id_str = "%s_%s" % (id_num, port)
+        else:
+            id_str = str(id_num)
+        self.logger.info("[FORMSENT %s]: %s", id_str, fname)
         event = main_events.FormEvent(id, _("Message Sent"))
         event.set_as_final()
 
@@ -1897,11 +1903,13 @@ class MainApp(Gtk.Application):
         :type port: str
         '''
         if port:
-            id_num = "%s_%s" % (id_num, port)
-        self.logger.info("[FILESENT %s]: %s", id_num, fname)
-        _fn = os.path.basename(fname)
-        msg = '%s "%s" %s' % (_("File"), _fn, _("Sent"))
-        event = main_events.FileEvent(id_num, msg)
+            id_str = "%s_%s" % (id_num, port)
+        else:
+            id_str = str(id_num)
+        self.logger.info("[FILESENT %s]: %s", id_str, fname)
+        base_fname = os.path.basename(fname)
+        msg = '%s "%s" %s' % (_("File"), base_fname, _("Sent"))
+        event = main_events.FileEvent(id_str, msg)
         event.set_as_final()
         self.mainwindow.tabs["files"].file_sent(fname)
         self.mainwindow.tabs["event"].event(event)
