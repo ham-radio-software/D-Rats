@@ -72,17 +72,20 @@ class LoggedTextBuffer(Gtk.TextBuffer):
         '''
         return self.__logfile.name
 
+    # This matches the documented arguments of the super class.
     # pylint: disable=arguments-differ
-    def insert_with_tags_by_name(self, log_iter, text, *attrs):
+    def insert_with_tags_by_name(self, log_iter, text, *tags):
         '''
         Insert with tags by name.
 
         :param log_iter: log entry
+        :type log_iter: :class:`Gtk.TextIter`
         :param text: Log text
         :type text: str
-        :param attrs: Additional attributes
+        :param tags: Additional attribute names
+        :type tags: str
         '''
-        Gtk.TextBuffer.insert_with_tags_by_name(self, log_iter, text, *attrs)
+        Gtk.TextBuffer.insert_with_tags_by_name(self, log_iter, text, *tags)
         self.__logfile.write(text)
 
 
@@ -130,7 +133,7 @@ class ChatQM(MainWindowElement):
 
     def _send_qm(self, view, path, _col):
         '''
-        Send Quick Mesage Selected Handler.
+        Send Quick Message Selected Handler.
 
         :param view: View holding Quick Messages
         :type view: :class:`Gtk.TreeView`
@@ -322,6 +325,7 @@ class ChatQST(MainWindowElement):
         qst_object, _c = self._qsts[qst_id]
         self._qsts[qst_id] = (qst_object, 0)
 
+    # pylint wants a max of 5 arguments
     # pylint: disable=too-many-arguments
     def _toggle_qst(self, _rend, path, store, enbcol, idcol, fcol):
         '''
@@ -355,7 +359,7 @@ class ChatQST(MainWindowElement):
 
         :param _button: Button activated, unused
         :type button: :class:`Gtk.Button`
-        :parm _view: View for button, unused
+        :param _view: View for button, unused
         :type _view: :class:`Gtk.TreeView`
         '''
         dialog = qst.QSTEditDialog(self._config,
@@ -371,7 +375,7 @@ class ChatQST(MainWindowElement):
 
         :param _button: Button activated, unused
         :type button: :class:`Gtk.Button`
-        :parm view: View for button
+        :param view: View for button
         :type view: :class:`Gtk.TreeView`
         '''
         (model, qst_iter) = view.get_selection().get_selected()
@@ -501,6 +505,7 @@ class ChatQST(MainWindowElement):
                                  self._remaining_for(qst_freq) * 60)
 
 
+# pylint wants a max of 7 instance-attributes
 # pylint: disable=too-many-instance-attributes
 class ChatTab(MainWindowTab):
     '''
@@ -585,7 +590,7 @@ class ChatTab(MainWindowTab):
 
     def display_line(self, text, incoming, *attrs, **kwargs):
         '''
-        Display a single line of text with datestamp.
+        Display a single line of text with a date stamp.
 
         :param text: Text to display
         :type text: str
@@ -640,7 +645,7 @@ class ChatTab(MainWindowTab):
 
         :parm text: Filter to select display
         :type text: str
-        :returns: Display matchign filter
+        :returns: Display matching filter
         :rtype: :class:`Gtk.TextView`
         '''
         for filter_item, display in self.__filters.copy().items():
@@ -699,8 +704,9 @@ class ChatTab(MainWindowTab):
             return self.__filters[channel]
         return None
 
+    # pylint wants only 15 local variables per method/function
     # pylint: disable=too-many-locals
-    def _display_line(self, text, apply_filters, *attrs, **kwargs):
+    def _display_line(self, text, apply_filters, *tags, **kwargs):
         '''
         Display Line.
 
@@ -708,9 +714,9 @@ class ChatTab(MainWindowTab):
         :type text: str
         :param apply_filters: Flag to apply filters
         :type apply_filters: bool
-        :param *attrs: Attributes for line
+        :param *tags: Tag named attributes for line
         :type attrs: tuple[str]
-        :param priv_src: Source call sign, optional.
+        :param priv_src: Source call sign, optional
         :type priv_src: str
         '''
         match = re.match("^([^#].*)(#[^/]+)//(.*)$", text)
@@ -733,9 +739,9 @@ class ChatTab(MainWindowTab):
             noticere = self._config.get("prefs", "noticere")
             ignorere = self._config.get("prefs", "ignorere")
             if noticere and re.search(noticere, text):
-                attrs += ("noticecolor",)
+                tags += ("noticecolor",)
             elif ignorere and re.search(ignorere, text):
-                attrs += ("ignorecolor",)
+                tags += ("ignorecolor",)
         else:
             display = self._display_selected()
 
@@ -748,21 +754,21 @@ class ChatTab(MainWindowTab):
 
         (_start, end) = buffer.get_bounds()
         mark = buffer.create_mark(None, end, True)
-        buffer.insert_with_tags_by_name(end, text + os.linesep, *attrs)
+        buffer.insert_with_tags_by_name(end, text + os.linesep, *tags)
         self._maybe_highlight_header(buffer, mark)
         buffer.delete_mark(mark)
 
         tabnum = self.__filtertabs.page_num(display.get_parent())
         if tabnum != self.__filtertabs.get_current_page() and \
-                "ignorecolor" not in attrs:
+                "ignorecolor" not in tags:
             self._highlight_tab(tabnum)
 
-        if apply_filters and "ignorecolor" not in attrs:
+        if apply_filters and "ignorecolor" not in tags:
             self._notice()
 
     def _send_button(self, _button, dest, entry):
         '''
-        Send Button Event Hander.
+        Send Button Event Handler.
 
         :param _button: Button activated, unused
         :type _button: :class:`GtkButton`
@@ -835,7 +841,7 @@ class ChatTab(MainWindowTab):
         '''
         Broadcast File Event handler.
 
-        :param _but: Widget signaling hander
+        :param _but: Widget signaling handler
         :type _but: :class:`Gtk.Button'
         :param dest: Destinations for sending
         :type dest: :class:`Gtk.ComboBoxText
@@ -968,7 +974,7 @@ class ChatTab(MainWindowTab):
 
     def _enter_to_send(self, view, event, dest):
         '''
-        Enter Key to Send hander.
+        Enter Key to Send handler.
 
         :param view: Widget that signaled handler
         :type view: :class:`Gtk.TextView`

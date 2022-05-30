@@ -956,7 +956,7 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         Map.Tile.set_map_info(base_dir, map_url, map_key)
 
-    # Called by mainap
+    # Called by mainapp
     @staticmethod
     def set_connected(connected):
         '''
@@ -1019,7 +1019,7 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         Map.Tile.set_proxy(proxy)
 
-    # Called by mainap
+    # Called by mainapp
     @staticmethod
     def set_tile_lifetime(lifetime):
         '''
@@ -1030,7 +1030,7 @@ class MapWindow(Gtk.ApplicationWindow):
         '''
         Map.Tile.set_tile_lifetime(lifetime)
 
-    # public method used by mainap inherited from parent
+    # public method used by mainapp inherited from parent
     # def set_title(self, str)
 
     # Called by mainapp

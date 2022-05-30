@@ -48,12 +48,15 @@ if not '_' in locals():
 THROB_IMAGE = "throbber.gif"
 REMOTE_HINT = _("Enter remote callsign")
 
+
 class FileView():
     '''
     FileView
 
     :param view: view object
+    :type view: :class;`Gtk.TreeView`
     :param path: path to view files on
+    :type path: str
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -83,6 +86,7 @@ class FileView():
         Set Path
 
         :param path: Path to set.
+        :type path: str
         '''
         if not os.path.isdir(path):
             os.makedirs(path, exist_ok=True)
@@ -95,7 +99,8 @@ class FileView():
         '''
         Get Selected Filename.
 
-        :returns: Filaname if a filename is selected or None
+        :returns: Filename if a filename is selected or None
+        :rtype: str
         '''
         (model, file_name_iter) = self._view.get_selection().get_selected()
         if not file_name_iter:
@@ -107,8 +112,11 @@ class FileView():
         Add Explicit Filename.
 
         :param name: Name of file to add
+        :type name: str
         :param size: Size of file to add
-        :param stamp: Time stamp of file.
+        :type size: int
+        :param stamp: Time stamp of file
+        :type stamp: int
         '''
         self._store.append((self._file_icon, name, size, stamp))
 
@@ -122,7 +130,9 @@ class LocalFileView(FileView):
     Local File View.
 
     :param view: view object
+    :type view: :class;`Gtk.TreeView`
     :param path: path to view files on
+    :type path: str
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -144,10 +154,8 @@ class LocalFileView(FileView):
                 size = stat.st_size
                 name = os.path.basename(file)
                 self._store.append((self._file_icon, name, size, time_stamp))
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("refresh : Failed to add local file: %s",
-                                 "broad-except", exc_info=True)
+            except OSError as err:
+                self.logger.info("refresh : Failed to add local file: %s", err)
 
 
 class RemoteFileView(FileView):
@@ -155,7 +163,9 @@ class RemoteFileView(FileView):
     Remote File View.
 
     :param view: view object
+    :type view: :class;`Gtk.TreeView`
     :param path: path to view files on
+    :type path: str
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -164,14 +174,13 @@ class RemoteFileView(FileView):
         FileView.__init__(self, view, path, config)
         self.logger = logging.getLogger("RemoteFileV")
 
-    # pylint: disable=too-many-locals
     def _file_list_cb(self, _job, state, result):
         '''
         File List Callback.
 
         :param _job: Unused RPC job
         :type _job: :class:`rpc.RPCFileListJob`
-        :param state: State of the connetion
+        :param state: State of the connection
         :type state: str
         :param result: Result of the job
         :type result: dict
@@ -270,7 +279,7 @@ class FilesTab(MainWindowTab):
         # pylint: disable=fixme
         # TODO
         # Not sure how to make this work for GTK+ ComboBox
-        # Can live with out a hint while debuging
+        # Can live with out a hint while debugging
         stations, = self._getw("sel_station")
         stn_entry = stations.get_child()
         utils.set_entry_hint(stn_entry, REMOTE_HINT)
@@ -517,8 +526,8 @@ class FilesTab(MainWindowTab):
 
         populate_tb(rtb, rbuttons)
 
-    # pylint: disable=no-self-use
-    def _setup_file_view(self, view):
+    @staticmethod
+    def _setup_file_view(view):
         def render_date(_col, rend, model, file_iter, _data):
             time_stamp, = model.get(file_iter, 3)
             stamp = datetime.fromtimestamp(

@@ -70,8 +70,8 @@ class Event():
     '''
     Event.
 
-    :param group_id: Group ID
-    :type group_id: int
+    :param group_id: Group name
+    :type group_id: str
     :param message: Event message
     :type message: str
     :param evtype: event type, Default EVENT_INFO
@@ -119,6 +119,11 @@ class Event():
 class FileEvent(Event):
     '''
     File Event.
+
+    :param group_id: Group name
+    :type group_id: str
+    :param message: message for event
+    :type message: str
     '''
     def __init__(self, group_id, message):
         Event.__init__(self, group_id, message, EVENT_FILE_XFER)
@@ -127,6 +132,11 @@ class FileEvent(Event):
 class FormEvent(Event):
     '''
     Form Event.
+
+    :param group_id: Group name
+    :type group_id: str
+    :param message: message for event
+    :type message: str
     '''
 
     def __init__(self, group_id, message):
@@ -136,6 +146,11 @@ class FormEvent(Event):
 class PingEvent(Event):
     '''
     Ping Event.
+
+    :param group_id: Group name
+    :type group_id: str
+    :param message: message for event
+    :type message: str
     '''
 
     def __init__(self, group_id, message):
@@ -145,6 +160,11 @@ class PingEvent(Event):
 class PosReportEvent(Event):
     '''
     Position Report Event.
+
+    :param group_id: Group name
+    :type group_id: str
+    :param message: message for event
+    :type message: str
     '''
 
     def __init__(self, group_id, message):
@@ -583,7 +603,7 @@ class EventTab(MainWindowTab):
         '''
         Finalize last event.
         :param group: Event group
-        :type group: int
+        :type group: str
         :returns: True if the event is finalized, otherwise False.
         :rtype: bool
         '''
@@ -591,8 +611,8 @@ class EventTab(MainWindowTab):
         # this documentation more useful.
         event_iter = self.store.get_iter_first()
         while event_iter:
-            _group, = self.store.get(event_iter, 0)
-            if _group == group:
+            event_group, = self.store.get(event_iter, 0)
+            if event_group == group:
                 self.store.set(event_iter, 0, "")
                 return True
             event_iter = self.store.iter_next(event_iter)
@@ -604,14 +624,14 @@ class EventTab(MainWindowTab):
         Get last event time for a group.
 
         :param group: Event Group
-        :type group: int
+        :type group: str
         :returns: Returns time of last event or 0 if no last event found
         :rtype: float
         '''
         event_iter = self.store.get_iter_first()
         while event_iter:
-            _group, stamp = self.store.get(event_iter, 0, 2)
-            if _group == group:
+            event_group, stamp = self.store.get(event_iter, 0, 2)
+            if event_group == group:
                 return stamp
             event_iter = self.store.iter_next(event_iter)
 
