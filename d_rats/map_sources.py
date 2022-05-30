@@ -57,7 +57,7 @@ class MapStationNodeError(MapStationException):
 
 
 class MapSourceException(MapSourcesException):
-    '''Generic Mapsources.mapsource Exception.'''
+    '''Generic MapSources.mapsource Exception.'''
 
 
 class MapSourceFailedToConnect(MapSourceException):

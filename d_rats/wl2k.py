@@ -32,7 +32,6 @@ from d_rats import signals
 from d_rats.ddt2 import calc_checksum
 from d_rats import agw
 from d_rats.dratsexception import DataPathIOError
-# from d_rats.dratsexception import DataPathNotConnectedError
 
 
 class Wl2kAutoThreadUnknownMode(DataPathIOError):
@@ -44,7 +43,7 @@ class Wl2kAutoThreadNoSuchPort(DataPathIOError):
 
 
 class Wl2kCMSBadSSID(DataPathIOError):
-    '''Error parssing SSID.'''
+    '''Error parsing SSID.'''
 
 
 class Wl2kCMSNoPrompt(DataPathIOError):
@@ -730,7 +729,7 @@ class WinLinkCMS:
 
         :param index: Index to message
         :type index: int
-        :returns: Windlink message
+        :returns: Winlink message
         :rtype: :class:`Wl2kMessage`
         '''
         return self.__messages[index]
@@ -739,7 +738,7 @@ class WinLinkCMS:
         '''
         Send Messages.
 
-        :param mesages: WinLink messages to send
+        :param messages: WinLink messages to send
         :type message: list[:class:`Wl2kMessage`]
         :returns: Number of messages sent
         :rtype: int
@@ -936,7 +935,7 @@ class WinLinkThread(threading.Thread, GObject.GObject):
     :type callsign: str
     :param callssid: Call sign with session ID, default None
     :type callssid: str
-    :param send_msgs: mesages to send, default []
+    :param send_msgs: messages to send, default []
     :type send_msgs: list[:class:`WinLinkMessage`]
     '''
 
@@ -1036,7 +1035,7 @@ class WinLinkThread(threading.Thread, GObject.GObject):
             wlm.set_id(mid)
             wlm.set_content(message_thread.get_content(), subj)
             self.logger.info("message: %s", message)
-            self.logger.info("mesage_thread : %s", message_thread)
+            self.logger.info("message_thread : %s", message_thread)
             winlink.send_messages([wlm])
 
         return "Complete"
