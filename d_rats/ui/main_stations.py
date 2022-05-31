@@ -47,6 +47,7 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
+# pylint wants no more than 15 local variables
 # pylint: disable=too-many-locals
 def prompt_for_account(config):
     '''
@@ -56,9 +57,12 @@ def prompt_for_account(config):
     :type config: :class:`DratsConfig`
     '''
     accounts = {}
+    default_account = None
     for section in config.options("incoming_email"):
         info = config.get("incoming_email", section).split(",")
         key = "%s on %s" % (info[1], info[0])
+        if not default_account:
+            default_account = key
         accounts[key] = info
 
     wl2k_call = config.get("user", "callsign")
@@ -67,10 +71,13 @@ def prompt_for_account(config):
         wl2k_call = "%s-%s" % (wl2k_call, wl2k_ssid)
 
     accounts["Other"] = ["", "", "", "", "", "110"]
+    if not default_account:
+        default_account = "Other"
     accounts["WL2K"] = ["@WL2K", wl2k_call, "", "", "", "0"]
-    default = accounts.keys()[0]
 
-    account = miscwidgets.make_choice(accounts.keys(), False, default)
+    account_list = list(accounts.keys())
+    account = miscwidgets.make_choice(account_list, False,
+                                      default_account)
     host = Gtk.Entry()
     user = Gtk.Entry()
     pasw = Gtk.Entry()
@@ -84,6 +91,12 @@ def prompt_for_account(config):
     pasw.set_visibility(False)
 
     def choose_account(box):
+        '''
+        Box Changed handler.
+
+        :param box: ComboBoxText widget.
+        :type box: :class:`Gtk.ComboBoxText`
+        '''
         info = accounts[box.get_active_text()]
         for i in disable:
             i.set_sensitive(not info[0])
@@ -93,7 +106,6 @@ def prompt_for_account(config):
         ussl.set_active(info[4] == "True")
         port.set_value(int(info[5]))
     account.connect("changed", choose_account)
-    choose_account(account)
 
     dialog = inputdialog.FieldDialog(title="Select account")
     dialog.add_field("Account", account)
@@ -133,6 +145,8 @@ class StationsList(MainWindowTab):
 
     _signals = __gsignals__
 
+    # pylint wants no more than 15 local variables
+    # pylint wants no more than 50 statements
     # pylint: disable=too-many-statements, too-many-locals
     def __init__(self, wtree, config):
         MainWindowTab.__init__(self, wtree, config, "main")
@@ -208,19 +222,22 @@ class StationsList(MainWindowTab):
         except AttributeError:
             pass
 
-        def set_status(call_back):
+        def set_status(combo_box):
             '''
-            Set Status.
+            Set Status changed handler:
 
-            :param call_back: call_back to run when setting status
+            :param combo_box: Main Station Status ComboBox widget
+            :type combo_box: :class:`Gtk.ComboBoxText`
             '''
-            self.__status = call_back.get_active_text()
+            self.__status = combo_box.get_active_text()
             self._config.set("state", "status_state", self.__status)
+
         def set_smsg(e_message):
             '''
-            Set smsg
+            Set smsg changed handler
 
-            :param e_message: Message to set
+            :param e_message: Main Stations Status Message Widget
+            :type e_message: :class:`Gtk.GtkEntry`
             '''
             self.__smsg = e_message.get_text()
             self._config.set("state", "status_msg", self.__smsg)
@@ -272,9 +289,22 @@ class StationsList(MainWindowTab):
 
         return True
 
+    # pylint wants no more than 15 local variables
+    # pylint wants no more than 12 branches
+    # pylint wants no more than 50 statements
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
-    def _mh(self, _action, station, port):
-        action = _action.get_name()
+    def _menu_handler(self, action, station, port):
+        '''
+        Menu Activate Handler
+
+        :param action: Menu action widget
+        :type action: :class:`Gtk.Action`
+        :param station: Remote Station id
+        :type station: str
+        :param port: Radio Port
+        :type port: str
+        '''
+        action_name = action.get_name()
 
         model = self.__view.get_model()
         stn_iter = model.get_iter_first()
@@ -284,30 +314,41 @@ class StationsList(MainWindowTab):
                 break
             stn_iter = model.iter_next(stn_iter)
 
-        if action == "ping":
-            self.logger.info("_mh: executing ping")
+        if action_name == "ping":
+            self.logger.info("_menu_handler: executing ping")
             # pylint: disable=fixme
             # FIXME: Use the port we saw the user on
             self.emit("ping-station", station, port)
-        elif action == "conntest":
+        elif action_name == "conntest":
             connect_test = conntest.ConnTestAssistant(station, port)
             connect_test.connect("ping-echo-station",
                                  lambda a, *v: self.emit("ping-station-echo",
                                                          *v))
             connect_test.run()
-        elif action == "remove":
+        elif action_name == "remove":
             self.__calls.remove(station)
             self._update_station_count()
             model.remove(stn_iter)
-        elif action == "reset":
+        elif action_name == "reset":
             model.set(stn_iter, 1, time.time())
 
         # asking positions to remote stations
-        elif action == "reqpos":
-            self.logger.info("_mh: executing position request to: %s", station)
+        elif action_name == "reqpos":
+            self.logger.info("_menu_handler: executing position request to: %s",
+                             station)
             job = rpc.RPCPositionReport(station, "Position Request")
 
             def log_result(_job, _state, result):
+                '''
+                Log Result State-Change event handler.
+
+                :param job: RPC Position Report job
+                :type job: :class:`rpc.RPCPositionReport`
+                :param state: Job status
+                :type state: str
+                :param result: Result of rpc job
+                :type result: dict
+                '''
                 result_code = result.get("rc", "(Error)")
                 msg = result.get("msg", "(Error)")
                 if result_code == "KO":
@@ -319,8 +360,9 @@ class StationsList(MainWindowTab):
                 else:
                     # result_code == "OK":
                     event = main_events.Event(None, result)
-                    self.logger.info("_mh: result returned: %s", str(result))
-                    self.logger.info("_mh: event returned: %s", event)
+                    self.logger.info("_menu_handler: result returned: %s",
+                                     str(result))
+                    self.logger.info("_menu_handler: event returned: %s", event)
             job.set_station(station)
             job.connect("state-change", log_result)
 
@@ -328,25 +370,26 @@ class StationsList(MainWindowTab):
             # FIXME: Send on the port where we saw this user
             self.emit("submit-rpc-job", job, port)
 
-        elif action == "clearall":
+        elif action_name == "clearall":
             model.clear()
             self.__calls = []
             self._update_station_count()
-        elif action == "pingall":
-            self.logger.info("_mh: executing ping all")
+        elif action_name == "pingall":
+            self.logger.info("_menu_handler: executing ping all")
             stationlist = self.emit("get-station-list")
             for station_radio_port in stationlist:
-                self.logger.info("_mh: Doing CQCQCQ ping on port %s",
+                self.logger.info("_menu_handler: Doing CQCQCQ ping on port %s",
                                  station_radio_port)
                 self.emit("ping-station", "CQCQCQ", station_radio_port)
-        elif action == "reqposall":
-            self.logger.info("_mh: requesting position to all known stations")
+        elif action_name == "reqposall":
+            self.logger.info("_menu_handler: "
+                             "requesting position to all known stations")
             job = rpc.RPCPositionReport("CQCQCQ", "Position Request")
             job.set_station(".")
             stationlist = self.emit("get-station-list")
             for station_radio_port in stationlist.keys():
                 self.emit("submit-rpc-job", job, station_radio_port)
-        elif action == "sendfile":
+        elif action_name == "sendfile":
             fname = self._config.platform.gui_open_file()
             if not fname:
                 return
@@ -360,14 +403,25 @@ class StationsList(MainWindowTab):
 
             name = os.path.basename(fname)
             self.emit("user-send-file", station, port, fname, name)
-        elif action == "version":
+        elif action_name == "version":
             def log_result(job, state, result):
+                '''
+                Log Result State-Change event handler.
+
+                :param job: RPC Get Version job
+                :type job: :class:`rpc.RPCGetVersion`
+                :param state: Job status
+                :type state: str
+                :param result: Result of rpc job
+                :type result: dict
+                '''
                 if state == "complete":
                     msg = "Station %s running D-RATS %s on %s" % (\
                         job.get_dest(),
                         result.get("version", "Unknown"),
                         result.get("os", "Unknown"))
-                    self.logger.info("_mh: Station %s reports version info: %s",
+                    self.logger.info("_menu_handler: "
+                                     "Station %s reports version info: %s",
                                      job.get_dest(), result)
 
                 else:
@@ -378,8 +432,23 @@ class StationsList(MainWindowTab):
             job = rpc.RPCGetVersion(station, "Version Request")
             job.connect("state-change", log_result)
             self.emit("submit-rpc-job", job, port)
-        elif action == "mcheck":
+        elif action_name == "mcheck":
+            # This mail check feature does not appear to have worked
+            # in a long time, if ever, and does not appear to be completely
+            # implemented.  I am not sure what this check is supposed to
+            # to or how to implement it securely.
             def log_result(job, _state, result):
+                '''
+                Log Result State-Change event handler.
+
+                :param job: RPC Check Mail job
+                :type job: :class:`rpc.RPCCheckMail`
+                :param state: Job status
+                :type state: str
+                :param result: Result of rpc job
+                :type result: dict
+                '''
+
                 msg = "Mail check via %s: %s" % (job.get_dest(),
                                                  result.get("msg",
                                                             "No response"))
@@ -394,10 +463,11 @@ class StationsList(MainWindowTab):
             job.set_account(vals[0], vals[1], vals[2], vals[4], vals[3])
             job.connect("state-change", log_result)
             self.emit("submit-rpc-job", job, port)
-        elif action == "qrz":
+        elif action_name == "qrz":
             import webbrowser
             callsign = station.split("-")
-            self.logger.info("_mh: looking on QRZ.com for %s ", callsign[0])
+            self.logger.info("_menu_handler: looking on QRZ.com for %s ",
+                             callsign[0])
             webbrowser.open('https://www.qrz.com/lookup?callsign=%s' %
                             callsign[0], new=2)
 
@@ -435,7 +505,7 @@ class StationsList(MainWindowTab):
 
         for action, label, stock in actions:
             new_action = Gtk.Action.new(action, label, None, stock)
-            new_action.connect("activate", self._mh, station, port)
+            new_action.connect("activate", self._menu_handler, station, port)
             new_action.set_sensitive(station is not None)
             action_group.add_action(new_action)
 
@@ -444,7 +514,7 @@ class StationsList(MainWindowTab):
                    ("reqposall", _("Request all positions"), None)]
         for action, label, stock in actions:
             new_action = Gtk.Action.new(action, label, None, stock)
-            new_action.connect("activate", self._mh, station, port)
+            new_action.connect("activate", self._menu_handler, station, port)
             action_group.add_action(new_action)
 
         uim = Gtk.UIManager()
@@ -454,6 +524,14 @@ class StationsList(MainWindowTab):
         return uim.get_widget("/menu")
 
     def _mouse_cb(self, view, event):
+        '''
+        Mouse button press event handler.
+
+        :param view: Main Stations View
+        :type view: :class:`Gtk.GtkTreeView`
+        :param event: Event button triggered.
+        :type: event: :class:`Gdk.EventButton`
+        '''
         if event.button != 3:
             return
 
