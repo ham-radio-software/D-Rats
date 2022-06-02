@@ -1,5 +1,6 @@
 #
 '''Misc Widgets.'''
+# pylint wants only 1000 lines per module.
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
@@ -137,9 +138,9 @@ class KeyedListWidget(Gtk.Box):
 
     def _toggle(self, _rend, path, colnum):
         '''
-        Internal Toggle callback.
+        Internal Toggle handler.
 
-        :param _rend: unused
+        :param _rend: Render object, Unused
         :type _rend: :class:`Gtk.CellRenderer`
         :param path: The event location
         :type path: str
@@ -155,12 +156,32 @@ class KeyedListWidget(Gtk.Box):
             self.emit("item-toggled", ident, self.__store[path][colnum])
 
     def _edited(self, _rend, path, new, colnum):
+        '''
+        Edited Handler.
+
+        :param _rend: Render Widget, Unused
+        :type _rend: :class:`Gtk.CellRendererText`
+        :param path: Path identifying the edited cell
+        :type path: str
+        :param new: New text
+        :type new: str
+        :param colnum: Column number
+        :type colnum: int
+        '''
         iter_val = self.__store.get_iter(path)
         key = self.__store.get(iter_val, 0)
         self.__store.set(iter_val, colnum, new)
         self.emit("item-set", key)
 
     def _mouse(self, _view, event):
+        '''
+        Mouse Button Handler.
+
+        :param _view: view object, Unused
+        :type _view: :class:`Gtk.TreeView`
+        :param event: Button Event
+        :type event: :class:`Gdk.EventButton`
+        '''
         x_coord, y_coord = event.get_coords()
         path = self.__view.get_path_at_pos(int(x_coord), int(y_coord))
         if path:
@@ -210,7 +231,9 @@ class KeyedListWidget(Gtk.Box):
         Set Item.
 
         :param key: Key for item
+        :type key: any
         :param values: Values to set for item
+        :type values: tuple
         '''
         iter_val = self.__store.get_iter_first()
         while iter_val:
@@ -230,7 +253,9 @@ class KeyedListWidget(Gtk.Box):
         Get Item.
 
         :param key: key for item
+        :type key: any
         :returns: Item or None
+        :rtype: any
         '''
         iter_val = self.__store.get_iter_first()
         while iter_val:
@@ -246,6 +271,7 @@ class KeyedListWidget(Gtk.Box):
         Delete Item.
 
         :param key: Key for item to delete
+        :type key: any
         :returns: True if item is deleted
         :rtype: bool
         '''
@@ -260,11 +286,13 @@ class KeyedListWidget(Gtk.Box):
 
         return False
 
+    # WB8TYW: I can not find a caller of this method.
     def has_item(self, key):
         '''
         Has Item.
 
-        :param key
+        :param key: Key to look up
+        :type key: any
         :returns: True if key is present
         :rtype: bool
         '''
@@ -275,6 +303,7 @@ class KeyedListWidget(Gtk.Box):
         Get Selected.
 
         :returns: Selected item
+        :rtype: any
         '''
         try:
             (store, iter_val) = self.__view.get_selection().get_selected()
@@ -283,11 +312,13 @@ class KeyedListWidget(Gtk.Box):
             self.logger.info("get_selected: Nothing was selected")
             return None
 
+    # WB8TYW: I can not find a caller of this method.
     def select_item(self, key):
         '''
         Select Item.
 
         :param key: Key to select
+        :type key: any
         :returns: True if item selected
         :rtype: bool
         '''
@@ -312,6 +343,7 @@ class KeyedListWidget(Gtk.Box):
         Get Keys.
 
         :returns: keys
+        :rtype: any
         '''
         keys = []
         iter_val = self.__store.get_iter_first()
@@ -322,21 +354,23 @@ class KeyedListWidget(Gtk.Box):
 
         return keys
 
+    # pylint can not detect this for GTK routines.
     # pylint: disable=arguments-differ
-    def connect(self, signame, handler, *args):
+    def connect(self, detailed_signal, handler, *args):
         '''
         Connect.
 
-        :param signame: Signal name
+        :param detailed_signal: Signal name
         :type str:
         :param handler: Handler function
         :type handler: function
-        :param args: Arguments for signal
+        :param args: Optional arguments for signal
+        :type args: tuple
         '''
-        if signame == "item-toggled":
+        if detailed_signal == "item-toggled":
             self.__toggle_connected = True
 
-        Gtk.Box.connect(self, signame, handler, *args)
+        Gtk.Box.connect(self, detailed_signal, handler, *args)
 
     def set_editable(self, column, _is_editable):
         '''
@@ -539,9 +573,10 @@ class ListWidget(Gtk.Box):
 
         _iter_val = self._store.append(vals)
 
+    # WB8TYW: I can not find a caller of this method.
     def _remove_item(self, model, _path, iter_val, match):
         # print statement to be removed once the types are identified.
-        # print("listwidget._remove_item", type(model), type(_path),
+        # print("ListWidget._remove_item", type(model), type(_path),
         #      type(iter_val), type(match))
         vals = model.get(iter_val, *tuple(range(0, self._ncols)))
         if vals == match:
@@ -550,15 +585,17 @@ class ListWidget(Gtk.Box):
     # WB8TYW: I can not find a caller of this method.
     def remove_item(self, *vals):
         '''
-        Remove Item.
+        Remove Item, No operation.
 
         :param vals: Items to remove
+        :type vals: tuple
         :raises: :class:`DelItemError` if not enough vals
         '''
         self.logger.info("remove_item %s", vals)
         if len(vals) != self._ncols:
             raise DelItemError("Need %i columns" % self._ncols)
 
+    # WB8TYW: I can not find a caller of this method.
     def remove_selected(self):
         '''Remove Selected.'''
         try:
@@ -576,6 +613,7 @@ class ListWidget(Gtk.Box):
         :param take_default: Default False
         :type take_default: bool
         :returns: Selected value
+        :rtype: any
         '''
         (lst, iter_val) = self._view.get_selection().get_selected()
         if not iter_val and take_default:
@@ -588,11 +626,10 @@ class ListWidget(Gtk.Box):
         Move Selected.
 
         :param delta: Delta to move
+        :type delta: int
         :returns: True if move successful
         :rtype: bool
         '''
-        # print statement to be removed once the types are identified.
-        # print("listwidget.move_selected", type(delta))
         (lst, iter_val) = self._view.get_selection().get_selected()
 
         pos = int(lst.get_path(iter_val)[0])
@@ -615,7 +652,7 @@ class ListWidget(Gtk.Box):
 
     def _get_value(self, model, _path, iter_val, lst):
         # print statement to be removed once the types are identified.
-        # print("listwidget.get_value", type(model), type(_path),
+        # print("ListWidget.get_value", type(model), type(_path),
         #       type(iter_val), type(lst))
         lst.append(model.get(iter_val, *tuple(range(0, self._ncols))))
 
@@ -729,6 +766,7 @@ class TreeWidget(ListWidget):
 
         return None
 
+    # Intentional differences in ListWidget and TreeWidget
     # pylint: disable=arguments-differ
     def add_item(self, parent, *vals):
         '''
@@ -748,11 +786,10 @@ class TreeWidget(ListWidget):
             self._add_item(None, *vals)
         else:
             iter_val = self._iter_of(parent)
-            # pylint: disable=raising-format-tuple
             if iter_val:
                 self._add_item(iter_val, *vals)
             else:
-                raise AddItemParentError("Parent not found: %s", parent)
+                raise AddItemParentError("Parent not found: %s" % parent)
 
     def _set_values(self, parent, vals):
         '''
@@ -761,6 +798,7 @@ class TreeWidget(ListWidget):
         :param parent: Parent of row, or None.
         :type parent: :class:`Gtk.TreeIter`
         :param vals: Values to set
+        :type vals: any
         '''
         if isinstance(vals, dict):
             for key, val in vals.copy().items():
@@ -775,6 +813,7 @@ class TreeWidget(ListWidget):
         else:
             self.logger.info("_set_values: Unknown type: %s", vals)
 
+    # Intentional differences in ListWidget and TreeWidget
     # pylint: disable=arguments-differ
     def set_values(self, vals):
         '''
@@ -786,14 +825,14 @@ class TreeWidget(ListWidget):
         self._store.clear()
         self._set_values(self._store.get_iter_first(), vals)
 
-    def _get_values(self, iter_val, onlyone=False):
+    def _get_values(self, iter_val, only_one=False):
         '''
         Get Values internal.
 
         :param iter_val: Row data to retrieve
         :type iter_val: :class:`Gtk.TreeIter`
-        :param onlyone: Flag to get only one value
-        :type onlyone: bool
+        :param only_one: Flag to get only one value
+        :type only_one: bool
         :returns: values
         :rtype: list
         '''
@@ -808,12 +847,13 @@ class TreeWidget(ListWidget):
                 values.append(self._store.get(iter_val,
                                               *tuple(range(self._ncols))))
 
-            if onlyone:
+            if only_one:
                 break
             iter_val = self._store.iter_next(iter_val)
 
         return values
 
+    # Intentional differences in ListWidget and TreeWidget
     # pylint: disable=arguments-differ
     def get_values(self, parent=None):
         '''
@@ -842,6 +882,7 @@ class TreeWidget(ListWidget):
         :param parent: parent of object
         :type parent: str
         :param key: key of item to delete
+        :type key: any
         :raises: :class:`DelItemError` if item is not found
         '''
         iter_val = self._iter_of(key,
@@ -859,8 +900,10 @@ class TreeWidget(ListWidget):
         :param parent: Parent of object
         :type parent: str
         :param key: Key for item
-        :raises: :class:`GetItemError` when item not found
+        :type key: any
         :returns: Returned item
+        :rtype: any
+        :raises: :class:`GetItemError` when item not found
         '''
         iter_val = self._iter_of(key,
                                  self._store.iter_children(
@@ -877,6 +920,7 @@ class TreeWidget(ListWidget):
         :param parent: Parent of item
         :type parent: str
         :param vals: Optional vals
+        :type vals: tuple
         :raises: :class:`SetItemError` if item is not found
         '''
         iter_val = self._iter_of(vals[self._key],
@@ -964,7 +1008,8 @@ class LatLonEntry(Gtk.Entry):
     '''
     Latitude Longitude Entry.
 
-    :param args: Optional gtkEntry arguments
+    :param args: Optional GtkEntry arguments, unused.
+    :type args: tuple
     '''
     def __init__(self, *args):
         Gtk.Entry.__init__(self, *args)
@@ -972,12 +1017,13 @@ class LatLonEntry(Gtk.Entry):
         self.logger = logging.getLogger("LatLonEntry")
         self.connect("changed", self.format)
 
-    # pylint: disable=no-self-use
-    def format(self, entry):
+    @staticmethod
+    def format(entry):
         '''
-        Format entry text.
+        Format entry text handler.
 
         :param entry: Entry Object
+        :type entry: :class:`Gtk.Entry`
         '''
         string = entry.get_text()
         if string is None:
@@ -999,8 +1045,8 @@ class LatLonEntry(Gtk.Entry):
 
         entry.set_text(string)
 
-    # pylint: disable=no-self-use
-    def parse_dd(self, string):
+    @staticmethod
+    def parse_dd(string):
         '''
         Parse Decimal Degree string.
 
@@ -1011,8 +1057,8 @@ class LatLonEntry(Gtk.Entry):
         '''
         return float(string)
 
-    # pylint: disable=no-self-use
-    def parse_dm(self, string):
+    @staticmethod
+    def parse_dm(string):
         '''
         Parse Degrees Minutes string.
 
@@ -1031,16 +1077,16 @@ class LatLonEntry(Gtk.Entry):
 
         return degrees + (minutes / 60.0)
 
-    # pylint: disable=no-self-use
-    def parse_dms(self, string):
+    @staticmethod
+    def parse_dms(string):
         '''
         Parse Degrees Minutes Seconds from string.
 
         :param string: Text with Degrees Minutes and Seconds
         :type string: str
-        :raises: :class:`LatLongEntryParseDMSError` on parsing error.
         :returns: Degrees Minutes and Seconds
         :rtype: float
+        :raises: :class:`LatLongEntryParseDMSError` on parsing error.
         '''
         string = string.replace(u"\u00b0", " ")
         string = string.replace('"', ' ')
@@ -1153,13 +1199,14 @@ def make_choice(options, editable=True, default=None):
     Make Choice.
 
     :param options: options
-    :param editable: Default True
+    :type options: List[str]
+    :param editable: Is text editable, Default True
     :type editable: bool
-    :param default: Default None
+    :param default: Default text to select, Default None
+    :type default: str
     :returns: selection dialog
     :rtype: :class:`Gtk.ComboBox.Text`
     '''
-    logger = logging.getLogger("make_choice")
     if editable:
         sel = Gtk.ComboBoxText.new_with_entry()
     else:
@@ -1172,11 +1219,8 @@ def make_choice(options, editable=True, default=None):
         try:
             idx = options.index(default)
             sel.set_active(idx)
-        # pylint: disable=broad-except
-        except Exception:
-            logger.info("broad-exception suppressed", exc_info=True)
-            # pass
-
+        except ValueError:
+            pass
     return sel
 
 
@@ -1213,11 +1257,12 @@ class FilenameBox(Gtk.Box):
         self.filename.connect("changed", self.do_changed)
         browse.connect("clicked", self.do_browse, find_dir)
 
-    def do_browse(self, _dummy, directory):
+    def do_browse(self, _button, directory):
         '''
-        Do Browse.
+        Do Browse Button Handler.
 
-        :param _dummy: unused
+        :param _button: Button widget
+        :type _button: :class:`Gtk.Button`
         :param directory: Is a directory
         :type directory: bool
         '''
@@ -1235,7 +1280,7 @@ class FilenameBox(Gtk.Box):
 
     def do_changed(self, _dummy):
         '''
-        Do Changed.
+        Do Changed Handler.
 
         :param _dummy: Unused
         '''
@@ -1259,6 +1304,7 @@ class FilenameBox(Gtk.Box):
         '''
         return self.filename.get_text()
 
+    # WB8TYW: I can not find a caller of this method.
     def set_mutable(self, mutable):
         '''
         Set Mutable.
@@ -1274,7 +1320,9 @@ def make_pixbuf_choice(options, default=None):
     Make Pixbuf Choice.
 
     :param options: Options
+    :type options: list[:class:`GdkPixbuf.Pixbuf`]
     :param default: Default is None
+    :type: str
     :returns: GtkBox object
     :rtype: :class:`Gtk.Box`
     '''
@@ -1323,7 +1371,7 @@ def test():
     win.add(lst)
     win.show()
 
-    win1 = ProgressDialog("ProgessBar")
+    win1 = ProgressDialog("ProgressBar")
     win1.set_fraction(0.25)
     win1.show()
 
@@ -1334,16 +1382,17 @@ def test():
     win2.show()
 
     win3 = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
-    lst = TreeWidget([(GObject.TYPE_STRING, "Id"),
-                      (GObject.TYPE_STRING, "Value"),
-                      (GObject.TYPE_FLOAT, "latitude")],
-                     1)
-    # lst.add_item("Foo", "Bar", "Baz", 0)
-    lst.set_values({"Fruit" : [("Apple", "Red", 0), ("Orange", "Orange", 0)],
-                    "Pizza" : [("Cheese", "Simple", 0), ("Pepperoni", "Yummy", 0)]})
-    lst.add_item("Fruit", "Bananna", "Yellow", 3)
-    lst.show()
-    win3.add(lst)
+    tree = TreeWidget([(GObject.TYPE_STRING, "Id"),
+                       (GObject.TYPE_STRING, "Value"),
+                       (GObject.TYPE_FLOAT, "latitude")],
+                      1)
+    # tree.add_item("Foo", "Bar", "Baz", 0)
+    tree.set_values({"Fruit" : [("Apple", "Red", 0), ("Orange", "Orange", 0)],
+                     "Pizza" : [("Cheese", "Simple", 0),
+                                ("Pepperoni", "Yummy", 0)]})
+    tree.add_item("Fruit", "Banana", "Yellow", 3)
+    tree.show()
+    win3.add(tree)
     win3.show()
 
     def print_val(entry):
