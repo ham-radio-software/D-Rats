@@ -210,8 +210,8 @@ class MailThread(threading.Thread, GObject.GObject):
         :param message: Message to log
         :type message: :class:`EmailMessage`
         '''
-        self.logger.info("[MAIL %s@%s] %s",
-                         self.username, self.server, message)
+        self.logger.debug("[MAIL %s@%s] %s",
+                          self.username, self.server, message)
 
     def create_form_from_mail(self, mail):
         '''
