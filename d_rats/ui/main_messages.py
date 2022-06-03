@@ -1,5 +1,6 @@
 #!/usr/bin/python
 '''Main Messages'''
+# pylint wants a max of 1000 lines per module
 # pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
@@ -26,9 +27,14 @@ import os
 import time
 import shutil
 import random
-# import glob
+
 from glob import glob
 from datetime import datetime
+from configparser import ConfigParser
+from configparser import DuplicateSectionError
+from configparser import NoOptionError
+from configparser import NoSectionError
+
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -37,22 +43,15 @@ from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import Pango
 
-# pyright: reportMissingModuleSource=false
-from six.moves.configparser import ConfigParser
-from six.moves.configparser import DuplicateSectionError
-from six.moves.configparser import NoOptionError
-from six.moves.configparser import NoSectionError
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import prompt_for_station, \
     display_error, prompt_for_string, set_toolbar_buttons
-# from d_rats.ui import main_events
+
 from d_rats import inputdialog
 from d_rats import formgui
-# from d_rats import emailgw
-from d_rats.utils import log_exception
 from d_rats import signals
 from d_rats import msgrouting
-# from d_rats import wl2k
+
 
 _FOLDER_CACHE = {}
 
@@ -100,15 +99,15 @@ class MessageFolderInfo():
             self._config = _FOLDER_CACHE[folder_path]
         else:
             self._config = ConfigParser()
-            regpath = os.path.join(self._path, ".db")
-            if os.path.exists(regpath):
-                self._config.read(regpath)
+            reg_path = os.path.join(self._path, ".db")
+            if os.path.exists(reg_path):
+                self._config.read(reg_path)
             self._save()
             _FOLDER_CACHE[folder_path] = self._config
 
     def _save(self):
-        regpath = os.path.join(self._path, ".db")
-        file_handle = open(regpath, "w")
+        reg_path = os.path.join(self._path, ".db")
+        file_handle = open(reg_path, "w")
         self._config.write(file_handle)
         file_handle.close()
 
@@ -121,7 +120,7 @@ class MessageFolderInfo():
         '''
         return os.path.basename(self._path)
 
-    def _setprop(self, filename, prop, value):
+    def _set_prop(self, filename, prop, value):
         filename = os.path.basename(filename)
 
         if not self._config.has_section(filename):
@@ -130,7 +129,7 @@ class MessageFolderInfo():
         self._config.set(filename, prop, value)
         self._save()
 
-    def _getprop(self, filename, prop):
+    def _get_prop(self, filename, prop):
         filename = os.path.basename(filename)
 
         try:
@@ -147,7 +146,7 @@ class MessageFolderInfo():
         :returns: Subject of message
         :rtype: str
         '''
-        return self._getprop(filename, "subject")
+        return self._get_prop(filename, "subject")
 
     def set_msg_subject(self, filename, subject):
         '''
@@ -158,7 +157,7 @@ class MessageFolderInfo():
         :param subject: Subject for message
         :type subject: str
         '''
-        self._setprop(filename, "subject", subject)
+        self._set_prop(filename, "subject", subject)
 
     def get_msg_type(self, filename):
         '''
@@ -169,7 +168,7 @@ class MessageFolderInfo():
         :returns: Message Type
         :rtype: str
         '''
-        return self._getprop(filename, "type")
+        return self._get_prop(filename, "type")
 
     def set_msg_type(self, filename, msg_type):
         '''
@@ -180,7 +179,7 @@ class MessageFolderInfo():
         :param msg_type: Type of message
         :type msg_type: str
         '''
-        self._setprop(filename, "type", msg_type)
+        self._set_prop(filename, "type", msg_type)
 
     def get_msg_read(self, filename):
         '''
@@ -191,7 +190,7 @@ class MessageFolderInfo():
         :returns: True if message has been read
         :rtype: bool
         '''
-        val = self._getprop(filename, "read")
+        val = self._get_prop(filename, "read")
         return val == "True"
 
     def set_msg_read(self, filename, read):
@@ -203,7 +202,7 @@ class MessageFolderInfo():
         :param read: True for message to be marked read
         :type read: bool
         '''
-        self._setprop(filename, "read", str(read))
+        self._set_prop(filename, "read", str(read))
 
     def get_msg_sender(self, filename):
         '''
@@ -214,7 +213,7 @@ class MessageFolderInfo():
         :returns: Sender of message
         :rtype: str
         '''
-        return self._getprop(filename, "sender")
+        return self._get_prop(filename, "sender")
 
     def set_msg_sender(self, filename, sender):
         '''
@@ -225,7 +224,7 @@ class MessageFolderInfo():
         :param sender: Sender of message
         :type sender: str
         '''
-        self._setprop(filename, "sender", sender)
+        self._set_prop(filename, "sender", sender)
 
     def get_msg_recip(self, filename):
         '''
@@ -236,7 +235,7 @@ class MessageFolderInfo():
         :returns: Message recipient
         :rtype: str
         '''
-        return self._getprop(filename, "recip")
+        return self._get_prop(filename, "recip")
 
     def set_msg_recip(self, filename, recip):
         '''
@@ -247,14 +246,14 @@ class MessageFolderInfo():
         :param recip: Recipient
         :type recip: str
         '''
-        self._setprop(filename, "recip", recip)
+        self._set_prop(filename, "recip", recip)
 
     def subfolders(self):
         '''
         Get the subfolders.
 
         :returns: subfolders of folder
-        :rtype: list of :class:`MessageFolderInfo`
+        :rtype: list[:class:`MessageFolderInfo`]
         '''
         info = []
 
@@ -272,7 +271,7 @@ class MessageFolderInfo():
         List files.
 
         :returns: files in the folder.
-        :rtype: list of str
+        :rtype: list[str]
         '''
         file_list = glob(os.path.join(self._path, "*"))
         return [x_file for x_file in file_list
@@ -357,15 +356,16 @@ class MessageFolderInfo():
         :param new_name: New name for path
         :type new_name: str
         '''
-        newpath = os.path.join(os.path.dirname(self._path), new_name)
-        self.logger.info("Renaming %s -> %s", self._path, newpath)
-        os.rename(self._path, newpath)
-        self._path = newpath
+        new_path = os.path.join(os.path.dirname(self._path), new_name)
+        self.logger.info("Renaming %s -> %s", self._path, new_path)
+        os.rename(self._path, new_path)
+        self._path = new_path
 
     def __str__(self):
         return self.name()
 
 
+# pylint wants at least 2 public methods per class.
 # pylint: disable=too-few-public-methods
 class MessageInfo():
     '''Message information.
@@ -386,6 +386,7 @@ class MessageFolders(MainWindowElement):
     Message Folders.
 
     :param wtree: Window tree
+    :type wtree: :class:`Gtk.GtkNotebook`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -440,8 +441,8 @@ class MessageFolders(MainWindowElement):
             os.makedirs(path)
         return path
 
-    # pylint: disable=no-self-use
-    def _create_folder(self, root, name):
+    @staticmethod
+    def _create_folder(root, name):
         '''
         Create folder.
 
@@ -449,9 +450,9 @@ class MessageFolders(MainWindowElement):
         :type root: :class:`MessageFolderInfo`
         :param name: Folder name
         :type name: str
-        :raises: :class:`FolderError` if folder can not be created
         :returns: Message folder info for child directory
         :rtype: :class:`MessageFolderInfo`
+        :raises: :class:`FolderError` if folder can not be created
         '''
         # python3 can create directory and parent directories in one call.
         info = root
@@ -485,8 +486,8 @@ class MessageFolders(MainWindowElement):
         '''
         Get Folders.
 
-        :returns: Message folders infomation
-        :rtype: list of :class:`MessageFolderInfo`
+        :returns: Message folders information
+        :rtype: list[:class:`MessageFolderInfo`]
         '''
         return MessageFolderInfo(self._folders_path()).subfolders()
 
@@ -501,8 +502,8 @@ class MessageFolders(MainWindowElement):
         '''
         return MessageFolderInfo(os.path.join(self._folders_path(), name))
 
-    # pylint: disable=no-self-use
-    def _get_folder_by_iter(self, store, msg_iter):
+    @staticmethod
+    def _get_folder_by_iter(store, msg_iter):
         els = []
         while msg_iter:
             els.insert(0, store.get(msg_iter, 0)[0])
@@ -542,20 +543,16 @@ class MessageFolders(MainWindowElement):
                 info = self._create_folder(root, folder)
                 self.logger.info("_ensure_default_folders %s",
                                  info.subfolders())
-            # pylint: disable=broad-except
-            except Exception:
-                # Possibly temp diagnostic until verify the exact exception.
-                self.logger.info("_ensure_default_folders broad-except",
-                                 exc_info=True)
-                # pass
+            except FolderError:
+                pass
 
     def _add_folders(self, store, msg_iter, root):
         msg_iter = store.append(msg_iter, (root.name(), self.folder_pixbuf))
         for info in root.subfolders():
             self._add_folders(store, msg_iter, info)
 
-    # pylint: disable=no-self-use
-    def _get_selected_folder(self, view, event):
+    @staticmethod
+    def _get_selected_folder(view, event):
         if event.window == view.get_bin_window():
             x_coord, y_coord = event.get_coords()
             pathinfo = view.get_path_at_pos(int(x_coord), int(y_coord))
@@ -565,10 +562,22 @@ class MessageFolders(MainWindowElement):
 
         return view.get_selection().get_selected()
 
-    def _mh(self, _action, store, msg_iter, _view):
-        action = _action.get_name()
+    def _menu_handler(self, action, store, msg_iter, _view):
+        '''
+        Menu activate handler.
 
-        if action == "delete":
+        :param action: Action that was signaled
+        :type action: :class:`Gtk.Action`
+        :param store: Tree store widget
+        :type store: :class:`Gtk.TreeStore`
+        :param msg_iter: Message iterator
+        :type msg_iter: :class:`Gtk.TreeIter`
+        :param view: Mouse button widget
+        :type view: :class:`Gtk.TreeView`
+        '''
+        action_name = action.get_name()
+
+        if action_name == "delete":
             info = self.get_folder(self._get_folder_by_iter(store, msg_iter))
             try:
                 info.delete_self()
@@ -576,11 +585,11 @@ class MessageFolders(MainWindowElement):
                 display_error("Unable to delete folder: %s" % err)
                 return
             store.remove(msg_iter)
-        elif action == "create":
+        elif action_name == "create":
             store.insert(msg_iter, 0, ("New Folder", self.folder_pixbuf))
             parent = self.get_folder(self._get_folder_by_iter(store, msg_iter))
             self._create_folder(parent, "New Folder")
-        elif action == "rename":
+        elif action_name == "rename":
             info = self.get_folder(self._get_folder_by_iter(store, msg_iter))
 
             new_text = prompt_for_string("Rename folder `%s' to:" % info.name(),
@@ -592,10 +601,8 @@ class MessageFolders(MainWindowElement):
 
             try:
                 info.rename(new_text)
-            # pylint: disable=broad-except
-            except Exception as err:
-                self.logger.info("mh (rename) broad-except", exc_info=True)
-                display_error("Unable to rename: %s -%s-" % (type(err), err))
+            except OSError as err:
+                display_error("Unable to rename: %s" % err)
                 return
 
             store.set(msg_iter, 0, new_text)
@@ -607,18 +614,22 @@ class MessageFolders(MainWindowElement):
         self.emit("user-selected-folder",
                   self._get_folder_by_iter(store, msg_iter))
 
-    def _move_cursor(self, view, _step, _count):
-        try:
-            (store, msg_iter) = view.get_selection().get_selected()
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("_move_cursor - Unable to find selected",
-                             exc_info=True)
-            return
+    def _move_cursor(self, view, _step, _direction):
+        '''
+        Move cursor move-cursor handler.
 
+        :param view: TreeView widget
+        :type view: :class:`Gtk.TreeView`
+        :param _step: The granularity of the move
+        :type _step: :class:`Gtk.MovementStep`
+        :param _direction:  Direction to move
+        :type _direction: int
+        '''
+        (store, msg_iter) = view.get_selection().get_selected()
         self.emit("user-selected-folder",
                   self._get_folder_by_iter(store, msg_iter))
 
+    # pylint wants a max of 15 local variables
     # pylint: disable=too-many-locals
     def _folder_menu(self, view, event):
         x_coord = int(event.x)
@@ -651,7 +662,8 @@ class MessageFolders(MainWindowElement):
         for action, label, stock, sensitive in actions:
             new_action = Gtk.Action.new(action, label, None, stock)
             new_action.set_sensitive(sensitive)
-            new_action.connect("activate", self._mh, store, folder_iter, view)
+            new_action.connect("activate", self._menu_handler,
+                               store, folder_iter, view)
             action_group.add_action(new_action)
 
         uim = Gtk.UIManager()
@@ -662,27 +674,38 @@ class MessageFolders(MainWindowElement):
                                       event.button, event.time)
 
     def _mouse_cb(self, view, event):
+        '''
+        Mouse Callback button_press_event Handler.
+
+        :param view: Mouse button widget
+        :type view: :class:`Gtk.TreeView`
+        :param event: Button press event
+        :type event: :class:`Gtk.EventButton`
+        '''
         if event.button == 1:
             return self._select_folder(view, event)
         if event.button == 3:
             return self._folder_menu(view, event)
         return None
 
-    # pylint: disable=too-many-arguments, too-many-locals
+    # pylint wants a max of 15 local variables
+    # pylint: disable=too-many-locals
     def _dragged_to(self, view, _ctx, x_coord, y_coord, sel, _info, _ts):
         '''
-        Dragged to.
+        Dragged to - drag-data-received Handler.
 
         :param view: Widget getting signal
-        :type view: GTK.Widget
+        :type view: :class:`Gtk.TreeView`
         :param _ctx: Context value, unused
-        :type: ctx: Gtk.DragContex
-        :param x_coord: Horizontal coordinate of destintation
+        :type: ctx: :class:`Gtk.DragContext`
+        :param x_coord: Horizontal coordinate of destination
         :param y_coord: Vertical coordinate of destination
         :param sel: Selection containing the dragged data
-        :type sel: Gtk.SelectionData
+        :type sel: :class:`Gtk.SelectionData`
         :param _info: Information registered in the Gtk.TargetList, unused
+        :type _info: int
         :param _ts: timestamp of when the data was requested, unused
+        :type _ts: int
         '''
         (path, _place) = view.get_dest_row_at_pos(x_coord, y_coord)
 
@@ -724,6 +747,18 @@ class MessageFolders(MainWindowElement):
             dst.set_msg_recip(fname, recp)
 
     def _folder_rename(self, _render, path, new_text, store):
+        '''
+        Folder rename edited handler.
+
+        :param _render: Rendering widget
+        :type _render: :class:`Gtk.CellRendererText`
+        :param path: Path identifying edited cell
+        :type path: str
+        :param new_text: New text
+        :type new_text: str
+        :param store: TreeStore for data
+        :type store: :class:`Gtk.TreeStore`
+        '''
         folder_iter = store.get_iter(path)
         orig = store.get(folder_iter, 0)[0]
         if orig == new_text:
@@ -733,10 +768,8 @@ class MessageFolders(MainWindowElement):
         info = self.get_folder(self._get_folder_by_iter(store, folder_iter))
         try:
             info.rename(new_text)
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("_folder_rename: broad-except", exc_info=True)
-            display_error("Unable to rename: %s -%s-" % (type(err), err))
+        except OSError as err:
+            display_error("Unable to rename: %s" % err)
             return
 
         store.set(iter, 0, new_text)
@@ -758,6 +791,7 @@ class MessageList(MainWindowElement):
 
     :param wtree: Window Tree Object.
     :param config: Configuration object
+    :type config: :class:`DratsConfig`
     '''
 
     __gsignals__ = {"prompt-send-form" : (GObject.SignalFlags.RUN_LAST,
@@ -771,6 +805,7 @@ class MessageList(MainWindowElement):
                                      (GObject.TYPE_STRING,)),
                     }
 
+    # pylint wants a max of 50 statements for methods or functions
     # pylint: disable=too-many-statements
     def __init__(self, wtree, config):
         MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
@@ -885,9 +920,11 @@ class MessageList(MainWindowElement):
         :param editable: If message can be edited
         :type editable: bool
         :param call_back: Callback for message
+        :type call_back: function(:class:`Gtk.ResponseType`, any)
         :param cbdata: Call back data
+        :type cbdata: any
         :returns: response
-        :rtype: Gtk.ResponseType
+        :rtype: :class:`Gtk.ResponseType`
         '''
         if not msgrouting.msg_lock(filename):
             display_error(_("Unable to open: message in use by another task"))
@@ -899,6 +936,16 @@ class MessageList(MainWindowElement):
         form.configure(self._config)
 
         def form_done(dlg, response, msg_info):
+            '''
+            Form Done response handler.
+
+            :param dlg: Message Info dialog
+            :param dlg: :class:`formgui.FormDialog`
+            :param response: response from dialog
+            :type response: :class:`Gtk.ResponseType`
+            :param msg_info: Message info
+            :type msg_info: :class:`MessageInfo`
+            '''
             saveable_actions = [formgui.RESPONSE_SAVE,
                                 formgui.RESPONSE_SEND,
                                 formgui.RESPONSE_SEND_VIA,
@@ -957,17 +1004,16 @@ class MessageList(MainWindowElement):
         if msg_iter:
             self._update_message_info(msg_iter)
 
-    # pylint: disable=too-many-arguments
     def _dragged_from(self, view, _ctx, sel, _info, _ts):
         '''
         Dragged from.
 
         :param view: Widget getting signal
-        :type view: Gtk.Widget
+        :type view: :class:`Gtk.Widget`
         :param _ctx: Context value, unused
-        :type _ctx: Gtk.DragContex
+        :type _ctx: :class:`Gtk.DragContext`
         :param sel: Selection containing the dragged data
-        :type sel: Gtk.SelectionData
+        :type sel: :class:`Gtk.SelectionData`
         :param _info: Information registered in the Gtk.TargetList, unused
         :param _ts: timestamp of when the data was requested, unused
         '''
@@ -1024,6 +1070,7 @@ class MessageList(MainWindowElement):
         :param file_name: File Name to lookup
         :type file_name: str
         :returns: Iterated file name with each call
+        :rtype: :class:`Gtk.TreeIter`
         '''
         fn_iter = self.store.get_iter_first()
         while fn_iter:
@@ -1086,6 +1133,7 @@ class MessageList(MainWindowElement):
         Move message into folder.
 
         :param info: Message information
+        :type info: :class:`MessageFolderInfo`
         :param path: Source folder
         :type path: str
         :param new_folder: Destination Folder
@@ -1096,10 +1144,8 @@ class MessageList(MainWindowElement):
         dest = MessageFolderInfo(self._folder_path(new_folder))
         try:
             newfn = dest.create_msg(os.path.basename(path))
-        # pylint: disable=broad-except
-        except Exception:
+        except DuplicateSectionError:
             # Same folder, or duplicate message id
-            self.logger.info("move_message: broad-except", exc_info=True)
             return path
 
         self.logger.info("move_message Moving %s -> %s", path, newfn)
@@ -1144,6 +1190,7 @@ class MessagesTab(MainWindowTab):
     Messages Tab.
 
     :param wtree: Object for tree
+    :type wtree: :class:`Gtk.GtkNotebook`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -1179,21 +1226,28 @@ class MessagesTab(MainWindowTab):
         eport = self._wtree.get_object("main_menu_exportmsg")
         eport.connect("activate", self._exportmsg)
 
-    # pylint: disable=too-many-locals
-    def _new_msg(self, _button, msgtype=None):
+    def _new_msg(self, _button, msg_type=None):
+        '''
+        New Message clicked handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`Gtk.MenuToolButton`
+        :param file_name: Filename for message, default None
+        :type file_name: str
+        '''
         types = glob(os.path.join(self._config.form_source_dir(), "*.xml"))
 
         forms = {}
         for file_name in types:
             forms[os.path.basename(file_name).replace(".xml", "")] = file_name
 
-        if msgtype is None:
+        if msg_type is None:
             parent = self._wtree.get_object("mainwindow")
             dialog = inputdialog.ChoiceDialog(forms.keys(),
                                               title=_("Choose a form"),
                                               parent=parent)
             result = dialog.run()
-            msgtype = dialog.choice.get_active_text()
+            msg_type = dialog.choice.get_active_text()
             dialog.destroy()
             if result != Gtk.ResponseType.OK:
                 return
@@ -1205,7 +1259,7 @@ class MessagesTab(MainWindowTab):
         newfn = self._messages.current_info.create_msg(tstamp)
 
 
-        form = formgui.FormFile(forms[msgtype])
+        form = formgui.FormFile(forms[msg_type])
         call = self._config.get("user", "callsign")
         form.add_path_element(call)
         form.set_path_src(call)
@@ -1222,8 +1276,17 @@ class MessagesTab(MainWindowTab):
         self._messages.open_msg(newfn, True,
                                 close_msg_cb, self._messages.current_info)
 
+    # pylint wants a max of 15 local variables
     # pylint: disable=too-many-locals
     def _rpl_msg(self, _button, file_name=None):
+        '''
+        Reply to Message reply-form and clicked handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`MessageList`, :class:`Gtk.MenuToolButton`
+        :param file_name: Filename for message, default None
+        :type file_name: str
+        '''
         def subj_reply(subj):
             if "RE:" in subj.upper():
                 return subj
@@ -1266,19 +1329,18 @@ class MessagesTab(MainWindowTab):
 
         try:
             for s_field, d_field, x_field in save_fields:
-                oldval = oform.get_field_value(s_field)
-                if not oldval:
+                old_val = oform.get_field_value(s_field)
+                if not old_val:
                     continue
 
                 if x_field:
-                    nform.set_field_value(d_field, x_field(oldval))
+                    nform.set_field_value(d_field, x_field(old_val))
                 else:
-                    nform.set_field_value(d_field, oldval)
-        # pylint: disable=broad-except
-        except Exception:
-            log_exception()
-            self.logger.info("_rpl_msg: Failed to do reply broad-except",
-                             exc_info=True)
+                    nform.set_field_value(d_field, old_val)
+
+        except formgui.FormguiFileMultipleIds:
+            self.logger.info("_rpl_msg: Failed to do reply",
+                             exc_info=True, stack_info=True)
             return
 
         if ";" in oform.get_path_dst():
@@ -1312,13 +1374,20 @@ class MessagesTab(MainWindowTab):
                                 close_msg_cb, self._messages.current_info)
 
     def _del_msg(self, _button, file_name=None):
+        '''
+        Delete Message delete-form and clicked handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`MessageList`, :class:`Gtk.MenuToolButton`
+        :param file_name: Filename for message, default None
+        :type file_name: str
+        '''
         if file_name:
             try:
                 os.remove(file_name)
-            # pylint: disable=broad-except
-            except Exception:
+            except OSError as err:
                 self.logger.info("_del_msg: Unable to delete %s: %s",
-                                 file_name, 'broad-except', exc_info=True)
+                                 file_name, err)
             self._messages.refresh()
         else:
             if self._messages.current_info.name() == _("Trash"):
@@ -1327,6 +1396,14 @@ class MessagesTab(MainWindowTab):
                 self._messages.move_selected_messages(_("Trash"))
 
     def _snd_msg(self, _button, file_name=None):
+        '''
+        Send Message prompt-send-form and clicked handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`MessageList`, :class:`Gtk.MenuToolButton`
+        :param file_name: Filename for message, default None
+        :type file_name: str
+        '''
         if not file_name:
             try:
                 sel = self._messages.get_selected_messages()
@@ -1365,6 +1442,14 @@ class MessagesTab(MainWindowTab):
             msgrouting.msg_unlock(file_name)
 
     def _mrk_msg(self, _button, read):
+        '''
+        Mark Message clicked handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`Gtk.MenuToolButton`
+        :param read: Flag to mark read
+        :type read: bool
+        '''
         try:
             sel = self._messages.get_selected_messages()
         except TypeError:
@@ -1376,6 +1461,12 @@ class MessagesTab(MainWindowTab):
         self._messages.refresh()
 
     def _importmsg(self, _button):
+        '''
+        Import Message activate handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`Gtk.GtkImageMenuItem`
+        '''
         download_dir = self._config.get("prefs", "download_dir")
         file_name = self._config.platform.gui_open_file(download_dir)
         if not file_name:
@@ -1389,6 +1480,12 @@ class MessagesTab(MainWindowTab):
         self.refresh_if_folder(_("Inbox"))
 
     def _exportmsg(self, _button):
+        '''
+        Export Message activate handler.
+
+        :param _button: Widget that was signaled, unused
+        :type _button: :class:`Gtk.GtkImageMenuItem`
+        '''
         try:
             sel = self._messages.get_selected_messages()
         except TypeError:
@@ -1410,6 +1507,14 @@ class MessagesTab(MainWindowTab):
         shutil.copy(file_name, nfn)
 
     def _sndrcv(self, _button, account=""):
+        '''
+        Send Receive activate and clicked handler.
+
+        :param _button: Widget that was signaled
+        :type _button: :class:`Gtk.MenuItem`, :class:`Gtk.MenuToolButton`
+        :param account: Account name, default ""
+        :type account: str
+        '''
         self.emit("trigger-msg-router", account)
 
     def _make_sndrcv_menu(self):
@@ -1452,14 +1557,14 @@ class MessagesTab(MainWindowTab):
 
         t_dir = self._config.form_source_dir()
         for file_i in sorted(glob(os.path.join(t_dir, "*.xml"))):
-            msgtype = os.path.basename(file_i).replace(".xml", "")
-            label = msgtype.replace("_", " ")
+            msg_type = os.path.basename(file_i).replace(".xml", "")
+            label = msg_type.replace("_", " ")
             menu_item = Gtk.MenuItem(label)
             try:
                 menu_item.set_tooltip_text("Create a new %s form" % label)
             except AttributeError:
                 pass
-            menu_item.connect("activate", self._new_msg, msgtype)
+            menu_item.connect("activate", self._new_msg, msg_type)
             menu_item.show()
             menu.append(menu_item)
 
@@ -1561,7 +1666,8 @@ class MessagesTab(MainWindowTab):
         '''
         Get Shared Messages for a destination.
 
-        :param for_station:  Destination Station (Currently ignored)
+        :param for_station: Destination Station (Currently ignored)
+        :type for_station: str
         :returns: list of message tuple of title, stamp, filename for
                   the destination
         :rtype: list[tuple[str, int, str]]
