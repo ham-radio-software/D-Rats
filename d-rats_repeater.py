@@ -1,5 +1,7 @@
 #!/usr/bin/python
 '''D-Rats Repeater.'''
+# pylint wants only 100 lines per module.
+# pylint does not like the module name, wants "snake_case" compliance.
 # pylint: disable=too-many-lines, invalid-name
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
@@ -39,7 +41,6 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
-# from gi.repository import GLib
 
 from d_rats import dplatform
 from d_rats import transport
@@ -47,8 +48,6 @@ from d_rats import comm
 from d_rats.miscwidgets import make_choice
 from d_rats import miscwidgets
 from d_rats.config import prompt_for_port
-
-from d_rats import utils
 
 gettext.install("D-RATS")
 
@@ -109,23 +108,24 @@ class CallInfo:
         return self.__transport
 
 
-def call_in_list(callinfo, call):
+def call_in_list(call_info, call):
     '''
     Call in list?
 
-    :param callinfo: list of callsign infomation objects
-    :type callinfo: list of :class:`CallInfo`
+    :param call_info: list of callsign information objects
+    :type call_info: list[:class:`CallInfo`]
     :param call: Call sign to lookup
     :type call: str
     :returns true: If call sign is found
     :rtype: bool
     '''
-    for info in callinfo:
+    for info in call_info:
         if call == info.get_call():
             return True
     return False
 
 
+# pylint wants only 7 instance attributes per class
 # pylint: disable=too-many-instance-attributes
 class Repeater:
     '''
@@ -133,16 +133,16 @@ class Repeater:
 
     :param ident: Identity string, Default 'D-RATS Network Proxy'
     :type ident: str
-    :param reqauth: True is authorization required
-    :type reqauth: bool
-    :param trustlocal: True if local should be trusted
-    :type trustlocal: bool
+    :param require_auth: True is authorization required
+    :type require_auth: bool
+    :param trust_local: True if local should be trusted
+    :type trust_local: bool
     :param gps_okay_ports: List of GPS active TCP/IP ports, default None
     :type gps_ok_ports: list
     '''
 
     def __init__(self, ident="D-RATS Network Proxy",
-                 reqauth=False, trustlocal=False, gps_okay_ports=None):
+                 require_auth=False, trust_local=False, gps_okay_ports=None):
         self.logger = logging.getLogger("Repeater")
         self.paths = []
         self.calls = {}
@@ -151,8 +151,8 @@ class Repeater:
         self.socket = None
         self.repeat_thread = None
         self.ident = ident
-        self.reqauth = reqauth
-        self.trustlocal = trustlocal
+        self.require_auth = require_auth
+        self.trust_local = trust_local
         self.condition = threading.Condition()
         self.gps_socket = None
         self.gps_sockets = []
@@ -168,6 +168,7 @@ class Repeater:
             return True
         return gps_transport.name in self.gps_okay_ports
 
+    # pylint wants a max of 12 branches per function or method
     # pylint: disable=too-many-branches
     def __repeat(self, rpt_transport, frame):
         if frame.d_station == "!":
@@ -182,34 +183,34 @@ class Repeater:
             for sock in self.gps_sockets:
                 sock.send(frame.data)
 
-        srcinfo = self.calls.get(frame.s_station, None)
-        if srcinfo is None and frame.s_station != "CQCQCQ":
+        src_info = self.calls.get(frame.s_station, None)
+        if src_info is None and frame.s_station != "CQCQCQ":
 
             self.logger.info("__repeat: Adding new station %s to port %s",
                              frame.s_station, rpt_transport)
             self.calls[frame.s_station] = CallInfo(frame.s_station,
                                                    rpt_transport)
-        elif srcinfo:
-            if srcinfo.last_transport() != rpt_transport:
+        elif src_info:
+            if src_info.last_transport() != rpt_transport:
                 self.logger.info("__repeat: Station %s moved to port %s",
                                  frame.s_station, rpt_transport)
 
-            srcinfo.just_heard(rpt_transport)
+            src_info.just_heard(rpt_transport)
 
-        dstinfo = self.calls.get(frame.d_station, None)
-        if dstinfo is not None:
-            if not dstinfo.last_transport().enabled:
+        dst_info = self.calls.get(frame.d_station, None)
+        if dst_info is not None:
+            if not dst_info.last_transport().enabled:
                 self.logger.info("__repeat: Last transport for %s is dead",
                                  frame.d_station)
-            elif dstinfo.last_heard() < self.__call_timeout:
+            elif dst_info.last_heard() < self.__call_timeout:
                 self.logger.info("__repeat: Delivering frame to %s at %s",
-                                 frame.d_station, dstinfo.last_transport())
-                dstinfo.last_transport().send_frame(frame.get_copy())
+                                 frame.d_station, dst_info.last_transport())
+                dst_info.last_transport().send_frame(frame.get_copy())
                 return
             self.logger.info("__repeat: Last port for %s was %i sec"
                              " ago (>%i sec)",
                              frame.d_station,
-                             dstinfo.last_heard(),
+                             dst_info.last_heard(),
                              self.__call_timeout)
 
         self.logger.info("__repeat: Repeating frame to %s on all ports",
@@ -311,10 +312,10 @@ class Repeater:
         # pylint: disable=protected-access
         host, _port = pipe._socket.getpeername()
 
-        if not self.reqauth:
+        if not self.require_auth:
             pipe.write(b"100 Authentication not required\r\n")
             return True
-        if self.trustlocal and host == "127.0.0.1":
+        if self.trust_local and host == "127.0.0.1":
             pipe.write(b"100 Authentication not required for localhost\r\n")
             return True
 
@@ -480,6 +481,7 @@ class RepeaterUI:
 
         return config
 
+    # pylint wants a max of 15 local variables
     # pylint: disable=too-many-locals
     def add_outgoing_paths(self, ident, paths):
         '''
@@ -490,11 +492,12 @@ class RepeaterUI:
         :param path: Paths data
         :type path: list[tuple]
         '''
-        reqauth = self.config.get("settings", "require_auth") == "True"
-        trustlocal = self.config.get("settings", "trust_local") == "True"
+        require_auth = self.config.get("settings", "require_auth") == "True"
+        trust_local = self.config.get("settings", "trust_local") == "True"
         gps_okay_ports = self.config.get("tweaks", "allow_gps").split(",")
         self.logger.info("add_outgoing_path: Repeater id is %s", ident)
-        self.repeater = Repeater(ident, reqauth, trustlocal, gps_okay_ports)
+        self.repeater = Repeater(ident, require_auth,
+                                 trust_local, gps_okay_ports)
         for dev, param in paths:
             timeout = 0
             if dev.startswith("net:"):
@@ -533,11 +536,12 @@ class RepeaterUI:
                 timeout = 3
 
             path.connect()
-            tport = transport.Transporter(path, warmup_timout=timeout,
+            tport = transport.Transporter(path, warmup_timeout=timeout,
                                           name=dev)
             self.repeater.add_new_transport(tport)
 
 
+# pylint wants a max of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class RepeaterGUI(RepeaterUI):
     '''Repeater GUI.'''
@@ -584,17 +588,17 @@ class RepeaterGUI(RepeaterUI):
 
         try:
             if self.config.get("settings", "state") == "True":
-                self.button_on(None, None)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("__init__: RepeaterGUI broad-except",
+                self.button_on(None)
+        except (configparser.NoOptionError, OSError):
+            self.logger.info("__init__: Starting repeater error.",
                              exc_info=True)
 
     def add_serial(self, _widget):
         '''
-        Add serial port.
+        Add serial port button click handler.
 
-        :param _widget: Unused
+        :param _widget: Button widget, unused
+        :type _widget: :class:`Gtk.Button`
         '''
         _name, portspec, param = prompt_for_port(None, pname=False)
         if portspec is None:
@@ -616,28 +620,38 @@ class RepeaterGUI(RepeaterUI):
 
     def sig_destroy(self, _widget, _data=None):
         '''
-        Signal destroy.
+        Destroy Event handler.
 
-        :param _widget: unused
+        Signals that the widget is being destroyed.
+
+        :param _widget: :class:`Gtk.Window`
         :param _data: Unused, default None
         '''
         self.button_off(None, False)
+        # Documentation states this signal should not be used
+        # for saving the widget state.
         self.save_config(self.config)
         Gtk.main_quit()
 
-    def ev_delete(self, _widget, _event, _data=None):
+    def ev_delete(self, _widget, _event):
         '''
-        EV Delete.
+        Delete Event handler.
 
-        :param _widget: Unused
-        :param _event: Unused
-        :param _data: Unused, default None
+        This event is signaled by a top level window being closed.
+
+        :param _widget: Widget being deleted, Unused
+        :type _widget: :class:`Gtk.Window`
+        :param _event: Event signaled, Unused
+        :type _event: :class:`Gtk.Event`
+        :returns: True to stop other handlers from handling event.
+        :rtype bool
         '''
         self.button_off(None, False)
         self.save_config(self.config)
         if self.repeater:
             self.repeater.stop()
         Gtk.main_quit()
+        return False
 
     def make_side_buttons(self):
         '''
@@ -670,10 +684,8 @@ class RepeaterGUI(RepeaterUI):
             devices = ast.literal_eval(self.config.get("settings", "devices"))
             for device, radio in devices:
                 self.dev_list.add_item(device, radio)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("load_devices: Unable to load devices",
-                             exc_info=True)
+        except (ValueError, configparser.NoOptionError) as err:
+            self.logger.info("load_devices: Unable to load devices %s", err)
 
     def make_devices(self):
         '''
@@ -728,10 +740,7 @@ class RepeaterGUI(RepeaterUI):
             "Accept incoming connections")
         try:
             accept = self.config.getboolean("settings", "acceptnet")
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("make_network: acceptnet broad-except",
-                             exc_info=True)
+        except configparser.NoOptionError:
             accept = True
 
         self.net_enabled.set_active(accept)
@@ -742,19 +751,13 @@ class RepeaterGUI(RepeaterUI):
         self.entry_port = Gtk.Entry()
         try:
             port = self.config.get("settings", "netport")
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("make_network netport broad-except",
-                             exc_info=True)
+        except configparser.NoOptionError:
             port = "9000"
 
         self.entry_gpsport = Gtk.Entry()
         try:
             gpsport = self.config.get("settings", "gpsport")
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("make_network: gpsport broad-except",
-                             exc_info=True)
+        except configparser.NoOptionError:
             port = "9500"
 
         self.entry_gpsport.set_text(gpsport)
@@ -823,11 +826,10 @@ class RepeaterGUI(RepeaterUI):
         self.entry_id = Gtk.Entry()
         try:
             deftxt = self.config.get("settings", "id")
-        # pylint: disable=broad-except
-        except Exception:
+        except configparser.NoOptionError:
             self.logger.info("make_id 'id' broad-except",
                              exc_info=True)
-            deftxt = "W1AW"
+            deftxt = "MYCALL"
 
         self.entry_id.set_text(deftxt)
         self.entry_id.set_max_length(8)
@@ -836,10 +838,7 @@ class RepeaterGUI(RepeaterUI):
 
         try:
             idfreq = self.config.get("settings", "idfreq")
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("make_id: 'idfreq' broad-except",
-                             exc_info=True)
+        except configparser.NoOptionError:
             idfreq = "30"
 
         self.id_freq = make_choice(["Never", "30", "60", "120"],
@@ -866,8 +865,17 @@ class RepeaterGUI(RepeaterUI):
 
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 20)
 
-        def toggle_option(cb, option):
-            self.config.set("settings", option, str(cb.get_active()))
+        def toggle_option(check_button, option):
+            '''
+            Toggle Option CheckButton toggled handler.
+
+            :param check_button: Button widget signaled
+            :type check_button: :class:`Gtk.CheckButton`
+            :param option: option name
+            :type option: str
+            '''
+            self.config.set("settings", option,
+                            str(check_button.get_active()))
 
         self.req_auth = Gtk.CheckButton.new_with_label("Require Authentication")
         self.req_auth.connect("toggled", toggle_option, "require_auth")
@@ -883,12 +891,18 @@ class RepeaterGUI(RepeaterUI):
                                                            "trust_local"))
         hbox.pack_start(self.trust_local, 0, 0, 0)
 
-        def do_edit_users(_but):
+        def clicked_edit_users(_button):
+            '''
+            Clicked Edit Users Button handler.
+
+            :param _button: Button Widget signaled, unused
+            :type _button: :class:`Gtk.Button`
+            '''
             platform = dplatform.get_platform()
             platform.open_text_file(platform.config_file("users.txt"))
 
         edit_users = Gtk.Button.new_with_label("Edit Users")
-        edit_users.connect("clicked", do_edit_users)
+        edit_users.connect("clicked", clicked_edit_users)
         edit_users.show()
         edit_users.set_size_request(75, 30)
         hbox.pack_end(edit_users, 0, 0, 0)
@@ -1013,18 +1027,19 @@ class RepeaterGUI(RepeaterUI):
 
     def button_remove(self, _widget):
         '''
-        Button Remove.
+        Button Remove clicked handler.
 
-        :param _widget: Unused
+        :param _widget: Button being clicked, unused
+        :type _widget: :class:`Gtk.Button`
         '''
         self.dev_list.remove_selected()
 
-    def button_on(self, _widget, _data=None):
+    def button_on(self, _widget):
         '''
-        Button On.
+        Button On clicked handler.
 
-        :param _widget: Unused
-        :param _data: Optional data, default None
+        :param _widget: Button clicked, unused
+        :type _widget: :class:`Gtk.Widget`
         '''
         self.tick = 0
 
@@ -1042,9 +1057,7 @@ class RepeaterGUI(RepeaterUI):
             port = int(self.entry_port.get_text())
             gpsport = int(self.entry_gpsport.get_text())
             enabled = self.net_enabled.get_active()
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("button_on broad-except", exc_info=True)
+        except ValueError:
             port = 0
             gpsport = 0
 
@@ -1090,29 +1103,27 @@ class RepeaterGUI(RepeaterUI):
 
         self.conn_list.get_child().set_values(path_list)
 
-        if self.tap:
-            traffic = self.tap.peek()
-            end = self.traffic_buffer.get_end_iter()
-            self.traffic_buffer.insert(end, utils.filter_to_ascii(traffic))
-
-            count = self.traffic_buffer.get_line_count()
-            if count > 200:
-                start = self.traffic_buffer.get_start_iter()
-                limit = self.traffic_buffer.get_iter_at_line(count - 200)
-                self.traffic_buffer.delete(start, limit)
-
-            endmark = self.traffic_buffer.get_mark("end")
-            self.traffic_view.scroll_to_mark(endmark, 0.0, True, 0, 1)
-        try:
-            limit = int(self.id_freq.get_active_text())
-            if (self.tick / 60) == limit:
-                # pylint: disable=no-member
-                self.repeater.send_data(None, self.entry_id.get_text())
-                self.tick = 0
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("update: broad-except", exc_info=True)
-            # pass
+        # self.tap not currently implemented
+        # if self.tap:
+        #     traffic = self.tap.peek()
+        #     end = self.traffic_buffer.get_end_iter()
+        #     self.traffic_buffer.insert(end, utils.filter_to_ascii(traffic))
+        #
+        #     count = self.traffic_buffer.get_line_count()
+        #     if count > 200:
+        #         start = self.traffic_buffer.get_start_iter()
+        #         limit = self.traffic_buffer.get_iter_at_line(count - 200)
+        #         self.traffic_buffer.delete(start, limit)
+        #
+        #     endmark = self.traffic_buffer.get_mark("end")
+        #     self.traffic_view.scroll_to_mark(endmark, 0.0, True, 0, 1)
+        # try:
+        #     limit = int(self.id_freq.get_active_text())
+        #     if (self.tick / 60) == limit:
+        #         self.repeater.send_data(None, self.entry_id.get_text())
+        #         self.tick = 0
+        # except ValueError:
+        #     pass
 
         self.tick += 1
 
@@ -1141,10 +1152,8 @@ class RepeaterConsole(RepeaterUI):
                 idfreq = 0
             else:
                 idfreq = int(idfreq)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("main: Failed to parse network info:",
-                             exc_info=True)
+        except (ValueError, configparser.NoOptionError) as err:
+            self.logger.info("main: Failed to parse network info: %s", err)
             acceptnet = False
 
         if acceptnet:
@@ -1228,14 +1237,14 @@ def main():
                         help="Run in console mode only")
 
     parser.add_argument("-L", "--log",
-                        dest="logpath",
+                        dest="log_path",
                         help="Use alternate log file directory")
 
     args = parser.parse_args()
 
     log_filename = platform.config_file("repeater.log")
-    if args.logpath:
-        log_filename = os.path.join(args.logpath, "repeater.log")
+    if args.log_path:
+        log_filename = os.path.join(args.log_path, "repeater.log")
 
     if args.debug:
         logging.basicConfig(
