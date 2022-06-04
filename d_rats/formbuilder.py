@@ -1,8 +1,8 @@
-#
-# pylint: disable=too-many-lines
 '''Form Builder'''
+# pylint wants a max of 1000 lines.
+# pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,9 +39,7 @@ if not '_' in locals():
 
 from d_rats import dplatform
 from .miscwidgets import make_choice
-from .formgui import FormDialog, FormFile, xml_escape
-
-# py3 from . import mainapp
+from .formgui import FormDialog, FormFile, xml_escape, FormguiFileException
 
 
 class FormBuilderException(Exception):
@@ -79,7 +77,7 @@ class FormElementEditor(Gtk.Dialog):
             }
 
         self.type_sel = make_choice(list(self.vals.keys()), False, "text")
-        self.type_sel.connect("changed", self.type_changed, None)
+        self.type_sel.connect("changed", self.type_changed)
         self.type_sel.show()
         self.vals["text"].show()
 
@@ -111,8 +109,8 @@ class FormElementEditor(Gtk.Dialog):
 
         return frame
 
-    # pylint: disable=no-self-use
-    def make_null_editor(self, _ident):
+    @staticmethod
+    def make_null_editor(_ident):
         '''
         Make Null Editor.
 
@@ -172,15 +170,14 @@ class FormElementEditor(Gtk.Dialog):
 
         return frame
 
-    def type_changed(self, box, _data=None):
+    def type_changed(self, combo_box_text):
         '''
         Type Changed.
 
-        :param box: Box object
-        :type box: :class:`Gtk.Box`
-        :param _data: Unused
+        :param box: Combo Box Text object
+        :type box: :class:`Gtk.ComboBoxText`
         '''
-        sel = box.get_active_text()
+        sel = combo_box_text.get_active_text()
 
         self.logger.info("type_changed Selected: %s", sel)
 
@@ -215,6 +212,7 @@ class FormElementEditor(Gtk.Dialog):
         Set Initial Value.
 
         :param val: Value to set
+        :type val: any
         '''
         sel = self.type_sel.get_active_text()
 
@@ -293,12 +291,13 @@ class FormElementEditor(Gtk.Dialog):
         self.type_sel.set_active(list(self.vals.keys()).index(form_type))
 
 
+# pylint wants a max of 7 instance-attributes
 # pylint: disable=too-many-instance-attributes
 class FormBuilderGUI(Gtk.Dialog):
     '''
     Form Builder GUI.
 
-    :param: config: Configuration object
+    :param config: Configuration object
     :type config: :class:`DratsConfig`
     '''
 
@@ -320,11 +319,11 @@ class FormBuilderGUI(Gtk.Dialog):
         self.col_inst = None
         self.store = None
 
-        self.vbox.pack_start(self.build_formprops(), 0, 0, 0)
-        self.vbox.pack_start(self.build_fieldeditor(), 1, 1, 1)
+        self.vbox.pack_start(self.build_form_properties(), 0, 0, 0)
+        self.vbox.pack_start(self.build_field_editor(), 1, 1, 1)
 
         preview = Gtk.Button.new_with_label("Preview")
-        preview.connect("clicked", self.show_preview, None)
+        preview.connect("clicked", self.show_preview)
         preview.show()
 
         self.action_area.pack_start(preview, 0, 0, 0)
@@ -336,49 +335,41 @@ class FormBuilderGUI(Gtk.Dialog):
         :param move_up: True to move up, False to move down
         :type move_up: bool
         '''
-        try:
-            (sel_list, sel_iter) = self.view.get_selection().get_selected()
-            pos = int(sel_list.get_path(sel_iter)[0])
+        (sel_list, sel_iter) = self.view.get_selection().get_selected()
+        pos = int(sel_list.get_path(sel_iter)[0])
 
-            if move_up:
-                target = sel_list.get_iter(pos - 1)
-            else:
-                target = sel_list.get_iter(pos + 1)
+        if move_up:
+            target = sel_list.get_iter(pos - 1)
+        else:
+            target = sel_list.get_iter(pos + 1)
 
-            if target:
-                sel_list.swap(sel_iter, target)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("reorder broad-except", exc_info=True)
-            return
+        if target:
+            sel_list.swap(sel_iter, target)
 
-    def but_move_up(self, _widget, _data=None):
+    def button_move_up(self, _button):
         '''
-        Button Move Up.
+        Button Move Up clicked handler.
 
-        :param _widget: Unused
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         self.reorder(True)
 
-    def but_move_down(self, _widget, _data=None):
+    def button_move_down(self, _button):
         '''
-        Button Move Down.
+        Button Move Down clicked handler.
 
-        :param _widget: Unused
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         self.reorder(False)
 
-    def but_add(self, _widget, _data=None):
+    def button_add(self, _button):
         '''
-        Button Add.
+        Button Add clicked handler.
 
-        :param _widget: Unused
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         dialog = FormElementEditor()
         result = dialog.run()
@@ -388,7 +379,7 @@ class FormBuilderGUI(Gtk.Dialog):
 
         ivalue = dialog.get_initial_value()
 
-        self.logger.info("but_add Type: %s, Initial: %s Opts: %s",
+        self.logger.info("button_add Type: %s, Initial: %s Opts: %s",
                          dialog.get_type(), ivalue, dialog.get_options())
 
         store_iter = self.store.append()
@@ -402,40 +393,28 @@ class FormBuilderGUI(Gtk.Dialog):
 
         dialog.destroy()
 
-    def but_delete(self, _widget, _data=None):
+    def button_delete(self, _button):
         '''
-        Button Delete.
+        Button Delete clicked handler.
 
-        :param _widget: Unused
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
-        try:
-            (sel_list, sel_iter) = self.view.get_selection().get_selected()
-            sel_list.remove(sel_iter)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("buf_delete broad-except", exc_info=True)
-            return
+        (sel_list, sel_iter) = self.view.get_selection().get_selected()
+        sel_list.remove(sel_iter)
 
-    def but_edit(self, _widget, _data=None):
+    def button_edit(self, _button):
         '''
-        Button Edit.
+        Button Edit clicked handler.
 
-        :param _widget: Unused
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
-        try:
-            (sel_list, sel_iter) = self.view.get_selection().get_selected()
-            (col_t, col_v, col_o) = sel_list.get(sel_iter,
-                                                 self.col_type,
-                                                 self.col_value,
-                                                 self.col_opts)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("buf_edit broad-exception", exc_info=True)
-            return
+        (sel_list, sel_iter) = self.view.get_selection().get_selected()
+        (col_t, col_v, col_o) = sel_list.get(sel_iter,
+                                             self.col_type,
+                                             self.col_value,
+                                             self.col_opts)
 
         dialog = FormElementEditor()
         dialog.set_type(col_t)
@@ -450,12 +429,14 @@ class FormBuilderGUI(Gtk.Dialog):
 
         dialog.destroy()
 
-    def ev_edited(self, _r, path, new_text, colnum):
+    def ev_edited(self, _renderer, path, new_text, colnum):
         '''
-        EV Edited.
+        EV Edited handler.
 
-        :param _r: Unused
-        :param path: path data
+        :param _renderer: Cell Renderer Text widget, unused
+        :type _renderer: :class:`Gtk.CellRendererText`
+        :param path: path identifying editable cell
+        :type path: str
         :param new_text: New text for edit
         :type new_text: str
         :param colnum: Column Number
@@ -518,17 +499,22 @@ class FormBuilderGUI(Gtk.Dialog):
 
         return scroll_window
 
+    # pylint wants only 15 local variables
     # pylint: disable=too-many-locals
-    def make_field_xml(self, model, _path, field_iter, _):
+    def make_field_xml(self, model, _path, tree_iter, _data):
         '''
-        Make Field XML.
+        Make Field XML Gtk.TreeModelForeachFunc callback function.
 
         :param model: model object
-        :param _path: Unused
-        :param field_iter: object that can iterate
-        :param _: Unused parameter
+        :type model: :class:`Gtk.TreeModel`
+        :param _path: Path to data, unused
+        :type _path: :class:`Gtk.TreePath`
+        :param tree_iter: current tree iter
+        :type tree_iter: :class:`Gtk.TreeIter`
+        :param _data: User data, unused
+        :type _data: any
         '''
-        (ident, field_type, cap, val, opts, _inst) = model.get(field_iter,
+        (ident, field_type, cap, val, opts, _inst) = model.get(tree_iter,
                                                                self.col_id,
                                                                self.col_type,
                                                                self.col_cap,
@@ -557,10 +543,8 @@ class FormBuilderGUI(Gtk.Dialog):
                     ent_xml += "<choice%s>%s</choice>" % (c_set, c_opt)
 
                 ent_xml += "</entry>"
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("Exception parsing choice list",
-                                 exc_info=True)
+            except ValueError as err:
+                self.logger.info("Exception parsing choice list: %s", err)
                 ent_xml = "<!-- Invalid list: %s -->" % opts
 
         elif field_type == "multiselect":
@@ -569,13 +553,11 @@ class FormBuilderGUI(Gtk.Dialog):
 
                 ent_xml = "<entry type='%s'>" % field_type
                 for v_opt, c_opt in opts_list:
-                    setval = v_opt and "y" or "n"
-                    ent_xml += "<choice set='%s'>%s</choice>" % (setval, c_opt)
+                    set_val = ('y' if v_opt else 'n')
+                    ent_xml += "<choice set='%s'>%s</choice>" % (set_val, c_opt)
                 ent_xml += "</entry>"
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("Exception parsing choice list",
-                                 exc_info=True)
+            except ValueError as err:
+                self.logger.info("Exception parsing choice list: %s", err)
                 ent_xml = "<!-- Invalid list: %s -->" % opts
         else:
             ent_xml = "<entry type='%s'/>" % field_type
@@ -617,17 +599,17 @@ class FormBuilderGUI(Gtk.Dialog):
         box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         box.set_homogeneous(True)
 
-        button_list = [(_("Move Up"), self.but_move_up),
-                       (_("Add"), self.but_add),
-                       (_("Edit"), self.but_edit),
-                       (_("Delete"), self.but_delete),
-                       (_("Move Down"), self.but_move_down),
+        button_list = [(_("Move Up"), self.button_move_up),
+                       (_("Add"), self.button_add),
+                       (_("Edit"), self.button_edit),
+                       (_("Delete"), self.button_delete),
+                       (_("Move Down"), self.button_move_down),
                        ]
 
         for button_info in button_list:
             (cap, func) = button_info
             button = Gtk.Button.new_with_label(cap)
-            button.connect("clicked", func, None)
+            button.connect("clicked", func)
             box.pack_start(button, 0, 0, 0)
             button.show()
 
@@ -642,6 +624,7 @@ class FormBuilderGUI(Gtk.Dialog):
         :param caption: Caption for field
         :type caption: str
         :param choices: Optional Choices
+        :type choices: list[str]
         :returns: Box object with field.
         :rtype: :class:`Gtk.Box`
         '''
@@ -665,7 +648,7 @@ class FormBuilderGUI(Gtk.Dialog):
 
         return box
 
-    def build_formprops(self):
+    def build_form_properties(self):
         '''
         Build Form Properties.
 
@@ -698,7 +681,7 @@ class FormBuilderGUI(Gtk.Dialog):
 
         return frame
 
-    def build_fieldeditor(self):
+    def build_field_editor(self):
         '''
         Build Field Editor.
 
@@ -717,13 +700,12 @@ class FormBuilderGUI(Gtk.Dialog):
 
         return frame
 
-    def show_preview(self, _widget, _data=None):
+    def show_preview(self, _button):
         '''
         Show Preview.
 
-        :param _widget: Unused Widget to preview
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused Optional data
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         file_descriptor, name = tempfile.mkstemp()
 
@@ -822,17 +804,15 @@ class FormManagerGUI():
         :param filename: Filename for form
         :type filename: str
         :returns: form id
+        :rtype: str
         '''
         try:
             form = FormFile(filename)
             ident = form.ident
             title = form.title_text
             del form
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("add_form broad-except", exc_info=True)
-            from . import utils
-            utils.log_exception()
+        except FormguiFileException:
+            self.logger.info("add_form", exc_info=True)
             ident = "broken"
             title = "Broken Form - Delete me"
 
@@ -854,13 +834,12 @@ class FormManagerGUI():
 
         return ident
 
-    def but_new(self, _widget, _data=None):
+    def button_new(self, _button):
         '''
-        Button new.
+        Button New clicked handler.
 
-        :param _widget: Unused Widget
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused Optional data, default None
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         dialog = FormBuilderGUI(config=self.config)
         result_code = dialog.run()
@@ -874,20 +853,15 @@ class FormManagerGUI():
 
         dialog.destroy()
 
-    def but_edit(self, _widget, _data=None):
+    def button_edit(self, _button):
         '''
-        Button edit.
+        Button Edit clicked handler.
 
-        :param _widget: Unused Widget
-        :param _data: Unused Optional data, default None
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
-        try:
-            (but_list, but_iter) = self.view.get_selection().get_selected()
-            (filename, _id) = but_list.get(but_iter, self.col_file, self.col_id)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("buf_edit broad-except", exc_info=True)
-            return
+        (sel_list, sel_iter) = self.view.get_selection().get_selected()
+        (filename, _id) = sel_list.get(sel_iter, self.col_file, self.col_id)
 
         dialog = FormBuilderGUI(config=self.config)
         dialog.load_from_file(filename)
@@ -905,42 +879,38 @@ class FormManagerGUI():
 
         dialog.destroy()
 
-    def but_delete(self, _widget, _data=None):
+    def button_delete(self, _button):
         '''
-        Button delete.
+        Button Delete clicked handler.
 
-        :param _widget: Unused Widget
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused Optional data, default None
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
+        (sel_list, sel_iter) = self.view.get_selection().get_selected()
+        (sel_file, ) = sel_list.get(sel_iter, self.col_file)
+
+        sel_list.remove(sel_iter)
         try:
-            (sel_list, sel_iter) = self.view.get_selection().get_selected()
-            (sel_file, ) = sel_list.get(sel_iter, self.col_file)
-
-            sel_list.remove(sel_iter)
             os.remove(sel_file)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("but_delete broad-except", exc_info=True)
+        except OSError as err:
+            self.logger.info("button_delete: File delete error: %s", err)
             return
 
-    def but_close(self, _widget, _data=None):
+    def button_close(self, _button):
         '''
         Button close.
 
-        :param _widget: Unused Widget
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused Optional data, default None
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         self.window.destroy()
 
-    def but_import(self, _widget, _data=None):
+    def button_import(self, _button):
         '''
         Button import.
 
-        :param _widget: Unused Widget
-        :type _widget: :class:`Gtk.Widget`
-        :param _data: Unused Optional data, default None
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
         platform = dplatform.get_platform()
         fname = platform.gui_open_file()
@@ -949,9 +919,8 @@ class FormManagerGUI():
 
         try:
             form_id = self.add_form(fname)
-        # pylint: disable=broad-except
-        except Exception as err:
-            self.logger.info("but_import broad-except", exc_info=True)
+
+        except DuplicateFormError as err:
             dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
             dialog.set_markup("<big><b>Unable to add form</b></big>")
             dialog.format_secondary_text(str(err))
@@ -960,23 +929,19 @@ class FormManagerGUI():
 
         shutil.copy(fname, os.path.join(self.dir, "%s.xml" % form_id))
 
-    def but_export(self, _widget, _data=None):
+    def button_export(self, _button):
         '''
         Button Export.
 
-        :param _widget: Unused
-        :param _data: Unused optional data, default None
+        :param _button: Button clicked, unused
+        :type _button: :class:`Gtk.Button`
         '''
-        try:
-            (but_list, but_iter) = self.view.get_selection().get_selected()
-            (filename, _id) = but_list.get(but_iter, self.col_file, self.col_id)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("but_export broad-exception", exc_info=True)
-            return
+        (sel_list, sel_iter) = self.view.get_selection().get_selected()
+        (filename, ident) = sel_list.get(sel_iter, self.col_file,
+                                             self.col_id)
 
         platform = dplatform.get_platform()
-        fname = platform.gui_save_file(default_name="%s.xml" % _id)
+        fname = platform.gui_save_file(default_name="%s.xml" % ident)
         if fname:
             shutil.copy(filename, fname)
 
@@ -1024,12 +989,12 @@ class FormManagerGUI():
         :returns: Box object
         :rtype: :class:`Gtk.Box`
         '''
-        button_list = [(_("New"), self.but_new),
-                       (_("Edit"), self.but_edit),
-                       (_("Delete"), self.but_delete),
-                       (_("Close"), self.but_close),
-                       (_("Import"), self.but_import),
-                       (_("Export"), self.but_export),
+        button_list = [(_("New"), self.button_new),
+                       (_("Edit"), self.button_edit),
+                       (_("Delete"), self.button_delete),
+                       (_("Close"), self.button_close),
+                       (_("Import"), self.button_import),
+                       (_("Export"), self.button_export),
                        ]
 
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
@@ -1037,7 +1002,7 @@ class FormManagerGUI():
 
         for cap, func in button_list:
             button = Gtk.Button.new_with_label(cap)
-            button.connect("clicked", func, None)
+            button.connect("clicked", func)
             button.show()
             hbox.add(button)
 

@@ -1071,7 +1071,7 @@ class FormFile():
 
     :param filename: File name for form
     :type filename: str
-    :raises: FormguiFormfileEmpty exception
+    :raises: FormguiFormFileEmpty exception
     '''
     def __init__(self, filename):
         self.logger = logging.getLogger("FormFile")
