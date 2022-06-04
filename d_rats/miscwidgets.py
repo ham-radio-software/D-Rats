@@ -1205,7 +1205,7 @@ def make_choice(options, editable=True, default=None):
     :param default: Default text to select, Default None
     :type default: str
     :returns: selection dialog
-    :rtype: :class:`Gtk.ComboBox.Text`
+    :rtype: :class:`Gtk.ComboBoxText`
     '''
     if editable:
         sel = Gtk.ComboBoxText.new_with_entry()
