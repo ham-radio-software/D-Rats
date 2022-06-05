@@ -85,6 +85,7 @@ class MainWindow(MainWindowElement):
         self._application = application
         self.logger = logging.getLogger("MainWindow")
         self.__window = self._wtree.get_object("mainwindow")
+        self.__window.set_application(application)
         self._tabs = self._wtree.get_object("main_tabs")
         self._tabs.connect("switch-page", self._tab_switched)
         self.tabs = {}
@@ -273,7 +274,8 @@ class MainWindow(MainWindowElement):
             :param _button: Signaled Widget, unused
             :type _button: :class:`Gtk.ImageMenuItem`
             '''
-            _d = formbuilder.FormManagerGUI(self._config.form_source_dir(),
+            _d = formbuilder.FormManagerGUI(self._application,
+                                            self._config.form_source_dir(),
                                             config=self._config)
 
         def activate_ping(_button):

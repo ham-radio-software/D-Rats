@@ -84,14 +84,6 @@ d\_rats.map.maptile module
     :undoc-members:
     :show-inheritance:
 
-d\_rats.map.maptilecontext module
----------------------------------
-
-.. automodule:: d_rats.map.maptilecontext
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 d\_rats.map.mapwidget module
 ----------------------------
 

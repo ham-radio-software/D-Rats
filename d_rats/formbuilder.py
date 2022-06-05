@@ -31,6 +31,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
+from gi.repository import Gio
 
 if not '_' in locals():
     import gettext
@@ -766,13 +767,15 @@ class FormManagerGUI():
     '''
     Form Manager GUI.
 
+    :param application: MainApp application
+    :type: application: :class:`MainApp`
     :param directory: Form directory
     :type directory: str
     :param config: Configuration object
     :type config: :class:`DratsConfig`
     '''
 
-    def __init__(self, directory, config):
+    def __init__(self, application, directory, config):
 
         self.logger = logging.getLogger("FormManagerGUI")
         self.dir = directory
@@ -789,7 +792,8 @@ class FormManagerGUI():
 
         vbox.show()
 
-        self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        self.window = Gtk.ApplicationWindow(application=application,
+                                            type=Gtk.WindowType.TOPLEVEL)
         self.window.set_title("Form Manager")
         self.window.set_default_size(275, 300)
 
@@ -938,7 +942,7 @@ class FormManagerGUI():
         '''
         (sel_list, sel_iter) = self.view.get_selection().get_selected()
         (filename, ident) = sel_list.get(sel_iter, self.col_file,
-                                             self.col_id)
+                                         self.col_id)
 
         platform = dplatform.get_platform()
         fname = platform.gui_save_file(default_name="%s.xml" % ident)
@@ -1011,20 +1015,43 @@ class FormManagerGUI():
         return hbox
 
 
+class TestFormbuilderGUI(Gtk.Application):
+    '''
+    Test application.
+    '''
+
+    def __init__(self):
+        Gtk.Application.__init__(self,
+                                 application_id='localhost.d-rats.fbg',
+                                 flags=Gio.ApplicationFlags.NON_UNIQUE)
+
+        from . import config
+        self.config = config.DratsConfig(None)
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger("TestFormbuilderGUI")
+        self.form_templates = "Form_Templates"
+        if not os.path.exists(self.form_templates):
+            os.mkdir(self.form_templates)
+        self.logger.info('Using %s for storage.', self.form_templates)
+
+    # pylint can not detect this for GTK classes.
+    # pylint: disable=arguments-differ
+    def do_activate(self):
+        '''
+        Do Activation.
+
+        Emits a :class:`Gio.Application` signal to the application.
+        '''
+        _form_manager = FormManagerGUI(self, self.form_templates, self.config)
+        Gtk.Application.do_activate(self)
+
+
 def main():
     '''Form Builder Unit test.'''
 
-    from . import config
-    conf = config.DratsConfig(None)
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("FormbuilderTest")
+    test_form_builder_gui = TestFormbuilderGUI()
+    test_form_builder_gui.run(None)
 
-    form_templates = "Form_Templates"
-    if not os.path.exists(form_templates):
-        os.mkdir(form_templates)
-    logger.info('Using %s for storage.', form_templates)
-    _form_manager = FormManagerGUI(form_templates, conf)
-    Gtk.main()
 
 if __name__ == "__main__":
     main()
