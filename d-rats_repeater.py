@@ -514,9 +514,29 @@ class RepeaterUI:
                                  host, port, param)
 
                 if param:
+                    if ident == 'MYCALL':
+                        self.logger.info("add_outgoing_paths: "
+                                         "invalid callsign %s for %s",
+                                         ident, dev)
+                        continue
                     path = comm.SocketDataPath((host, port, ident, param))
                 else:
                     path = comm.SocketDataPath((host, port))
+            elif dev.startswith("tnc-ax25:"):
+                if ident == 'MYCALL':
+                    self.logger.info("add_outgoing_paths: "
+                                     "invalid callsign %s for %s",
+                                     ident, dev)
+                    continue
+                _tnc, radio_port, tncport, digi_path = port.split(":")
+                digi_path = digi_path.replace(";", ",")
+                radio_port = "%s:%s" % (radio_port, tncport)
+                new_dev = dev.replace('tnc-ax25:', "")
+                param_int = int(param)
+                self.logger.info("add_outgoing_paths: TNC-AX25 %s %i",
+                                 new_dev, param_int)
+                path = comm.TNCAX25DataPath((new_dev, param_int,
+                                             ident, digi_path))
             elif dev.startswith("tnc:"):
                 try:
                     _tnc, port, device = dev.split(":", 2)
@@ -526,13 +546,30 @@ class RepeaterUI:
                                      "Invalid tnc string: %s (%s)",
                                      dev, err)
                     continue
+                new_dev = dev.replace('tnc:', "")
+                param_int = int(param)
                 self.logger.info("add_outgoing_paths: TNC %s %i",
-                                 dev.replace("tnc:", ""), int(param))
-                path = comm.TNCDataPath((dev.replace("tnc:", ""), int(param)))
+                                 new_dev, param_int)
+                path = comm.TNCDataPath((new_dev, param_int))
+            elif dev.startswith("dongle:"):
+                if ident == 'MYCALL':
+                    self.logger.info("add_outgoing_paths: "
+                                     "invalid callsign %s for %s",
+                                     ident, dev)
+                    continue
+                self.logger.info("add_outgoing_paths: Dongle %s",
+                                 new_dev)
+                path = comm.SocketDataPath(("127.0.0.1", 20003, ident, None))
+            elif dev.startswith("agwpe:"):
+                new_dev = dev.replace("agwpe:", "")
+                self.logger.info("add_outgoing_paths: AGWPE %s",
+                                 new_dev)
+                path = comm.AGWDataPath(new_dev, 0.5)
             else:
+                param_int = int(param)
                 self.logger.info("add_outgoing_paths: Serial: %s %i",
-                                 dev, int(param))
-                path = comm.SerialDataPath((dev, int(param)))
+                                 dev, param_int)
+                path = comm.SerialDataPath((dev, param_int))
                 timeout = 3
 
             path.connect()
