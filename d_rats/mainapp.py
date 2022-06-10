@@ -352,6 +352,7 @@ class MainApp(Gtk.Application):
         self.seen_callsigns = CallList()
         self.position = None
         self.mail_threads = {}
+        self.mainwindow=None
         self.__unused_pipes = {}
         self.__pipes = {}
         self.pop3srv = None
@@ -388,23 +389,6 @@ class MainApp(Gtk.Application):
         self.gps = self._static_gps()
 
         self.map = None
-
-        self.logger.info("load main window with self config")
-        self.mainwindow = mainwindow.MainWindow(self)
-
-        self.logger.info("connect main window")
-        self.__connect_object(self.mainwindow)
-        self.logger.info("connect tabs")
-        for tab in self.mainwindow.tabs.values():
-            self.__connect_object(tab)
-
-        if self.config.getboolean("prefs", "dosignon") and self.chat_session:
-            self.logger.info("going online")
-            msg = self.config.get("prefs", "signon")
-            status = station_status.STATUS_ONLINE
-            for port in self.active_sessions:
-                self.chat_session(port).advertise_status(status, msg)
-        GLib.timeout_add(3000, self._refresh_location)
 
     def callback_gps(self, lat, lng, station="", comments=""):
         '''
@@ -477,6 +461,44 @@ class MainApp(Gtk.Application):
 
         Emits a :class:`Gio.Application` signal to the application.
         '''
+        self.logger.info("load main window with self config")
+        self.mainwindow = mainwindow.MainWindow(self)
+
+        try:
+            self.plugsrv = pluginsrv.DRatsPluginServer()
+            self.__connect_object(self.plugsrv.get_proxy())
+            self.plugsrv.serve_background()
+
+        except (ConnectionError, OSError) as err:
+            self.logger.info("Unable to start plugin server: %s", err)
+            self.plugsrv = None
+
+        self.load_static_routes()
+
+        try:
+            self.msgrouter = msgrouting.MessageRouter(self.config, self,
+                                                      validate_incoming)
+            self.__connect_object(self.msgrouter)
+            self.msgrouter.start()
+        except TypeError:
+            self.logger.info("Main: MessageRouter setup failed!",
+                             exc_info=True)
+            self.msgrouter = None
+
+        self.logger.info("connect main window")
+        self.__connect_object(self.mainwindow)
+        self.logger.info("connect tabs")
+        for tab in self.mainwindow.tabs.values():
+            self.__connect_object(tab)
+
+        if self.config.getboolean("prefs", "dosignon") and self.chat_session:
+            self.logger.info("going online")
+            msg = self.config.get("prefs", "signon")
+            status = station_status.STATUS_ONLINE
+            for port in self.active_sessions:
+                self.chat_session(port).advertise_status(status, msg)
+        GLib.timeout_add(3000, self._refresh_location)
+
         # create map instance
         self.logger.info("create map window object-----")
         self.map = Map.Window(self, self.config)
@@ -809,7 +831,10 @@ class MainApp(Gtk.Application):
                                  name)
 
     def check_stations_status(self):
-        '''Check stations status.'''
+        '''
+        Check stations status.
+        '''
+        # wb8tyw: Can not find anything calling this.
         # added in 0.3.10
         self.logger.info("Check stations Status")
         station_list = self.emit("get-station-list")
@@ -2093,27 +2118,6 @@ class MainApp(Gtk.Application):
                                                    "DEFAULT"))
             for i in ["port", "rate", "sniff_packets", "compatmode"]:
                 self.config.remove_option("settings", i)
-
-        try:
-            self.plugsrv = pluginsrv.DRatsPluginServer()
-            self.__connect_object(self.plugsrv.get_proxy())
-            self.plugsrv.serve_background()
-
-        except (ConnectionError, OSError) as err:
-            self.logger.info("Unable to start plugin server: %s", err)
-            self.plugsrv = None
-
-        self.load_static_routes()
-
-        try:
-            self.msgrouter = msgrouting.MessageRouter(self.config, self,
-                                                      validate_incoming)
-            self.__connect_object(self.msgrouter)
-            self.msgrouter.start()
-        except TypeError:
-            self.logger.info("Main: MessageRouter setup failed!",
-                             exc_info=True)
-            self.msgrouter = None
 
         # LOAD THE MAIN WINDOW
         self.logger.info("load the main window")
