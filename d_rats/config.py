@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# pylint wants a max of 1000 lines
 # pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
@@ -23,12 +24,11 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import ast
 import os
 import random
 import logging
-from six.moves import configparser # type: ignore
-# import six.moves.configparser # type: ignore
-from six.moves import range # type: ignore
+import configparser
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -52,7 +52,6 @@ from . import geocode_ui
 from . import config_tips
 from . import spell
 
-# from .ui.main_common import display_error
 
 BAUD_RATES = ["1200", "2400", "4800", "9600", "19200", "38400", "115200"]
 
@@ -152,7 +151,7 @@ _DEF_SETTINGS = {
 
     # GPS
     "default_gps_comment" : "BN",          # default icon for our station in
-                                           # the map and gpsfixes
+                                           # the map and gps fixes
     "map_marker_bgcolor": "yellow",        # background color for markers in
                                            # the map window
 
@@ -247,35 +246,22 @@ class ConfigMessageGroupError(ConfigException):
     '''Message Group Error'''
 
 
-def color_string(color):
-    '''
-    Convert color to string.
-
-    :param color: Color object
-    :returns: String with color
-    :rtype: str
-    '''
-    try:
-        return color.to_string()
-    # pylint: disable=bare-except
-    except:
-        logger = logging.getLogger("Configure_color_string")
-        logger.info("Bare except", exc_info=True)
-        return "#%04x%04x%04x" % (color.red, color.green, color.blue)
-
-
 def load_portspec(wtree, portspec, info, name):
     '''
     Load in a port specification.
 
+    :param wtree: Gtk Builder object
+    :type wtree: :class:`Gtk.Builder`
     :param portspec: Port specification object
+    :type portspec: str
     :param info: Port information
+    :type info: str
     :param name: Port name
     :type name: str
     '''
-    namewidget = wtree.get_object("name")
-    namewidget.set_text(name)
-    namewidget.set_sensitive(False)
+    name_widget = wtree.get_object("name")
+    name_widget.set_text(name)
+    name_widget.set_sensitive(False)
 
     tsel = wtree.get_object("type")
     if portspec.startswith("net:"):
@@ -308,17 +294,22 @@ def load_portspec(wtree, portspec, info, name):
         utils.combo_select(wtree.get_object("serial_rate"), info)
 
 
+# pylint wants a max of 15 local variables
+# pylint wants a max of 12 branches
+# pylint wants a max of 50 statements
 # pylint: disable=too-many-locals,too-many-branches,too-many-statements
 def prompt_for_port(portspec=None, info=None, pname=None):
     '''
     Prompt for port.
 
     :param portspec: portspec object, default None
+    :type portspec: str
     :param info: Port information, default None
+    :type info: str
     :param pname: Port name, default None
     :type pname: str
     :returns: portspec or (None, None, None)
-    :rtype: tuple
+    :rtype: tuple[str, str, str]
     '''
     wtree = Gtk.Builder()
     path = os.path.join(dplatform.get_platform().source_dir(),
@@ -371,6 +362,16 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     menutabs[4]['descrip'] = _("A TNC attached to an AGWPE server")
 
     def chg_type(tsel, tabs, desc):
+        '''
+        Change type handler.
+
+        :param tsel: Port type selection
+        :type tsel: :class:`Gtk.ComboBoxText
+        :param tabs: Menu tab widget
+        :type tabs: :class:`Gtk.Notebook`
+        :param desc: Description widget
+        :type desc: :class:`Gtk.Label`
+        '''
         active = tsel.get_active()
         if active < 0:
             active = 0
@@ -437,7 +438,9 @@ def disable_with_toggle(toggle, widget):
     Disable With Toggle.
 
     :param toggle: Toggle object
+    :type toggle: :class:`DratsConfigWidget`
     :param widget: Widget to toggle
+    :type widget: :class:`DratsConfigWidget`
     '''
     toggle.connect("toggled",
                    lambda t, w: w.set_sensitive(t.get_active()), widget)
@@ -449,6 +452,7 @@ def disable_by_combo(combo, map_var):
     Disable By Combo.
 
     :param combo: combo object
+    :type combo: :class:`Gtk.ComboBoxText`
     :param map_ver: Dictionary map
     :type map_ver: dict
     '''
@@ -458,11 +462,20 @@ def disable_by_combo(combo, map_var):
     #   "value2" : [el3, el4],
     # }
     def set_disables(combo, map_var):
+        '''
+        Set Disables change handler.
+
+        :param combo: Combo Box widget
+        :type: combo: :class:`Gtk.ComboBoxText`
+        :param map_ver: Dictionary map
+        :type map_ver: dict
+        '''
         for i in map_var.values():
             for j in i:
                 j.set_sensitive(False)
         for i in map_var[combo.get_active_text()]:
             i.set_sensitive(True)
+
     combo.connect("changed", set_disables, map_var)
     set_disables(combo, map_var)
 
@@ -477,25 +490,27 @@ class AddressLookup(Gtk.Button):
     :type latw: float
     :param lonw: Longitude
     :type latw: float
-    :param window: Window object, default=None
+    :param window: Dialog object, default=None
+    :type window: :class:`DratsConfigUI`
     '''
 
     def __init__(self, caption, latw, lonw, window=None):
         Gtk.Button.__init__(self, caption)
         self.logger = logging.getLogger("ConfigAddressLookup")
-        self.connect("clicked", self.clicked, latw, lonw, window)
+        self.connect("clicked", self.clicked_handler, latw, lonw, window)
 
-    # pylint: disable=arguments-differ
-    def clicked(self, _me, latw, lonw, window):
+    def clicked_handler(self, _button, latw, lonw, window):
         '''
-        Clicked.
+        Button Clicked handler.
 
-        :param _me: Unused
+        :param _button: Button widget, unused
+        :type _button: :class:`Gtk.Button`
         :param latw: latitude
         :type latw: float
         :param latw: Longitude
         :type latw: float
         :param window: Parent window
+        :type window: :class:`DratsConfigUI`
         '''
         assistant = geocode_ui.AddressAssistant()
         if assistant.geocoders:
@@ -507,6 +522,7 @@ class AddressLookup(Gtk.Button):
             return
 
 
+# pylint wants a max of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class DratsConfigWidget(Gtk.Box):
     '''
@@ -531,7 +547,7 @@ class DratsConfigWidget(Gtk.Box):
         self.config = config
         self.vsec = sec
         self.vname = name
-        self._widget = None
+        self.child_widget = None
         self._in_init = True
         self.latlon = None
 
@@ -557,6 +573,12 @@ class DratsConfigWidget(Gtk.Box):
             self.pack_end(rbutton, 0, 0, 0)
 
     def _revert(self, _button=None):
+        '''
+        Revert button clicked handler.
+
+        :param _button: Button widget, default None
+        :type _button: :class:`Gtk.Button`
+        '''
         try:
             self.value = DEFAULTS[self.vsec][self.vname]
         except KeyError:
@@ -567,22 +589,22 @@ class DratsConfigWidget(Gtk.Box):
         if self._in_init:
             return
 
-        if not self._widget:
+        if not self.child_widget:
             self.logger.info("AAACK: No _widget in revert for %s/%s",
                              self.vsec, self.vname)
             return
 
-        if isinstance(self._widget, Gtk.Entry):
-            self._widget.set_text(str(self.value))
-        elif isinstance(self._widget, Gtk.SpinButton):
-            self._widget.set_value(float(self.value))
-        elif isinstance(self._widget, Gtk.CheckButton):
-            self._widget.set_active(self.value.upper() == "TRUE")
-        elif isinstance(self._widget, miscwidgets.FilenameBox):
-            self._widget.set_filename(self.value)
+        if isinstance(self.child_widget, Gtk.Entry):
+            self.child_widget.set_text(str(self.value))
+        elif isinstance(self.child_widget, Gtk.SpinButton):
+            self.child_widget.set_value(float(self.value))
+        elif isinstance(self.child_widget, Gtk.CheckButton):
+            self.child_widget.set_active(self.value.upper() == "TRUE")
+        elif isinstance(self.child_widget, miscwidgets.FilenameBox):
+            self.child_widget.set_filename(self.value)
         else:
             self.logger.info("AAACK: I don't know how to do a %s",
-                             self._widget.__class__)
+                             self.child_widget.__class__)
 
     def save(self):
         '''Save Configuration.'''
@@ -591,11 +613,12 @@ class DratsConfigWidget(Gtk.Box):
         #          (self.vsec, self.vname, self.value))
         self.config.set(self.vsec, self.vname, self.value)
 
-    def set_value(self, value):
+    def set_value(self, _value):
         '''
         Set value.
 
-        :param value: Value to set
+        :param _value: Value to set, unused
+        :type _value: any
         '''
 
     def add_text(self, limit=0, hint=None):
@@ -608,6 +631,12 @@ class DratsConfigWidget(Gtk.Box):
         :type hint: str
         '''
         def changed(entry):
+            '''
+            Entry changed handler.
+
+            :param entry: Entry widget
+            :type entry: :class:`Gtk.Entry`
+            '''
             if entry.get_text() == hint:
                 self.value = ""
             else:
@@ -619,7 +648,7 @@ class DratsConfigWidget(Gtk.Box):
         entry.set_text(self.value)
         entry.set_size_request(50, -1)
         entry.show()
-        self._widget = entry
+        self.child_widget = entry
 
         if hint:
             utils.set_entry_hint(entry, hint, bool(self.value))
@@ -634,6 +663,12 @@ class DratsConfigWidget(Gtk.Box):
         :type limit: int
         '''
         def changed(entry):
+            '''
+            Entry changed handler.
+
+            :param entry: Entry widget
+            :type entry: :class:`Gtk.Entry`
+            '''
             self.value = entry.get_text().upper()
 
         entry = Gtk.Entry()
@@ -642,7 +677,7 @@ class DratsConfigWidget(Gtk.Box):
         entry.set_text(self.value)
         entry.set_size_request(50, -1)
         entry.show()
-        self._widget = entry
+        self.child_widget = entry
 
         self.pack_start(entry, 1, 1, 1)
 
@@ -654,6 +689,12 @@ class DratsConfigWidget(Gtk.Box):
         :type limit: int
         '''
         def changed(entry):
+            '''
+            Entry changed handler.
+
+            :param entry: Entry widget
+            :type entry: :class:`Gtk.Entry`
+            '''
             self.value = entry.get_text()
 
         entry = Gtk.Entry()
@@ -663,7 +704,7 @@ class DratsConfigWidget(Gtk.Box):
         entry.set_visibility(False)
         entry.set_size_request(50, -1)
         entry.show()
-        self._widget = entry
+        self.child_widget = entry
 
         self.pack_start(entry, 1, 1, 1)
 
@@ -672,14 +713,20 @@ class DratsConfigWidget(Gtk.Box):
         Add a combo box.
 
         :param choices: Choices, default None
-        :type choices: list of str
-        :param editable: Flag for editable, defult False
+        :type choices: list[str]
+        :param editable: Flag for editable, default False
         :type editable: bool
         :param size: Size of combo box, default 80
         :type size: int
         '''
-        def changed(box):
-            self.value = box.get_active_text()
+        def changed(combo_box):
+            '''
+            Combo Box changed handler.
+
+            :param combo_box: Entry widget
+            :type combo_box: :class:`Gtk.ComboBoxText`
+            '''
+            self.value = combo_box.get_active_text()
 
         if not choices:
             choices = []
@@ -690,7 +737,7 @@ class DratsConfigWidget(Gtk.Box):
         widget.connect("changed", changed)
         widget.set_size_request(size, -1)
         widget.show()
-        self._widget = widget
+        self.child_widget = widget
 
         self.pack_start(widget, 1, 1, 1)
 
@@ -704,14 +751,22 @@ class DratsConfigWidget(Gtk.Box):
         if label is None:
             label = _("Enabled")
 
-        def toggled(but, confwidget):
-            confwidget.value = str(but.get_active())
+        def toggled(check_button, conf_widget):
+            '''
+            Check Button toggled handler.
+
+            :param check_button: Check button widget
+            :type check_button: :class:`Gtk.CheckButton`
+            :param conf_widget: Configuration widget
+            :type conf_widget: :class:`DratsConfigWidget`
+            '''
+            conf_widget.value = str(check_button.get_active())
 
         button = Gtk.CheckButton.new_with_label(label)
         button.connect("toggled", toggled, self)
         button.set_active(self.value == "True")
         button.show()
-        self._widget = button
+        self.child_widget = button
 
         self.do_not_expand = True
 
@@ -719,13 +774,20 @@ class DratsConfigWidget(Gtk.Box):
 
     def add_coords(self):
         '''Add coordinates.'''
-        def changed(entry, confwidget):
+        def changed(entry, conf_widget):
+            '''
+            LatlonEntry changed handler.
+
+            :param entry: Entry widget
+            :type entry: :class:`miscwidgets.LatLonEntry`
+            :param conf_widget: Configuration Widgets
+            :type conf_widget: :class:`DratsConfigWidget`
+            '''
             try:
-                confwidget.value = "%3.6f" % entry.value()
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("Invalid Coords", exc_info=True)
-                confwidget.value = "0"
+                conf_widget.value = "%3.6f" % entry.value()
+            except TypeError as err:
+                self.logger.info("Invalid Coords: %s", err)
+                conf_widget.value = "0"
 
         entry = miscwidgets.LatLonEntry()
         entry.connect("changed", changed, self)
@@ -744,14 +806,23 @@ class DratsConfigWidget(Gtk.Box):
         Add numeric.
 
         :param min_val: Minimum value
+        :type min_val: int
         :param max_val: Maximum value
+        :type max_val: int
         :param increment: Increment for adjustments
+        :type increment: int
         :param digits: Number of digits, default 0
         :type digits: int
         '''
 
-        def value_changed(srcbox):
-            self.value = "%f" % srcbox.get_value()
+        def value_changed(spin_button):
+            '''
+            SpinButton value-changed handler.
+
+            :param spin_button: SpinButton object
+            :type spin_button: :class:`Gtk.SpinButton`
+            '''
+            self.value = "%f" % spin_button.get_value()
 
         adj = Gtk.Adjustment.new(float(self.value), min_val, max_val,
                                  increment, increment, 0)
@@ -760,19 +831,23 @@ class DratsConfigWidget(Gtk.Box):
         button.set_digits(digits)
         button.connect("value-changed", value_changed)
         button.show()
-        self._widget = button
+        self.child_widget = button
 
         self.pack_start(button, 1, 1, 1)
 
     def add_color(self):
         '''Add Color.'''
         def color_set(color_button):
-            # self.value = color_string(color_button.get_color())
+            '''
+            Color Button color-set handler.
+
+            :param color_button: Color Button widget
+            :type color_button: :class:`Gtk.ColorButton
+            '''
             rgba = color_button.get_rgba()
             self.value = rgba.to_string()
 
         button = Gtk.ColorButton()
-        #button.set_color(Gdk.color_parse(self.value))
         if self.value:
             rgba = Gdk.RGBA()
             if rgba.parse(self.value):
@@ -784,8 +859,14 @@ class DratsConfigWidget(Gtk.Box):
 
     def add_font(self):
         '''Add font.'''
-        def font_set(fontbutton):
-            self.value = fontbutton.get_font()
+        def font_set(font_button):
+            '''
+            FontButton font-set handler.
+
+            :param font_button: Font Button Widget
+            :type font_button: :class:`Gtk.FontButton`
+            '''
+            self.value = font_button.get_font()
 
         button = Gtk.FontButton()
         if self.value:
@@ -798,22 +879,40 @@ class DratsConfigWidget(Gtk.Box):
     def add_path(self):
         '''Add path.'''
         def filename_changed(box):
+            '''
+            FilenameBox filename-changed box.
+
+            :param box: FilenameBox widget
+            :type box: :class:`miscwidgets.FilenameBox`
+            '''
             self.value = box.get_filename()
 
         fname_box = miscwidgets.FilenameBox(find_dir=True)
         fname_box.set_filename(self.value)
         fname_box.connect("filename-changed", filename_changed)
         fname_box.show()
-        self._widget = fname_box
+        self.child_widget = fname_box
 
         self.pack_start(fname_box, 1, 1, 1)
 
     def add_sound(self):
         '''Add Sound.'''
         def filename_changed(box):
+            '''
+            FilenameBox filename-changed box.
+
+            :param box: FilenameBox widget
+            :type box: :class:`miscwidgets.FilenameBox`
+            '''
             self.value = box.get_filename()
 
         def test_sound(_button):
+            '''
+            Test Sound Button clicked handler.
+
+            :param _button: Button widget
+            :type _button: :class:`Gtk.Button`
+            '''
             self.logger.info("Testing playback of %s", self.value)
             platform_info = dplatform.get_platform()
             platform_info.play_sound(self.value)
@@ -853,13 +952,12 @@ class DratsListConfigWidget(DratsConfigWidget):
         self.listw = None
         self.logger = logging.getLogger("DratsListConfigWidget")
 
-    # pylint: disable=no-self-use
-    def convert_types(self, coltypes, values):
+    def convert_types(self, col_types, values):
         '''
         Convert Types.
 
-        :param coltypes: Column types
-        :type coltypes: list
+        :param col_types: Column types
+        :type col_types: list
         :param values: Values to convert
         :type values: list
         :returns: Converted value
@@ -869,7 +967,7 @@ class DratsListConfigWidget(DratsConfigWidget):
 
         i = 0
         while i < len(values):
-            gtype, label = coltypes[i]
+            gtype, label = col_types[i]
             value = values[i]
 
             try:
@@ -878,8 +976,7 @@ class DratsListConfigWidget(DratsConfigWidget):
                 elif gtype == GObject.TYPE_FLOAT:
                     value = float(value)
                 elif gtype == GObject.TYPE_BOOLEAN:
-                    # pylint: disable=eval-used
-                    value = eval(value)
+                    value = ast.literal_eval(value)
             except ValueError:
                 self.logger.info("Failed to convert %s for %s",
                                  value, label, exc_info=True)
@@ -906,17 +1003,30 @@ class DratsListConfigWidget(DratsConfigWidget):
         :param cols: list of columns
         :type cols: list
         :param make_key: key for columns, default None
+        :type make_key: function(any)
         '''
-        def item_set(_listwidget, _key):
-            pass
+        def item_set(_list_widget, _key):
+            '''
+            List Widget item-set handler.
+
+            :param _widget: Widget signaled, unused
+            :type _widget: :class:`miscwidgets.KeyedListWidget`
+            :param _key: key for widget, unused
+            :type _key: any
+            '''
 
         list_widget = miscwidgets.KeyedListWidget(cols)
 
-        # pylint: disable=unused-argument
-        def dummy(*args):
+        def item_toggled(_widget):
+            '''
+            List Widget item-toggled handler
+
+            :parm _widget: Widget signaled, unused
+            :type _widget: :class:`miscwidgets.KeyedListWidget`
+            '''
             return
 
-        list_widget.connect("item-toggled", dummy)
+        list_widget.connect("item-toggled", item_toggled)
 
         options = self.config.options(self.vsec)
         for option in options:
@@ -925,16 +1035,11 @@ class DratsListConfigWidget(DratsConfigWidget):
             if not vals:
                 continue
 
-            try:
-                if make_key:
-                    key = make_key(vals)
-                else:
-                    key = vals[0]
-                list_widget.set_item(key, *tuple(vals))
-            # pylint: disable=broad-except
-            except Exception:
-                self.logger.info("Failed to set item '%s'",
-                                 str(vals), exc_info=True)
+            if make_key:
+                key = make_key(vals)
+            else:
+                key = vals[0]
+            list_widget.set_item(key, *tuple(vals))
 
         list_widget.connect("item-set", item_set)
         list_widget.show()
@@ -987,6 +1092,7 @@ class DratsPanel(Gtk.Grid):
         :param title: Title for widget
         :type title: str
         :param args: Optional arguments
+        :type args: tuple[str, :class:`Gtk.Widget`]
         '''
 
         hbox = Gtk.Box.new(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
@@ -1019,6 +1125,7 @@ class DratsPanel(Gtk.Grid):
         :param title: title of message group
         :type title: str
         :param args: Optional arguments
+        :type args: tuple[str, :class:`Gtk.Widget`]
         '''
         if len(args) % 2:
             raise ConfigMessageGroupError("Need label,widget pairs")
@@ -1072,16 +1179,14 @@ class DratsPrefsPanel(DratsPanel):
         val2 = DratsConfigWidget(config, "prefs", "signon")
         val2.add_text()
         self.make_view(_("Sign-on Message"), val1, val2)
-        # pylint: disable=protected-access
-        disable_with_toggle(val1._widget, val2._widget)
+        disable_with_toggle(val1.child_widget, val2.child_widget)
 
         val1 = DratsConfigWidget(config, "prefs", "dosignoff")
         val1.add_bool()
         val2 = DratsConfigWidget(config, "prefs", "signoff")
         val2.add_text()
         self.make_view(_("Sign-off Message"), val1, val2)
-        # pylint: disable=protected-access
-        disable_with_toggle(val1._widget, val2._widget)
+        disable_with_toggle(val1.child_widget, val2.child_widget)
 
         val = DratsConfigWidget(config, "user", "units")
         val.add_combo([_("Imperial"), _("Metric")])
@@ -1149,7 +1254,8 @@ class DratsMapPanel(DratsPanel):
 
     :param config: Configuration object
     :type config: :class:`DratsConfig`
-    :param _window: Unused
+    :param _window: Parent window, unused
+    :type _window: class:`DratsConfigUI`
     '''
 
     def __init__(self, config, _window):
@@ -1165,7 +1271,7 @@ class DratsMapPanel(DratsPanel):
         val.add_text()
         self.make_view(_("BaseMap server url"), val)
 
-        #opencycle
+        # open cycle
         val = DratsConfigWidget(config, "settings", "mapurlcycle", True)
         val.add_text()
         self.make_view(_("OpenCycleMap server url"), val)
@@ -1207,7 +1313,8 @@ class DratsGPSPanel(DratsPanel):
 
     :param config: Configuration data
     :type config: :class:`DratsConfig`
-    :param _window: Unused
+    :param _window: Parent window, unused
+    :type _window: class:`DratsConfigUI`
     '''
 
     def __init__(self, config, _window):
@@ -1222,8 +1329,8 @@ class DratsGPSPanel(DratsPanel):
         lon.add_coords()
         self.make_view(_("Longitude"), lon)
 
-        #geo = AddressLookup(_("Lookup"), lat, lon, window)
-        #self.make_view(_("Lookup by address"), geo)
+        # geo = AddressLookup(_("Lookup"), lat, lon, _window)
+        # self.make_view(_("Lookup by address"), geo)
 
         alt = DratsConfigWidget(config, "user", "altitude")
         alt.add_numeric(0, 29028, 1)
@@ -1240,10 +1347,8 @@ class DratsGPSPanel(DratsPanel):
         rate = DratsConfigWidget(config, "settings", "gpsportspeed")
         rate.add_combo(BAUD_RATES, False)
         self.make_view(_("External GPS"), port, rate)
-        # pylint: disable=protected-access
-        disable_with_toggle(val._widget, port._widget)
-        # pylint: disable=protected-access
-        disable_with_toggle(val._widget, rate._widget)
+        disable_with_toggle(val.child_widget, port.child_widget)
+        disable_with_toggle(val.child_widget, rate.child_widget)
 
         val1 = DratsConfigWidget(config, "settings", "aprssymtab")
         val1.add_text(1)
@@ -1254,14 +1359,21 @@ class DratsGPSPanel(DratsPanel):
                        Gtk.Label.new(_("Symbol:")), val2)
 
         def gps_comment_from_dprs(_button, val):
+            '''
+            GPS Comment from DPRS button clicked handler.
+
+            :param _button: Button widget, unused
+            :type _button: :class:`Gtk.Button`
+            :param val: GPS Enabled Configuration Widget
+            :type val: :class:`DratsConfigWidget`
+            '''
             from . import qst
             dprs = qst.do_dprs_calculator(config.get("settings",
                                                      "default_gps_comment"))
             self.logger.info("Setting GPS comment to DPRS: %s ", dprs)
             if dprs is not None:
                 config.set("settings", "default_gps_comment", dprs)
-                # pylint: disable=protected-access
-                val._widget.set_text(dprs)
+                val.child_widget.set_text(dprs)
 
         val = DratsConfigWidget(config, "settings", "default_gps_comment")
         val.add_text(20)
@@ -1276,7 +1388,8 @@ class DratsGPSExportPanel(DratsPanel):
 
     :param config: DratsConfig object
     :type config: :class:`DratsConfig`
-    :param _window: unused
+    :param _window: Parent window, unused
+    :type _window: class:`DratsConfigUI`
     '''
 
     def __init__(self, config, _window):
@@ -1340,8 +1453,7 @@ class DratsAppearancePanel(DratsPanel):
         val.add_bool()
         self.make_view(_("Check spelling"), val)
         sp_val = spell.get_spell()
-        # pylint: disable=protected-access
-        val._widget.set_sensitive(sp_val.test())
+        val.child_widget.set_sensitive(sp_val.test())
 
         val = DratsConfigWidget(config, "prefs", "confirm_exit")
         val.add_bool()
@@ -1480,6 +1592,7 @@ class DratsRadioPanel(DratsPanel):
         :param _title: Title of view, Unused
         :type _title: str
         :param widgets: Widgets to place in view
+        :type widgets: tuple[:class:`Gtk.Widget`]
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
         widgets[0].show()
@@ -1502,20 +1615,20 @@ class DratsRadioPanel(DratsPanel):
                                 1, box_height)
 
 
-    # pylint: disable=no-self-use
-    def but_add(self, _button, list_widget):
+    @staticmethod
+    def but_add(_button, list_widget):
         '''
         Button Add.
 
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: list widget object
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         name, port, info = prompt_for_port()
         if name:
             list_widget.set_item(name, True, port, info, False, False, name)
 
-    # pylint: disable=no-self-use
     def but_mod(self, _button, list_widget):
         '''
         Button Modify.
@@ -1523,6 +1636,7 @@ class DratsRadioPanel(DratsPanel):
         :param _button: Unused
         :type: _button: :class:`Gtk.Button`
         :param list_widget: list widget object
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         values = list_widget.get_item(list_widget.get_selected())
         self.logger.info("Values: %s", str(values))
@@ -1538,6 +1652,7 @@ class DratsRadioPanel(DratsPanel):
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: list widget object
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         list_widget.del_item(list_widget.get_selected())
 
@@ -1596,6 +1711,8 @@ class DratsMessagePanel(DratsPanel):
     :type config: :class:`DratsConfig`
     '''
 
+    # pylint wants a max of 15 local variables
+    # pylint wants a max of 50 statements
     # pylint: disable=too-many-locals,too-many-statements
     def __init__(self, config):
         DratsPanel.__init__(self, config)
@@ -1609,15 +1726,13 @@ class DratsMessagePanel(DratsPanel):
         val.add_numeric(15, 9999, 1)
         lab = Gtk.Label.new(_("seconds"))
         self.make_view(_("Queue flush interval"), val, lab)
-        # pylint: disable=protected-access
-        disable_with_toggle(vala._widget, val._widget)
+        disable_with_toggle(vala.child_widget, val.child_widget)
 
         val = DratsConfigWidget(config, "settings", "station_msg_ttl")
         val.add_numeric(0, 99999, 1)
         lab = Gtk.Label.new(_("seconds"))
         self.make_view(_("Station TTL"), val, lab)
-        # pylint: disable=protected-access
-        disable_with_toggle(vala._widget, val._widget)
+        disable_with_toggle(vala.child_widget, val.child_widget)
 
         val = DratsConfigWidget(config, "prefs", "msg_include_reply")
         val.add_bool()
@@ -1667,15 +1782,11 @@ class DratsMessagePanel(DratsPanel):
         self.make_view(_("WL2K RMS Station"), rms, lab, rpt)
 
         net_map = {
-            # pylint: disable=protected-access
-            "Network" : [srv._widget, prt._widget, pwd._widget],
-            # pylint: disable=protected-access
-            "RMS"     : [rms._widget, rpt._widget],
+            "Network" : [srv.child_widget, prt.child_widget, pwd.child_widget],
+            "RMS"     : [rms.child_widget, rpt.child_widget],
             }
-        # pylint: disable=protected-access
-        disable_by_combo(wlm._widget, net_map)
-        # pylint: disable=protected-access
-        disable_with_toggle(vala._widget, wlm._widget)
+        disable_by_combo(wlm.child_widget, net_map)
+        disable_with_toggle(vala.child_widget, wlm.child_widget)
 
         ssids = [""] + [str(x) for x in range(1, 11)]
         val = DratsConfigWidget(config, "prefs", "msg_wl2k_ssid")
@@ -1688,8 +1799,7 @@ class DratsMessagePanel(DratsPanel):
         p3p = DratsConfigWidget(config, "settings", "msg_pop3_port")
         p3p.add_numeric(1, 65535, 1)
         self.make_view(_("POP3 Server"), p3s, lab, p3p)
-        # pylint: disable=protected-access
-        disable_with_toggle(p3s._widget, p3p._widget)
+        disable_with_toggle(p3s.child_widget, p3p.child_widget)
 
         sms = DratsConfigWidget(config, "settings", "msg_smtp_server")
         sms.add_bool()
@@ -1697,8 +1807,7 @@ class DratsMessagePanel(DratsPanel):
         smp = DratsConfigWidget(config, "settings", "msg_smtp_port")
         smp.add_numeric(1, 65535, 1)
         self.make_view(_("SMTP Server"), sms, lab, smp)
-        # pylint: disable=protected-access
-        disable_with_toggle(sms._widget, smp._widget)
+        disable_with_toggle(sms.child_widget, smp.child_widget)
 
 
 class DratsNetworkPanel(DratsPanel):
@@ -1717,10 +1826,10 @@ class DratsTCPPanel(DratsPanel):
         set information for a widget.
         :param _title: Title for widget, Unused
         :type _title: str
-        :param args: Optional arguments
+        :param widgets: Optional arguments
+        :type widgets: tuple[:class:`Gtk.Widget`]
         '''
 
-        #self.attach(widgets[0], 0, 2, 0, 1)
         widgets[0].show()
         widget_height = max(widgets[0].get_preferred_height())
 
@@ -1737,27 +1846,28 @@ class DratsTCPPanel(DratsPanel):
 
             box.show()
             box_height = max(box.get_preferred_height())
-            # self.attach(box, 0, 2, 1, 2, yoptions=Gtk.AttachOptions.SHRINK)
             self.attach_next_to(box, widgets[0], Gtk.PositionType.BOTTOM,
                                 1, box_height)
 
-    # pylint: disable=no-self-use
-    def but_rem(self, _button, list_widget):
+    @staticmethod
+    def but_rem(_button, list_widget):
         '''
         Button Remove.
 
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         list_widget.del_item(list_widget.get_selected())
 
-    # pylint: disable=no-self-use
-    def prompt_for(self, fields):
+    @staticmethod
+    def prompt_for(fields):
         '''
         Prompt for.
 
         :param fields: Fields object
+        :type fields: list[str, type]
         :returns: dict of fields
         :rtype: dict
         '''
@@ -1805,13 +1915,13 @@ class DratsTCPOutgoingPanel(DratsTCPPanel):
         DratsTCPPanel.__init__(self, config)
         self.logger = logging.getLogger("DratsTCPOutgoingPanel")
 
-        outcols = [(GObject.TYPE_STRING, "ID"),
-                   (GObject.TYPE_INT, _("Local")),
-                   (GObject.TYPE_INT, _("Remote")),
-                   (GObject.TYPE_STRING, _("Station"))]
+        out_cols = [(GObject.TYPE_STRING, "ID"),
+                    (GObject.TYPE_INT, _("Local")),
+                    (GObject.TYPE_INT, _("Remote")),
+                    (GObject.TYPE_STRING, _("Station"))]
 
         val = DratsListConfigWidget(config, "tcp_out")
-        list_widget = val.add_list(outcols)
+        list_widget = val.add_list(out_cols)
         add = Gtk.Button.new_with_label(_("Add"))
         add.connect("clicked", self.but_add, list_widget)
         rem = Gtk.Button.new_with_label(_("Remove"))
@@ -1825,6 +1935,7 @@ class DratsTCPOutgoingPanel(DratsTCPPanel):
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         values = self.prompt_for([(_("Local Port"), int),
                                   (_("Remote Port"), int),
@@ -1869,6 +1980,7 @@ class DratsTCPIncomingPanel(DratsTCPPanel):
         :param _button: Unused
         :type _button: :class:`Gtk.Widget`
         :param list_widget: widget for button
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         values = self.prompt_for([(_("Port"), int),
                                   (_("Host"), str)])
@@ -1900,36 +2012,30 @@ class DratsOutEmailPanel(DratsPanel):
         val = DratsConfigWidget(config, "settings", "smtp_server")
         val.add_text()
         self.make_view(_("SMTP Server"), val)
-        # pylint: disable=protected-access
-        disable_with_toggle(gateway._widget, val._widget)
+        disable_with_toggle(gateway.child_widget, val.child_widget)
 
         port = DratsConfigWidget(config, "settings", "smtp_port")
         port.add_numeric(1, 65536, 1)
         mode = DratsConfigWidget(config, "settings", "smtp_tls")
         mode.add_bool("TLS")
         self.make_view(_("Port and Mode"), port, mode)
-        # pylint: disable=protected-access
-        disable_with_toggle(gateway._widget, port._widget)
-        # pylint: disable=protected-access
-        disable_with_toggle(gateway._widget, mode._widget)
+        disable_with_toggle(gateway.child_widget, port.child_widget)
+        disable_with_toggle(gateway.child_widget, mode.child_widget)
 
         val = DratsConfigWidget(config, "settings", "smtp_replyto")
         val.add_text()
         self.make_view(_("Source Address"), val)
-        # pylint: disable=protected-access
-        disable_with_toggle(gateway._widget, val._widget)
+        disable_with_toggle(gateway.child_widget, val.child_widget)
 
         val = DratsConfigWidget(config, "settings", "smtp_username")
         val.add_text()
         self.make_view(_("SMTP Username"), val)
-        # pylint: disable=protected-access
-        disable_with_toggle(gateway._widget, val._widget)
+        disable_with_toggle(gateway.child_widget, val.child_widget)
 
         val = DratsConfigWidget(config, "settings", "smtp_password")
         val.add_pass()
         self.make_view(_("SMTP Password"), val)
-        # pylint: disable=protected-access
-        disable_with_toggle(gateway._widget, val._widget)
+        disable_with_toggle(gateway.child_widget, val.child_widget)
 
 
 class DratsInEmailPanel(DratsPanel):
@@ -1989,7 +2095,8 @@ class DratsInEmailPanel(DratsPanel):
         set information for a widget
         :param _title: Title for widget
         :type _title: str
-        :param args: Optional arguments
+        :param widgets: Optional arguments
+        :type widgets: tuple[:class:`Gtk.Widget`]
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
 
@@ -2012,8 +2119,6 @@ class DratsInEmailPanel(DratsPanel):
             self.attach_next_to(box, widgets[0], Gtk.PositionType.BOTTOM,
                                 1, box_height)
 
-
-    # pylint: disable=no-self-use
     def but_rem(self, _button, list_widget):
         '''
         Button remove.
@@ -2021,6 +2126,7 @@ class DratsInEmailPanel(DratsPanel):
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         vals = list_widget.get_selected()
         if not vals:
@@ -2028,13 +2134,15 @@ class DratsInEmailPanel(DratsPanel):
             return
         list_widget.del_item(vals)
 
+    # pylint wants a max of 12 branches
     # pylint: disable=too-many-branches
     def prompt_for_acct(self, fields):
         '''
         Prompt For Account.
 
         :param fields: Fields for account dialog
-        :returns: Dict containing account information
+        :type fields: list[tuple[str, type, any]]
+        :returns: Dictionary containing account information
         :rtype: dict:
         '''
         dlg = inputdialog.FieldDialog()
@@ -2092,6 +2200,7 @@ class DratsInEmailPanel(DratsPanel):
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         fields = [(_("Server"), str, ""),
                   (_("Username"), str, ""),
@@ -2122,6 +2231,7 @@ class DratsInEmailPanel(DratsPanel):
         :param _button: Unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: widget for button
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         # The code that sets up this button should not activate it
         # unless the button has something to do.
@@ -2225,7 +2335,8 @@ class DratsEmailAccessPanel(DratsPanel):
 
         :param _title: Title for widget, Unused
         :type _title: str
-        :param args: Optional arguments
+        :param widgets: Optional arguments
+        :type widgets: tuple[:class:`Gtk.Widget`]
         '''
         # self.attach(widgets[0], 0, 2, 0, 1)
 
@@ -2249,14 +2360,15 @@ class DratsEmailAccessPanel(DratsPanel):
                                 1, box_height)
 
 
-    # pylint: disable=no-self-use
-    def but_rem(self, _button, list_widget):
+    @staticmethod
+    def but_rem(_button, list_widget):
         '''
         Button Remove.
 
         :param _button: Button widget unused
         :type _button: :class:`Gtk.Button`
         :param list_widget: Listing widget
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         list_widget.del_item(list_widget.get_selected())
 
@@ -2265,6 +2377,7 @@ class DratsEmailAccessPanel(DratsPanel):
         Prompt for entry.
 
         :param fields: Fields for entry
+        :type fields: list[tuple(str, type, any)]
         :returns: Dictionary of fields or None
         :rtype: dict
         '''
@@ -2318,6 +2431,7 @@ class DratsEmailAccessPanel(DratsPanel):
         :param _button: widget, not used
         :type _button: :class:`Gtk.Button`
         :param list_widget: List widget
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         fields = [(_("Callsign"), str, ""),
                   (_("Access"), str, _("Both")),
@@ -2338,6 +2452,7 @@ class DratsEmailAccessPanel(DratsPanel):
         :param _button: Button widget, not used
         :type _button: :class:`Gtk.Button`
         :param list_widget: List widget
+        :type list_widget: :class:`DratsListConfigWidget`
         '''
         vals = list_widget.get_item(list_widget.get_selected())
         if not vals:
@@ -2382,38 +2497,35 @@ class DratsConfigUI(Gtk.Dialog):
         Mouse Event.
 
         :param view: View object
+        :type view: :class:`Gtk.TreeView`
         :param event: Mouse event
+        :type event: :class:`Gtk.EventButton`
         '''
         x_coord, y_coord = event.get_coords()
         path = view.get_path_at_pos(int(x_coord), int(y_coord))
         if path:
             view.set_cursor_on_cell(path[0], None, None, False)
 
-        try:
-            (store, iter_val) = view.get_selection().get_selected()
-            selected, = store.get(iter_val, 0)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("Unable to find selected item", exc_info=True)
+        (store, iter_val) = view.get_selection().get_selected()
+        selected, = store.get(iter_val, 0)
 
         for value in self.panels.values():
             value.hide()
         self.panels[selected].show()
 
-    def move_cursor(self, view, _step, _count):
+    def move_cursor(self, view, _step, _direction):
         '''
         Move Cursor.
 
         :param view: View to move cursor on
-        :param _step: Unused
-        :param _count: Unused
+        :type view: :class:`Gtk.TreeView`
+        :param _step: Granularity of the move, unused
+        :type _step: :class:`GtkMovementStep`
+        :param _direction: Direction of move, unused
+        :type _direction: int
         '''
-        try:
-            (store, _iter) = view.get_selection().get_selected()
-            selected, = store.get(iter, 0)
-        # pylint: disable=broad-except
-        except Exception:
-            self.logger.info("Unable to move cursor", exc_info=True)
+        (store, _iter) = view.get_selection().get_selected()
+        selected, = store.get(iter, 0)
 
         for value in self.panels.values():
             value.hide()
@@ -2449,18 +2561,14 @@ class DratsConfigUI(Gtk.Dialog):
             self.panels[s_arg] = scroll_w
 
             for val in panel.vals:
-                try:
-                    val.set_tooltip_text(config_tips.get_tip(val.vsec,
-                                                             val.vname))
-                # pylint: disable=bare-except
-                except:
-                    self.logger.info("Could not add tool tip %s to %s type %s",
-                                     config_tips.get_tip(val.vsec, val.vname),
-                                     val.vname,
-                                     type(val),
-                                     exc_info=True)
-                #self.tips.set_tip(val,
-                #                  config_tips.get_tip(val.vsec, val.vname))
+                val.set_tooltip_text(config_tips.get_tip(val.vsec, val.vname))
+                # pylint# disable=bare-except
+                #except:
+                #    self.logger.info("Could not add tool tip %s to %s type %s",
+                #                     config_tips.get_tip(val.vsec, val.vname),
+                #                     val.vname,
+                #                     type(val),
+                #                     exc_info=True)
 
             return self.__store.append(par, row=(s_arg, l_arg))
 
@@ -2499,12 +2607,14 @@ class DratsConfigUI(Gtk.Dialog):
             widget.save()
 
 
+# pylint wants only 7 ancestors
 # pylint: disable=too-many-ancestors
 class DratsConfig(configparser.ConfigParser):
     '''
     D-Rats Configuration.
 
     :param: _mainapp: Unused
+    :type _mainapp: :class:`mainapp.MainApp`
     :param: _safe: Unused, default=False
     :type _safe: bool
     '''
@@ -2583,6 +2693,7 @@ class DratsConfig(configparser.ConfigParser):
         self.write(file_handle)
         file_handle.close()
 
+    # This is an intentional method override.
     # pylint: disable=arguments-differ
     def getboolean(self, sec, key):
         '''
@@ -2596,26 +2707,26 @@ class DratsConfig(configparser.ConfigParser):
         :rtype: bool
         '''
         try:
-            return configparser.ConfigParser.getboolean(self, sec, key)
-        # pylint: disable=broad-except
-        except configparser.NoOptionError:
-            #self.logger.info("Failed to get boolean: %s/%s", sec, key,
-            #                 exc_info=True)
+            return configparser.ConfigParser.getboolean(self, sec, key,
+                                                        fallback=False)
+        except ValueError:
+            self.logger.info("Failed to get boolean: %s/%s", sec, key)
             return False
 
+    # This is an intentional method override.
     # pylint: disable=arguments-differ
-    def getint(self, sec, key):
-        '''
-        Get Integer.
-
-        :param sec: Section of parameter file
-        :type sec: str
-        :param key: Key in section
-        :type key: str
-        :returns: integer value.
-        :rtype: int
-        '''
-        return int(float(configparser.ConfigParser.get(self, sec, key)))
+    #def getint(self, sec, key):
+    #    '''
+    #    Get Integer.
+    #
+    #    :param sec: Section of parameter file
+    #    :type sec: str
+    #    :param key: Key in section
+    #    :type key: str
+    #    :returns: integer value.
+    #    :rtype: int
+    #    '''
+    #    return int(float(configparser.ConfigParser.get(self, sec, key)))
 
     def form_source_dir(self):
         '''
@@ -2636,7 +2747,7 @@ class DratsConfig(configparser.ConfigParser):
         '''
         Form Store directory.
 
-        Directroy is created if it does not exist.
+        Directory is created if it does not exist.
 
         :returns: Form storage directory
         :rtype: str
@@ -2692,10 +2803,9 @@ def main():
     config = DratsConfigUI(parser)
     if config.run() == Gtk.ResponseType.OK:
         config.save()
-
+        logger.info("run result = OK")
+    else:
+        logger.info("run failed")
 
 if __name__ == "__main__":
-    #if not __package__:
-    #    # pylint: disable=redefined-builtin
-    #    __package__ = '__main__'
     main()
