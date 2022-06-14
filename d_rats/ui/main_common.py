@@ -2,7 +2,7 @@
 '''Main Common.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -73,18 +73,20 @@ def display_error(message, parent=None):
     return run_status == Gtk.ResponseType.OK
 
 
+# pylint wants a maximum of 15 local variables
 # pylint: disable=too-many-locals
 def prompt_for_station(station_list, config, parent=None):
     '''
     Prompt for Station.
 
     :param station_list: List of station objects
+    :type station_list: list[:class:`station_status.Station]`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     :param parent: Parent widget, default None
     :type parent: :class:`Gtk.Widget`
     :returns: station_text and port_text
-    :rtype: tuple of (str, str)
+    :rtype: tuple[str, str]
     '''
     station_string_list = [str(x) for x in station_list]
     port_list = []
@@ -93,16 +95,17 @@ def prompt_for_station(station_list, config, parent=None):
         if enb == "True":
             port_list.append(name)
 
-    defsta = defprt = ""
+    default_stationid = defprt = ""
     if station_string_list:
-        defsta = str(station_string_list[0])
+        default_stationid = str(station_string_list[0])
     if port_list:
         defprt = port_list[0]
 
     port_list.sort()
     station_string_list.sort()
 
-    station = miscwidgets.make_choice(station_string_list, True, defsta)
+    station = miscwidgets.make_choice(station_string_list, True,
+                                      default_stationid)
     port = miscwidgets.make_choice(port_list, False, defprt)
 
     dialog = inputdialog.FieldDialog(title=_("Enter destination"),
@@ -191,27 +194,27 @@ class MainWindowElement(GObject.GObject):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     :param prefix: Prefix for the widget name lookups
-    :param prefix: str
-    :param label: Label text for the widget, default None.
-    :type label: str
+    :type prefix: str
     '''
 
-    def __init__(self, wtree, config, prefix, label=None):
+    def __init__(self, wtree, config, prefix):
         self._prefix = prefix
-        self._label = label
         self._wtree = wtree
         self._config = config
 
         GObject.GObject.__init__(self)
 
-    def _getw(self, *names):
-        widgets = []
+    def _get_widget(self, name):
+        '''
+        Get Widget Internal.
 
-        for _name in names:
-            name = "%s_%s" % (self._prefix, _name)
-            widgets.append(self._wtree.get_object(name))
-
-        return tuple(widgets)
+        :param name: Partial name of child widget
+        :type name: str
+        :returns: Widget object
+        :rtype: :class:`Gtk.Widget`
+        '''
+        full_name = "%s_%s" % (self._prefix, name)
+        return self._wtree.get_object(full_name)
 
     def reconfigure(self):
         '''Reconfigure.'''
@@ -227,23 +230,21 @@ class MainWindowTab(MainWindowElement):
     :type config: :class:`DratsConfig`
     :param prefix: Prefix for lookups
     :type prefix: str
-    :param label: text label for widget, default None
-    :type label: str
     '''
 
-    def __init__(self, wtree, config, prefix, label=None):
-        MainWindowElement.__init__(self, wtree, config, prefix, label=None)
-        self._label = label
+    def __init__(self, wtree, config, prefix):
+        MainWindowElement.__init__(self, wtree, config, prefix)
         self._prefix = prefix
         self._notebook = wtree.get_object('main_tabs')
-        self._menutab = wtree.get_object("tab_label_%s" % prefix)
-        self._tablabel = None
+        self._menu_tab = wtree.get_object("tab_label_%s" % prefix)
+        self._tab_label = None
         self._selected = None
-        if self._menutab:
-            self._menulabel = self._notebook.get_menu_label(self._menutab)
-            if self._label:
-                self._notebook.set_tab_label_text(self._menutab, self._label)
-                self._tablabel = self._notebook.get_tab_label(self._menutab)
+        if self._menu_tab:
+            menu_label = self._notebook.get_menu_label_text(self._menu_tab)
+            # The menu_label text set is set by glade.
+            # The tab_label is set for display.
+            self._notebook.set_tab_label_text(self._menu_tab, menu_label)
+            self._tab_label = self._notebook.get_tab_label(self._menu_tab)
 
     def reconfigure(self):
         '''Reconfigure.'''
@@ -262,11 +263,11 @@ class MainWindowTab(MainWindowElement):
         if self._selected:
             return
 
-        if self._tablabel:
-            text = self._tablabel.get_text()
-            self._tablabel.set_markup("<span color='blue'>%s</span>" % text)
+        if self._tab_label:
+            text = self._tab_label.get_text()
+            self._tab_label.set_markup("<span color='blue'>%s</span>" % text)
 
     def _unnotice(self):
-        if self._tablabel:
-            text = self._tablabel.get_text()
-            self._tablabel.set_markup(text)
+        if self._tab_label:
+            text = self._tab_label.get_text()
+            self._tab_label.set_markup(text)

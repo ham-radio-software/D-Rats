@@ -267,11 +267,11 @@ class FilesTab(MainWindowTab):
     _signals = __gsignals__
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "files", _("Files"))
+        MainWindowTab.__init__(self, wtree, config, "files")
         self.logger = logging.getLogger("FilesTab")
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        lview, rview = self._getw("local_list", "remote_list")
+        lview = self._get_widget("local_list")
+        rview = self._get_widget("remote_list")
 
         self._setup_file_view(lview)
         self._setup_file_view(rview)
@@ -280,7 +280,7 @@ class FilesTab(MainWindowTab):
         # TODO
         # Not sure how to make this work for GTK+ ComboBox
         # Can live with out a hint while debugging
-        stations, = self._getw("sel_station")
+        stations = self._get_widget("sel_station")
         stn_entry = stations.get_child()
         utils.set_entry_hint(stn_entry, REMOTE_HINT)
 
@@ -302,8 +302,7 @@ class FilesTab(MainWindowTab):
         GLib.idle_add(self.emit, *args)
 
     def _stop_throb(self):
-        # pylint: disable=unbalanced-tuple-unpacking
-        throbber, = self._getw("remote_throb")
+        throbber = self._get_widget("remote_throb")
         pix = self._config.ship_img(THROB_IMAGE)
         throbber.set_from_pixbuf(pix)
 
@@ -328,7 +327,6 @@ class FilesTab(MainWindowTab):
             view.set_sensitive(False)
             view.get_model().clear()
         self._remote = None
-        # pylint: disable=unbalanced-tuple-unpacking
         ssel, psel = self._get_ssel()
         ssel.set_sensitive(True)
         psel.set_sensitive(True)
@@ -337,9 +335,7 @@ class FilesTab(MainWindowTab):
 
     def _connect_remote(self, _button, _rfview):
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        view, = self._getw("remote_list")
-        # pylint: disable=unbalanced-tuple-unpacking
+        view = self._get_widget("remote_list")
         ssel, psel = self._get_ssel()
         sta = ssel.get_active_text().upper()
         prt = psel.get_active_text()
@@ -350,8 +346,7 @@ class FilesTab(MainWindowTab):
         if not self._remote or self._remote.get_path() != sta:
             self._remote = RemoteFileView(view, sta, self._config)
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        throbber, = self._getw("remote_throb")
+        throbber = self._get_widget("remote_throb")
         img = self._config.ship_obj_fn(os.path.join("images", THROB_IMAGE))
         anim = GdkPixbuf.PixbufAnimation.new_from_file(img)
         throbber.set_from_animation(anim)
@@ -405,7 +400,6 @@ class FilesTab(MainWindowTab):
             if not file_name:
                 return
 
-        # pylint: disable=unbalanced-tuple-unpacking
         ssel, psel = self._get_ssel()
         port = psel.get_active_text()
 
@@ -427,7 +421,6 @@ class FilesTab(MainWindowTab):
         station = self._remote.get_path()
         file_name = self._remote.get_selected_filename()
 
-        # pylint: disable=unbalanced-tuple-unpacking
         _ssel, psel = self._get_ssel()
         port = psel.get_active_text()
 
@@ -459,7 +452,6 @@ class FilesTab(MainWindowTab):
 
         file_name = self._remote.get_selected_filename()
 
-        # pylint: disable=unbalanced-tuple-unpacking
         _ssel, psel = self._get_ssel()
         port = psel.get_active_text()
 
@@ -503,8 +495,7 @@ class FilesTab(MainWindowTab):
         dnload = self._config.ship_img("download.png")
         upload = self._config.ship_img("upload.png")
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        ltb, = self._getw("local_toolbar")
+        ltb = self._get_widget("local_toolbar")
         set_toolbar_buttons(self._config, ltb)
         lbuttons = \
             [(refresh, _("Refresh"), self._refresh_local, self._local),
@@ -514,8 +505,7 @@ class FilesTab(MainWindowTab):
 
         populate_tb(ltb, lbuttons)
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        rtb, = self._getw("remote_toolbar")
+        rtb = self._get_widget("remote_toolbar")
         set_toolbar_buttons(self._config, rtb)
         rbuttons = \
             [(connect, _("Connect"), self._connect_remote, self._remote),
@@ -591,7 +581,9 @@ class FilesTab(MainWindowTab):
         return self.__selected
 
     def _get_ssel(self):
-        return self._getw("sel_station", "sel_port")
+        sel_station = self._get_widget("sel_station")
+        sel_port = self._get_widget("sel_port")
+        return (sel_station, sel_port)
 
     def file_sent(self, name):
         '''
@@ -615,7 +607,6 @@ class FilesTab(MainWindowTab):
         '''Selected.'''
         MainWindowTab.selected(self)
         self.__selected = True
-        # pylint: disable=unbalanced-tuple-unpacking
         ssel, psel = self._get_ssel()
         self._refresh_calls(ssel, psel)
         GLib.timeout_add(1000, self._refresh_calls, ssel, psel)
