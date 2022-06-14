@@ -279,14 +279,13 @@ class EventTab(MainWindowTab):
     _signals = __gsignals__
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "event", _("Event Log"))
+        MainWindowTab.__init__(self, wtree, config, "event")
 
         self.logger = logging.getLogger("EventTab")
 
         self.__ctr = 0
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        eventlist, = self._getw("list")
+        eventlist = self._get_widget("list")
 
         eventlist.connect("button_press_event", self._mouse_cb)
 
@@ -330,13 +329,11 @@ class EventTab(MainWindowTab):
         col = Gtk.TreeViewColumn(_("Description"), renderer, text=3)
         eventlist.append_column(col)
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        typesel, = self._getw("typesel")
+        typesel = self._get_widget("typesel")
         typesel.set_active(0)
         typesel.connect("changed", self._type_selected, event_filter)
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        filtertext, = self._getw("searchtext")
+        filtertext = self._get_widget("searchtext")
         filtertext.connect("changed", self._search_text, event_filter)
         utils.set_entry_hint(filtertext, FILTER_HINT)
 
@@ -512,8 +509,7 @@ class EventTab(MainWindowTab):
         :param event: Event to log.
         :type event: :class:`Event`
         '''
-        # pylint: disable=unbalanced-tuple-unpacking
-        scroll_window, = self._getw("sw")
+        scroll_window = self._get_widget("sw")
         adj = scroll_window.get_vadjustment()
         top_scrolled = (adj.get_value() == 0.0)
         bot_scrolled = (adj.get_value() ==

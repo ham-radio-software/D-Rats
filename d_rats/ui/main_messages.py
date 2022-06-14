@@ -399,11 +399,10 @@ class MessageFolders(MainWindowElement):
 
     # MessageFolders
     def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
+        MainWindowElement.__init__(self, wtree, config, "msg")
 
         self.logger = logging.getLogger("MessageFolders")
-        # pylint: disable=unbalanced-tuple-unpacking
-        folderlist, = self._getw("folderlist")
+        folderlist = self._get_widget("folderlist")
 
         store = Gtk.TreeStore(GObject.TYPE_STRING, GObject.TYPE_OBJECT)
         folderlist.set_model(store)
@@ -521,8 +520,7 @@ class MessageFolders(MainWindowElement):
         :param folder: Folder name to select
         :type folder: str
         '''
-        # pylint: disable=unbalanced-tuple-unpacking
-        view, = self._getw("folderlist")
+        view = self._get_widget("folderlist")
         store = view.get_model()
 
         msg_iter = store.get_iter_first()
@@ -808,11 +806,10 @@ class MessageList(MainWindowElement):
     # pylint wants a max of 50 statements for methods or functions
     # pylint: disable=too-many-statements
     def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "msg", _("Messages"))
+        MainWindowElement.__init__(self, wtree, config, "msg")
 
         self.logger = logging.getLogger("MessageList")
-        # pylint: disable=unbalanced-tuple-unpacking
-        msglist, = self._getw("msglist")
+        msglist = self._get_widget("msglist")
 
         self.store = Gtk.ListStore(GObject.TYPE_OBJECT,
                                    GObject.TYPE_STRING,
@@ -1115,8 +1112,7 @@ class MessageList(MainWindowElement):
 
     def delete_selected_messages(self):
         '''Delete Selected Messages.'''
-        # pylint: disable=unbalanced-tuple-unpacking
-        msglist, = self._getw("msglist")
+        msglist = self._get_widget("msglist")
 
         iters = []
         (store, paths) = msglist.get_selection().get_selected_rows()
@@ -1174,8 +1170,7 @@ class MessageList(MainWindowElement):
         :returns: List of selected messages
         :rtype: list
         '''
-        # pylint: disable=unbalanced-tuple-unpacking
-        msglist, = self._getw("msglist")
+        msglist = self._get_widget("msglist")
 
         selected = []
         (store, paths) = msglist.get_selection().get_selected_rows()
@@ -1206,7 +1201,7 @@ class MessagesTab(MainWindowTab):
     _signals = __gsignals__
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "msg", _("Messages"))
+        MainWindowTab.__init__(self, wtree, config, "msg")
 
         self.logger = logging.getLogger("MessagesTab")
         self._init_toolbar()
@@ -1571,8 +1566,7 @@ class MessagesTab(MainWindowTab):
         return menu
 
     def _init_toolbar(self):
-        # pylint: disable=unbalanced-tuple-unpacking
-        toolbar, = self._getw("toolbar")
+        toolbar = self._get_widget("toolbar")
 
         set_toolbar_buttons(self._config, toolbar)
 

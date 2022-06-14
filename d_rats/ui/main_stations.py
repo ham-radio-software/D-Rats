@@ -154,8 +154,7 @@ class StationsList(MainWindowTab):
         self.logger = logging.getLogger("StationsList")
         self.__smsg = None
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        _frame, self.__view, = self._getw("stations_frame", "stations_view")
+        self.__view = self._get_widget("stations_view")
 
         self.__status = None
         store = Gtk.ListStore(GObject.TYPE_STRING,  # Station
@@ -211,8 +210,8 @@ class StationsList(MainWindowTab):
         self.__calls = []
         self._update_station_count()
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        status, msg = self._getw("stations_status", "stations_smsg")
+        status = self._get_widget("stations_status")
+        msg = self._get_widget("stations_smsg")
 
         try:
             tool_txt = _("This is the state other stations will "
@@ -550,8 +549,7 @@ class StationsList(MainWindowTab):
         menu.popup(None, None, None, None, event.button, event.time)
 
     def _update_station_count(self):
-        # pylint: disable=unbalanced-tuple-unpacking
-        hdr, = self._getw("stations_header")
+        hdr = self._get_widget("stations_header")
         if hdr:
             hdr.set_markup("<b>Stations (%i)</b>" % len(self.__calls))
         # pylint: disable=fixme
@@ -655,7 +653,7 @@ class StationsList(MainWindowTab):
         Get Stations.
 
         :returns: known stations
-        :rtype: list of :class:`station_status.Station`
+        :rtype: list[:class:`station_status.Station]`
         '''
         stations = []
         store = self.__view.get_model()

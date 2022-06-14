@@ -108,11 +108,11 @@ class ChatQM(MainWindowElement):
         }
 
     def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "chat", _("Chat"))
+        MainWindowElement.__init__(self, wtree, config, "chat")
         self.logger = logging.getLogger("ChatQM")
-        # pylint: disable=unbalanced-tuple-unpacking
-        qm_add, qm_rem, qm_list = self._getw("qm_add", "qm_remove",
-                                             "qm_list")
+        qm_add = self._get_widget("qm_add")
+        qm_rem = self._get_widget("qm_remove")
+        qm_list = self._get_widget("qm_list")
 
         store = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
         store.connect("row-deleted", self._reorder_rows)
@@ -228,14 +228,13 @@ class ChatQST(MainWindowElement):
         }
 
     def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "chat", _("Chat"))
+        MainWindowElement.__init__(self, wtree, config, "chat")
 
         self.logger = logging.getLogger("ChatQST")
-        # pylint: disable=unbalanced-tuple-unpacking
-        qst_add, qst_rem, qst_edit, qst_list = self._getw("qst_add",
-                                                          "qst_remove",
-                                                          "qst_edit",
-                                                          "qst_list")
+        qst_add = self._get_widget("qst_add")
+        qst_rem = self._get_widget("qst_remove")
+        qst_edit = self._get_widget("qst_edit")
+        qst_list = self._get_widget("qst_list")
 
         self._store = Gtk.ListStore(GObject.TYPE_STRING,
                                     GObject.TYPE_STRING,
@@ -526,13 +525,13 @@ class ChatTab(MainWindowTab):
     _signals = __gsignals__
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "chat", _("Chat"))
+        MainWindowTab.__init__(self, wtree, config, "chat")
 
         self.logger = logging.getLogger("ChatTab")
-        # pylint: disable=unbalanced-tuple-unpacking
-        entry, send, dest = self._getw("entry", "send", "destination")
-        # pylint: disable=unbalanced-tuple-unpacking
-        self.__filtertabs, = self._getw("filtertabs")
+        entry = self._get_widget("entry")
+        send = self._get_widget("send")
+        dest = self._get_widget("destination")
+        self.__filtertabs = self._get_widget("filtertabs")
         self.__filters = {}
 
         self.__filtertabs.remove_page(0)
@@ -1067,8 +1066,7 @@ class ChatTab(MainWindowTab):
         delfilter = self._config.ship_img("chat-delfilter.png")
         queryuser = self._config.ship_img("chat-query.png")
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        toolbar, = self._getw("toolbar")
+        toolbar = self._get_widget("toolbar")
         set_toolbar_buttons(self._config, toolbar)
 
         buttons = \
@@ -1241,8 +1239,7 @@ class ChatTab(MainWindowTab):
             self._reconfigure_colors(display.get_buffer())
             self._reconfigure_font(display)
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        dest, = self._getw("destination")
+        dest = self._get_widget("destination")
 
         self.__ports = []
         for port in self._config.options("ports"):
@@ -1270,8 +1267,7 @@ class ChatTab(MainWindowTab):
         :returns: Selected port text
         :rtype: str
         '''
-        # pylint: disable=unbalanced-tuple-unpacking
-        dest, = self._getw("destination")
+        dest = self._get_widget("destination")
         return dest.get_active_text()
 
     def selected(self):
@@ -1286,8 +1282,7 @@ class ChatTab(MainWindowTab):
             item = self._wtree.get_object(name)
             item.set_property("visible", True)
 
-        # pylint: disable=unbalanced-tuple-unpacking
-        entry, = self._getw("entry")
+        entry = self._get_widget("entry")
         GLib.idle_add(entry.grab_focus)
 
     def deselected(self):
