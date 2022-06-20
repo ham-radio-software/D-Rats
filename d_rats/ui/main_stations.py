@@ -130,6 +130,8 @@ class StationsList(MainWindowTab):
     :param wtree: Window object
     :param config: Configuration data
     :type config: :class:`DratsConfig`
+    :param window: Mainwindow window widget
+    :type: window: :class:`Gtk.ApplicationWindow`
     '''
 
     __gsignals__ = {
@@ -148,8 +150,9 @@ class StationsList(MainWindowTab):
     # pylint wants no more than 15 local variables
     # pylint wants no more than 50 statements
     # pylint: disable=too-many-statements, too-many-locals
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "main")
+    def __init__(self, wtree, config, window):
+        MainWindowTab.__init__(self, wtree, config,
+                               window=window, prefix="main")
 
         self.logger = logging.getLogger("StationsList")
         self.__smsg = None

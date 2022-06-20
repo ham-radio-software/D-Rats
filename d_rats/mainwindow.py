@@ -81,7 +81,7 @@ class MainWindow(MainWindowElement):
         wtree = Gtk.Builder()
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
-        MainWindowElement.__init__(self, wtree, config, "")
+        MainWindowElement.__init__(self, wtree, config)
         self._application = application
         self.logger = logging.getLogger("MainWindow")
         self.__window = self._wtree.get_object("mainwindow")
@@ -91,10 +91,10 @@ class MainWindow(MainWindowElement):
         self.tabs = {}
         self.__last_status = 0
         self.tabs["chat"] = ChatTab(wtree, config)
-        self.tabs["messages"] = MessagesTab(wtree, config)
-        self.tabs["event"] = EventTab(wtree, config)
+        self.tabs["messages"] = MessagesTab(wtree, config, self.__window)
+        self.tabs["event"] = EventTab(wtree, config, self.__window)
         self.tabs["files"] = FilesTab(wtree, config)
-        self.tabs["stations"] = StationsList(wtree, config)
+        self.tabs["stations"] = StationsList(wtree, config, self.__window)
         for label, tab in self.tabs.items():
             tab.connect("notice", self._maybe_blink, label)
         self._current_tab = "messages"
@@ -512,40 +512,41 @@ class MainWindow(MainWindowElement):
         call_bar.push(0, call)
 
 
+class TestMainWindow(Gtk.Application):
+    '''
+    Test MainWindow application.
+    '''
+
+    def __init__(self):
+        from gi.repository import Gio
+        Gtk.Application.__init__(self,
+                                 application_id='localhost.d-rats.test_mw',
+                                 flags=Gio.ApplicationFlags.NON_UNIQUE)
+
+        from . import config
+        self.config = config.DratsConfig(None)
+
+    # pylint can not detect this for GTK classes.
+    # pylint: disable=arguments-differ
+    def do_activate(self):
+        '''
+        Do Activation.
+
+        Emits a :class:`Gio.Application` signal to the application.
+        '''
+        _main_window = MainWindow(self)
+        Gtk.Application.do_activate(self)
+
+
 def main():
-    '''Unit test main module.'''
+    '''UI Message Model Menu Unit test.'''
 
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
                         datefmt="%m/%d/%Y %H:%M:%S",
                         level=logging.INFO)
-    logger = logging.getLogger("MainWindow")
 
-    from d_rats import config
-    config = config.DratsConfig(None)
-
-    wtree = Gtk.Builder()
-    file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
-    wtree.add_from_file(file_name)
-
-    def test(_chat, station, msg):
-        '''
-        Test user-send-chat handler.
-
-        :param _chat: Signaled Widget, unused
-        :type _chat: :class:`ChatTab`
-        :param station: Station id of destination
-        :type station: str
-        :param msg: Chat message
-        :type msg: str
-        '''
-        logger.info("%s->%s", station, msg)
-
-    chat = ChatTab(wtree, config)
-    chat.connect("user-send-chat", test)
-
-    _msgs = MessagesTab(wtree, config)
-
-    Gtk.main()
+    test_main_window_gui = TestMainWindow()
+    test_main_window_gui.run(None)
 
 if __name__ == "__main__":
     main()

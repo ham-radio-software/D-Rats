@@ -265,6 +265,8 @@ class EventTab(MainWindowTab):
     :type wtree: :class:`Gtk.Widget`
     :param config: D-Rats configuration
     :type config: :class:`DratsConfig`
+    :param window: Mainwindow window widget
+    :type: window: :class:`Gtk.ApplicationWindow`
     '''
 
     __gsignals__ = {
@@ -278,8 +280,9 @@ class EventTab(MainWindowTab):
 
     _signals = __gsignals__
 
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "event")
+    def __init__(self, wtree, config, window):
+        MainWindowTab.__init__(self, wtree, config,
+                               window=window, prefix="event")
 
         self.logger = logging.getLogger("EventTab")
 

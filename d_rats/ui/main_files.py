@@ -267,7 +267,7 @@ class FilesTab(MainWindowTab):
     _signals = __gsignals__
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "files")
+        MainWindowTab.__init__(self, wtree, config, prefix="files")
         self.logger = logging.getLogger("FilesTab")
 
         lview = self._get_widget("local_list")
