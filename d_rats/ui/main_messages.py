@@ -72,6 +72,8 @@ class MessagesTab(MainWindowTab):
     :type wtree: :class:`Gtk.GtkNotebook`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
+    :param window: Mainwindow window widget
+    :type: window: :class:`Gtk.ApplicationWindow`
     '''
 
     __gsignals__ = {
@@ -84,8 +86,8 @@ class MessagesTab(MainWindowTab):
 
     _signals = __gsignals__
 
-    def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "msg")
+    def __init__(self, wtree, config, window):
+        MainWindowTab.__init__(self, wtree, config, window=window, prefix="msg")
 
         self.logger = logging.getLogger("MessagesTab")
         self._init_toolbar()

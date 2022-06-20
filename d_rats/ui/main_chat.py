@@ -525,7 +525,7 @@ class ChatTab(MainWindowTab):
     _signals = __gsignals__
 
     def __init__(self, wtree, config):
-        MainWindowTab.__init__(self, wtree, config, "chat")
+        MainWindowTab.__init__(self, wtree, config, prefix="chat")
 
         self.logger = logging.getLogger("ChatTab")
         entry = self._get_widget("entry")

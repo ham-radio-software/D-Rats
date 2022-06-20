@@ -193,12 +193,14 @@ class MainWindowElement(GObject.GObject):
     :type wtree: :class:`Gtk.Widget`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
-    :param prefix: Prefix for the widget name lookups
+    :param prefix: Prefix for the widget name lookups, default None
     :type prefix: str
     '''
 
-    def __init__(self, wtree, config, prefix):
+    def __init__(self, wtree, config, prefix=None):
         self._prefix = prefix
+        if not self._prefix:
+            self._prefix = ''
         self._wtree = wtree
         self._config = config
 
@@ -228,13 +230,15 @@ class MainWindowTab(MainWindowElement):
     :type wtree: :class:`Gtk.Widget`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
-    :param prefix: Prefix for lookups
+    :param window: Mainwindow window widget, Default None
+    :type: window: :class:`Gtk.ApplicationWindow`
+    :param prefix: Prefix for lookups, Default None
     :type prefix: str
     '''
 
-    def __init__(self, wtree, config, prefix):
+    def __init__(self, wtree, config, window=None, prefix=None):
         MainWindowElement.__init__(self, wtree, config, prefix)
-        self._prefix = prefix
+        self.window = window
         self._notebook = wtree.get_object('main_tabs')
         self._menu_tab = wtree.get_object("tab_label_%s" % prefix)
         self._tab_label = None
