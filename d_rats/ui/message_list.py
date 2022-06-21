@@ -83,6 +83,55 @@ class MessageInfo():
         return self._info
 
 
+def bold_if_unread(_col, rend, model, tree_iter, cnum):
+    '''
+    Bold if Unread Cell Layout Data Function.
+
+    :param _col: Cell layout, unused
+    :type _col: :class:`Gtk.CellLayout
+    :param rend: Cell Renderer
+    :type rend: :class:`Gtk.CellRendererText`
+    :param model: Tree Model
+    :type model: :class:`Gtk.ListStore`
+    :param tree_iter: Gtk TreeIter for row
+    :type msg_iter: :class:`Gtk.TreeIter`
+    :param cnum: Column Number
+    :type cnum: int
+    '''
+    val, read, = model.get(tree_iter, cnum, ML_COL_READ)
+    if not val:
+        val = ""
+    if not read:
+        val = val.replace("&", "&amp;")
+        val = val.replace("<", "&lt;")
+        val = val.replace(">", "&gt;")
+        rend.set_property("markup", "<b>%s</b>" % val)
+
+
+def render_date(_col, rend, model, tree_iter, _cnum):
+    '''
+    Render Date Cell Layout Data Function.
+
+    :param _col: Cell layout, unused
+    :type _col: :class:`Gtk.CellLayout
+    :param rend: Cell Renderer
+    :type rend: :class:`Gtk.CellRendererText`
+    :param model: Tree Model
+    :type model: :class:`Gtk.ListStore`
+    :param tree_iter: Gtk TreeIter for row
+    :type msg_iter: :class:`Gtk.TreeIter`
+    :param cnum: Column Number, Unused
+    :type cnum: int
+    '''
+    time_stamp, read = model.get(tree_iter, ML_COL_DATE, ML_COL_READ)
+    stamp = datetime.fromtimestamp(
+        time_stamp).strftime("%H:%M:%S %Y-%m-%d")
+    if read:
+        rend.set_property("text", stamp)
+    else:
+        rend.set_property("markup", "<b>%s</b>" % stamp)
+
+
 ML_COL_ICON = 0
 ML_COL_SEND = 1
 ML_COL_SUBJ = 2
@@ -92,6 +141,12 @@ ML_COL_FILE = 5
 ML_COL_READ = 6
 ML_COL_RECP = 7
 
+COLUMNS = {ML_COL_SEND: (_("Sender"), bold_if_unread, False),
+           ML_COL_RECP: (_("Recipient"), bold_if_unread, False),
+           ML_COL_SUBJ: (_("Subject"), bold_if_unread, True),
+           ML_COL_TYPE: (_("Type"), bold_if_unread, False),
+           ML_COL_DATE: (_("Date"), render_date, False)
+           }
 
 class MessageList(MainWindowElement):
     '''
@@ -138,49 +193,18 @@ class MessageList(MainWindowElement):
         col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=0)
         msglist.append_column(col)
 
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Sender"), renderer, text=ML_COL_SEND)
-        col.set_cell_data_func(renderer, self._bold_if_unread, ML_COL_SEND)
-        col.set_sort_column_id(ML_COL_SEND)
-        col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-        col.set_resizable(True)
-        msglist.append_column(col)
-
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Recipient"), renderer, text=ML_COL_RECP)
-        col.set_cell_data_func(renderer, self._bold_if_unread, ML_COL_RECP)
-        col.set_sort_column_id(ML_COL_RECP)
-        col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-        col.set_resizable(True)
-        msglist.append_column(col)
-
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Subject"), renderer, text=ML_COL_SUBJ)
-        col.set_cell_data_func(renderer, self._bold_if_unread, ML_COL_SUBJ)
-        col.set_expand(True)
-        col.set_sort_column_id(ML_COL_SUBJ)
-        col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-        col.set_resizable(True)
-        msglist.append_column(col)
-
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Type"), renderer, text=ML_COL_TYPE)
-        col.set_cell_data_func(renderer, self._bold_if_unread, ML_COL_TYPE)
-        col.set_sort_column_id(ML_COL_TYPE)
-        col.set_resizable(True)
-        msglist.append_column(col)
-
-        renderer = Gtk.CellRendererText()
-        renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn(_("Date"), renderer, text=ML_COL_DATE)
-        col.set_cell_data_func(renderer, self._render_date)
-        col.set_sort_column_id(ML_COL_DATE)
-        col.set_resizable(True)
-        msglist.append_column(col)
+        for column_num, value in COLUMNS.items():
+            column_name, function, expand = value
+            renderer = Gtk.CellRendererText()
+            renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
+            col = Gtk.TreeViewColumn(column_name, renderer, text=column_num)
+            col.set_cell_data_func(renderer, function, column_num)
+            if expand:
+                col.set_expand(True)
+            col.set_sort_column_id(column_num)
+            col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+            col.set_resizable(True)
+            msglist.append_column(col)
 
         msglist.connect("row-activated", self._open_msg)
         self.store.set_sort_column_id(ML_COL_DATE, Gtk.SortType.DESCENDING)
@@ -188,17 +212,6 @@ class MessageList(MainWindowElement):
         self.message_pixbuf = self._config.ship_img("message.png")
         self.unread_pixbuf = self._config.ship_img("msg-markunread.png")
         self.current_info = None
-
-    @staticmethod
-    def _bold_if_unread(_col, rend, model, msg_iter, cnum):
-        val, read, = model.get(msg_iter, cnum, ML_COL_READ)
-        if not val:
-            val = ""
-        if not read:
-            val = val.replace("&", "&amp;")
-            val = val.replace("<", "&lt;")
-            val = val.replace(">", "&gt;")
-            rend.set_property("markup", "<b>%s</b>" % val)
 
     def _folder_path(self, folder):
         path = os.path.join(self._config.platform.config_dir(),
@@ -310,16 +323,6 @@ class MessageList(MainWindowElement):
         self.logger.info("_open_msg: Updating iter %s", msg_iter)
         if msg_iter:
             self._update_message_info(msg_iter)
-
-    @staticmethod
-    def _render_date(_col, rend, model, msg_iter, _data):
-        time_stamp, read = model.get(msg_iter, ML_COL_DATE, ML_COL_READ)
-        stamp = datetime.fromtimestamp(
-            time_stamp).strftime("%H:%M:%S %Y-%m-%d")
-        if read:
-            rend.set_property("text", stamp)
-        else:
-            rend.set_property("markup", "<b>%s</b>" % stamp)
 
     def _dragged_from(self, view, _ctx, sel, _info, _ts):
         '''
