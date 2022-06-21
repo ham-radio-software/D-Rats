@@ -1,5 +1,5 @@
 #!/usr/bin/python
-'''Main Messages'''
+'''Main Messages.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
@@ -51,6 +51,7 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
+# Note this is identical to a function in mailsrv.py
 def mkmsgid(callsign):
     '''
     Generate a message id for a callsign.
@@ -91,15 +92,15 @@ class MessagesTab(MainWindowTab):
 
         self.logger = logging.getLogger("MessagesTab")
         self._init_toolbar()
-        self._folders = MessageFolders(wtree, config)
+        self.folders = MessageFolders(wtree, config, window)
         self._messages = MessageList(wtree, config)
         self._messages.connect("prompt-send-form", self._snd_msg)
         self._messages.connect("reply-form", self._rpl_msg)
         self._messages.connect("delete-form", self._del_msg)
 
-        self._folders.connect("user-selected-folder",
-                              lambda x, y: self._messages.open_folder(y))
-        self._folders.select_folder(_("Inbox"))
+        self.folders.connect("user-selected-folder",
+                             lambda x, y: self._messages.open_folder(y))
+        self.folders.select_folder(_("Inbox"))
 
         iport = self._wtree.get_object("main_menu_importmsg")
         iport.connect("activate", self._importmsg)
@@ -134,7 +135,7 @@ class MessagesTab(MainWindowTab):
                 return
 
         current = self._messages.current_info.name()
-        self._folders.select_folder(_("Drafts"))
+        self.folders.select_folder(_("Drafts"))
 
         tstamp = time.strftime("form_%m%d%Y_%H%M%S.xml")
         newfn = self._messages.current_info.create_msg(tstamp)
@@ -152,7 +153,7 @@ class MessagesTab(MainWindowTab):
                 info.delete(newfn)
             if self._messages.current_info == info:
                 self._messages.refresh()
-                self._folders.select_folder(current)
+                self.folders.select_folder(current)
 
         self._messages.open_msg(newfn, True,
                                 close_msg_cb, self._messages.current_info)
@@ -216,7 +217,7 @@ class MessagesTab(MainWindowTab):
             file_name = sel[0]
 
         current = self._messages.current_info.name()
-        self._folders.select_folder(_("Drafts"))
+        self.folders.select_folder(_("Drafts"))
 
         old_form = formgui.FormFile(file_name)
         tmpl = os.path.join(self._config.form_source_dir(),
@@ -256,7 +257,7 @@ class MessagesTab(MainWindowTab):
                 if response in [Gtk.ResponseType.CANCEL,
                                 Gtk.ResponseType.CLOSE]:
                     info.delete(newfn)
-                    self._folders.select_folder(current)
+                    self.folders.select_folder(current)
                 else:
                     self._messages.refresh(newfn)
 
@@ -483,7 +484,8 @@ class MessagesTab(MainWindowTab):
             _("Reply") : _("Reply to the currently selected message"),
             _("Delete") : _("Delete the currently selected message"),
             _("Mark Read") : _("Mark the currently selected message as read"),
-            _("Mark Unread") : _("Mark the currently selected message as unread"),
+            _("Mark Unread") :
+                _("Mark the currently selected message as unread"),
             _("Send/Receive") : _("Send messages in the Outbox"),
             }
 
@@ -536,13 +538,13 @@ class MessagesTab(MainWindowTab):
         :param file_name: Filename
         :type file_name: str
         '''
-        outbox = self._folders.get_folder(_("Outbox"))
+        outbox = self.folders.get_folder(_("Outbox"))
         files = outbox.files()
         if file_name in files:
-            sent = self._folders.get_folder(_("Sent"))
+            sent = self.folders.get_folder(_("Sent"))
             newfn = sent.create_msg(os.path.basename(file_name))
-            self.logger.info("message_sent: Moving %s -> %s",
-                             file_name, newfn)
+            self.logger.debug("message_sent: Moving %s -> %s",
+                              file_name, newfn)
             shutil.copy(file_name, newfn)
             outbox.delete(file_name)
             self.refresh_if_folder(_("Outbox"))

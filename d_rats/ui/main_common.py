@@ -157,12 +157,13 @@ def prompt_for_string(message, parent=None, orig=""):
     dialog.vbox.pack_start(entry, 1, 1, 1)
 
     run_status = dialog.run()
-    dialog.destroy()
-
+    text = orig
     if run_status == Gtk.ResponseType.OK:
-        return entry.get_text()
-    return None
-
+        text = entry.get_text()
+        if not text:
+            text = orig
+    dialog.destroy()
+    return text
 
 def set_toolbar_buttons(config, toolbar):
     '''

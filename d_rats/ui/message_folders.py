@@ -31,8 +31,10 @@ from gi.repository import Gdk
 from gi.repository import GObject
 
 from d_rats.ui.main_common import MainWindowElement
-from d_rats.ui.main_common import display_error, prompt_for_string
+from d_rats.ui.main_common import display_error
+from d_rats.ui.main_common import prompt_for_string
 from d_rats.ui.message_folder_info import MessageFolderInfo
+from d_rats.ui.message_popup_model import MessagePopupModel
 
 
 if not '_' in locals():
@@ -58,6 +60,8 @@ class MessageFolders(MainWindowElement):
     :type wtree: :class:`Gtk.GtkNotebook`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
+    :param window: Mainwindow window widget
+    :type: window: :class:`Gtk.ApplicationWindow`
     '''
 
     __gsignals__ = {
@@ -66,12 +70,12 @@ class MessageFolders(MainWindowElement):
                                   (GObject.TYPE_STRING,))
         }
 
-    # MessageFolders
-    def __init__(self, wtree, config):
-        MainWindowElement.__init__(self, wtree, config, "msg")
+    def __init__(self, wtree, config, window):
+        MainWindowElement.__init__(self, wtree, config, prefix="msg")
 
         self.logger = logging.getLogger("MessageFolders")
         folderlist = self._get_widget("folderlist")
+        self.window = window
 
         store = Gtk.TreeStore(GObject.TYPE_STRING, GObject.TYPE_OBJECT)
         folderlist.set_model(store)
@@ -84,12 +88,17 @@ class MessageFolders(MainWindowElement):
 
         col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
         folderlist.append_column(col)
+        self.folderlist = folderlist
 
         rnd = Gtk.CellRendererText()
         # rnd.set_property("editable", True)
         rnd.connect("edited", self._folder_rename, store)
         col = Gtk.TreeViewColumn("", rnd, text=0)
         folderlist.append_column(col)
+
+        self.folder_model = MessagePopupModel(self)
+        self.folder_menu = Gtk.Menu.new_from_model(self.folder_model)
+        self.folder_menu.attach_to_widget(self.folderlist)
 
         self.folder_pixbuf = self._config.ship_img("folder.png")
 
@@ -208,8 +217,8 @@ class MessageFolders(MainWindowElement):
         for folder in BASE_FOLDERS:
             try:
                 info = self._create_folder(root, folder)
-                self.logger.info("_ensure_default_folders %s",
-                                 info.subfolders())
+                self.logger.debug("_ensure_default_folders %s",
+                                  info.subfolders())
             except FolderError:
                 pass
 
@@ -229,50 +238,49 @@ class MessageFolders(MainWindowElement):
 
         return view.get_selection().get_selected()
 
-    def _menu_handler(self, action, store, msg_iter, _view):
+    def popup_menu_handler(self, action, _value):
         '''
         Menu activate handler.
 
         :param action: Action that was signaled
         :type action: :class:`Gtk.Action`
-        :param store: Tree store widget
-        :type store: :class:`Gtk.TreeStore`
-        :param msg_iter: Message iterator
-        :type msg_iter: :class:`Gtk.TreeIter`
-        :param view: Mouse button widget
-        :type view: :class:`Gtk.TreeView`
+        :param _value: Value for action, Unused
+        :type _value: :class:`Gio.VariantType`
         '''
         action_name = action.get_name()
+        folder_iter = self.folder_model.folder_iter
+        folder_name = self.folder_model.folder_name
+        folder_store = self.folder_model.folder_store
+        folder_info = self.get_folder(folder_name)
 
         if action_name == "delete":
-            info = self.get_folder(self._get_folder_by_iter(store, msg_iter))
             try:
-                info.delete_self()
+                folder_info.delete_self()
             except OSError as err:
                 display_error("Unable to delete folder: %s" % err)
                 return
-            store.remove(msg_iter)
+            folder_store.remove(folder_iter)
         elif action_name == "create":
-            store.insert(msg_iter, 0, ("New Folder", self.folder_pixbuf))
-            parent = self.get_folder(self._get_folder_by_iter(store, msg_iter))
-            self._create_folder(parent, "New Folder")
+            new_folder = _("New Folder")
+            folder_store.insert(folder_iter, 0,
+                                (new_folder, self.folder_pixbuf))
+            self._create_folder(folder_info, new_folder)
         elif action_name == "rename":
-            info = self.get_folder(self._get_folder_by_iter(store, msg_iter))
-
-            new_text = prompt_for_string("Rename folder `%s' to:" % info.name(),
-                                         orig=info.name())
-            if not new_text:
-                return
-            if new_text == info.name():
+            old_name = folder_info.name()
+            new_name = prompt_for_string("Rename folder `%s' to:" % old_name,
+                                         orig=old_name)
+            if not new_name or new_name == old_name:
+                self.logger.debug("action rename: old: %s, new: %s",
+                                  old_name, new_name)
                 return
 
             try:
-                info.rename(new_text)
+                folder_info.rename(new_name)
             except OSError as err:
                 display_error("Unable to rename: %s" % err)
                 return
 
-            store.set(msg_iter, 0, new_text)
+            folder_store.set(folder_iter, 0, new_name)
 
     def _select_folder(self, view, event):
         store, msg_iter = self._get_selected_folder(view, event)
@@ -296,49 +304,28 @@ class MessageFolders(MainWindowElement):
         self.emit("user-selected-folder",
                   self._get_folder_by_iter(store, msg_iter))
 
-    # pylint wants a max of 15 local variables
-    # pylint: disable=too-many-locals
     def _folder_menu(self, view, event):
-        x_coord = int(event.x)
-        y_coord = int(event.y)
-        pthinfo = view.get_path_at_pos(x_coord, y_coord)
-        if pthinfo is not None:
-            path, col, _cellx, _celly = pthinfo
+        '''
+        Folder Menu for mouse_cb handler.
+
+        :param view: Treeview Widget clicked on.
+        :type view: :class:`Gtk.TreeView`
+        :param event: Button press event
+        :type event: :class:`Gtk.EventButton`
+        '''
+        x_coord, y_coord = event.get_coords()
+        path_info = view.get_path_at_pos(x_coord, y_coord)
+        if path_info is not None:
+            path, col, _cellx, _celly = path_info
+
             view.grab_focus()
             view.set_cursor(path, col, 0)
 
-        xml = """
-<ui>
-  <popup name="menu">
-    <menuitem action="delete"/>
-    <menuitem action="create"/>
-    <menuitem action="rename"/>
-  </popup>
-</ui>
-"""
         store, folder_iter = self._get_selected_folder(view, event)
         folder = self._get_folder_by_iter(store, folder_iter)
 
-        can_del = bool(folder and (folder not in BASE_FOLDERS))
-
-        action_group = Gtk.ActionGroup.new("menu")
-        actions = [("delete", _("Delete"), Gtk.STOCK_DELETE, can_del),
-                   ("create", _("Create"), Gtk.STOCK_NEW, True),
-                   ("rename", _("Rename"), None, can_del)]
-
-        for action, label, stock, sensitive in actions:
-            new_action = Gtk.Action.new(action, label, None, stock)
-            new_action.set_sensitive(sensitive)
-            new_action.connect("activate", self._menu_handler,
-                               store, folder_iter, view)
-            action_group.add_action(new_action)
-
-        uim = Gtk.UIManager()
-        uim.insert_action_group(action_group, 0)
-        uim.add_ui_from_string(xml)
-        # pylint: disable=no-member
-        uim.get_object("/menu").popup(None, None, None, None,
-                                      event.button, event.time)
+        self.folder_model.change_state(folder, store, folder_iter)
+        self.folder_menu.popup_at_pointer()
 
     def _mouse_cb(self, view, event):
         '''
@@ -355,8 +342,29 @@ class MessageFolders(MainWindowElement):
             return self._folder_menu(view, event)
         return None
 
-    # pylint wants a max of 15 local variables
-    # pylint: disable=too-many-locals
+    def _dragged_to_helper(self, src, dst, src_folder, dst_folder, msgs):
+        for record in msgs:
+            fname, subj, msg_type, read, send, recp = record.split("\0")
+            self.logger.debug("_dragged_to Dragged %s from %s into %s",
+                              fname, src_folder, dst_folder)
+            self.logger.debug("_dragged_to: %s %s %s %s->%s",
+                              subj, msg_type, read, send, recp)
+
+            try:
+                # Make sure that destination does not exist
+                dst.delete(os.path.basename(fname))
+            except FileNotFoundError:
+                pass
+            newfn = dst.create_msg(os.path.basename(fname))
+            shutil.copy(fname, newfn)
+            src.delete(fname)
+
+            dst.set_msg_read(fname, read == "True")
+            dst.set_msg_subject(fname, subj)
+            dst.set_msg_type(fname, msg_type)
+            dst.set_msg_sender(fname, send)
+            dst.set_msg_recip(fname, recp)
+
     def _dragged_to(self, view, _ctx, x_coord, y_coord, sel, _info, _ts):
         '''
         Dragged to - drag-data-received Handler.
@@ -391,27 +399,7 @@ class MessageFolders(MainWindowElement):
         dst = MessageFolderInfo(os.path.join(self._folders_path(), dst_folder))
         src = MessageFolderInfo(os.path.join(self._folders_path(), src_folder))
 
-        for record in msgs:
-            fname, subj, msg_type, read, send, recp = record.split("\0")
-            self.logger.info("_dragged_to Dragged %s from %s into %s",
-                             fname, src_folder, dst_folder)
-            self.logger.info("_dragged_to: %s %s %s %s->%s",
-                             subj, msg_type, read, send, recp)
-
-            try:
-                # Make sure that destination does not exist
-                dst.delete(os.path.basename(fname))
-            except FileNotFoundError:
-                pass
-            newfn = dst.create_msg(os.path.basename(fname))
-            shutil.copy(fname, newfn)
-            src.delete(fname)
-
-            dst.set_msg_read(fname, read == "True")
-            dst.set_msg_subject(fname, subj)
-            dst.set_msg_type(fname, msg_type)
-            dst.set_msg_sender(fname, send)
-            dst.set_msg_recip(fname, recp)
+        self._dragged_to_helper(src, dst, dst_folder, src_folder, msgs)
 
     def _folder_rename(self, _render, path, new_text, store):
         '''
