@@ -39,7 +39,7 @@ if not '_' in locals():
 
 from d_rats.ui.main_messages import MessagesTab
 from d_rats.ui.main_chat import ChatTab
-from d_rats.ui.main_events import EventTab
+from d_rats.ui.event_tab import EventTab
 from d_rats.ui.main_files import FilesTab
 from d_rats.ui.main_stations import StationsList
 from d_rats.ui.main_common import MainWindowElement, prompt_for_station, \
