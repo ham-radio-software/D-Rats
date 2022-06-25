@@ -88,7 +88,7 @@ def bold_if_unread(_col, rend, model, tree_iter, cnum):
     Bold if Unread Cell Layout Data Function.
 
     :param _col: Cell layout, unused
-    :type _col: :class:`Gtk.CellLayout
+    :type _col: :class:`Gtk.CellLayout`
     :param rend: Cell Renderer
     :type rend: :class:`Gtk.CellRendererText`
     :param model: Tree Model
@@ -113,7 +113,7 @@ def render_date(_col, rend, model, tree_iter, _cnum):
     Render Date Cell Layout Data Function.
 
     :param _col: Cell layout, unused
-    :type _col: :class:`Gtk.CellLayout
+    :type _col: :class:`Gtk.CellLayout`
     :param rend: Cell Renderer
     :type rend: :class:`Gtk.CellRendererText`
     :param model: Tree Model
