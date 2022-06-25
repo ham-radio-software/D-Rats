@@ -30,6 +30,7 @@ from gi.repository import GObject
 
 from d_rats.ui.main_common import MainWindowTab
 from d_rats.ui.main_events import Event
+from d_rats.ui.event_popup_model import EventPopupModel
 
 from d_rats import utils
 from d_rats import signals
@@ -72,6 +73,7 @@ class EventTab(MainWindowTab):
                                window=window, prefix="event")
 
         self.logger = logging.getLogger("EventTab")
+        self.window = window
 
         self.__ctr = 0
 
@@ -144,6 +146,10 @@ class EventTab(MainWindowTab):
 
         self._load_pixbufs()
 
+        self.event_model = EventPopupModel(self)
+        self.event_menu = Gtk.Menu.new_from_model(self.event_model)
+        self.event_menu.attach_to_widget(eventlist)
+
         event = Event(None, _("D-RATS Started"))
         self.event(event)
 
@@ -172,57 +178,41 @@ class EventTab(MainWindowTab):
             return True
         return icon == self.filter_icon
 
-    def _mh_xfer(self, _action, event):
+    def popup_menu_handler(self, action, event):
         '''
-        Menu Handler Transfer Activate Handler.
+        Popup Menu Activate Handler.
 
-        :param _action: Action widget
-        :type _action: :class:`Gtk.Action`
+        :param action: Action widget
+        :type action: :class:`Gtk.Action`
         :param event: Event to act on.
         :type_event: :class:`Event`
         '''
-        action = _action.get_name()
+        action_name = action.get_name()
+
+        event = self.event_model.event_object
 
         sid = event.get_sessionid()
         portid = event.get_portid()
 
-        if action == "stop":
+        if action_name == "stop":
             self.emit("user-stop-session", sid, portid)
-        elif action == "cancel":
+        elif action_name == "cancel":
             self.emit("user-cancel-session", sid, portid)
-        elif action == "restart":
+        elif action_name == "restart":
             station, filename = event.get_restart_info()
             sname = os.path.basename(filename)
             self.emit("user-send-file", station, portid, filename, sname)
             event.set_restart_info(None)
 
-    def _make_session_menu(self, _sid, event):
-        xml = """
-<ui>
-  <popup name="menu">
-    <menuitem action="stop"/>
-    <menuitem action="cancel"/>
-    <menuitem action="restart"/>
-  </popup>
-</ui>
-"""
-        gtk_action_group = Gtk.ActionGroup.new("menu")
+    def _make_session_menu(self, event):
+        '''
+        Make Session Menu.
 
-        actions = [("stop", _("Stop"), not event.is_final()),
-                   ("cancel", _("Cancel"), not event.is_final()),
-                   ("restart", _("Restart"), event.get_restart_info())]
-        for action, label, sensitive in actions:
-            gtk_action = Gtk.Action.new(action, label, None, None)
-            gtk_action.connect("activate", self._mh_xfer, event)
-            gtk_action.set_sensitive(bool(sensitive))
-            gtk_action_group.add_action(gtk_action)
-
-        # UIManager does not work in GTK-3
-        # uim = Gtk.UIManager()
-        # uim.insert_action_group(gtk_action_group, 0)
-        # uim.add_ui_from_string(xml)
-
-        # return uim.get_object("/menu")
+        :param event: Session Event
+        :type event: :class:`SessionEvent`
+        '''
+        self.event_model.change_state(event)
+        self.event_menu.popup_at_pointer()
 
     def _mouse_cb(self, view, uievent):
         '''
@@ -245,16 +235,15 @@ class EventTab(MainWindowTab):
             view.set_cursor_on_cell(pathinfo[0], None, None, False)
 
         (model, event_iter) = view.get_selection().get_selected()
-        event_type, event_id, event = model.get(event_iter, 1, 0, 6)
+        event_type, _event_id, event = model.get(event_iter, 1, 0, 6)
 
         menus = {
             Event.EVENT_TYPES[Event.EVENT_SESSION] : self._make_session_menu,
             }
 
-        menufn = menus.get(event_type, None)
-        if menufn:
-            menu = menufn(event_id, event)
-            menu.popup(None, None, None, None, uievent.button, uievent.time)
+        menu_function = menus.get(event_type, None)
+        if menu_function:
+            menu_function(event)
 
     def _type_selected(self, typesel, filtermodel):
         '''
