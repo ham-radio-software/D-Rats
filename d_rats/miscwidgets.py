@@ -144,16 +144,14 @@ class KeyedListWidget(Gtk.Box):
         :type _rend: :class:`Gtk.CellRenderer`
         :param path: The event location
         :type path: str
-        :param colnum,: Colum to toggle
+        :param colnum,: Column number to toggle
         :type colnum: int
         '''
         if self.__toggle_connected:
-            # pylint: disable=unsubscriptable-object
-            self.__store[path][colnum] = not self.__store[path][colnum]
             iter_val = self.__store.get_iter(path)
-            ident, = self.__store.get(iter_val, 0)
-            # pylint: disable=unsubscriptable-object
-            self.emit("item-toggled", ident, self.__store[path][colnum])
+            ident, value = self.__store.get(iter_val, 0, colnum)
+            self.__store.set_value(iter_val, colnum, not value)
+            self.emit("item-toggled", ident, not value)
 
     def _edited(self, _rend, path, new, colnum):
         '''
@@ -504,12 +502,12 @@ class ListWidget(Gtk.Box):
         :type _render: :class:`Gtk.CellRenderer`
         :param path: The event location
         :type path: str
-        :param column: Colum to toggle
+        :param column: Column to toggle
         :type column: int
         '''
-        # pylint: disable=unsubscriptable-object
-        self._store[path][column] = not self._store[path][column]
         iter_val = self._store.get_iter(path)
+        value = self._store.get_value(iter_val, column)
+        self._store.set_value(iter_val, column, not value)
         vals = tuple(self._store.get(iter_val, *tuple(range(self._ncols))))
         for callback in self.toggle_cb:
             callback(*vals)
@@ -709,17 +707,18 @@ class TreeWidget(ListWidget):
         :type _render: :class:`Gtk.CellRenderer`
         :param path: The event location
         :type path: str
-        :param column: Colum to toggle
+        :param column: Column number to toggle
         :type column: int
         '''
-        # pylint: disable=unsubscriptable-object
-        self._store[path][column] = not self._store[path][column]
         iter_val = self._store.get_iter(path)
+        value = self._store.get_value(iter_val, column)
+        self._store.set_value(iter_val, column, not value)
+
         vals = tuple(self._store.get(iter_val, *tuple(range(self._ncols))))
 
         piter = self._store.iter_parent(iter_val)
         if piter:
-            parent = self._store.get(piter, self._key)[0]
+            parent = self._store.get_value(piter, self._key)
         else:
             parent = None
 
