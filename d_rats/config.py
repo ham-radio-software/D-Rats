@@ -1017,12 +1017,16 @@ class DratsListConfigWidget(DratsConfigWidget):
 
         list_widget = miscwidgets.KeyedListWidget(cols)
 
-        def item_toggled(_widget):
+        def item_toggled(_widget, _ident, _value):
             '''
             List Widget item-toggled handler
 
-            :parm _widget: Widget signaled, unused
+            :param _widget: Widget signaled, unused
             :type _widget: :class:`miscwidgets.KeyedListWidget`
+            :param _ident: Identification item toggled
+            :type _ident: str
+            :param _value: Toggled value
+            :type _value: bool
             '''
             return
 
