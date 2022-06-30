@@ -30,3 +30,15 @@ class DataPathNotConnectedError(DataPathError):
 
 class DataPathIOError(DataPathError):
     '''Data Path IO Error'''
+
+
+class LatLonEntryException(Exception):
+    '''Generic LatLonEntry Exception.'''
+
+
+class LatLonEntryValueError(LatLonEntryException):
+    '''LatLonEntry Value Error.'''
+
+
+class LatLonEntryParseDMSError(LatLonEntryException):
+    '''LatLonEntry Parse DMS Error.'''
