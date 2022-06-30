@@ -51,6 +51,7 @@ from . import geocode_ui
 
 from . import config_tips
 from . import spell
+from .dratsexception import LatLonEntryException
 
 
 BAUD_RATES = ["1200", "2400", "4800", "9600", "19200", "38400", "115200"]
@@ -785,8 +786,10 @@ class DratsConfigWidget(Gtk.Box):
             '''
             try:
                 conf_widget.value = "%3.6f" % entry.value()
-            except TypeError as err:
-                self.logger.info("Invalid Coords: %s", err)
+            except (TypeError, LatLonEntryException) as err:
+                # This exception happens while data is still being
+                # entered, so setting it at debug level.
+                self.logger.debug("Invalid Coords: %s", err)
                 conf_widget.value = "0"
 
         entry = miscwidgets.LatLonEntry()

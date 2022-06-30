@@ -35,6 +35,8 @@ from gi.repository import GObject
 from gi.repository import Pango
 
 from . import dplatform
+from .dratsexception import LatLonEntryParseDMSError
+from .dratsexception import LatLonEntryValueError
 
 
 class MiscWidgetsException(Exception):
@@ -83,18 +85,6 @@ class GetItemError(ListWidgetException):
 
 class SetItemError(ListWidgetException):
     '''Tree Widget Set Item Error.'''
-
-
-class LatLongEntryException(MiscWidgetsException):
-    '''Generic LatLongEntry Exception.'''
-
-
-class LatLongEntryValueError(LatLongEntryException):
-    '''LatLongEntry Value Error.'''
-
-
-class LatLongEntryParseDMSError(LatLongEntryException):
-    '''LatLongEntry Parse DMS Error.'''
 
 
 class KeyedListWidget(Gtk.Box):
@@ -1085,7 +1075,7 @@ class LatLonEntry(Gtk.Entry):
         :type string: str
         :returns: Degrees Minutes and Seconds
         :rtype: float
-        :raises: :class:`LatLongEntryParseDMSError` on parsing error.
+        :raises: :class:`LatLonEntryParseDMSError` on parsing error.
         '''
         string = string.replace(u"\u00b0", " ")
         string = string.replace('"', ' ')
@@ -1096,27 +1086,39 @@ class LatLonEntry(Gtk.Entry):
         items = string.split(' ')
 
         if len(items) > 3:
-            raise LatLongEntryParseDMSError("Invalid format")
+            raise LatLonEntryParseDMSError("Invalid format")
         elif len(items) == 3:
-            deg = items[0]
-            mns = items[1]
-            sec = items[2]
+            degrees_str = items[0]
+            minutes_str = items[1]
+            seconds_str = items[2]
         elif len(items) == 2:
-            deg = items[0]
-            mns = items[1]
-            sec = 0
+            degrees_str = items[0]
+            minutes_str = items[1]
+            seconds_str = 0.0
         elif len(items) == 1:
-            deg = items[0]
-            mns = 0
-            sec = 0
+            degrees_str = items[0]
+            minutes_str = 0
+            seconds_str = 0.0
         else:
-            deg = 0
-            mns = 0
-            sec = 0
+            degrees_str = 0
+            minutes_str = 0
+            seconds_str = 0.0
 
-        degrees = int(deg)
-        minutes = int(mns)
-        seconds = float(sec)
+        try:
+            degrees = int(degrees_str)
+        except ValueError:
+            degrees = 0
+            minutes_str = 0
+            seconds_str = 0.0
+        try:
+            minutes = int(minutes_str)
+        except ValueError:
+            minutes = 0
+            seconds_str = 0.0
+        try:
+            seconds = float(seconds_str)
+        except ValueError:
+            seconds = 0.0
 
         return degrees + (minutes / 60.0) + (seconds / 3600.0)
 
@@ -1124,24 +1126,27 @@ class LatLonEntry(Gtk.Entry):
         '''
         Coordinate Value.
 
-        :raises: :class:`LatLongEntryValueError` for invalid values.
         :returns: Coordinate value from widget
         :rtype: float
+        :raises: :class:`LatLonEntryValueError` for invalid values.
         '''
         string = self.get_text()
 
         try:
-            return self.parse_dd(string)
+            result = self.parse_dd(string)
+            return result
         except ValueError:
             try:
-                return self.parse_dm(string)
+                result = self.parse_dm(string)
+                return result
             except ValueError:
                 try:
-                    return self.parse_dms(string)
-                except LatLongEntryParseDMSError:
+                    result = self.parse_dms(string)
+                    return result
+                except LatLonEntryParseDMSError:
                     pass
 
-        raise LatLongEntryValueError("Invalid format")
+        raise LatLonEntryValueError("Invalid format")
 
     def validate(self):
         '''
@@ -1153,7 +1158,7 @@ class LatLonEntry(Gtk.Entry):
         try:
             self.value()
             return True
-        except LatLongEntryValueError:
+        except LatLonEntryValueError:
             return False
 
 
