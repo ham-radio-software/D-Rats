@@ -37,7 +37,7 @@ if not '_' in locals():
 
 class MessagePopupModel(Gio.Menu):
     '''
-    Creates the Popup Menu for Mouse Click in the Message Window.
+    Creates the Popup Menu for Mouse Click in the Message Window Tab.
 
     :param widget: The message folder widget
     :type widget: :class:`MessageFolders`
