@@ -4,6 +4,14 @@ d\_rats.ui package
 Submodules
 ----------
 
+d\_rats.ui.account\_dialog module
+---------------------------------
+
+.. automodule:: d_rats.ui.account_dialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.ui.conntest module
 --------------------------
 

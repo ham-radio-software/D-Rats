@@ -543,27 +543,20 @@ class RPCCheckMail(RPCJob):
         '''
         return rpcactions.rpc_check_mail(self)
 
-    # pylint: disable=too-many-arguments
-    def set_account(self, host, user, pasw, port, ssl):
+    # This could be optimized more.  Leaving as is to be consistent
+    # with how the rest of this module is coded.
+    def set_account(self, account):
         '''
         Set Mail Account.
 
-        :param host: TCP/IP Host name
-        :type host: str
-        :param user: User name
-        :type user: str
-        :param pasw: Password for user
-        :type pasw: str
-        :param port: TCP/IP port
-        :type port: str
-        :param ssl: SSL flag of 'True' or 'False'
-        :type sst: str
+        :param account: Remote account information
+        :type account: :class:`d_rats.ui.AccountDialog`
         '''
-        self._args = {"host" : host,
-                      "user" : user,
-                      "pasw" : pasw,
-                      "port" : port,
-                      "ssl"  : ssl,
+        self._args = {"host" : account.host,
+                      "user" : account.username,
+                      "pasw" : account.password,
+                      "port" : str(account.port),
+                      "ssl"  : str(account.use_ssl)
                       }
 
     def get_account(self):
