@@ -32,6 +32,7 @@ from gi.repository import GLib
 
 from d_rats.ui.main_common import MainWindowTab
 from d_rats.ui.account_dialog import AccountDialog
+from d_rats.ui.station_popup_model import StationPopupModel
 from d_rats.ui import main_events
 from d_rats.ui import conntest
 from d_rats.sessions import rpc
@@ -70,11 +71,12 @@ class StationsList(MainWindowTab):
 
     _signals = __gsignals__
 
+    logger = logging.getLogger("StationsList")
+
     def __init__(self, wtree, config, window):
         MainWindowTab.__init__(self, wtree, config,
                                window=window, prefix="main")
 
-        self.logger = logging.getLogger("StationsList")
         self.__smsg = None
 
         self.__view = self._get_widget("stations_view")
@@ -103,6 +105,10 @@ class StationsList(MainWindowTab):
         col = Gtk.TreeViewColumn(_("Stations"), renderer, text=0)
         col.set_cell_data_func(renderer, self._render_call)
         self.__view.append_column(col)
+
+        self.station_model = StationPopupModel(self)
+        self.station_menu = Gtk.Menu.new_from_model(self.station_model)
+        self.station_menu.attach_to_widget(self.__view)
 
         self.__calls = []
         self._update_station_count()
@@ -228,17 +234,17 @@ class StationsList(MainWindowTab):
 
         return True
 
-    def _menu_handler(self, action, station, port):
+    def popup_menu_handler(self, action, _value):
         '''
-        Menu Activate Handler
+        Popup Menu Activate Handler
 
         :param action: Menu action widget
         :type action: :class:`Gtk.Action`
-        :param station: Remote Station id
-        :type station: str
-        :param port: Radio Port
-        :type port: str
+        :param _value: Value for action, Unused
+        :type _value: :class:`Gio.VariantType`
         '''
+        station = self.station_model.station_name
+        port = self.station_model.station_port
         action_name = action.get_name()
 
         if action_name == "ping":
@@ -519,56 +525,8 @@ class StationsList(MainWindowTab):
                         callsign[0], new=2)
 
     def _make_station_menu(self, station, port):
-        xml = """
-<ui>
-  <popup name="menu">
-    <menuitem action="ping"/>
-    <menuitem action="conntest"/>
-    <menuitem action="reqpos"/>
-    <menuitem action="sendfile"/>
-    <menuitem action="version"/>
-    <menuitem action="mcheck"/>
-    <menuitem action="qrz"/>
-    <separator/>
-    <menuitem action="remove"/>
-    <menuitem action="reset"/>
-    <separator/>
-    <menuitem action="clearall"/>
-    <menuitem action="pingall"/>
-    <menuitem action="reqposall"/>
-  </popup>
-</ui>
-"""
-        action_group = Gtk.ActionGroup.new("menu")
-        actions = [("ping", _("Ping"), None),
-                   ("conntest", _("Test Connectivity"), None),
-                   ("reqpos", _("Request Position"), None),
-                   ("sendfile", _("Send file"), None),
-                   ("remove", _("Remove"), Gtk.STOCK_DELETE),
-                   ("reset", _("Reset"), Gtk.STOCK_JUMP_TO),
-                   ("version", _("Get version"), Gtk.STOCK_ABOUT),
-                   ("mcheck", _("Request mail check"), None),
-                   ("qrz", _("Check on Qrz.com"), None)]
-
-        for action, label, stock in actions:
-            new_action = Gtk.Action.new(action, label, None, stock)
-            new_action.connect("activate", self._menu_handler, station, port)
-            new_action.set_sensitive(station is not None)
-            action_group.add_action(new_action)
-
-        actions = [("clearall", _("Clear All"), Gtk.STOCK_CLEAR),
-                   ("pingall", _("Ping All Stations"), None),
-                   ("reqposall", _("Request all positions"), None)]
-        for action, label, stock in actions:
-            new_action = Gtk.Action.new(action, label, None, stock)
-            new_action.connect("activate", self._menu_handler, station, port)
-            action_group.add_action(new_action)
-
-        uim = Gtk.UIManager()
-        uim.insert_action_group(action_group, 0)
-        uim.add_ui_from_string(xml)
-
-        return uim.get_widget("/menu")
+        self.station_model.change_state(station, port)
+        self.station_menu.popup_at_pointer()
 
     def _mouse_cb(self, view, event):
         '''
@@ -593,8 +551,7 @@ class StationsList(MainWindowTab):
                 (model, stn_iter) = view.get_selection().get_selected()
                 station, port = model.get(stn_iter, 0, 5)
 
-        menu = self._make_station_menu(station, port)
-        menu.popup(None, None, None, None, event.button, event.time)
+        self._make_station_menu(station, port)
 
     def _update_station_count(self):
         hdr = self._get_widget("stations_header")
