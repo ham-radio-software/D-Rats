@@ -116,6 +116,14 @@ d\_rats.ui.message\_popup\_model module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.ui.station\_popup\_model module
+---------------------------------------
+
+.. automodule:: d_rats.ui.station_popup_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
