@@ -68,11 +68,12 @@ class EventTab(MainWindowTab):
 
     _signals = __gsignals__
 
+    logger = logging.getLogger("EventTab")
+
     def __init__(self, wtree, config, window):
         MainWindowTab.__init__(self, wtree, config,
                                window=window, prefix="event")
 
-        self.logger = logging.getLogger("EventTab")
         self.window = window
 
         self.__ctr = 0
@@ -89,11 +90,12 @@ class EventTab(MainWindowTab):
                                    GObject.TYPE_INT,     # 5: order
                                    GObject.TYPE_PYOBJECT,# 6: event
                                    )
-        self.filter_icon = None
+        self._filter_icon = None
         event_filter = self.store.filter_new()
         self._filter_text_entry = self._wtree.get_object("event_searchtext")
         event_filter.set_visible_func(self.filter_rows, self)
-        eventlist.set_model(event_filter)
+        sorted_events = Gtk.TreeModelSort(event_filter)
+        eventlist.set_model(sorted_events)
 
         col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
         eventlist.append_column(col)
@@ -128,6 +130,7 @@ class EventTab(MainWindowTab):
             srt = int(self._config.get("state", "events_sort"))
         except ValueError:
             srt = Gtk.SortType.DESCENDING
+            self._config.set("state", "events_sort", str(int(srt)))
         self.store.set_sort_column_id(5, srt)
         col.set_sort_indicator(True)
         col.set_sort_order(srt)
@@ -174,18 +177,18 @@ class EventTab(MainWindowTab):
             if search and message and search.upper() not in message.upper():
                 return False
 
-        if self.filter_icon is None:
+        if self._filter_icon is None:
             return True
-        return icon == self.filter_icon
+        return icon == self._filter_icon
 
-    def popup_menu_handler(self, action, event):
+    def popup_menu_handler(self, action, _value):
         '''
         Popup Menu Activate Handler.
 
         :param action: Action widget
         :type action: :class:`Gtk.Action`
-        :param event: Event to act on.
-        :type_event: :class:`Event`
+        :param _value: Value for action, Unused
+        :type _value: :class:`Gio.VariantType`
         '''
         action_name = action.get_name()
 
@@ -224,7 +227,6 @@ class EventTab(MainWindowTab):
         :type uievent: :class:`Gtk.EventButton`
         '''
         if uievent.button != 3:
-            # print("uievent button !=3", uievent.button)
             return
 
         if uievent.window == view.get_bin_window():
@@ -269,9 +271,9 @@ class EventTab(MainWindowTab):
             filter_type = Event.EVENT_POS_REPORT
 
         if filter_type is None:
-            self.filter_icon = None
+            self._filter_icon = None
         else:
-            self.filter_icon = Event.EVENT_TYPES[filter_type]
+            self._filter_icon = Event.EVENT_TYPES[filter_type]
 
         filtermodel.refilter()
 
@@ -315,7 +317,9 @@ class EventTab(MainWindowTab):
         else:
             srt = Gtk.SortType.ASCENDING
 
-        self._config.set("state", "events_sort", int(srt))
+        # set must be a string.  The Gtk.SortType enum must be
+        # converted to an int first.
+        self._config.set("state", "events_sort", str(int(srt)))
 
         self.store.set_sort_column_id(5, srt)
         column.set_sort_order(srt)
