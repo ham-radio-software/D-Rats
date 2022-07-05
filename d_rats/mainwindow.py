@@ -76,6 +76,8 @@ class MainWindow(MainWindowElement):
         }
     _signals = __gsignals__
 
+    logger = logging.getLogger("MainWindow")
+
     def __init__(self, application):
         config = application.config
         wtree = Gtk.Builder()
@@ -83,45 +85,39 @@ class MainWindow(MainWindowElement):
         wtree.add_from_file(file_name)
         MainWindowElement.__init__(self, wtree, config)
         self._application = application
-        self.logger = logging.getLogger("MainWindow")
-        self.__window = self._wtree.get_object("mainwindow")
-        self.__window.set_application(application)
+        self._window = self._wtree.get_object("mainwindow")
+        self._window.set_application(application)
         self._tabs = self._wtree.get_object("main_tabs")
         self._tabs.connect("switch-page", self._tab_switched)
         self.tabs = {}
         self.__last_status = 0
         self.tabs["chat"] = ChatTab(wtree, config)
-        self.tabs["messages"] = MessagesTab(wtree, config, self.__window)
-        self.tabs["event"] = EventTab(wtree, config, self.__window)
+        self.tabs["messages"] = MessagesTab(wtree, config, self._window)
+        self.tabs["event"] = EventTab(wtree, config, self._window)
         self.tabs["files"] = FilesTab(wtree, config)
-        self.tabs["stations"] = StationsList(wtree, config, self.__window)
+        self.tabs["stations"] = StationsList(wtree, config, self._window)
         for label, tab in self.tabs.items():
             tab.connect("notice", self._maybe_blink, label)
         self._current_tab = "messages"
         in_color = "incomingcolor"
-        cpr = COPYRIGHT
 
-        # pylint: disable=protected-access
-        self.tabs["chat"]._display_line("D-RATS v%s" % DRATS_VERSION, True,
-                                        in_color)
-        # pylint: disable=protected-access
-        self.tabs["chat"]._display_line(cpr, True, in_color)
-        # pylint: disable=protected-access
-        self.tabs["chat"]._display_line("", True)
+        self.tabs["chat"].display_info("D-RATS v%s" % DRATS_VERSION, in_color)
+        self.tabs["chat"].display_info(COPYRIGHT, in_color)
+        self.tabs["chat"].display_info("")
 
-        self.__window.connect("destroy", self._destroy)
-        self.__window.connect("delete_event", self._delete)
-        self.__window.connect("focus-in-event", self._got_focus)
+        self._window.connect("destroy", self._destroy)
+        self._window.connect("delete_event", self._delete)
+        self._window.connect("focus-in-event", self._got_focus)
 
-        self._connect_menu_items(self.__window)
+        self._connect_menu_items()
 
         height = self._config.getint("state", "main_size_x")
         width = self._config.getint("state", "main_size_y")
         if self._config.getboolean("state", "main_maximized"):
-            self.__window.maximize()
-            self.__window.set_default_size(height, width)
+            self._window.maximize()
+            self._window.set_default_size(height, width)
         else:
-            self.__window.resize(height, width)
+            self._window.resize(height, width)
 
         try:
             # Pylance can not detect this import on a linux system.
@@ -134,7 +130,7 @@ class MainWindow(MainWindowElement):
         except ImportError:
             pass
 
-        self.__window.show()
+        self._window.show()
 
         GLib.timeout_add(3000, self.__update_status)
 
@@ -178,247 +174,240 @@ class MainWindow(MainWindowElement):
 
         self._application.quit()
 
-    # pylint wants a max of 15 local variables
-    # pylint wants a max of 50 statements per module
-    # pylint: disable=too-many-locals, too-many-statements
-    def _connect_menu_items(self, window):
-        def activate_save_and_quit(_button):
-            '''
-            Activate Save and Quit handler.
+    def _activate_save_and_quit(self, _button):
+        '''
+        Activate Save and Quit handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            window.set_default_size(*window.get_size())
-            window.destroy()
-        # added 3.9.10
-        # def activate_check_conns(but);
-        #   return
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        self._window.set_default_size(*self._window.get_size())
+        self._window.destroy()
 
-        def activate_about(_button):
-            '''
-            Activate About handler.
+    def _activate_about(self, _button):
+        '''
+        Activate About handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            # show the "about window"
-            dialog = Gtk.AboutDialog()
-            dialog.set_transient_for(self._wtree.get_object("mainwindow"))
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        # show the "about window"
+        dialog = Gtk.AboutDialog()
+        dialog.set_transient_for(self._window)
 
-            verinfo = "Python %s\nGTK %s.%s.%s\n" % (
-                sys.version.split()[0],
-                Gtk.MAJOR_VERSION,
-                Gtk.MINOR_VERSION,
-                Gtk.MICRO_VERSION)
+        verinfo = "Python %s\nGTK %s.%s.%s\n" % (
+            sys.version.split()[0],
+            Gtk.MAJOR_VERSION,
+            Gtk.MINOR_VERSION,
+            Gtk.MICRO_VERSION)
 
-            dialog.set_name(DRATS_NAME)
-            dialog.set_version(DRATS_VERSION)
-            dialog.set_copyright(COPYRIGHT)
-            dialog.set_website(WEBSITE)
-            dialog.set_authors((AUTHORS,))
-            dialog.set_comments(DRATS_DESCRIPTION)
-            dialog.set_translator_credits(TRANSLATIONS)
-            dialog.set_comments(verinfo)
+        dialog.set_name(DRATS_NAME)
+        dialog.set_version(DRATS_VERSION)
+        dialog.set_copyright(COPYRIGHT)
+        dialog.set_website(WEBSITE)
+        dialog.set_authors((AUTHORS,))
+        dialog.set_comments(DRATS_DESCRIPTION)
+        dialog.set_translator_credits(TRANSLATIONS)
+        dialog.set_comments(verinfo)
 
+        dialog.run()
+        dialog.destroy()
+
+    def _activate_debug(self, _button):
+        '''
+        Activate About handler.
+
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        path = self._config.platform.config_file("debug.log")
+        if os.path.exists(path):
+            self._config.platform.open_text_file(path)
+        else:
+            dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
+                                       parent=self._window)
+            dialog.set_property("text", "Debug log not available")
             dialog.run()
             dialog.destroy()
 
-        def activate_debug(_button):
-            '''
-            Activate About handler.
+    def _activate_prefs(self, _button):
+        '''
+        Activate Prefs handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            path = self._config.platform.config_file("debug.log")
-            if os.path.exists(path):
-                self._config.platform.open_text_file(path)
-            else:
-                dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
-                                           parent=window)
-                dialog.set_property("text",
-                                    "Debug log not available")
-                dialog.run()
-                dialog.destroy()
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        saved = self._config.show(parent=self.window)
+        if saved:
+            self.emit("config-changed")
+            for tabs in self.tabs.values():
+                tabs.reconfigure()
 
-        def activate_prefs(_button):
-            '''
-            Activate Prefs handler.
+    def _activate_map(self, _button):
+        '''
+        Activate Map Display handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            saved = self._config.show(parent=window)
-            if saved:
-                self.emit("config-changed")
-                for tabs in self.tabs.values():
-                    tabs.reconfigure()
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        # shows the map window passing our username and callsign
+        # as defined in the preferences
+        call = self._config.get("user", "callsign")
+        self.emit("show-map-station", call)
 
-        def activate_map(_button):
-            '''
-            Activate About handler.
+    def _activate_message_templates(self, _button):
+        '''
+        Activate Message Templates handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            # shows the map window passing our username and callsign
-            # as defined in the preferences
-            call = self._config.get("user", "callsign")
-            self.emit("show-map-station", call)
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        formbuilder.FormManagerGUI(self._application,
+                                   self._config.form_source_dir(),
+                                   config=self._config)
 
-        def activate_message_templates(_button):
-            '''
-            Activate Message Templates handler.
+    def _activate_ping(self, _button):
+        '''
+        Activate Ping handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            _d = formbuilder.FormManagerGUI(self._application,
-                                            self._config.form_source_dir(),
-                                            config=self._config)
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        station_list = self.emit("get-station-list")
+        stations = []
+        for portlist in station_list.values():
+            stations += [str(x) for x in portlist]
+        station, port = prompt_for_station(stations, self._config)
+        if station:
+            self.emit("ping-station", station, port)
 
-        def activate_ping(_button):
-            '''
-            Activate Ping handler.
+    def _activate_conninet(self, button):
+        '''
+        Activate Connect to the Internet activate handler.
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            station_list = self.emit("get-station-list")
-            stations = []
-            for portlist in station_list.values():
-                stations += [str(x) for x in portlist]
-            station, port = prompt_for_station(stations, self._config)
-            if station:
-                self.emit("ping-station", station, port)
+        :param button: Internet Connection Checkbox
+        :type button: :class:`Gtk.CheckMenuItem`
+        '''
+        active = button.get_active()
+        self._config.set("state", "connected_inet", str(active))
+        self.logger.info("activate_conninet: change on connection status to %s",
+                         active)
 
-        def activate_conninet(button):
-            '''
-            Activate Connect to the Internet activate handler.
+    def _activate_station_pane(self, button, pane):
+        '''
+        Activate station pane activate handler.
 
-            :param button: Internet Connection Checkbox
-            :type button: :class:`Gtk.CheckMenuItem`
-            '''
-            active = button.get_active()
-            self._config.set("state", "connected_inet", str(active))
-            self.logger.info("activate_conninet: change on connection status to %s",
-                             active)
+        :param button: Show Station Pane Button
+        :type button: :class:`Gtk.CheckMenuItem'
+        :param pane: Station display pane
+        :type pane: :class:`Gtk.Box`
+        '''
+        active = button.get_active()
+        self._config.set("state", "sidepane_visible", str(active))
+        if active:
+            pane.show()
+        else:
+            pane.hide()
 
-        def activate_station_pane(button, pane):
-            '''
-            Activate station pane activate handler.
+    def _activate_dq(self, _button):
+        '''
+        Activate dquery handler.
 
-            :param button: Show Station Pane Button
-            :type button: :class:`Gtk.CheckMenuItem'
-            :param pane: Station display pane
-            :type pane: :class:`Gtk.Box`
-            '''
-            active = button.get_active()
-            self._config.set("state", "sidepane_visible", str(active))
-            if active:
-                pane.show()
-            else:
-                pane.hide()
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        cfg = self._config
 
-        def activate_dq(_button):
-            '''
-            Activate dquery handler.
+        wtree = Gtk.Builder()
+        wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
+        wtree.set_translation_domain("D-RATS")
+        dlg = wtree.get_object("dquery_dialog")
+        cmd = wtree.get_object("dq_cmd")
+        dlg.set_modal(True)
+        dlg.set_transient_for(self._window)
+        run_status = dlg.run()
+        d_text = cmd.get_text()
+        dlg.destroy()
+        if run_status == Gtk.ResponseType.OK:
+            port = self.emit("get-chat-port")
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            cfg = self._config
-            #xxxxx
-            wtree = Gtk.Builder()
-            wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
-            wtree.set_translation_domain("D-RATS")
-            dlg = wtree.get_object("dquery_dialog")
-            cmd = wtree.get_object("dq_cmd")
-            dlg.set_modal(True)
-            dlg.set_transient_for(window)
-            run_status = dlg.run()
-            d_text = cmd.get_text()
-            dlg.destroy()
-            if run_status == Gtk.ResponseType.OK:
-                port = self.emit("get-chat-port")
+            # original d-rats string
+            self.emit("user-send-chat", "CQCQCQ", port, "?D*%s?" % d_text, True)
+            # sample rs-ms1a string CQCQCQ: \
+            # $$Msg,IZ2LXI,,0011DCtest transmission
+            # self.emit("user-send-chat", "CQCQCQ", port,
+            #           "$$Msg,IZ000,,0011D,%s" % d, True)
 
-                # original d-rats string
-                self.emit("user-send-chat", "CQCQCQ", port,
-                          "?D*%s?" % d_text, True)
-                # sample rs-ms1a string CQCQCQ: \
-                # $$Msg,IZ2LXI,,0011DCtest transmission
-                # self.emit("user-send-chat", "CQCQCQ", port,
-                #           "$$Msg,IZ000,,0011D,%s" % d, True)
+    def _activate_proxy(self, _button):
+        '''
+        Activate Proxy handler.
 
-        def activate_proxy(_button):
-            '''
-            Activate Proxy handler.
+        Attempts to start a local D-rats repeater.
 
-            Attempts to start a local D-rats repeater.
+        :param _button: Signaled Widget, unused
+        :type _button: :class:`Gtk.ImageMenuItem`
+        '''
+        # WB8TYW: This probably needs some better documentation
+        # in the gui or somewhere of what it is trying to do.
+        # The location of the d-rats_repeater can also be probably
+        # looked up from the location of this module.
+        if sys.platform != "darwin":
+            args = []
+        else:
+            args = [sys.executable]
+        if os.path.exists("./d-rats_repeater"):
+            args.append("./d-rats_repeater")
+        else:
+            args.append("d-rats_repeater")
+        self.logger.info("activate_proxy: Running proxy: %s", str(args))
+        subprocess.Popen(args)
 
-            :param _button: Signaled Widget, unused
-            :type _button: :class:`Gtk.ImageMenuItem`
-            '''
-            # WB8TYW: This probably needs some better documentation
-            # in the gui or somewhere of what it is trying to do.
-            # The location of the d-rats_repeater can also be probably
-            # looked up from the location of this module.
-            if sys.platform != "darwin":
-                args = []
-            else:
-                args = [sys.executable]
-            if os.path.exists("./d-rats_repeater"):
-                args.append("./d-rats_repeater")
-            else:
-                args.append("d-rats_repeater")
-            self.logger.info("activate_proxy: Running proxy: %s", str(args))
-            _p = subprocess.Popen(args)
+    def _connect_menu_items(self):
 
         menu_quit = self._wtree.get_object("main_menu_quit")
-        menu_quit.connect("activate", activate_save_and_quit)
+        menu_quit.connect("activate", self._activate_save_and_quit)
 
         about = self._wtree.get_object("main_menu_about")
-        about.connect("activate", activate_about)
+        about.connect("activate", self._activate_about)
 
         debug = self._wtree.get_object("main_menu_debuglog")
-        debug.connect("activate", activate_debug)
+        debug.connect("activate", self._activate_debug)
 
         menu_prefs = self._wtree.get_object("main_menu_prefs")
-        menu_prefs.connect("activate", activate_prefs)
+        menu_prefs.connect("activate", self._activate_prefs)
 
         menu_map = self._wtree.get_object("main_menu_map")
         img = Gtk.Image()
         img.set_from_file("images/map.png")
         menu_map.set_image(img)
-        menu_map.connect("activate", activate_map)
+        menu_map.connect("activate", self._activate_map)
 
         menu_templates = self._wtree.get_object("main_menu_msgtemplates")
-        menu_templates.connect("activate", activate_message_templates)
+        menu_templates.connect("activate", self._activate_message_templates)
 
         ping = self._wtree.get_object("main_menu_ping")
         img = Gtk.Image()
         img.set_from_file("images/event_ping.png")
         ping.set_image(img)
-        ping.connect("activate", activate_ping)
+        ping.connect("activate", self._activate_ping)
 
         conn = self._wtree.get_object("main_menu_conninet")
         conn.set_active(self._config.getboolean("state", "connected_inet"))
         self._config.platform.set_connected(conn.get_active())
-        conn.connect("activate", activate_conninet)
+        conn.connect("activate", self._activate_conninet)
 
         sspw = self._wtree.get_object("main_menu_showpane")
         pane = self._wtree.get_object("main_stations_frame")
         sspw.set_active(self._config.getboolean("state", "sidepane_visible"))
         if not sspw.get_active():
             pane.hide()
-        sspw.connect("activate", activate_station_pane, pane)
+        sspw.connect("activate", self._activate_station_pane, pane)
 
         menu_dq = self._wtree.get_object("main_menu_dq")
-        menu_dq.connect("activate", activate_dq)
+        menu_dq.connect("activate", self._activate_dq)
 
         proxy = self._wtree.get_object("main_menu_proxy")
-        proxy.connect("activate", activate_proxy)
+        proxy.connect("activate", self._activate_proxy)
 
     def _page_name(self, index=None):
         if index is None:
@@ -456,8 +445,8 @@ class MainWindow(MainWindowElement):
         :type key: str
         '''
         blink = self._config.getboolean("prefs", "blink_%s" % key)
-        if blink and not self.__window.is_active():
-            self.__window.set_urgency_hint(True)
+        if blink and not self._window.is_active():
+            self._window.set_urgency_hint(True)
 
         if key == "event":
             sounde = False
@@ -474,7 +463,7 @@ class MainWindow(MainWindowElement):
         :param _window: Widget signaled
         :type _window: :class:`Gtk.Window`
         '''
-        self.__window.set_urgency_hint(False)
+        self._window.set_urgency_hint(False)
 
     def __update_status(self):
         '''
@@ -507,7 +496,7 @@ class MainWindow(MainWindowElement):
         status_bar.push(ident, msg)
 
         call = self._config.get("user", "callsign")
-        self.__window.set_title("D-RATS: %s" % call)
+        self._window.set_title("D-RATS: %s" % call)
         call_bar.pop(0)
         call_bar.push(0, call)
 

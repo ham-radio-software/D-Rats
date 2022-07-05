@@ -587,6 +587,19 @@ class ChatTab(MainWindowTab):
 
         self.reconfigure()
 
+    def display_info(self, text, *attrs):
+        '''
+        Display Information.
+
+        This is used to display startup information
+
+        :param text: Text to display
+        :type text: str
+        :param attrs: Additional attributes
+        :type attrs: tuple[str]
+        '''
+        self._display_line(text, True, *attrs)
+
     def display_line(self, text, incoming, *attrs, **kwargs):
         '''
         Display a single line of text with a date stamp.
