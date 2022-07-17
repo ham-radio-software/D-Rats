@@ -352,7 +352,7 @@ class MainApp(Gtk.Application):
         self.seen_callsigns = CallList()
         self.position = None
         self.mail_threads = {}
-        self.mainwindow=None
+        self.mainwindow = None
         self.__unused_pipes = {}
         self.__pipes = {}
         self.pop3srv = None
@@ -409,15 +409,16 @@ class MainApp(Gtk.Application):
         mapserver_ip = self.config.get("settings", "mapserver_ip")
         mapserver_port = int(self.config.get("settings", "mapserver_port"))
 
-        # this class broadcasts the gps fixes to the web browsers
+        # this method broadcasts the gps fixes to a GPS server
         flat = float(lat)
         flng = float(lng)
 
         # Prepare string to broadcast to internet browsers clients
-        message = '{ "lat": "%f", "lng": "%f", "station": "%s", ' \
-                  '"comments": "%s","timestamp": "%s"  }' \
-                  % (flat, flng, station, comments,
-                     strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        message_str = '{ "lat": "%f", "lng": "%f", "station": "%s", ' \
+                      '"comments": "%s","timestamp": "%s"  }' \
+                      % (flat, flng, station, comments,
+                         strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        message = message_str.encode("utf-8", 'replace')
         self.logger.info("preparing our gps fix in JSON :%s", message)
 
         try:
@@ -425,7 +426,8 @@ class MainApp(Gtk.Application):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error:
             self.logger.info("Failed to create socket.", exc_info=True)
-            raise
+            # Tolerate map server not being up.
+            return
         self.logger.info("Socket Created")
 
         # Connect to remote server
@@ -443,15 +445,16 @@ class MainApp(Gtk.Application):
             except socket.error:
                 # Send failed
                 self.logger.info("Send failed of: %s", message, exc_info=True)
-                sys.exit()
+                return
 
             self.logger.info("Message sent successfully")
+            return
 
         except socket.error:
             self.logger.info("Failed to create socket.", exc_info=True)
             sock.close()
             sock = None
-        self.logger.info("Socket Created")
+            return
 
     # pylint does not grok all gtk methods.
     # pylint: disable=arguments-differ
