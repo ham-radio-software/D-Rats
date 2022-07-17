@@ -42,8 +42,13 @@ from d_rats.ui.main_chat import ChatTab
 from d_rats.ui.event_tab import EventTab
 from d_rats.ui.main_files import FilesTab
 from d_rats.ui.main_stations import StationsList
-from d_rats.ui.main_common import MainWindowElement, prompt_for_station, \
-    ask_for_confirmation
+from d_rats.ui.main_common import MainWindowElement
+from d_rats.ui.main_common import prompt_for_station
+from d_rats.ui.main_common import ask_for_confirmation
+
+from d_rats.menu_helpers import add_menu_theme_image
+from d_rats.menu_helpers import add_menu_accel_file_image
+from d_rats.menu_helpers import add_menu_accel_theme_image
 
 from d_rats.version import \
     DRATS_VERSION, \
@@ -134,45 +139,42 @@ class MainWindow(MainWindowElement):
 
         GLib.timeout_add(3000, self.__update_status)
 
-    def _delete(self, window, _event):
+    def _delete(self, window, event):
         '''
         Delete Event Handler.
 
         :param window: window
         :type window: :class:`Gtk.Window`
-        :param _event: Event widget, not used
-        :type _event: :class:`Gtk.Event`
+        :param event: Event widget, not used
+        :type event: :class:`Gtk.Event`
         :returns: False if program should actually exit
         :rtype: bool
         '''
+        self.logger.info("_delete handler invoked %s", type(event) )
         if self._config.getboolean("prefs", "confirm_exit"):
             if not ask_for_confirmation("Really exit D-RATS?", window):
                 return True
 
         window.set_default_size(*window.get_size())
-        return False
+        self._application.quit()
+        return True
 
-    def _destroy(self, window):
+    def _destroy(self, _window):
         '''
         Destroy Handler.
 
         The Destroy Handler is invoked by requesting an exit of the program.
-        Or by the Delete Handler returning False.
+        Or by the Delete Handler returning False from a deletion event.
 
-        :param window: Window object
-        :type window: :class:`Gtk.Window`
+        At this point many of the internal objects may have already been
+        destroyed, so this is may be a chance to let background threads,
+        etcetera to be notified to cleanup.
+
+        :param _window: Window object, Unused
+        :type _window: :class:`Gtk.Window`
         '''
-        width, height = window.get_size()
-
-        # maximized = window.maximize_initially
-        maximized = window.is_maximized()
-        if maximized:
-            self._config.set("state", "main_maximized", maximized)
-        if not maximized:
-            self._config.set("state", "main_size_x", str(width))
-            self._config.set("state", "main_size_y", str(height))
-
-        self._application.quit()
+        self.logger.info("_destroy handler called.")
+        print("mainwindow: _destroy handler")
 
     def _activate_save_and_quit(self, _button):
         '''
@@ -181,8 +183,10 @@ class MainWindow(MainWindowElement):
         :param _button: Signaled Widget, unused
         :type _button: :class:`Gtk.ImageMenuItem`
         '''
-        self._window.set_default_size(*self._window.get_size())
-        self._window.destroy()
+        width, height = self._window.get_size()
+        self._window.set_default_size(width, height)
+        # Use delete handler to start the shutdown.
+        self._delete(self._window, None)
 
     def _activate_about(self, _button):
         '''
@@ -237,7 +241,7 @@ class MainWindow(MainWindowElement):
         :param _button: Signaled Widget, unused
         :type _button: :class:`Gtk.ImageMenuItem`
         '''
-        saved = self._config.show(parent=self.window)
+        saved = self._config.show(parent=self._window)
         if saved:
             self.emit("config-changed")
             for tabs in self.tabs.values():
@@ -365,30 +369,31 @@ class MainWindow(MainWindowElement):
     def _connect_menu_items(self):
 
         menu_quit = self._wtree.get_object("main_menu_quit")
+        add_menu_accel_theme_image(menu_quit, "application-exit", _("Quit"))
         menu_quit.connect("activate", self._activate_save_and_quit)
 
         about = self._wtree.get_object("main_menu_about")
+        add_menu_theme_image(about, "help-about", _("About"))
         about.connect("activate", self._activate_about)
 
         debug = self._wtree.get_object("main_menu_debuglog")
         debug.connect("activate", self._activate_debug)
 
         menu_prefs = self._wtree.get_object("main_menu_prefs")
+        add_menu_accel_theme_image(menu_prefs, "preferences-system",
+                                   _("Preferences"))
         menu_prefs.connect("activate", self._activate_prefs)
 
         menu_map = self._wtree.get_object("main_menu_map")
-        img = Gtk.Image()
-        img.set_from_file("images/map.png")
-        menu_map.set_image(img)
+        add_menu_accel_file_image(menu_map, "images/map.png", _("Map"))
         menu_map.connect("activate", self._activate_map)
 
         menu_templates = self._wtree.get_object("main_menu_msgtemplates")
         menu_templates.connect("activate", self._activate_message_templates)
 
         ping = self._wtree.get_object("main_menu_ping")
-        img = Gtk.Image()
-        img.set_from_file("images/event_ping.png")
-        ping.set_image(img)
+        add_menu_accel_file_image(ping, "images/event_ping.png",
+                                  ("Ping Station"))
         ping.connect("activate", self._activate_ping)
 
         conn = self._wtree.get_object("main_menu_conninet")
@@ -404,9 +409,11 @@ class MainWindow(MainWindowElement):
         sspw.connect("activate", self._activate_station_pane, pane)
 
         menu_dq = self._wtree.get_object("main_menu_dq")
+        add_menu_theme_image(menu_dq, "dialog-question", _("Send D*Query"))
         menu_dq.connect("activate", self._activate_dq)
 
         proxy = self._wtree.get_object("main_menu_proxy")
+        add_menu_theme_image(proxy, "network-workgroup", _("Network Proxy"))
         proxy.connect("activate", self._activate_proxy)
 
     def _page_name(self, index=None):
