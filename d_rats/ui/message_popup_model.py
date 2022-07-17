@@ -46,8 +46,8 @@ class MessagePopupModel(Gio.Menu):
     BASE_FOLDERS = [_("Inbox"), _("Outbox"), _("Sent"),
                     _("Trash"), _("Drafts")]
 
-    MENU_ACTIONS = [("delete", _("Delete"), "chat-delfilter.png"),
-                    ("create", _("Create"), "chat-addfilter.png"),
+    MENU_ACTIONS = [("delete", _("Delete"), "edit-delete"),
+                    ("create", _("Create"), "list-add"),
                     ("rename", _("Rename"), None)]
 
     MENU_DELETE_ACTIONS = ["delete", "rename"]
@@ -65,20 +65,17 @@ class MessagePopupModel(Gio.Menu):
         # The actual popup menu has to be in a section.
         menu_popup = Gio.Menu()
 
-        for action_name, label, _icon_file, in self.MENU_ACTIONS:
+        for action_name, label, _icon_name, in self.MENU_ACTIONS:
             # The action name needs a "win." prefix
             menu_item = Gio.MenuItem.new(label, "win.%s" % action_name)
             menu_popup.append_item(menu_item)
             action = Gio.SimpleAction(name=action_name,
                                       parameter_type=None,
                                       enabled=True)
-            # This does not work, the icon does not display.
-            # if _icon_file:
-            #    icon_path = widget.config.ship_obj_fn(
-            #        os.path.join("images", icon_file))
-            #    gio_file = Gio.File.new_for_path(icon_path)
-            #    file_icon = Gio.FileIcon.new(gio_file)
-            #    menu_item.set_icon(file_icon)
+            # This is not working
+            # if icon_name:
+            #    icon = Gio.ThemedIcon.new(icon_name)
+            #    menu_item.set_icon(icon)
             widget.window.add_action(action)
             action.connect('activate', widget.popup_menu_handler)
             self.actions[action_name] = action

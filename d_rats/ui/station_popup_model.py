@@ -47,14 +47,14 @@ class StationPopupModel(Gio.Menu):
                      ("conntest", _("Test Connectivity"), None),
                      ("reqpos", _("Request Position"), None),
                      ("sendfile", _("Send file"), None),
-                     ("version", _("Get version"), None),
+                     ("version", _("Get version"), "help-about"),
                      ("mcheck", _("Request mail check"), None),
                      ("qrz", _("Check on Qrz.com"), None)]
 
-    MENU_ACTIONS2 = [("remove", _("Remove"), None),
-                     ("reset", _("Reset"), None)]
+    MENU_ACTIONS2 = [("remove", _("Remove"), "edit-delete"),
+                     ("reset", _("Reset"), "go-jump")]
 
-    MENU_ACTIONS3 = [("clearall", _("Clear All"), None),
+    MENU_ACTIONS3 = [("clearall", _("Clear All"), "edit-clear"),
                      ("pingall", _("Ping All Stations"), None),
                      ("reqposall", _("Request all positions"), None)]
 
@@ -80,20 +80,17 @@ class StationPopupModel(Gio.Menu):
         '''
         menu_popup = Gio.Menu()
 
-        for action_name, label, _icon_file, in section:
+        for action_name, label, _icon_name, in section:
             # The action name needs a "win." prefix
             menu_item = Gio.MenuItem.new(label, "win.%s" % action_name)
             menu_popup.append_item(menu_item)
             action = Gio.SimpleAction(name=action_name,
                                       parameter_type=None,
                                       enabled=True)
-            # This does not work, the icon does not display.
-            # if _icon_file:
-            #    icon_path = widget.config.ship_obj_fn(
-            #        os.path.join("images", icon_file))
-            #    gio_file = Gio.File.new_for_path(icon_path)
-            #    file_icon = Gio.FileIcon.new(gio_file)
-            #    menu_item.set_icon(file_icon)
+            # This still is not working
+            # if icon_name:
+            #    icon = Gio.ThemedIcon.new(icon_name)
+            #    menu_item.set_icon(icon)
             self._widget.window.add_action(action)
             action.connect('activate', self._widget.popup_menu_handler)
             self.actions[action_name] = action

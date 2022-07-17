@@ -197,6 +197,14 @@ d\_rats.map\_sources module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.menu\_helpers module
+----------------------------
+
+.. automodule:: d_rats.menu_helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.miscwidgets module
 --------------------------
 

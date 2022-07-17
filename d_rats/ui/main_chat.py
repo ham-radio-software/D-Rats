@@ -40,6 +40,7 @@ from gi.repository import GLib
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import ask_for_confirmation, display_error, \
     set_toolbar_buttons
+from d_rats.menu_helpers import add_menu_accel_theme_image
 from d_rats import inputdialog, utils
 from d_rats import qst
 from d_rats import signals
@@ -574,6 +575,7 @@ class ChatTab(MainWindowTab):
         bcast.connect("activate", self._bcast_file, dest)
 
         clear = self._wtree.get_object("main_menu_clear")
+        add_menu_accel_theme_image(clear, "edit-clear", _("Clear"))
         clear.connect("activate", self._clear)
 
         try:

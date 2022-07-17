@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.8"/>
+  <requires lib="gtk+" version="3.11"/>
   <object class="GtkDialog" id="dquery_dialog">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
-    <child>
-      <placeholder/>
-    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox3">
         <property name="visible">True</property>
@@ -22,11 +19,10 @@
             <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="button3">
-                <property name="label">gtk-ok</property>
+                <property name="label">OK</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -36,11 +32,10 @@
             </child>
             <child>
               <object class="GtkButton" id="button4">
-                <property name="label">gtk-cancel</property>
+                <property name="label">Cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -101,8 +96,6 @@
                   <object class="GtkLabel" id="label3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">10</property>
-                    <property name="margin_right">10</property>
                     <property name="label" translatable="yes">Command:</property>
                   </object>
                   <packing>
@@ -173,9 +166,6 @@
     <property name="default_width">640</property>
     <property name="default_height">480</property>
     <child>
-      <placeholder/>
-    </child>
-    <child>
       <object class="GtkBox" id="vbox1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -204,21 +194,19 @@
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>
-                              <object class="GtkImageMenuItem" id="main_menu_dq">
-                                <property name="label">gtk-dialog-question</property>
+                              <object class="GtkMenuItem" id="main_menu_dq">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="use_underline">True</property>
-                                <property name="use_stock">True</property>
+                                <!--property name="label" translatable="yes">Send D*Query</property-->
+                                <!--property name="use_underline">True</property-->
                               </object>
                             </child>
                             <child>
-                              <object class="GtkImageMenuItem" id="main_menu_proxy">
-                                <property name="label">gtk-network</property>
+                              <object class="GtkMenuItem" id="main_menu_proxy">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="use_underline">True</property>
-                                <property name="use_stock">True</property>
+                                <!--property name="label" translatable="yes">Network Proxy</property-->
+                                <!--property name="use_underline">True</property-->
                               </object>
                             </child>
                           </object>
@@ -226,58 +214,52 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_bcast">
-                        <property name="label">Broadcast Text File</property>
+                      <object class="GtkMenuItem" id="main_menu_bcast">
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Broadcast Text File</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                         <accelerator key="b" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_importmsg">
-                        <property name="label">Import Message</property>
+                      <object class="GtkMenuItem" id="main_menu_importmsg">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Import Message</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_exportmsg">
-                        <property name="label">Export Message</property>
+                      <object class="GtkMenuItem" id="main_menu_exportmsg">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Export Message</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_msgtemplates">
-                        <property name="label">Message Templates</property>
+                      <object class="GtkMenuItem" id="main_menu_msgtemplates">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Message Templates</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_ping">
-                        <property name="label">Ping Station</property>
+                      <object class="GtkMenuItem" id="main_menu_ping">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
+                        <!--property name="label" translatable="yes">Ping Station</property-->
+                        <!--property name="use_underline">True</property-->
                         <accelerator key="p" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_prefs">
-                        <property name="label">gtk-preferences</property>
+                      <object class="GtkMenuItem" id="main_menu_prefs">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <!--property name="label" translatable="yes">Preferences</property-->
+                        <!--property name="use_underline">True</property-->
                         <accelerator key="p" signal="activate" modifiers="GDK_MOD1_MASK"/>
                       </object>
                     </child>
@@ -296,12 +278,11 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_quit">
-                        <property name="label">gtk-quit</property>
+                      <object class="GtkMenuItem" id="main_menu_quit">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <!--property name="label" translatable="yes">Quit</property-->
+                        <!--property name="use_underline">True</property-->
                         <signal name="activate" handler="on_quit1_activate" swapped="no"/>
                         <accelerator key="q" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
@@ -319,42 +300,38 @@
                   <object class="GtkMenu" id="menu2">
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="cut1">
-                        <property name="label">gtk-cut</property>
+                      <object class="GtkMenuItem" id="cut1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cut</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_cut1_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="copy1">
-                        <property name="label">gtk-copy</property>
+                      <object class="GtkMenuItem" id="copy1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label">Copy</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_copy1_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="paste1">
-                        <property name="label">gtk-paste</property>
+                      <object class="GtkMenuItem" id="paste1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Paste</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_paste1_activate" swapped="no"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="delete1">
-                        <property name="label">gtk-delete</property>
+                      <object class="GtkMenuItem" id="delete1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Delete</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_delete1_activate" swapped="no"/>
                       </object>
                     </child>
@@ -381,45 +358,40 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_addfilter">
-                        <property name="label">Add filter</property>
+                      <object class="GtkMenuItem" id="main_menu_addfilter">
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Add filter</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_delfilter">
-                        <property name="label">Delete Filter</property>
+                      <object class="GtkMenuItem" id="main_menu_delfilter">
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Delete Filter</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_clear">
-                        <property name="label">gtk-clear</property>
+                      <object class="GtkMenuItem" id="main_menu_clear">
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <!--property name="label" translatable="yes">Clear</property-->
+                        <!--property name="use_underline">True</property-->
                         <accelerator key="L" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_viewlog">
-                        <property name="label">Log</property>
+                      <object class="GtkMenuItem" id="main_menu_viewlog">
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Log</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_map">
-                        <property name="label">Map</property>
+                      <object class="GtkMenuItem" id="main_menu_map">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
+                        <!--property name="label" translatable="yes">Map</property-->
+                        <!--property name="use_underline">True</property-->
                         <accelerator key="m" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
@@ -437,21 +409,19 @@
                   <object class="GtkMenu" id="menu4">
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_debuglog">
-                        <property name="label">Show debug log</property>
+                      <object class="GtkMenuItem" id="main_menu_debuglog">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Show debug log</property>
                         <property name="use_underline">True</property>
-                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="main_menu_about">
-                        <property name="label">gtk-about</property>
+                      <object class="GtkMenuItem" id="main_menu_about">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <!--property name="label" translatable="yes">About</property-->
+                        <!--property name="use_underline">True</property-->
                       </object>
                     </child>
                   </object>
@@ -534,7 +504,6 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="headers_clickable">False</property>
-                                    <property name="rules_hint">True</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
                                     </child>
@@ -691,11 +660,10 @@
                                     <property name="layout_style">center</property>
                                     <child>
                                       <object class="GtkButton" id="chat_qm_add">
-                                        <property name="label">gtk-add</property>
+                                        <property name="label">Add</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_stock">True</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -705,11 +673,10 @@
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="chat_qm_remove">
-                                        <property name="label">gtk-remove</property>
+                                        <property name="label">Remove</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_stock">True</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -779,11 +746,10 @@
                                     <property name="layout_style">end</property>
                                     <child>
                                       <object class="GtkButton" id="chat_qst_add">
-                                        <property name="label">gtk-add</property>
+                                        <property name="label">Add</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_stock">True</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -793,11 +759,10 @@
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="chat_qst_edit">
-                                        <property name="label">gtk-edit</property>
+                                        <property name="label">Edit</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_stock">True</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -807,11 +772,10 @@
                                     </child>
                                     <child>
                                       <object class="GtkButton" id="chat_qst_remove">
-                                        <property name="label">gtk-remove</property>
+                                        <property name="label">Remove</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_stock">True</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -963,7 +927,8 @@
                                     <property name="width_request">16</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="stock">gtk-missing-image</property>
+                                    <property name="icon_name">image-missing</property>
+                                    <property name="use_fallback">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -1163,7 +1128,6 @@
                               <object class="GtkTreeView" id="event_list">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="rules_hint">True</property>
                                 <child internal-child="selection">
                                   <object class="GtkTreeSelection"/>
                                 </child>
@@ -1228,7 +1192,6 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="headers_visible">False</property>
-                            <property name="rules_hint">True</property>
                             <child internal-child="selection">
                               <object class="GtkTreeSelection"/>
                             </child>
@@ -1353,9 +1316,6 @@
     <property name="title" translatable="yes">Edit Map Source</property>
     <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
-    <child>
-      <placeholder/>
-    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="visible">True</property>
@@ -1368,15 +1328,11 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkButton" id="button1">
-                <property name="label">gtk-close</property>
+                <property name="label">Close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1422,18 +1378,12 @@
                     <property name="top_attach">0</property>
                   </packing>
                 </child>
-                <child>
-                  <placeholder/>
-                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
@@ -1456,9 +1406,6 @@
     <property name="title" translatable="yes">Edit Map Sources</property>
     <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
-    <child>
-      <placeholder/>
-    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="visible">True</property>
@@ -1471,15 +1418,11 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkButton" id="button2">
-                <property name="label">gtk-close</property>
+                <property name="label">Close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1526,16 +1469,12 @@
                 <property name="can_focus">False</property>
                 <property name="spacing">4</property>
                 <child>
-                  <placeholder/>
-                </child>
-                <child>
                   <object class="GtkButton" id="srcs_add">
-                    <property name="label">gtk-add</property>
+                    <property name="label">Add</property>
                     <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="use_stock">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1545,12 +1484,11 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="srcs_edit">
-                    <property name="label">gtk-edit</property>
+                    <property name="label">Edit</property>
                     <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="use_stock">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1560,12 +1498,11 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="srcs_delete">
-                    <property name="label">gtk-delete</property>
+                    <property name="label">Delete</property>
                     <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="use_stock">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
