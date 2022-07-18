@@ -25,8 +25,6 @@ import struct
 import threading
 import time
 
-from six.moves import range # type: ignore
-
 from d_rats import transport
 from d_rats.ddt2 import DDT2EncodedFrame
 from d_rats.sessions import base
@@ -275,7 +273,7 @@ class StatefulSession(base.Session):
 
         # Short circuit to just an ack for outstanding blocks, if
         # we're still waiting for an ack from remote.  Increase the timeout
-        # for the ack by four seconds each time to give some backoff
+        # for the ack by four seconds each time to give some back off
         if self.waiting_for_ack:
             self.logger.info("send_blocks: Didn't get last ack, asking again")
             self.send_reqack(self.waiting_for_ack)
@@ -530,7 +528,7 @@ class StatefulSession(base.Session):
 
         if count is None:
             buffer = self.data.dequeue_all()
-            # BlockQueue.dequeue_all() returns the blocks in popable order,
+            # BlockQueue.dequeue_all() returns the blocks in pop able order,
             # which is newest first
             buffer.reverse()
             empty = bytearray()

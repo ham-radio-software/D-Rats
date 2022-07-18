@@ -27,7 +27,7 @@ import os
 import time
 import re
 from datetime import datetime
-from six.moves.configparser import NoSectionError # type: ignore
+from configparser import NoSectionError
 
 import gi
 gi.require_version("Gtk", "3.0")

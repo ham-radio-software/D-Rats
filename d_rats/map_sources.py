@@ -28,8 +28,8 @@ import os
 import urllib
 from glob import glob
 from lxml import etree
-from six.moves.configparser import NoSectionError # type: ignore
-from six.moves.configparser import NoOptionError # type: ignore
+from configparser import NoSectionError
+from configparser import NoOptionError
 
 import gi
 gi.require_version("Gtk", "3.0")
