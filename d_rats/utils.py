@@ -21,15 +21,11 @@ from __future__ import print_function
 
 import logging
 from io import FileIO
-# import re
+
 import os
 import tempfile
 
-# pylance can not deal with imports of six classes
-import six.moves.urllib.request # type: ignore
-import six.moves.urllib.parse # type: ignore
-import six.moves.urllib.error # type: ignore
-from six.moves import range # type: ignore
+import urllib.request
 
 from . import dplatform
 
@@ -269,7 +265,7 @@ def run_or_error(function):
 
     return runner
 
-# possibly deprecated to be replaced by logging moodule.
+# possibly deprecated to be replaced by logging module.
 def print_stack():
     '''Print Stack'''
     import traceback
@@ -391,7 +387,7 @@ class NetFile(FileIO):
                 tmpf.close()
 
                 self.logger.info("init: Retrieving %s -> %s", uri, self.__fn)
-                six.moves.urllib.request.urlretrieve(uri, self.__fn)
+                urllib.request.urlretrieve(uri, self.__fn)
                 break
 
         super(NetFile, self).__init__(self, self.__fn, mode, buffering)

@@ -19,12 +19,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-try:
-    # python2
-    from UserDict import UserDict # type: ignore
-except ModuleNotFoundError:
-    # python3
-    from collections import UserDict
 
 import logging
 import struct
@@ -33,7 +27,8 @@ import time
 import zlib
 import sys # python 2 support only
 
-from six.moves import range # type: ignore
+from collections import UserDict
+
 from d_rats.sessions import base, stateful
 
 # This makes pylance happy with out overriding settings
@@ -132,7 +127,7 @@ class FileTransferSession(stateful.StatefulSession):
 
         :param filename: Filename to send
         :type filename: str
-        :returns: True if file tranferred.
+        :returns: True if file transferred.
         :rtype: bool
         '''
         data = self.get_file_data(filename)

@@ -2,7 +2,7 @@
 '''Control'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,8 +22,6 @@ from __future__ import print_function
 
 import logging
 import struct
-
-from six.moves import range # type: ignore
 
 from d_rats.utils import log_exception
 from d_rats.ddt2 import DDT2EncodedFrame
