@@ -205,7 +205,7 @@ def main():
     if args.config:
         MODULE_LOGGER.info("main: re-config option found -- Reconfigure D-rats")
         MODULE_LOGGER.info("main: args.config = %s", args.config)
-        platform.set_base_dir(args.config)
+        platform.set_config_dir(args.config)
 
     # import the D-Rats main application
     from d_rats import mainapp
