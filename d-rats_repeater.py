@@ -42,12 +42,14 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
+from d_rats.version import __version__
 from d_rats import dplatform
 from d_rats import transport
 from d_rats import comm
 from d_rats.miscwidgets import make_choice
 from d_rats import miscwidgets
 from d_rats.config import prompt_for_port
+
 
 gettext.install("D-RATS")
 
@@ -1300,16 +1302,12 @@ def main():
             level=args.loglevel)
 
     if args.config:
-        platform.set_base_dir(args.config)
+        platform.set_config_dir(args.config)
 
     if args.console:
         repeater = RepeaterConsole()
         repeater.main()
     else:
-
-        # Not needed since version 3.11
-        # GObject.threads_init()
-
         _gui = RepeaterGUI()
         Gtk.main()
 
