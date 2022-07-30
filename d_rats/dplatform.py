@@ -36,11 +36,6 @@ if '_' not in locals():
     _ = gettext.gettext
 
 
-def find_me():
-    '''Find Me.'''
-    return sys.modules["d_rats.dplatform"].__file__
-
-
 class PlatformException(Exception):
     '''Generic Platform exception.'''
 
@@ -53,30 +48,30 @@ class Platform():
     '''
     Platform.
 
-    :param basepath: Base path of platform configuration file
+    :param basepath: Configuration data directory
     :type basepath: str
     '''
+    logger = logging.getLogger("Platform")
 
     def __init__(self, basepath):
-        self.logger = logging.getLogger("Platform")
-        self.set_base_dir(basepath)
+        self.set_config_dir(basepath)
         my_dir = os.path.realpath(os.path.dirname(__file__))
-        self._source_dir = os.path.dirname(my_dir)
+        self._sys_data = os.path.dirname(my_dir)
         self._connected = True
 
     def __str__(self):
         text = ["Platform %s:" % str(self.__class__.__name__)]
-        text.append("  base:       %s" % self.config_dir())
-        text.append("  source_dir: %s" % self.source_dir())
+        text.append("  configuration:       %s" % self.config_dir())
+        text.append("  system_data: %s" % self.sys_data())
         text.append("  OS version: %s" % self.os_version_string())
 
         return os.linesep.join(text)
 
-    def set_base_dir(self, basepath):
+    def set_config_dir(self, basepath):
         '''
-        Set the base directory.
+        Set the configuration directory.
 
-        :param basepath: Base directory
+        :param basepath: Configuration directory
         :type basepath: str
         '''
         self._base = basepath
@@ -90,14 +85,49 @@ class Platform():
         '''
         return self._base
 
-    def source_dir(self):
+    def sys_data(self):
         '''
-        Source Directory.
+        The system application data directory.
 
-        :returns: source directory
+        The system application data directory is used to locate the
+        built in constant data for an application, and this will be
+        assumed to be a read only directory after installation is complete.
+
+        For most projects the packaging procedure and install will have
+        a will have a parameter with "prefix" in its name and be named
+        "share"
+
+        :returns: Directory for built in application data.
         :rtype: str
         '''
-        return self._source_dir
+        # Known prefixes for linux based programs
+        # python programs generally expect this convention even on
+        # Microsoft Windows.
+        # /usr - programs installed by official packages
+        # /opt - programs installed from tarballs and some third party packages
+        # /usr/local - Non official programs installed by system owner
+        # <path> - programs installed by pip.  While pip does install into
+        # the /usr path by default, that is considered a very bad practice,
+        # as it can interfere with official packages.
+        if '/lib/' in __file__:
+            my_prefix = __file__.split('/lib/')
+            my_share = os.path.join(my_prefix[0], 'share', 'd-rats')
+            if os.path.exists(my_share):
+                # Using standard location or a VENV
+                return my_share
+        # punt, assume running from source
+        return self._sys_data
+
+    def source_dir(self):
+        '''
+        The system application data directory.
+
+        To be deprecated as name does not match the purpose.
+
+        :returns: Directory for built in application data.
+        :rtype: str
+        '''
+        return self.sys_data()
 
     def log_dir(self):
         '''
@@ -154,6 +184,10 @@ class Platform():
         :type _path: str
         :raises: :class:`NotImplementedError`
         '''
+        # This is wrong.
+        # GTK should have a built in cross platform method to open
+        # text file, and that should be called instead of this
+        # method to open the file in a safe (read-only/no-macros) manor.
         raise NotImplementedError("The base class can't do that")
 
     def open_html_file(self, _path):
@@ -164,6 +198,10 @@ class Platform():
         :type _path: str
         :raises: :class:`NotImplementedError`
         '''
+        # This is wrong.
+        # GTK Should have a built in cross platform method to open
+        # a web browser to an HTML or JPG file that should be called
+        # instead of this method.
         raise NotImplementedError("The base class can't do that")
 
     @staticmethod
@@ -296,7 +334,8 @@ class Platform():
         '''
         return "Unknown Operating System"
 
-    def run_sync(self, command):
+    @staticmethod
+    def run_sync(command):
         '''
         Run Sync.
 
@@ -353,13 +392,13 @@ class UnixPlatform(Platform):
                      default "~/.d-rats-ev"
     :type basepath: str
     '''
+    logger = logging.getLogger("UnixPlatform")
 
     def __init__(self, basepath):
-        self.logger = logging.getLogger("UnixPlatform")
-        self.set_base_dir(basepath)
+        self.set_config_dir(basepath)
         Platform.__init__(self, basepath)
 
-    def set_base_dir(self, basepath):
+    def set_config_dir(self, basepath):
         '''
         Set the base directory.
 
@@ -372,21 +411,6 @@ class UnixPlatform(Platform):
         if not os.path.isdir(basepath):
             os.mkdir(basepath)
         self._base = basepath
-
-    def source_dir(self):
-        '''
-        Source Directory.
-
-        :returns: source directory path
-        :rtype: str
-        '''
-        if "site-packages" in find_me():
-            return "/usr/share/d-rats"
-        if "dist-packages" in find_me():
-            return "/usr/share/d-rats"
-        if "/usr/share/d-rats" in find_me():
-            return "/usr/share/d-rats"
-        return self._source_dir
 
     def default_dir(self):
         '''
@@ -430,7 +454,7 @@ class UnixPlatform(Platform):
         :type path: str
         '''
         # pylint: disable=fixme
-        # todo gedit to be moved as parameter in config
+        # todo find and replace calls with GTK function.
         self.logger.info("open_text_file: received order"
                          " to open in gedit %s s", path)
         self.logger.info("If after this message your linux box crashes, "
@@ -445,7 +469,7 @@ class UnixPlatform(Platform):
         :type path: str
         '''
         # pylint: disable=fixme
-        # todo browser to be moved as parameter in config
+        # todo find and replace calls with GTK function.
         self.logger.info("open_html_file:"
                          " received order to open in firefox %s", path)
         self.logger.info("If after this message your linux box crashes, "
@@ -481,7 +505,8 @@ class UnixPlatform(Platform):
             ver = " ".join(os.uname())
         return ver
 
-    def run_sync(self, command):
+    @staticmethod
+    def run_sync(command):
         '''
         Run Sync.
 
@@ -601,16 +626,37 @@ class MacOSXPlatform(UnixPlatform):
         '''
         return "MacOS X"
 
-    def source_dir(self):
+    def sys_data(self):
         '''
-        Source Directory.
+        The system application data directory.
 
-        :returns: source directory
+        The system application data directory is used to locate the
+        built in constant data for an application, and this will be
+        assumed to be a read only directory after installation is complete.
+
+        For most projects the packaging procedure and install will have
+        a will have a parameter with "prefix" in its name to set this
+        directory.
+
+        :returns: Directory for built in application data.
         :rtype: str
         '''
-        if "site-packages" in find_me():
-            return "../Resources"
-        return self._source_dir
+        # See the Unix platform class for more details
+        # Since many developers do not have MacOSX this needs
+        # some diagnostics if it does not work.
+        if '/lib/' in __file__:
+            my_prefix = __file__.split('/lib/')
+            my_share = os.path.join(my_prefix[0], 'share', 'd-rats')
+            if os.path.exists(my_share):
+                # Using standard location or a VENV
+                return my_share
+            mac_prefix = '../Resources'
+            if os.path.exists(os.path.join('mac_prefix', 'ui')):
+                return mac_prefix
+            self.logger.info('Can not find d-rats internal data files'
+                             'Looked in %s and %s.',
+                             my_share, mac_prefix)
+        return self._sys_data
 
 
 class Win32Platform(Platform):
@@ -620,14 +666,14 @@ class Win32Platform(Platform):
     :param basepath, default is "%APPDATA%\\D-RATS-EV"
     :type basepath: str
     '''
+    logger = logging.getLogger("Win32Platform")
 
     def __init__(self, basepath=None):
-        self.logger = logging.getLogger("Win32Platform")
-        self.set_base_dir(basepath)
+        self.set_config_dir(basepath)
 
         Platform.__init__(self, basepath)
 
-    def set_base_dir(self, basepath):
+    def set_config_dir(self, basepath):
         '''
         Set the base directory.
 
@@ -907,6 +953,7 @@ def do_test():
     logger.info("Log file (foo): %s", pform.log_file("foo"))
     logger.info("Serial ports: %s", pform.list_serial_ports())
     logger.info("OS Version: %s", pform.os_version_string())
+    logger.info("Built_in_data: %s", pform.sys_data())
 
     if len(sys.argv) > 1:
 
