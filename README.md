@@ -101,7 +101,7 @@ You will need to install a Python 3 interpreter.
 
 John Malmberg will not be installing or testing any Python interpreter
 that requires a paid license for commercial work, even if that license allows
-free non-commercial use.  Some Pythons distributions for Microsoft Windows
+free non-commercial use.  Some Pythons distributions for Desktop platforms
 have this restriction.
 
 ---
@@ -135,14 +135,32 @@ The installation steps are quite easy (assuming one has all the needed python
 libs installed):
 
 Debian packages needed for running or development.
+
+Below if you are not in a locale that is english, you will need the aspell-
+variant dictionary for your locale.  Developers may need apell- variant
+dictionaries for all locales that D-rats has message files for.
+
 The python2 packages are only needed for running the stable python2 version
 of d-rats.
+
+Anti-x 19 Can run the older d-rats using Python 2, and the newer D-rats using
+Python 3
 
 aspell aspell-en bandit(future) gedit python2 python3 pylint pylint3 glade
 python-gobject python-gtk2 python3-gi python-glade2 python-serial
 python3-serial python-libxml2 python-libxslt1 python3-lxml python-simplejson
 python-feedparser python-flask python-gevent python3-gevent python-socketio
 python3-greenlet python-ipykernel python-gi-cairo python-geopy python-pil
+python3-simplejson python3-feedparser python3-flask python3-ipykernel
+python3-gi-cairo python3-geopy python3-pil shellcheck
+
+Anti-x 22 Can not run the older D-rats on Python2.
+
+aspell aspell-en bandit(future) gedit python3 pylint pylint3 glade
+python3-gi python3-serial python3-lxml python3-simplejson
+python3-feedparser python3-flask python3-gevent python3-greenlet
+python3-ipykernel python3-gi-cairo python3-geopy python3-pil
+python3-pip shellcheck
 
 For msys2, the script msys2_packages.sh will hopefully install all the
 needed packages.  The "dev" parameter is passed to install extra images
@@ -185,6 +203,13 @@ to add more languages you have to build the message catalogs.
 
 See <https://github.com/wb8tyw/D-Rats/wiki/Internationalization> for the
 easy steps for building and maintaining the message catalogs.
+
+### Development of D-rats
+
+D-rats is currently hosted on github.com as a git repository.
+
+See the https://github.com/wb8tyw/D-Rats for the most current procedures
+for submitting PRs.
 
 ### Build for INSTALL ON LINUX and MSYS2 and others
 
