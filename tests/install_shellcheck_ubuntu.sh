@@ -20,5 +20,4 @@ sudo -S -E apt-get --assume-yes install \
     file \
     git \
     grep \
-    pylint \
-    python3
+    shellcheck
