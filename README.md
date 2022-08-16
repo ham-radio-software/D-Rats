@@ -152,7 +152,7 @@ python3-serial python-libxml2 python-libxslt1 python3-lxml python-simplejson
 python-feedparser python-flask python-gevent python3-gevent python-socketio
 python3-greenlet python-ipykernel python-gi-cairo python-geopy python-pil
 python3-simplejson python3-feedparser python3-flask python3-ipykernel
-python3-gi-cairo python3-geopy python3-pil shellcheck
+python3-gi-cairo python3-geopy python3-pil shellcheck codespell
 
 Anti-x 22 Can not run the older D-rats on Python2.
 
@@ -160,7 +160,7 @@ aspell aspell-en bandit(future) gedit python3 pylint pylint3 glade
 python3-gi python3-serial python3-lxml python3-simplejson
 python3-feedparser python3-flask python3-gevent python3-greenlet
 python3-ipykernel python3-gi-cairo python3-geopy python3-pil
-python3-pip shellcheck
+python3-pip shellcheck codespell
 
 For msys2, the script msys2_packages.sh will hopefully install all the
 needed packages.  The "dev" parameter is passed to install extra images
@@ -208,8 +208,8 @@ easy steps for building and maintaining the message catalogs.
 
 D-rats is currently hosted on github.com as a git repository.
 
-See the https://github.com/wb8tyw/D-Rats for the most current procedures
-for submitting PRs.
+See the <https://github.com/wb8tyw/D-Rats> for the most current procedures
+for submitting Pull Requests.
 
 ### Build for INSTALL ON LINUX and MSYS2 and others
 

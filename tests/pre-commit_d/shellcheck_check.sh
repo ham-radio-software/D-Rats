@@ -14,6 +14,12 @@ fi
 # Default directory to start check
 : "${BASE_DIR:=.}"
 
+# Follow external references if shellcheck supports it.
+external=
+if (shellcheck --help | grep "\-\-external") &> /dev/null; then
+  external=--external
+fi
+
 # Now search for all shell script files
 rc=0
 pushd "${BASE_DIR}" > /dev/null || exit 1
@@ -31,7 +37,8 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
 
   for script_file in ${CHANGED_FILES}; do
 
-    IFS=" " read -r -a shellcheck_cmd <<< "${shellcheck} ${script_file}"
+    IFS=" " read -r -a shellcheck_cmd <<< \
+        "${shellcheck} ${external} ${script_file}"
     if file "$script_file" | grep -q -e 'shell script'; then
       if ! "${shellcheck_cmd[@]}" "${tmpl}" >> "${SHELLCHECK_OUT}" 2>&1; then
         (( rc=rc+PIPESTATUS[0] ))
