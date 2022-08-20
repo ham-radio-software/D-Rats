@@ -23,7 +23,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
   codespell="$(command -v codespell)"
   if [ -z "${codespell}" ]; then
     echo "codespell not found"
-    exit 1
+    exit 0
   fi
 
   for script_file in ${CHANGED_FILES}; do
