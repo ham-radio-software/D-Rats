@@ -1,0 +1,31 @@
+name: xmllint
+
+# Always run on Pull Requests
+on:
+  pull_request:
+
+jobs:
+  pylint:
+    name: Run xmllint
+    # Oddly ubuntu-latest is older than 22.04 right now.
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install core packages
+        run: |
+          ./tests/install_xmllint_ubuntu.sh
+      - name: Pull via git
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.sha }}
+      - name: Show git diff
+        run: |
+           git diff --name-only ${{ github.event.pull_request.base.sha }}
+      - name: Do the pylint
+        run: |
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only $base_sha)"
+          export CHANGED_FILES="$changed"
+          ./tests/pre-commit_d/xmllint_check.sh

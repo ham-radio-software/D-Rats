@@ -31,7 +31,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
   pylint="$(command -v pylint)"
   if [ -z "${pylint}" ]; then
     echo "pylint not found"
-    exit 1
+    exit 0
   fi
 
   for script_file in ${CHANGED_FILES}; do

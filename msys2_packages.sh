@@ -15,10 +15,12 @@ pacman -Syu --noconfirm \
 
 if [[ "$1" == dev* ]]; then
   # packaging
+  # no aspell-it dictionary at this time.
   pacman -Syu --noconfirm \
     "${mingw}-gcc" \
     "${mingw}-glade" \
     "${mingw}-make" \
+    "${mingw}-python-codespell" \
     "${mingw}-python-pylint" \
     "${mingw}-python-setuptools" \
     "${mingw}-python-virtualenv"
