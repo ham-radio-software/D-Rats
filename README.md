@@ -153,7 +153,7 @@ python-feedparser python-flask python-gevent python3-gevent python-socketio
 python3-greenlet python-ipykernel python-gi-cairo python-geopy python-pil
 python3-simplejson python3-feedparser python3-flask python3-ipykernel
 python3-gi-cairo python3-geopy python3-pil shellcheck codespell libxml2-utils
-aspell-it
+aspell-it yamllint
 
 Anti-x 22 Can not run the older D-rats on Python2.
 
@@ -161,7 +161,7 @@ aspell aspell-en bandit(future) gedit python3 pylint pylint3 glade
 python3-gi python3-serial python3-lxml python3-simplejson
 python3-feedparser python3-flask python3-gevent python3-greenlet
 python3-ipykernel python3-gi-cairo python3-geopy python3-pil
-python3-pip shellcheck codespell libxml2-utils aspell-it
+python3-pip shellcheck codespell libxml2-utils aspell-it yamllint
 
 For msys2, the script msys2_packages.sh will hopefully install all the
 needed packages.  The "dev" parameter is passed to install extra images

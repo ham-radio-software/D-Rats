@@ -1,12 +1,13 @@
-name: xmllint
+---
+name: Xmllint
 
 # Always run on Pull Requests
-on:
+on:  # yamllint disable-line rule:truthy
   pull_request:
 
 jobs:
   pylint:
-    name: Run xmllint
+    name: Run Xmllint
     # Oddly ubuntu-latest is older than 22.04 right now.
     runs-on: ubuntu-22.04
     steps:

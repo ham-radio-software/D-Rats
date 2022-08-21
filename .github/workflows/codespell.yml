@@ -1,7 +1,8 @@
+---
 name: Codespell
 
 # Always run on Pull Requests
-on:
+on:  # yamllint disable-line rule:truthy
   pull_request:
 
 jobs:
