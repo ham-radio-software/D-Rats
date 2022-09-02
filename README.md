@@ -40,9 +40,9 @@ I picked up D.Rats code as I needed the maps feature back and after some time I 
 
 The program is pretty much the one developed by Dan more than 10 years ago based on libraries by the python community which – in many cases - are not supported anymore by anybody –  not to mention that the operating system itself changed multiple times, and each of us has a different footprint of applications installed, making each execution situation different. So there is no promise from me that it will work on your PC.
 
-Recompiling it (even unchanged) nowdays for Windows has been challenging and implied going back to windows XP to ensure compatibility and a lot of hours of tests and investigation, I am glad it works for me and some others.  
+Recompiling it (even unchanged) nowadays for Windows has been challenging and implied going back to windows XP to ensure compatibility and a lot of hours of tests and investigation, I am glad it works for me and some others.
 
-It was difficult to get it work on my PC (Win10 and XP) with full access to logs and realtime control of what happens (e.g. clicking on some d-rats button, and looking d-rats behaviour result and logs to sort out thinkgs).
+It was difficult to get it work on my PC (Win10 and XP) with full access to logs and realtime control of what happens (e.g. clicking on some d-rats button, and looking d-rats behavior result and logs to sort out things).
 
 If in your case it does not work, that is an unhappy case which I feel it will continue not working until some magic happens (in particular if there is no valuable feedback provided to understand why it failed).
 
@@ -55,7 +55,7 @@ Anyhow the code is published and anybody can go look into it and sort out things
 ## Supported systems
 
 This program ONLY work with older Linux distributions that still include Python2, GTK2, etc.
-Support for this program on newer distros is NOT possible until major porting work is completed.
+Support for this program on newer distributions is NOT possible until major porting work is completed.
 
 On Ms Windows the program works only when compiled on Windows XP 32 bit and distributed keeping some of the DLLs related to GDI and Networking of that version.
 
@@ -64,24 +64,24 @@ On Ms Windows the program works only when compiled on Windows XP 32 bit and dist
 ## Release notes
 
 see change log:
-<https://github.com/maurizioandreotti/D-Rats/blob/master/changelog>
+<https://github.com/ham-radio-software/D-Rats/blob/master/changelog>
 
 ---
 
 ## FOR MORE INFO HAVE A WALK IN THE WIKI
 
-<https://github.com/maurizioandreotti/D-Rats/wiki/D-Rats-Evolution-wiki>
+<https://github.com/ham-radio-software/D-Rats/wiki>
 
 ---
 
 ### READY TO RUN -- EXECUTION ON WINDOWS
 
-To install the new version of D-Rats on Windows download the distrubution version (file in .rar format)
-uncompress it in a folder of your choice and just run d-rats.exe
+To install the new version of D-Rats on Windows download the distribution version (file in .rar format)
+un-compress it in a folder of your choice and just run d-rats.exe
 
 AT THE MOMENT THERE IS A "BUILT VERSION" IN THE RAR FILE, BUT THERE ARE SOME KNOWN ISSUES WITH LIBRARIES NOT INCLUDED,  SO IT IS POSSIBLE THAT IT WILL NOT WORK ON YOUR SYSTEM. PLEASE REPORT ME THE PROBLEMS YOU HAVE.  YOUR HELP CAN BE USEFUL TO SORT THIS OUT.
 
-The windows executable can be downlodaded from here:
+The windows executable can be downloaded from here:
       - <https://iz2lxi.jimdofree.com/>
 
 Note that at runtime the eventual errors are logged into a file located either at:
@@ -95,7 +95,7 @@ Note that at runtime the eventual errors are logged into a file located either a
 
 (contrib & credit Marius Petrescu)
 
-The installation steps are quite easy (assuming one has all the neede python libs installed):
+The installation steps are quite easy (assuming one has all the needed python libs installed):
 
 via package installer: python-glade2, python-libxml2, python-libxslt1, python-serial
 
