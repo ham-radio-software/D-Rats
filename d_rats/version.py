@@ -1,7 +1,8 @@
 #!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# minor mods 2015-2020 by Maurizio Andreotti <iz2lxi> maurizioandreottilc@gmail.com>
+# minor mods 2015-2020 by Maurizio Andreotti <iz2lxi>
+#                         maurizioandreottilc@gmail.com>
 #
 ##this module contains the d-rats version variables
 
@@ -11,21 +12,30 @@ from .debug import printlog
 
 import sys
 
-DRATS_VERSION = "0.3.10 beta 4 "
+DRATS_VERSION = "0.3.10 beta 6"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
-AUTHORS = "Dan Smith, KK7DS" +chr(13)+ \
-          "Maurizio Andreotti, IZ2LXI" +chr(13)+ \
-          "Marius Petrescu, YO2LOJ"
-AUTHORS_EMAIL= "Dan Smith KK7DS <dsmith@danplanet.com>;" +chr(13)+ \
-          "Maurizio Andreotti IZ2LXI <maurizio.iz2lxi@gmail.com>" +chr(13)+ \
-          "Marius Petrescu YO2LOJ <marius@yo2loj.ro>"
-COPYRIGHT ="Copyright 2010 Dan Smith (KK7DS)" +chr(13)+ \
-          "Copyright 2014-2020 Maurizio Andreotti (IZ2LXI) &" +chr(13)+ \
-          "Marius Petrescu (YO2LOJ)" + chr(13) + \
-		  "Location and Map data Copyright OpenStreetMap Contributors"
-LICENCE ="You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>."
+AUTHORS = "Dan Smith, KK7DS" \
+          " Maurizio Andreotti, IZ2LXI" \
+          " Marius Petrescu, YO2LOJ" \
+          " John E. Malmberg, WB8TYW"
+AUTHORS_EMAIL = "Dan Smith KK7DS <dsmith@danplanet.com>;\n"  \
+          "Maurizio Andreotti IZ2LXI <maurizio.iz2lxi@gmail.com>\n" \
+          "Marius Petrescu YO2LOJ <marius@yo2loj.ro>\n" \
+          "John E. Malmberg WB8TYW <wb8tyw@wsl.net>"
+AUTHOR_COPYRIGHT = "2008-2010 Dan Smith (KK7DS)\n" \
+          "2014-2022 Maurizio Andreotti (IZ2LXI) &\n"  \
+          "Marius Petrescu (YO2LOJ)\n" \
+          "2021-2022 John E. Malmberg (WB8TYW)."
+DATA_COPYRIGHT = "Location and Map data Copyright www.thunderforest.com and\n" \
+          "copyright OpenStreetMap Contributors, www.osm.org/copyright.\n" \
+          "Some Map Data courtesy of the U.S. Geological Survey.\n" \
+          "Weather data provided by OpenWeather (TM), openweathermap.org"
+COPYRIGHT = 'Copyright ' + AUTHOR_COPYRIGHT + '\n' + DATA_COPYRIGHT
+LICENSE = "You should have received a copy of the" \
+	      " GNU General Public License along with this program." \
+		  "  If not, see <http://www.gnu.org/licenses/>."
 WEBSITE = "https://groups.io/g/d-rats"
 TRANSLATIONS  ="Italian: Leo, IZ5FSA"
 
@@ -40,6 +50,6 @@ if __name__ == "__main__":
 	printlog("Version", "   : AUTHORS:               ", AUTHORS)
 	printlog("Version", "   : AUTHORS_EMAIL:         ", AUTHORS_EMAIL)
 	printlog("Version", "   : COPYRIGHT:             ", COPYRIGHT)
-	printlog("Version", "   : LICENCE:               ", LICENCE)
+	printlog("Version", "   : LICENSE:               ", LICENSE)
 	printlog("Version", "   : WEBSITE:               ", WEBSITE)
 	printlog("Version", "   : TRANSLATIONS:          ", TRANSLATIONS)
