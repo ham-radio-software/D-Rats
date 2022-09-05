@@ -1,4 +1,5 @@
 #
+'''utility Methods'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,18 +18,19 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+from io import FileIO
+# import re
+import os
+import tempfile
+import six.moves.urllib.request
+import six.moves.urllib.parse
+import six.moves.urllib.error
+from six.moves import range
+
 #importing printlog() wrapper
 from .debug import printlog
 
-from io import FileIO
-import re
-import os
-import tempfile
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
-
-
 from . import dplatform
-from six.moves import range
 
 def open_icon_map(iconfn):
     import gi

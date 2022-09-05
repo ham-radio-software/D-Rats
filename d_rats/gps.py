@@ -20,24 +20,24 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
 import re
 import time
 import tempfile
-from . import dplatform
 import datetime
-from . import subst
 
 import threading
 import serial
 import socket
 
-from math import pi,cos,acos,sin,atan2
+from math import pi, cos, acos, sin, atan2
+from six.moves import range
+
+#importing printlog() wrapper
+from .debug import printlog
+from . import dplatform
+from . import subst
 
 from . import utils
-from six.moves import range
 
 if __name__ == "__main__":
     import gettext

@@ -3,11 +3,11 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
 import os
 import subprocess
+
+# importing printlog() wrapper
+from .debug import printlog
 
 class Spelling:
     def __open_aspell(self):
