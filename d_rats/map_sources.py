@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
+import re
 import time
 import threading
 import os
@@ -273,12 +274,9 @@ class MapUSGSRiver(MapPointThreaded):
         self.logger.info("do_update: [River %s] Done with update", self.__site)
 
     def __parse_site(self):
-        # Old URL no longer works.   New URL is just for testing
-        # This code currently does not work because lxml needs some
-        # additional processing done to the downloaded data.
-        url = "https://waterservices.usgs.gov/nwis/site/?format=mapper,1.0" \
-              "&bBox=-123.975100,45.415900,-121.975100,45.615900" \
-              "&siteType=ST&siteStatus=active"
+        url = "http://waterservices.usgs.gov/nwis/site/" \
+              "?format=mapper&sites=%s&siteOutput=expanded&siteStatus=all" % \
+              self.__site
         #url = "http://waterservices.usgs.gov/nwis/iv" \
         #      "?search_site_no=%s" \
         #      "&format=sitefile_output" \
@@ -304,19 +302,23 @@ class MapUSGSRiver(MapPointThreaded):
                              self.__site, exc_info=True)
             return
 
-        # print("-------")
-        # print(content)
-        # print("-------")
+        pattern = r'encoding="UTF-8"'
+        content = re.sub(pattern, '', content)
+        # doc = etree.fromstring(content)
         doc = etree.fromstring(content)
 
-        base = "/usgs_nwis/site/"
+        # base = "/usgs_nwis/site/"
 
-        self._basename = _xdoc_getnodeval(doc, base + "station_nm")
-
-        self.set_name(self._basename)
-        self.set_latitude(float(_xdoc_getnodeval(doc, base + "dec_lat_va")))
-        self.set_longitude(float(_xdoc_getnodeval(doc, base + "dec_long_va")))
-        self.set_altitude(float(_xdoc_getnodeval(doc, base + "alt_va")))
+        # self._basename = _xdoc_getnodeval(doc, base + "station_nm")
+        sites = doc[0]
+        site = sites[0]
+        # self.set_name(self._basename)
+        self.set_name(site.get('sna'))
+        self.set_latitude(float(site.get('lat')))
+        self.set_longitude(float(site.get('lng')))
+        # self.set_latitude(float(_xdoc_getnodeval(doc, base + "dec_lat_va")))
+        # self.set_longitude(float(_xdoc_getnodeval(doc, base + "dec_long_va")))
+        # self.set_altitude(float(_xdoc_getnodeval(doc, base + "alt_va")))
 
     def __parse_level(self):
         url = \
@@ -341,7 +343,8 @@ class MapUSGSRiver(MapPointThreaded):
 
         fields = line.split("\t")
 
-        self._height_ft = float(fields[3])
+        #self._height_ft = float(fields[3])
+        self._height_ft = float(fields[4])
         self.set_comment("River height: %.1f ft" % self._height_ft)
         self.set_timestamp(time.time())
 
@@ -692,10 +695,10 @@ class MapUSGSRiverSource(MapSource):
 
         self.__sites = sites
         self._mutable = False
-
         for site in sites:
-            point = MapUSGSRiver(site)
-            point.connect("updated", self._point_updated)
+            if site:
+                point = MapUSGSRiver(site)
+                point.connect("updated", self._point_updated)
 
     @staticmethod
     def open_source_by_name(config, name, _create=False):
@@ -726,7 +729,7 @@ class MapUSGSRiverSource(MapSource):
             _name = config.get("rivers", "%s.label" % name)
         # pylint: disable=broad-except
         except Exception:
-            logger = logging.getLogger("MapUSGSRiverSource")
+            logger = logging.getLogger("MapUSGSRiverSource_static:")
             logger.info("_open_source_by_name: No option %s.label",
                         name, exc_info=True)
             _name = name
