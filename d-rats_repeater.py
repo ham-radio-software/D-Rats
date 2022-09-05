@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 '''D-Rats Repeater.'''
 # pylint wants only 1000 lines per module.
 # pylint does not like the module name, wants "snake_case" compliance.
