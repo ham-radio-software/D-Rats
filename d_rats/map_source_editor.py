@@ -95,8 +95,18 @@ class MapSourcesEditor():
                 except Exception:
                     utils.log_exception()
                     self.logger.info("Failed to open source %s:%s; %s",
-                                  stype, key, "broad-exception", exc_info=True)
+                                     stype, key,
+                                     "broad-exception", exc_info=True)
+
     def _add(self, _button, typesel):
+        '''
+        Add Source.
+
+        :param _button: Button pressed, unused
+        :type _button: :class:Gtk.Button`
+        :param typesel: Map type selected
+        :type typesel: :class:`Gtk.ComboBoxText`
+        '''
         text = typesel.get_active_text()
 
         try:
@@ -112,14 +122,29 @@ class MapSourcesEditor():
         element.destroy()
 
     def _rem(self, _button):
-        (model, sel_iter) = self.__view.get_selection().get_selected()
+        '''
+        Remove Source.
 
+        :param _button: Button pressed, unused
+        :type _button: :class:`Gtk.Button`
+        '''
+        # self.__view is a Gtk.TreeView
+        (model, sel_iter) = self.__view.get_selection().get_selected()
+        # model is Gtk.ListStore
+        # sel_iter is Gtk.TreeIter
+        # self.__store is Gtk.ListStore
         element, = self.__store.get(sel_iter, 2)
         element.delete()
 
-        model.remove(iter)
+        model.remove(sel_iter)
 
     def _edit(self, _button):
+        '''
+        Edit Source.
+
+        :param _button: Button pressed, unused
+        :type _button: :class:`Gtk.Button
+        '''
         (_model, sel_iter) = self.__view.get_selection().get_selected()
 
         element, = self.__store.get(sel_iter, 2)
@@ -155,6 +180,7 @@ class MapSourcesEditor():
         Run.
 
         :returns: Result from dialog.run
+        :rtype: int
         '''
         return self.__dialog.run()
 
@@ -186,7 +212,7 @@ class MapSourceEditor():
         self._wtree.add_from_file(filename)
         #self._wtree = Gtk.glade.XML(fn, "src_dialog", "D-RATS")
 
-        self.__dialog = self._wtree.get_object("src_dialog")
+        self._src_dialog = self._wtree.get_object("src_dialog")
         self._name = self._wtree.get_object("src_name")
 
         self._name.set_text(source.get_name())
@@ -224,11 +250,11 @@ class MapSourceEditor():
 
         :returns: Result from dialog.run()
         '''
-        return self.__dialog.run()
+        return self._src_dialog.run()
 
     def destroy(self):
         '''Destroy.'''
-        self.__dialog.hide()
+        self._src_dialog.hide()
 
     def delete(self):
         '''Delete.'''
@@ -299,6 +325,7 @@ class RiverMapSourceEditor(MapSourceEditor):
             name_editable = True
         else:
             name_editable = False
+        self.__source = source
 
         MapSourceEditor.__init__(self, config, source)
 
@@ -315,11 +342,25 @@ class RiverMapSourceEditor(MapSourceEditor):
         self.__sites.show()
         _sites = [str(x) for x in source.get_sites()]
         self.__sites.set_text(",".join(_sites))
+        self._new_sites = ",".join(_sites)
         hbox.pack_start(self.__sites, 1, 1, 1)
 
         box.pack_start(hbox, 1, 1, 1)
 
         self.name_editable(name_editable)
+        # self.__sites.connect("changed", self.entry_changed)
+        self._src_dialog.connect("response", self.entry_changed)
+
+    def entry_changed(self, _widget, _response_id):
+        '''
+        Text Entry Changed Response.
+
+        :param widget: Text entry widget
+        :type widget: :class:`Gtk.Dialog`
+        :param response_id: Response Id
+        :type response_id: int
+        '''
+        self._new_sites = self.__sites.get_text()
 
     def delete(self):
         '''Delete.'''
@@ -339,7 +380,7 @@ class RiverMapSourceEditor(MapSourceEditor):
             self._config.add_section("rivers")
         self.get_source().set_name(self.get_name())
         ident = self.get_source().packed_name()
-        self._config.set("rivers", ident, self.__sites.get_text())
+        self._config.set("rivers", ident, self._new_sites)
         self._config.set("rivers", "%s.label" % ident,
                          self.get_source().get_name())
 
