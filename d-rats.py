@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# "d-rats.py" does not comply with Snake Case nameing, so must suppress this.
+# "d-rats.py" does not comply with Snake Case naming, so must suppress this.
 # pylint: disable=invalid-name
 '''d-rats main program'''
 #
@@ -56,16 +56,16 @@ IGNORE_ALL = False
 # here we design the window which usually comes out at the beginning asking
 # to "ignore/ignore all" the exceptions
 
-def handle_exception(exctyp, value, tb):
+def handle_exception(except_type, value, trace_back):
     '''
     Handle Exception.
 
-    :param exctyp: Exception type
-    :type exctype: type
+    :param except_type: Exception type
+    :type except_type: type
     :param value: Exception value
     :type value: Exception
-    :param tb: Traceback
-    :type tb: traceback
+    :param trace_back: Traceback
+    :type trace_back: traceback
     '''
 
     # this eventually starts the initial window with the list of errors and the
@@ -75,8 +75,8 @@ def handle_exception(exctyp, value, tb):
     # pylint: disable=global-statement
     global IGNORE_ALL
 
-    if exctyp is KeyboardInterrupt or IGNORE_ALL:
-        return sys.__excepthook__(exctyp, value, tb)
+    if except_type is KeyboardInterrupt or IGNORE_ALL:
+        return sys.__excepthook__(except_type, value, trace_back)
 
     # Gdk.pointer_ungrab(Gdk.CURRENT_TIME)
     # Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
@@ -87,7 +87,7 @@ def handle_exception(exctyp, value, tb):
     # Other documentation indicates that most grabs and un-grabs may
     # not be needed for Gtk 3
 
-    _trace = traceback.format_exception(exctyp, value, tb)
+    _trace = traceback.format_exception(except_type, value, trace_back)
     trace = os.linesep.join(_trace)
 
     MODULE_LOGGER.info("---- GUI Exception ----\n%s\n---- End ----\n",
@@ -204,7 +204,8 @@ def main():
 
     if args.config:
         MODULE_LOGGER.info("main: re-config option found -- Reconfigure D-rats")
-        dplatform.get_platform(args.config)
+        MODULE_LOGGER.info("main: args.config = %s", args.config)
+        platform.set_base_dir(args.config)
 
     # import the D-Rats main application
     from d_rats import mainapp

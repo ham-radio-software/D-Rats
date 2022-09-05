@@ -1,6 +1,6 @@
 #!/usr/bin/python
 '''D-Rats Repeater.'''
-# pylint wants only 100 lines per module.
+# pylint wants only 1000 lines per module.
 # pylint does not like the module name, wants "snake_case" compliance.
 # pylint: disable=too-many-lines, invalid-name
 #
@@ -482,7 +482,9 @@ class RepeaterUI:
         return config
 
     # pylint wants a max of 15 local variables
-    # pylint: disable=too-many-locals
+    # pylint wants a max of 50 statements
+    # pylint wants a max of 12 branches
+    # pylint: disable=too-many-locals, too-many-statements, too-many-branches
     def add_outgoing_paths(self, ident, paths):
         '''
         Add outgoing paths.
@@ -1224,6 +1226,8 @@ def main():
     platform = dplatform.get_platform()
     def_config_dir = platform.config_dir()
 
+    # pylint wants at least 2 public methods, but we do not need them
+    # since this is extending another class.
     # pylint: disable=too-few-public-methods
     class LoglevelAction(argparse.Action):
         '''
@@ -1296,7 +1300,7 @@ def main():
             level=args.loglevel)
 
     if args.config:
-        dplatform.get_platform(args.config)
+        platform.set_base_dir(args.config)
 
     if args.console:
         repeater = RepeaterConsole()
