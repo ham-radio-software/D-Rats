@@ -25,12 +25,6 @@ import logging
 import os
 import sys
 import glob
-try:
-    # pylint: disable=import-error
-    import commands # type: ignore
-except ModuleNotFoundError:
-    # commands does not exist for python3 and is not needed.
-    pass
 import subprocess
 import six.moves.urllib.request # type: ignore
 import six.moves.urllib.parse # type: ignore
@@ -479,7 +473,7 @@ class UnixPlatform(Platform):
         :param command: Command to run.
         :type command: str
         '''
-        return commands.getstatusoutput(command)
+        return subprocess.getstatusoutput(command)
 
     def play_sound(self, soundfile):
         '''
