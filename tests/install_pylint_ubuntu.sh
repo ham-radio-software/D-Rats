@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # This is for use in a dockerfile or a github action to make sure
 # that the required packages are installed.
@@ -21,4 +21,13 @@ sudo -S -E apt-get --assume-yes install \
     git \
     grep \
     pylint \
-    python3
+    python3 \
+    python3-feedparser \
+    python3-flask \
+    python3-geopy \
+    python3-gevent \
+    python3-gi \
+    python3-gi-cairo \
+    python3-lxml \
+    python3-pil \
+    python3-serial

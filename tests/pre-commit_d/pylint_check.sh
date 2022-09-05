@@ -45,7 +45,10 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
     fi
   done
   if [ -e "${PYLINT_OUT}" ]; then
-    grep ':' "${PYLINT_OUT}"
+    if ! grep ':' "${PYLINT_OUT}"; then
+      # we have out pylint finding something?
+      cat "${PYLINT_OUT}"
+    fi
   fi
 popd > /dev/null || exit 1
 exit "${rc}"

@@ -62,6 +62,7 @@ class LoggedTextBuffer(Gtk.TextBuffer):
 
     def __init__(self, logfile):
         Gtk.TextBuffer.__init__(self)
+        # pylint: disable=unspecified-encoding, consider-using-with
         self.__logfile = open(logfile, "a+", 1)
 
     def get_logfile(self):
@@ -332,7 +333,7 @@ class ChatQST(MainWindowElement):
         Toggle QST Event Handler.
 
         :param _rend: Cell Renderer, unused
-        :type _rend: :class:`Gtk.CellRenderToggle`
+        :type _rend: :class:`Gtk.CellRendererToggle`
         :param path: Path name for QST
         :type path: str
         :param store: Storage of QSTs
@@ -657,7 +658,7 @@ class ChatTab(MainWindowTab):
         '''
         Display Matching Filter.
 
-        :parm text: Filter to select display
+        :param text: Filter to select display
         :type text: str
         :returns: Display matching filter
         :rtype: :class:`Gtk.TextView`
@@ -710,7 +711,7 @@ class ChatTab(MainWindowTab):
         Display For Channel.
 
         :param channel: Channel filter
-        :type chanel: str
+        :type channel: str
         :returns: View displaying the channel
         :rtype: :class:`Gtk.TextView`
         '''
@@ -734,6 +735,7 @@ class ChatTab(MainWindowTab):
         :type priv_src: str
         '''
         match = re.match("^([^#].*)(#[^/]+)//(.*)$", text)
+        # pylint: disable=consider-iterating-dictionary
         if "priv_src" in kwargs.keys():
             channel = "@%s" % kwargs["priv_src"]
             display = self._display_for_channel(channel)
@@ -992,7 +994,7 @@ class ChatTab(MainWindowTab):
 
         :param view: Widget that signaled handler
         :type view: :class:`Gtk.TextView`
-        :param event: Event key to handel
+        :param event: Event key to handle
         :type event: :class:`Gdk.EventKey`
         :param dest: Destinations for sending
         :type dest: :class:`Gtk.ComboBoxText

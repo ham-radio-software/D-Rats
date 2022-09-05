@@ -46,7 +46,9 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
     fi
   done
   if [ "$rc" -ne 0 ] && [ -e "${SHELLCHECK_OUT}" ]; then
-    grep ':' "${SHELLCHECK_OUT}"
+    if ! grep ':' "${SHELLCHECK_OUT}"; then
+      cat "${SHELLCHECK_OUT}"
+    fi
   fi
 popd > /dev/null || exit 1
 exit "${rc}"

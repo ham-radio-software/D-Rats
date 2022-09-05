@@ -1,12 +1,25 @@
 [MASTER]
+# We are getting flooded with these and they are very low on
+# the priority of things to fix.
+# some of these are not detected by older pylint versions in use.
+disable = consider-using-f-string,
+  consider-using-dict-items,
+  consider-iterating-dictionary,
+  consider-using-with,
+  unspecified-encoding
+
 
 [MESSAGES CONTROL]
-# GTK+ pretty much requires disabling wrong-import-position
-disable=wrong-import-position, c-extension-no-member
+# GTK+ pretty much requires disabling wrong-import-position, no-member, and
+# being and ignored module.
+# bad-option-value is needed for suppressing issues with newer pylint values.
+disable = wrong-import-position, c-extension-no-member, bad-option-value
 
 [TYPECHECK]
 # Needed GTK+: pack_start window
 generated-members = pack_start, window
+ignored-modules = gi.repository
+ignored-classes = gi.repository
 
 [VARIABLES]
 # Needed for I18N Support: "_"

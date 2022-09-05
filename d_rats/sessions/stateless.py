@@ -34,7 +34,7 @@ class StatelessSession(base.Session):
         '''
         Read a frame off the queue.
 
-        :returns: Tuple of source station, destinaton station, and frame data
+        :returns: Tuple of source station, destination station, and frame data
         '''
         frame = self.inq.dequeue()
 

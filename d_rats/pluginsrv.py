@@ -49,7 +49,7 @@ class ProxyInvalidRPCName(PluginSrvException):
 
 class DRatsChatEvent():
     '''
-    DRats Chat Event.
+    D-Rats Chat Event.
 
     :param src_station: Source station, default None
     :type src_station: str

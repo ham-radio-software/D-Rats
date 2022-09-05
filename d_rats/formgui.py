@@ -55,7 +55,7 @@ from . import spell
 # Not currently used
 # TEST = """
 # <xml>
-#  <form id="testform">
+#  <form id="test_form">
 #    <title>Test Form</title>
 #    <field id="foo">
 #      <caption>Name</caption>
@@ -168,7 +168,7 @@ def xml_unescape(string):
 
     :param string: string containing XML
     :type string: str
-    :returns: string with excapes replaced with original text
+    :returns: string with escapes replaced with original text
     :rtype: str
     '''
     data = {}
@@ -210,16 +210,16 @@ class FormWriter():
     '''Form Writer.'''
 
     @staticmethod
-    def write(formxml, outfile):
+    def write(form_xml, outfile):
         '''
         Write.
 
-        :param formxml: String with form in XML
-        :type formxml: str
+        :param form_xml: String with form in XML
+        :type form_xml: str
         :param outfile: File to write out
         :type outfile: str
         '''
-        doc = etree.fromstring(formxml)
+        doc = etree.fromstring(form_xml)
         doc.write(outfile, pretty_print=True)
 
 
@@ -234,7 +234,7 @@ class HTMLFormWriter(FormWriter):
     '''
 
     def __init__(self, form_type, xsl_dir):
-        self.logger = logging.getLogger("HTMLFormwriter")
+        self.logger = logging.getLogger("HTMLFormWriter")
         self.xslpath = os.path.join(xsl_dir, "%s.xsl" % form_type)
         if not os.path.exists(self.xslpath):
             self.xslpath = os.path.join(xsl_dir, "default.xsl")
@@ -249,8 +249,8 @@ class HTMLFormWriter(FormWriter):
         :type outfile: str
         '''
         self.logger.info("Writing to %s", outfile)
-        styledoc = etree.parse(self.xslpath)
-        style_sheet = etree.XSLT(styledoc)
+        style_doc = etree.parse(self.xslpath)
+        style_sheet = etree.XSLT(style_doc)
         result = style_sheet(doc)
         result.write(outfile, pretty_print=True)
 
@@ -263,8 +263,8 @@ class HTMLFormWriter(FormWriter):
         :returns: element written as a string
         :rtype: str
         '''
-        styledoc = etree.parse(self.xslpath)
-        style_sheet = etree.XSLT(styledoc)
+        style_doc = etree.parse(self.xslpath)
+        style_sheet = etree.XSLT(style_doc)
         result = style_sheet(doc)
         return etree.tostring(result, pretty_print=True).decode()
 
@@ -361,7 +361,7 @@ class FieldWidget():
         '''
         if self.widget:
             self.widget.set_sensitive(editable)
-            # Gtk 3 ignors set_style, have to learn a bit on
+            # Gtk 3 ignores set_style, have to learn a bit on
             # how to use css to replace this function.
             # style_context = self.widget.get_style_context()
             # self.widget.set_style(STYLE_BRIGHT_INSENSITIVE)
@@ -545,18 +545,18 @@ class DateWidget(FieldWidget):
         days = [str("%02i" % xday) for xday in range(1, 32)]
         years = [str(xyear) for xyear in range(int(year)-2, int(year)+2)]
 
-        self.monthbox = make_choice(months, False, month)
-        self.daybox = make_choice(days, False, day)
-        self.yearbox = make_choice(years, False, year)
+        self.month_box = make_choice(months, False, month)
+        self.day_box = make_choice(days, False, day)
+        self.year_box = make_choice(years, False, year)
 
         self.widget = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
-        self.widget.pack_start(self.monthbox, 0, 0, 0)
-        self.widget.pack_start(self.daybox, 0, 0, 0)
-        self.widget.pack_start(self.yearbox, 0, 0, 0)
+        self.widget.pack_start(self.month_box, 0, 0, 0)
+        self.widget.pack_start(self.day_box, 0, 0, 0)
+        self.widget.pack_start(self.year_box, 0, 0, 0)
 
-        self.monthbox.show()
-        self.daybox.show()
-        self.yearbox.show()
+        self.month_box.show()
+        self.day_box.show()
+        self.year_box.show()
 
         self.widget.show()
 
@@ -567,9 +567,9 @@ class DateWidget(FieldWidget):
         :returns: Text date
         :rtype: str
         '''
-        return "%s-%s-%s" % (self.daybox.get_active_text(),
-                             self.monthbox.get_active_text(),
-                             self.yearbox.get_active_text())
+        return "%s-%s-%s" % (self.day_box.get_active_text(),
+                             self.month_box.get_active_text(),
+                             self.year_box.get_active_text())
 
 
 # pylint wants only 7 instance attributes
@@ -811,7 +811,7 @@ class MultiselectWidget(FieldWidget):
         Toggle handler for CellRenderer.
 
         :param _rend: not used
-        :type _rend: :class:`Gtk.CellrenderToggle`
+        :type _rend: :class:`Gtk.CellRendererToggle`
         :param path: Path to toggle a boolean state
         :type path: str
         '''
@@ -882,13 +882,14 @@ class MultiselectWidget(FieldWidget):
         vals = {}
         iter_value = self.store.get_iter_first()
         while iter_value:
-            setval, name = self.store.get(iter_value, 0, 1)
-            vals[name] = setval
+            set_value, name = self.store.get(iter_value, 0, 1)
+            vals[name] = set_value
             iter_value = self.store.iter_next(iter_value)
 
         children = self.node.getchildren()
         for child in children:
             choice = etree.tostring(child).strip()
+            # pylint: disable=consider-iterating-dictionary
             if choice not in list(vals.keys()):
                 vals[choice] = False
 
@@ -1079,6 +1080,7 @@ class FormFile():
         try:
             self.doc = etree.parse(self._filename)
         except etree.XMLSyntaxError as err:
+            # pylint: disable=raise-missing-from
             raise FormguiFileNotValid("Form file %s is not valid! (%s)" %
                                       (filename, err))
 
@@ -1175,13 +1177,13 @@ class FormFile():
         :returns: List of x paths
         :rtype: list[str]
         '''
-        pathels = []
+        path_elements = []
         for element in self.__get_xpath("//form/path/e"):
             if element.text:
                 text = element.text.strip()
                 if text:
-                    pathels.append(text)
-        return pathels
+                    path_elements.append(text)
+        return path_elements
 
     def __get_path(self):
         els = self.__get_xpath("//form/path")
@@ -1443,12 +1445,12 @@ class FormFile():
 
         els = self.__get_xpath("//form")
         if len(els) == 1:
-            attnode = etree.Element('att')
-            els[0].append(attnode)
-            attnode.set('name', name)
+            attachment_node = etree.Element('att')
+            els[0].append(attachment_node)
+            attachment_node.set('name', name)
             data = zlib.compress(data, 9)
             data = base64.b64encode(data)
-            self.__set_content(attnode, data)
+            self.__set_content(attachment_node, data)
 
     def del_attachment(self, name):
         '''
@@ -1485,9 +1487,9 @@ class FormDialog(FormFile, Gtk.Dialog):
         self.process_fields(self.doc)
         self.title_text = title
         self.set_title(self.title_text)
-        self.attbox = None
-        self._srcbox = None
-        self._dstbox = None
+        self.attachment_box = None
+        self._source_box = None
+        self._destination_box = None
 
         try:
             x_pos = self.config.getint("state", "form_%s_x" % self.ident)
@@ -1563,7 +1565,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         :type _button: :class:`GtkButton`
         :param _data: Not used
         '''
-        self.logger.info("but_save: what is callign this?",
+        self.logger.info("but_save: what is calling this?",
                          stack_info=True)
         platform = dplatform.get_platform()
         outfile = platform.gui_save_file(default_name="%s.html" % self.ident)
@@ -1573,7 +1575,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         try:
             self.export(outfile)
         except OSError as err:
-            self.logger.info("button_save: %s", err)
+            self.logger.info("but_save: %s", err)
 
             err_dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
                                            parent=self)
@@ -1591,6 +1593,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         :type _button: :class:`Gtk.Button`
         :param _data: Not used
         '''
+        # pylint: disable=consider-using-with
         outfile = tempfile.NamedTemporaryFile(suffix=".html")
         name = outfile.name
         outfile.close()
@@ -1601,7 +1604,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         dplatform.get_platform().open_html_file(name)
 
     @staticmethod
-    def calc_check(buffer, checkwidget):
+    def calc_check(buffer, check_widget):
         '''
         Calc check changed handler.
 
@@ -1610,12 +1613,12 @@ class FormDialog(FormFile, Gtk.Dialog):
 
         :param buffer: Buffer to check
         :type buffer: :class:`Gtk.Editable`
-        :param checkwidget: Widget to use for check
-        :type: checkwidget: :class:`Gtk.Editable`
+        :param check_widget: Widget to use for check
+        :type: check_widget: :class:`Gtk.Editable`
         '''
         message = buffer.get_text(buffer.get_start_iter(),
                                   buffer.get_end_iter(), True)
-        checkwidget.set_text("%i" % len(message.split()))
+        check_widget.set_text("%i" % len(message.split()))
 
     # pylint wants only 15 local variables
     # pylint: disable=too-many-locals
@@ -1628,30 +1631,33 @@ class FormDialog(FormFile, Gtk.Dialog):
         '''
         grid = Gtk.Grid.new()
 
-        src_label = Gtk.Label.new(_("Source Callsign"))
-        src_label.show()
+        source_label = Gtk.Label.new(_("Source Callsign"))
+        source_label.show()
 
-        srcbox = Gtk.Entry()
-        srcbox.set_text(self.get_path_src())
-        srcbox.set_editable(False)
-        srcbox.show()
-        self._srcbox = srcbox
+        source_box = Gtk.Entry()
+        source_box.set_text(self.get_path_src())
+        source_box.set_editable(False)
+        source_box.show()
+        self._source_box = source_box
 
-        dst_label = Gtk.Label.new(_("Destination Callsign"))
-        dst_label.show()
+        destination_label = Gtk.Label.new(_("Destination Callsign"))
+        destination_label.show()
 
-        dstbox = Gtk.Entry()
-        dstbox.set_text(self.get_path_dst())
-        dstbox.show()
-        self._dstbox = dstbox
+        destination_box = Gtk.Entry()
+        destination_box.set_text(self.get_path_dst())
+        destination_box.show()
+        self._destination_box = destination_box
 
-        grid.attach(src_label, 0, 0, 1, 1)
+        grid.attach(source_label, 0, 0, 1, 1)
 
-        grid.attach_next_to(srcbox, src_label, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(source_box, source_label,
+                            Gtk.PositionType.RIGHT, 1, 1)
 
-        grid.attach_next_to(dst_label, srcbox, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(destination_label, source_box,
+                            Gtk.PositionType.RIGHT, 1, 1)
 
-        grid.attach_next_to(dstbox, dst_label, Gtk.PositionType.RIGHT, 1, 1)
+        grid.attach_next_to(destination_box, destination_label,
+                            Gtk.PositionType.RIGHT, 1, 1)
 
         expander = Gtk.Expander()
         expander.set_label(_("Routing Information"))
@@ -1668,15 +1674,15 @@ class FormDialog(FormFile, Gtk.Dialog):
         :returns Gtk.Expander object
         :rtype: :class:`Gtk.Expander`
         '''
-        pathels = self.get_path()
+        path_elements = self.get_path()
 
-        pathbox = Gtk.Entry()
-        pathbox.set_text(";".join(pathels))
-        pathbox.set_property("editable", False)
-        pathbox.show()
+        path_box = Gtk.Entry()
+        path_box.set_text(";".join(path_elements))
+        path_box.set_property("editable", False)
+        path_box.show()
 
         expander = Gtk.Expander.new(_("Path"))
-        expander.add(pathbox)
+        expander.add(path_box)
         expander.show()
 
         return expander
@@ -1696,13 +1702,13 @@ class FormDialog(FormFile, Gtk.Dialog):
         cols = [(GObject.TYPE_STRING, "KEY"),
                 (GObject.TYPE_STRING, _("Name")),
                 (GObject.TYPE_INT, _("Size (bytes)"))]
-        self.attbox = KeyedListWidget(cols)
-        self.attbox.set_resizable(0, True)
-        self.attbox.set_expander(0)
-        self.attbox.show()
+        self.attachment_box = KeyedListWidget(cols)
+        self.attachment_box.set_resizable(0, True)
+        self.attachment_box.set_expander(0)
+        self.attachment_box.show()
         scrollw = Gtk.ScrolledWindow()
         scrollw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrollw.add(self.attbox)
+        scrollw.add(self.attachment_box)
         scrollw.show()
 
         hbox.pack_start(scrollw, 1, 1, 1)
@@ -1716,15 +1722,15 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param key: Key that was set
             :type key: str
             '''
-            natt = len(self.attbox.get_keys())
+            natt = len(self.attachment_box.get_keys())
             self.logger.info("Item %s set: %i", key, natt)
             if natt:
                 msg = _("Attachments") + " (%i)" % natt
-                attexp.set_label("<span color='blue'>%s</span>" % msg)
+                attachment_exp.set_label("<span color='blue'>%s</span>" % msg)
             else:
-                attexp.set_label(_("Attachments"))
+                attachment_exp.set_label(_("Attachments"))
 
-        self.attbox.connect("item-set", item_set)
+        self.attachment_box.connect("item-set", item_set)
 
         bbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         bbox.show()
@@ -1738,6 +1744,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param _button: Button widget
             :type _button: :class:`GtkWidget`
             '''
+            # pylint: disable=consider-using-with
             fname = dplatform.get_platform().gui_open_file()
             if fname:
                 name = os.path.basename(fname)
@@ -1745,7 +1752,7 @@ class FormDialog(FormFile, Gtk.Dialog):
                 data = file_handle.read()
                 file_handle.close()
                 self.add_attachment(name, data)
-                self.attbox.set_item(name, name, len(data))
+                self.attachment_box.set_item(name, name, len(data))
 
         add = Gtk.Button.new_with_label(_("Add"))
         add.connect("clicked", button_add)
@@ -1760,9 +1767,9 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param _button: Button activated, Unused
             :type _button: :class:`Gtk.Button`
             '''
-            name = self.attbox.get_selected()
+            name = self.attachment_box.get_selected()
             self.del_attachment(name)
-            self.attbox.del_item(name)
+            self.attachment_box.del_item(name)
             item_set(None, name)
 
         rem = Gtk.Button.new_with_label(_("Remove"))
@@ -1771,18 +1778,19 @@ class FormDialog(FormFile, Gtk.Dialog):
         bbox.pack_start(rem, 0, 0, 0)
 
         @run_or_error
-        def button_save(_buttton):
+        def button_save(_button):
             '''
             Button Save Handler.
 
             :param _button: Button that was pressed, Unused
             :type _button: :class:`Gtk.Widget`
             '''
-            name = self.attbox.get_selected()
+            name = self.attachment_box.get_selected()
             if not name:
                 return
             fname = dplatform.get_platform().gui_save_file(default_name=name)
             if fname:
+                # pylint: disable=consider-using-with
                 file_handle = open(fname, "wb")
                 data = self.get_attachment(name)
                 if not data:
@@ -1790,22 +1798,22 @@ class FormDialog(FormFile, Gtk.Dialog):
                 file_handle.write(data)
                 file_handle.close()
 
-        sav = Gtk.Button.new_with_label(_("Save"))
-        sav.connect("clicked", button_save)
-        sav.show()
-        bbox.pack_start(sav, 0, 0, 0)
+        save_button = Gtk.Button.new_with_label(_("Save"))
+        save_button.connect("clicked", button_save)
+        save_button.show()
+        bbox.pack_start(save_button, 0, 0, 0)
 
-        attexp = Gtk.Expander.new(_("Attachments"))
-        attexp.set_use_markup(True)
+        attachment_exp = Gtk.Expander.new(_("Attachments"))
+        attachment_exp.set_use_markup(True)
         hbox.show()
-        attexp.add(hbox)
-        attexp.show()
+        attachment_exp.add(hbox)
+        attachment_exp.show()
 
         atts = self.get_attachments()
         for name, size in atts:
-            self.attbox.set_item(name, name, size)
+            self.attachment_box.set_item(name, name, size)
 
-        return attexp
+        return attachment_exp
 
     # pylint wants only 15 local variables
     # pylint: disable=too-many-locals
@@ -2018,6 +2026,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             elif field.ident == "_auto_position":
                 if not field.entry.widget.get_text():
                     self.logger.info("import . mainapp")
+                    # pylint: disable=import-outside-toplevel
                     from . import mainapp # Dirty hack
                     pos = mainapp.get_mainapp().get_position()
                     field.entry.widget.set_text(pos.coordinates())
@@ -2073,10 +2082,10 @@ class FormDialog(FormFile, Gtk.Dialog):
 
     def update_dst(self):
         '''Update Destination.'''
-        dst = self._dstbox.get_text()
-        if "@" not in dst:
-            dst = dst.upper()
-        self.set_path_dst(dst)
+        destination = self._destination_box.get_text()
+        if "@" not in destination:
+            destination = destination.upper()
+        self.set_path_dst(destination)
 
     # Renamed from run to prevent conflict with the parent Gtk.Dialog class
     def run_dialog(self):
@@ -2116,6 +2125,7 @@ def main():
     logger = logging.getLogger("FormguiTest")
     current_info = None
 
+    # pylint: disable=import-outside-toplevel
     from . import config
     config_data = config.DratsConfig(None)
 

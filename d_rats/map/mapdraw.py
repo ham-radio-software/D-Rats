@@ -75,7 +75,7 @@ class MapDraw():
     inside the draw handler.
 
     Putting in its own class to avoid confusion.
-    This class should only be instanciated by the handler classmethod.
+    This class should only be instantiated by the handler classmethod.
 
     :param map_widget: Calling widget context
     :type map_widget: :class:`Map.Mapwidget`
@@ -104,7 +104,7 @@ class MapDraw():
         '''
         Set Center.
 
-        Set a flag to have the window scrollbars centered.
+        Set a flag to have the window scroll bars centered.
 
         :param pos: New center position
         :type pos: :class:`Map.MapPosition`
@@ -129,7 +129,7 @@ class MapDraw():
         This handles a draw event to the MapWidget drawable area
 
         These draw events are signaled by:
-        Moving the scrollbars of the parent scrolled window.
+        Moving the scroll bars of the parent scrolled window.
 
         :param map_widget: Calling widget context
         :type map_widget: :class:`Map.Mapwidget`
@@ -167,9 +167,9 @@ class MapDraw():
         if cls.__zoom_changed or cls.__center_changed:
             map_widget.calculate_bounds()
 
-            # We do not know the page size of the scrollbars until we get
+            # We do not know the page size of the scroll bars until we get
             # here, so self._center change is used to let us know when
-            # we need to have the program adjust the scrollbars to the new
+            # we need to have the program adjust the scroll bars to the new
             # center.
             if cls.__center:
                 display_width, display_height = Map.Tile.get_display_limits()
@@ -354,7 +354,7 @@ class MapDraw():
                 # pylint: disable=no-member
                 if err.status != cairo.Status.FILE_NOT_FOUND:
                     # The file not found is because we have a bad tile cached.
-                    # This is to prevent excessive reties for non-existant
+                    # This is to prevent excessive reties for non-existent
                     # map tiles.  Anything else should be logged for more
                     # analysis.
                     self.logger.debug("draw_tile: path %s", path, exc_info=True)

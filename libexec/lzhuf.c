@@ -171,7 +171,7 @@ void FreeDataBuffers(struct fwd *f) {
  * Airmail and Winlink 2000 are using the Xmodem variation of CRC-CCITT
  * to do checksums. This is a bit different from our FCS table values.
  *
- * YES !!! Airmail did a successfull decode of my SEND_YAPP !!!
+ * YES !!! Airmail did a successful decode of my SEND_YAPP !!!
  */
 
 unsigned short crc16tab[256] = {
@@ -1252,7 +1252,7 @@ int recv_yapp(int usock, struct fwd *f, char **pzSubject, int32 Timeoutms, int b
 
 #ifdef HFDD
         if (hfdd_debug)
-                log (-1, "recv_yapp recv timout %d", Timeoutms);
+                log (-1, "recv_yapp recv timeout %d", Timeoutms);
 #endif
 
       while(!NoteDone) {
@@ -1414,7 +1414,7 @@ int recv_yapp(int usock, struct fwd *f, char **pzSubject, int32 Timeoutms, int b
                 if (hfdd_debug)
                         log (-1, "decode finished");
 #endif
-      // Set the socket back to it's orginal mode.
+      // Set the socket back to it's original mode.
       sockmode(usock,oldmode);
 
       if(!NoteError)
