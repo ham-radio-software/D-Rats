@@ -26,10 +26,9 @@ import os
 import sys
 import glob
 import subprocess
-import six.moves.urllib.request # type: ignore
-import six.moves.urllib.parse # type: ignore
-import six.moves.urllib.error # type: ignore
-from six.moves import range # type: ignore
+import urllib.request
+import urllib.parse
+import urllib.error
 
 
 if '_' not in locals():
@@ -60,7 +59,7 @@ class Platform():
 
     def __init__(self, basepath):
         self.logger = logging.getLogger("Platform")
-        self._base = basepath
+        self.set_base_dir(basepath)
         my_dir = os.path.realpath(os.path.dirname(__file__))
         self._source_dir = os.path.dirname(my_dir)
         self._connected = True
@@ -72,6 +71,15 @@ class Platform():
         text.append("  OS version: %s" % self.os_version_string())
 
         return os.linesep.join(text)
+
+    def set_base_dir(self, basepath):
+        '''
+        Set the base directory.
+
+        :param basepath: Base directory
+        :type basepath: str
+        '''
+        self._base = basepath
 
     def config_dir(self):
         '''
@@ -104,8 +112,8 @@ class Platform():
 
         return logdir
 
-    # pylint: disable=no-self-use
-    def filter_filename(self, filename):
+    @staticmethod
+    def filter_filename(filename):
         '''
         Filter Filename.
 
@@ -158,8 +166,8 @@ class Platform():
         '''
         raise NotImplementedError("The base class can't do that")
 
-    # pylint: disable=no-self-use
-    def list_serial_ports(self):
+    @staticmethod
+    def list_serial_ports():
         '''
         List Serial Ports.
 
@@ -168,8 +176,8 @@ class Platform():
         '''
         return []
 
-    # pylint: disable=no-self-use
-    def default_dir(self):
+    @staticmethod
+    def default_dir():
         '''
         Default Directory.
 
@@ -178,8 +186,8 @@ class Platform():
         '''
         return "."
 
-    # pylint: disable=no-self-use
-    def gui_open_file(self, start_dir=None):
+    @staticmethod
+    def gui_open_file(start_dir=None):
         '''
         GUI Open File.
 
@@ -209,8 +217,8 @@ class Platform():
             return fname
         return None
 
-    # pylint: disable=no-self-use
-    def gui_save_file(self, start_dir=None, default_name=None):
+    @staticmethod
+    def gui_save_file(start_dir=None, default_name=None):
         '''
         GUI Save File.
 
@@ -245,8 +253,8 @@ class Platform():
             return fname
         return None
 
-    # pylint: disable=no-self-use
-    def gui_select_dir(self, start_dir=None):
+    @staticmethod
+    def gui_select_dir(start_dir=None):
         '''
         Gui Select Directory.
 
@@ -278,8 +286,8 @@ class Platform():
             return fname
         return None
 
-    # pylint: disable=no-self-use
-    def os_version_string(self):
+    @staticmethod
+    def os_version_string():
         '''
         OS Version String.
 
@@ -313,8 +321,7 @@ class Platform():
         :returns: Data from URL
         '''
         if self._connected:
-            #if yes connected=true return url to be connect
-            return six.moves.urllib.request.urlretrieve(url)
+            return urllib.request.urlretrieve(url)
 
         raise NotConnectedError("Not connected")
 
@@ -327,7 +334,6 @@ class Platform():
         '''
         self._connected = connected
 
-    # pylint: disable=no-self-use
     def play_sound(self, _soundfile):
         '''
         Play Sound.
@@ -350,13 +356,22 @@ class UnixPlatform(Platform):
 
     def __init__(self, basepath):
         self.logger = logging.getLogger("UnixPlatform")
+        self.set_base_dir(basepath)
+        Platform.__init__(self, basepath)
+
+    def set_base_dir(self, basepath):
+        '''
+        Set the base directory.
+
+        :param basepath: Base directory
+        :type basepath: str
+        '''
         if not basepath:
             basepath = os.path.abspath(os.path.join(self.default_dir(),
                                                     ".d-rats-ev"))
         if not os.path.isdir(basepath):
             os.mkdir(basepath)
-
-        Platform.__init__(self, basepath)
+        self._base = basepath
 
     def source_dir(self):
         '''
@@ -382,8 +397,8 @@ class UnixPlatform(Platform):
         '''
         return os.path.abspath(os.getenv("HOME"))
 
-    # pylint: disable=no-self-use
-    def filter_filename(self, filename):
+    @staticmethod
+    def filter_filename(filename):
         '''
         Filter Filename.
 
@@ -394,7 +409,6 @@ class UnixPlatform(Platform):
         '''
         return filename.replace("/", "")
 
-    # pylint: disable=no-self-use
     def _unix_doublefork_run(self, *args):
         pid1 = os.fork()
         if pid1 == 0:
@@ -609,6 +623,17 @@ class Win32Platform(Platform):
 
     def __init__(self, basepath=None):
         self.logger = logging.getLogger("Win32Platform")
+        self.set_base_dir(basepath)
+
+        Platform.__init__(self, basepath)
+
+    def set_base_dir(self, basepath):
+        '''
+        Set the base directory.
+
+        :param basepath: Base directory
+        :type basepath: str
+        '''
         if not basepath:
             appdata = os.getenv("APPDATA")
             if not appdata:
@@ -617,8 +642,7 @@ class Win32Platform(Platform):
 
         if not os.path.isdir(basepath):
             os.mkdir(basepath)
-
-        Platform.__init__(self, basepath)
+        self._base = basepath
 
     def default_dir(self):
         '''
@@ -669,6 +693,7 @@ class Win32Platform(Platform):
         :returns: List of serial ports
         :rtype: list[str]
         '''
+        # pylint not handing cross-platform import checks
         # pylint: disable=import-error
         try:
             import win32file # type: ignore
@@ -712,6 +737,7 @@ class Win32Platform(Platform):
         :returns: Filename to open or none.
         :rtype: str
         '''
+        # pylint not handing cross-platform import checks
         # pylint: disable=import-error
         try:
             import win32gui # type: ignore
@@ -739,6 +765,7 @@ class Win32Platform(Platform):
         :returns: filename to save to or None
         :rtype: str
         '''
+        # pylint not handing cross-platform import checks
         # pylint: disable=import-error
         try:
             import win32gui # type: ignore
@@ -762,9 +789,10 @@ class Win32Platform(Platform):
 
         :param start_dir: directory to start in, default None
         :type start_dir: str
-        :returns: selected diretory or None
+        :returns: selected directory or None
         :rtype: str
         '''
+        # pylint not handing cross-platform import checks
         # pylint: disable=import-error
         try:
             from win32com.shell import shell # type: ignore
@@ -794,6 +822,7 @@ class Win32Platform(Platform):
         :returns: Platform version string
         :rtype: str
         '''
+        # pylint not handing cross-platform import checks
         # pylint: disable=import-error, unused-import
         try:
             import win32api # type: ignore
@@ -811,6 +840,7 @@ class Win32Platform(Platform):
                 "5.1": "Windows XP",
                 "5.0": "Windows 2000",
                }
+        # pylint not handing cross-platform import checks
         # pylint: disable=undefined-variable
         (major_version, minor_version, _build_number, _platform_id, _version) \
             = win32api.GetVersionEx() # type: ignore
@@ -826,6 +856,7 @@ class Win32Platform(Platform):
         :param soundfile: file to play sound from
         :type soundfile: str
         '''
+        # pylint not handing cross-platform import checks
         # pylint: disable=import-error
         import winsound
 
