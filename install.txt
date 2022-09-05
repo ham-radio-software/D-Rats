@@ -11,27 +11,37 @@ GNU General Public License for more details.
 -----------------------
 # Copyright 2008 Dan Smith <dsmith@danplanet.com> 
 # review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
+# Python3 conversion Copyright 2020-2022 John Malmberg <wb8tyw@qsl.net>
 -----------------------
 
-Welcome to D-Rats compiled for Windows - tested on XP, and Windows 10
+Welcome to D-Rats compiled for Windows - tested on 7, and Windows 10
+Windows 7 support is being dropped by the third party libraries needed soon.
 
 --------------------------------------
 IF YOU ARE ALREADY A USER OF D-RATS
 
 COMPATIBILITY NOTES
 ** D-RATS 0.3.5 --> 0.3.6** 
-this version share the same configuration file of 0.3.5 - there are no actions to be done 
+This version share the same configuration file of 0.3.5 - there are no actions
+to be done.
 
 ** D-RATS 0.3.4 ** 
-this version, like 0.3.5, need a configuration file which is different from 0.3.4, so please remove or delete it:
+This version, like 0.3.5, need a configuration file which is different from
+0.3.4, so please remove or delete it:
 
-C:\Users\YOUR-USER-NANME\AppData\Roaming\D-RATS-EV\d-rats.config
+C:\Users\YOUR-USER-NAME\AppData\Roaming\D-RATS-EV\d-rats.config
 
 ** D-RATS <= 0.3.3 ** 
-This version will create its own data folder in parallel to the one created by former d-Rats 0.3.3 install, so not to interfere 
+This version will create its own data folder in parallel to the one created
+by former d-Rats 0.3.3 install, so not to interfere.
 
 
 --------------------------------------
 IF YOU ARE A FIRST TIME USER OF D-RATS
 
-To use this version just uncompress it into a folder of your choice and launch d-rats.exe
+D-rats can be run from a copy of the git repository you found it in.
+However you will need to build the message catalogs for internationalization
+to work and lzhuf for winlink support.
+At some point we need some documentation for those steps.
+
+See the file README.md for more details.

@@ -1,0 +1,18 @@
+# requirements for d-rats
+# Packages needed for running
+lxml
+pycairo
+PyGObject
+pyserial
+Pillow
+# packages recommended for running
+geopy
+feedparser
+# packages needed for development
+Sphinx
+virtualenv
+pylint
+build
+setuptools
+wheel
+towncrier

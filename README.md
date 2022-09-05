@@ -22,7 +22,7 @@ GNU General Public License for more details.
 
 Dan Smith (KK7DS)
 
-### Maintainer
+### Maintainers
 
 Maurizio Andreotti IZ2LXI - Stable branch
 <https://github.com/maurizioandreotti/D-Rats>
@@ -34,10 +34,12 @@ John E. Malmberg WB8TYW - Python3/Experimental port
 
 This version of D-Rats is an experimental fork version of the D-Rats 0.3.3.
 originally developed and Copyrighted by 2008 Dan Smith <dsmith@danplanet.com>
-and later reviewed in 2015, 2019 and 2020 by me, Maurizio Andreotti
+and later reviewed in 2015, 2019 and 2020 by me, Maurizio Andreotti.
+
+Python3 conversion Copyright 2021-2022 John Malmberg.
 
 This is likely to be changing a lot as a lot of functionality has not been
-tested and some functionality does not work.
+tested and some functionality may not work.
 
 See: <https://github.com/wb8tyw/D-Rats/wiki/Tests-and-issues-found>
 
@@ -48,6 +50,8 @@ Luckily there is no obligation for anybody to use it, in particular if you are
 happy with the one from Dan.
 
 If this works for you I am happy, If it doesn't ...
+
+### A note from Maurizio Andreotti
 
 ***Note for awareness and understanding***
 
@@ -84,32 +88,30 @@ things.
 
 ## Supported systems
 
-This is in flux at the moment for this fork.
-Currently this is only being tested on Anti-X linux, which can run both the
-experimental version and the stable version.
+Currently this experimental fork is only being tested by John Malmberg
+on Anti-X linux, which can run both the experimental version and the stable version and Msys2 mingw64 on Microsoft Windows which can only run the python3 version.
 
-This version requires GTK-3.
+Anti-X Linux is a Debian based distribution that will run on older systems
+with limited memory.
 
-Only the d-rats_repeater function is currently working under Python3.
+This version requires Python 3.7+ and GTK-3.
 
-Eventually the python2 support will likely be removed from this fork.
+For now support or the pre-built executables has been dropped.
+You will need to install a Python 3 interpreter.
 
-### Older Text
-
-This program ONLY work with older Linux distributions that still include
-Python2, GTK2, etc.
-Support for this program on newer distributions is NOT possible until
-major porting work is completed.
-
-On Ms Windows the program works only when compiled on Windows XP 32 bit and
-distributed keeping some of the DLLs related to GDI and Networking of that
-version.
+John Malmberg will not be installing or testing any Python interpreter
+that requires a paid license for commercial work, even if that license allows
+free non-commercial use.  Some Pythons distributions for Microsoft Windows
+have this restriction.
 
 ---
 
 ## Release notes
 
-see change log:
+See the NEWS.rst file, and for unreleased code also see the changes
+directory.
+
+For the 0.3 releases see the change log:
 <https://github.com/ham-radio-software/D-Rats/blob/master/changelog>
 
 ---
@@ -120,29 +122,9 @@ see change log:
 
 ---
 
-### READY TO RUN -- EXECUTION ON WINDOWS
+## Running, Testing and Building packages
 
-To install the new version of D-Rats on Windows download the distribution
-version (file in .rar format)
-un-compress it in a folder of your choice and just run d-rats.exe
-
-AT THE MOMENT THERE IS A "BUILT VERSION" IN THE RAR FILE, BUT THERE ARE SOME
-KNOWN ISSUES WITH LIBRARIES NOT INCLUDED,  SO IT IS POSSIBLE THAT IT WILL NOT
-WORK ON YOUR SYSTEM. PLEASE REPORT ME THE PROBLEMS YOU HAVE.  YOUR HELP CAN
-BE USEFUL TO SORT THIS OUT.
-
-The windows executable can be downloaded from here:
-      - <https://iz2lxi.jimdofree.com/>
-
-Note that at runtime the eventual errors are logged into a file located either
-at:
-
-- d-rats.exe location as d-rats.log
-- C:\Users\<username>\AppData\Roaming\D-RATS-EV\debug.log
-
----
-
-### INSTALL ON LINUX
+### Installing Python
 
 (contrib & credit Marius Petrescu)
 Quick update by John Malmberg
@@ -153,6 +135,8 @@ The installation steps are quite easy (assuming one has all the needed python
 libs installed):
 
 Debian packages needed for running or development.
+The python2 packages are only needed for running the stable python2 version
+of d-rats.
 
 aspell aspell-en bandit(future) gedit python2 python3 pylint pylint3 glade
 python-gobject python-gtk2 python3-gi python-glade2 python-serial
@@ -160,16 +144,161 @@ python3-serial python-libxml2 python-libxslt1 python3-lxml python-simplejson
 python-feedparser python-flask python-gevent python3-gevent python-socketio
 python3-greenlet python-ipykernel python-gi-cairo python-geopy python-pil
 
-After this, the steps are as follows:
+For msys2, the script msys2_packages.sh will hopefully install all the
+needed packages.  The "dev" parameter is passed to install extra images
+needed for development, or installing directly from a git archive.
 
-cd to your D-Rats source directory
-issue 'python setup.py build'
-issue 'python setup.py install'    (this could require a sudo)
+If the script is updating certain packages, it may need to have the msys2
+windows shutdown after running, and then need to be re-run to complete the
+install.
 
-you can now execute D-Rats from terminal,:
+Repeat running the script until it no longer requests a msys2 restart.
+Normally an msys2 restart or install should not require a reboot of
+Microsoft Windows.
+
+Other Python interpreters should be similar.  If the python distribution does
+not supply all of the packages, then PIP can be used to supply the missing
+packages.  PIP generally should always be used with a python virtual
+environment.
+
+See: <https://github.com/wb8tyw/D-Rats/wiki/Running-d-rats-in-a-venv-environment-and-PIP>
+
+And read the rest of this document for more tips.
+
+### Running directly from the D-rats source
+
+Running directly from the D-rats source is easily done.
+
+You can clone the git repository into a work directory so that you can
+run the latest pre-release, or git allows you to download a compressed
+archive of any commit or pull request.
+
+Before running D-Rats there are two optional tasks if you want everything
+to work.
+
+If you want Winlink support to work, you need to build the lzhuf binary.
+
+- make -C libexec
+
+If you want the internationalization to work, and especially if you want
+to add more languages you have to build the message catalogs.
+
+See <https://github.com/wb8tyw/D-Rats/wiki/Internationalization> for the
+easy steps for building and maintaining the message catalogs.
+
+### Build for INSTALL ON LINUX and MSYS2 and others
+
+This should work for all platforms.
+
+When a pull request is submitted, it should have a file put in the changes
+directory for the tickets that resolves.
+
+Note that we do not do the 'towncrier build' command.  The packaging
+building process will to that.  You can use the 'towncrier build --draft'
+command to see what will be appended to the NEWS.rst file.
+See <https://pypi.org/project/towncrier/>
+
+If you run the 'towncrier build' command by accident, you will need
+revert the local changes that it makes to your checked out git repository.
+
+Normally a git tag with a PEP-440 compliant version will be created before
+the python package build procedure is run, and you would check out that
+commit for doing the build.
+
+The current build procedure requires setting up a python venv.
+See: <https://github.com/wb8tyw/D-Rats/wiki/Running-d-rats-in-a-venv-environment-and-PIP>
+
+For msys2, if you have made an update to the msys2 packages, you may need
+to delete and recreate your python venv.
+
+Activate the venv as per the link above.
+
+Change the default to your D-Rats source directory
+
+Install the packages needed for building into the venv.
+issue 'pip install -r requirements.txt'
+
+Microsoft Windows users may need to 'pip install pywin32 into the virtualenv
+depending which python distribution they are using.  It is not needed for
+msys2.
+
+Use 'pip freeze' to see what python modules are currently installed.
+
+You can upgrade PIP with the command given if yoo are getting a message
+about it needing and upgrade.  With the venv activated all changes are
+local to the venv.
+
+If you are using a shared directory for multiple platforms, before
+running the build procedure remove the old lzhuf binary so the setup
+procedure will build the correct binary for the target.
+
+Normally a python package does not include a pre-built binary, and instead
+runs a script to built on a Pip install.  That would add additional software
+to be installed by the end user.
+
+Issue 'python -m build'
+
+The build script will use towncrier to build an updated NEWS.rst file.
+It will modify the checked out git directory with the changes that it did.
+
+If you are just testing the build process, then you need to revert those
+changes from your local git checkout.
+
+For a real release, these changes should be pushed as a followup pull
+request for that branch and merged in.
+
+The build procedure will create a dist directory if it does not exist and
+create what is known as a tarball, and a wheel file.
+
+We do not currently use the wheel file which has an extension of '.whl'.
+
+The tarball has a double extension on it of ".tar.gz".  As compression
+standards evolve, the extension of ".gz" may change to match.
+
+Previously on MS-DOS and other platforms that only supported one dot in a
+filename, the extension of ".tgz" was used instead of ".tar.gz", and that convention is still widely used on those platforms.
+
+Before distributing the tarball, it should be renamed to be indicate the
+platform and architecture in the name.
+
+The built tarball name of 'D-Rats-0.3.10b2.dev301.tar.gz' has these parts:
+
+- Name: 'D-Rats'
+
+- Version: '0.3.10b2.dev301'
+
+- Extension: '.tar.gz'
+
+The platform specific designation is typically put between the version
+and the extension, in the form of '-platform-arch'.
+
+Each Operating System Distribution has conventions on what they use for
+platform and version and these should be followed if known.
+
+So a rename for Msys2 would be 'D-Rats-0.3.10b2.dev301-mingw-w64-x86_64.tar.gz'.
+
+For Linux, it is probably more generic so that
+'D-Rats-0.3.10b2.dev301-linux-x86_64.tar.gz' can be used.
+
+I do not know what the name would be for Mac-OSX, we need some guidance from
+the community.
+
+### Install of a built tarball
+
+To install from a tarball use the command with the path to the tarball.
+The build step above puts the tarball in the dist directory.
+You will have to adjust the tarball name for specific version.
+In the example this is a development version that is 299 commits
+
+For msys2, I had to set my default directory to a different directory
+than the development directory for the pip install to work.
+
+pip install ./dist/D-Rats-0.3.3.10b2.dev300.tar.gz
+
+you can now execute D-Rats from terminal:
 
 > d-rats.py
-> d-rats-terminal
+> d-rats_repeater.py
 
 This should do it. Main scripts are in /usr/local/bin, configuration and logs
 will be found in the user's home directory as .d-rats-ev (a hidden directory).

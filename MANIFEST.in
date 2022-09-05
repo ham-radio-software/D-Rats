@@ -4,10 +4,15 @@ include forms/*.xml
 include forms/*.xsl
 include images/*
 include locale/*/LC_MESSAGES/D-RATS.mo
-include ui/*.glade
+include ui/addport.glade
+include ui/mainwindow.glade
 include d_rats/version.py
+include d-rats.py
+include d-rats_repeater.py
 include share/d-rats2.xpm
 include d-rats2.ico
 include libexec/lzhuf
 include MANIFEST.in
 include COPYING
+include changelog.gz
+include NEWS.rst.gz

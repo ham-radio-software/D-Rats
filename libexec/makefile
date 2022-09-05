@@ -15,4 +15,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	$(RM) $(EXECUTABLE) *.o
+	$(RM) -f $(EXECUTABLE) $(EXECUTABLE).exe *.o
