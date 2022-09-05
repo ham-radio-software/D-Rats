@@ -133,8 +133,9 @@ def set_toolbar_buttons(config, toolbar):
 
 class MainWindowElement(GObject.GObject):
     '''Main Window Element'''
-    def __init__(self, wtree, config, prefix):
+    def __init__(self, wtree, config, prefix, label=None):
         self._prefix = prefix
+        self._label = label
         self._wtree = wtree
         self._config = config
 
@@ -154,18 +155,27 @@ class MainWindowElement(GObject.GObject):
 
 
 class MainWindowTab(MainWindowElement):
-    '''Main Window Tab'''
+    '''
+    Main Window Tab
 
-    def __init__(self, wtree, config, prefix):
-        MainWindowElement.__init__(self, wtree, config, prefix)
+    :param wtree: Window object
+    :param config: Config object
+    :param prefix: Prefix for lookups
+    '''
+
+    def __init__(self, wtree, config, prefix, label=None):
+        MainWindowElement.__init__(self, wtree, config, prefix, label=None)
+        self._label = label
         self._prefix = prefix
         self._notebook = wtree.get_object('main_tabs')
         self._menutab = wtree.get_object("tab_label_%s" % prefix)
+        self._tablabel = None
+        self._selected = None
         if self._menutab:
-            self._tablabel = self._notebook.get_menu_label(self._menutab)
-        else:
-            self._tablabel = None
-        self._selected = False
+            self._menulabel = self._notebook.get_menu_label(self._menutab)
+            if self._label:
+                self._notebook.set_tab_label_text(self._menutab, self._label)
+                self._tablabel = self._notebook.get_tab_label(self._menutab)
 
     def reconfigure(self):
         '''Reconfigure'''
@@ -184,9 +194,11 @@ class MainWindowTab(MainWindowElement):
         if self._selected:
             return
 
-        text = self._tablabel.get_text()
-        self._tablabel.set_markup("<span color='blue'>%s</span>" % text)
+        if self._tablabel:
+            text = self._tablabel.get_text()
+            self._tablabel.set_markup("<span color='blue'>%s</span>" % text)
 
     def _unnotice(self):
-        text = self._tablabel.get_text()
-        self._tablabel.set_markup(text)
+        if self._tablabel:
+            text = self._tablabel.get_text()
+            self._tablabel.set_markup(text)
