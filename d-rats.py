@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # "d-rats.py" does not comply with Snake Case naming, so must suppress this.
 # pylint: disable=invalid-name
 '''d-rats main program'''
