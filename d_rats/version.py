@@ -12,14 +12,10 @@ from __future__ import print_function
 
 import logging
 
-if __name__ == "__main__":
+if not '_' in locals():
     import gettext
-    # pylint: disable=invalid-name
-    lang = gettext.translation("D-RATS",
-                               localedir="./locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
+    _ = gettext.gettext
+
 
 # DRATS_VERSION_NUM can not have "-" characters in it.
 # That will break w2lk
@@ -27,7 +23,7 @@ DRATS_VERSION_NUM = "0.4.00 Alpha"
 DRATS_VERSION = DRATS_VERSION_NUM + " pre-release1"
 DRATS_NAME = "d-rats"
 DRATS_DESCRIPTION = "D-RATS"
-DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"
+DRATS_LONG_DESCRIPTION = _("A communications tool for D-STAR")
 AUTHORS = "Dan Smith, KK7DS" \
           " Maurizio Andreotti, IZ2LXI" \
           " Marius Petrescu, YO2LOJ" \
@@ -53,10 +49,9 @@ TRANSLATIONS = "Italian: Leo, IZ5FSA"
 
 HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION}
 
-# pylint: disable=invalid-name
-module_logger = logging.getLogger("Version")
+MODULE_LOGGER = logging.getLogger("Version")
 
-module_logger.info("HTTP_CLIENT_HEADERS=%s", HTTP_CLIENT_HEADERS)
+MODULE_LOGGER.debug("HTTP_CLIENT_HEADERS=%s", HTTP_CLIENT_HEADERS)
 
 
 def main():
