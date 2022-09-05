@@ -1,7 +1,7 @@
 '''Sniff Packets'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ class SniffSession(stateless.StatelessSession, GObject.GObject):
     :param k: key word arguments
     '''
     __gsignals__ = {
-        "incoming_frame" : (GObject.SIGNAL_RUN_LAST,
+        "incoming_frame" : (GObject.SignalFlags.RUN_LAST,
                             GObject.TYPE_NONE,
                             (GObject.TYPE_STRING,    # Src
                              GObject.TYPE_STRING,    # Dst
