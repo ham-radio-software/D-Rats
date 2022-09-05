@@ -4,6 +4,7 @@
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # minor mods 2015-2020 by Maurizio Andreotti iz2lxi
 #                         <maurizioandreottilc@gmail.com>
+# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
 #
 # #this module contains the d-rats version variables
 

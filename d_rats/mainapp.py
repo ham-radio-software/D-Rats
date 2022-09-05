@@ -1075,22 +1075,22 @@ class MainApp(Gtk.Application):
 
         # setup of the url for retrieving the map tiles depending
         # on the preference
-        if self.config.get("settings", "maptype") == "cycle":
+        maptype = self.config.get("settings", "maptype")
+        if maptype == "cycle":
             mapurl = self.config.get("settings", "mapurlcycle")
             mapkey = self.config.get("settings", "keyformapurlcycle")
-        elif self.config.get("settings", "maptype") == "landscape":
+        elif maptype == "landscape":
             mapurl = self.config.get("settings", "mapurllandscape")
             mapkey = self.config.get("settings", "keyformapurllandscape")
-        elif self.config.get("settings", "maptype") == "outdoors":
+        elif maptype == "outdoors":
             mapurl = self.config.get("settings", "mapurloutdoors")
             mapkey = self.config.get("settings", "keyformapurloutdoors")
         else:
             mapurl = self.config.get("settings", "mapurlbase")
-            mapkey = ""
+            mapkey = None
 
         Map.Window.set_base_dir(os.path.join(
-            self.config.get("settings", "mapdir"),
-            self.config.get("settings", "maptype")), mapurl, mapkey)
+            self.config.get("settings", "mapdir"), maptype), mapurl, mapkey)
 
         Map.Window.set_connected(
             self.config.getboolean("state", "connected_inet"))

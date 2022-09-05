@@ -346,12 +346,12 @@ class MapWindow(Gtk.ApplicationWindow):
             shutil.rmtree(base_dir, True)
             self.map_widget.queue_draw()
 
-    def item_editsources_handler(self, action, _value):
+    def item_editsources_handler(self,_action, _value):
         '''
         Edit Sources Handler.
 
-        :param action: Action that was invoked
-        :type action: :class:`GioSimpleAction`
+        :param _action: Action that was invoked
+        :type _action: :class:`GioSimpleAction`
         :param _value: Value for action, Unused
         '''
         srced = map_source_editor.MapSourcesEditor(self.config)
@@ -907,7 +907,7 @@ class MapWindow(Gtk.ApplicationWindow):
 
     # Called by mainapp
     @staticmethod
-    def set_base_dir(base_dir, map_url, map_key):
+    def set_base_dir(base_dir, map_url, map_key=None):
         '''
         Set Base Directory.
 
