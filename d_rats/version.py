@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Version information'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # minor mods 2015-2020 by Maurizio Andreotti iz2lxi
@@ -7,6 +8,7 @@
 # #this module contains the d-rats version variables
 
 from __future__ import print_function
+
 #importing printlog() wrapper
 from .debug import printlog
 
@@ -37,11 +39,12 @@ LICENSE = "You should have received a copy of the" \
 	      " GNU General Public License along with this program." \
 		  "  If not, see <http://www.gnu.org/licenses/>."
 WEBSITE = "https://groups.io/g/d-rats"
-TRANSLATIONS  ="Italian: Leo, IZ5FSA"
+TRANSLATIONS = "Italian: Leo, IZ5FSA"
 
-HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION }
-printlog("Version","   : HTTP_CLIENT_HEADERS=%s" % HTTP_CLIENT_HEADERS)
-		
+HTTP_CLIENT_HEADERS = {'User-Agent':  DRATS_NAME + "/" +  DRATS_VERSION}
+
+printlog("Version", "   : HTTP_CLIENT_HEADERS=%s" % HTTP_CLIENT_HEADERS)
+
 if __name__ == "__main__":
 	printlog("Version", "   : DRATS_VERSION:         ", DRATS_VERSION)
 	printlog("Version", "   : DRATS_NAME:            ", DRATS_NAME)

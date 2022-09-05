@@ -1,10 +1,11 @@
 #!/usr/bin/python
+'''subst'''
 
 from __future__ import absolute_import
 from __future__ import print_function
 import six.moves.configparser
 
-#importing printlog() wrapper
+# importing printlog() wrapper
 from .debug import printlog
 
 from . import dplatform
@@ -32,7 +33,8 @@ class SubstitutionList(object):
 
             sub = self.get_sub(key)
 
-            printlog("Subst","     : Substitution for %s was: %s" % (key, sub))
+            printlog("Subst",
+                     "     : Substitution for %s was: %s" % (key, sub))
 
             string = first + sub + last
 

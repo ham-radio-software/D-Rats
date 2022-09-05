@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Main Common'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 #
@@ -15,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#importing printlog() wrapper
-from ..debug import printlog
-
 import re
 
 import gi
@@ -26,29 +24,35 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 from d_rats import inputdialog, miscwidgets
-from d_rats import signals
 
 STATION_REGEX = "^[A-Z0-9- /_]+$"
 
-def ask_for_confirmation(question, parent=None):
-    d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.YES_NO,
-                          parent=parent,
-                          message_format=question)
-    r = d.run()
-    d.destroy()
 
-    return r == Gtk.ResponseType.YES
+def ask_for_confirmation(question, parent=None):
+    '''Ask for Confirmation'''
+    dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.YES_NO,
+                               parent=parent,
+                               message_format=question)
+    run_status = dialog.run()
+    dialog.destroy()
+
+    return run_status == Gtk.ResponseType.YES
+
 
 def display_error(message, parent=None):
-    d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
-                          parent=parent,
-                          message_format=message)
-    r = d.run()
-    d.destroy()
+    '''Display Error'''
+    dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
+                               parent=parent,
+                               message_format=message)
+    run_status = dialog.run()
+    dialog.destroy()
 
-    return r == Gtk.ResponseType.OK
+    return run_status == Gtk.ResponseType.OK
 
+
+# pylint: disable=too-many-locals
 def prompt_for_station(_station_list, config, parent=None):
+    '''Prompt for Station'''
     station_list = [str(x) for x in _station_list]
     port_list = []
     for i in config.options("ports"):
@@ -68,62 +72,67 @@ def prompt_for_station(_station_list, config, parent=None):
     station = miscwidgets.make_choice(station_list, True, defsta)
     port = miscwidgets.make_choice(port_list, False, defprt)
 
-    d = inputdialog.FieldDialog(title=_("Enter destination"), parent=parent)
-    d.add_field(_("Station"), station)
-    d.add_field(_("Port"), port)
+    dialog = inputdialog.FieldDialog(title=_("Enter destination"),
+                                     parent=parent)
+    dialog.add_field(_("Station"), station)
+    dialog.add_field(_("Port"), port)
     station.get_child().set_activates_default(True)
 
     while True:
-        res = d.run()
+        res = dialog.run()
         if res != Gtk.ResponseType.OK:
             break
-        s = station.get_active_text().upper()
-        if "@" in s:
+        station_text = station.get_active_text().upper()
+        if "@" in station_text:
             display_error(_("You must enter a station callsign.  " +
-                            "You cannot use an email address here"), d)
+                            "You cannot use an email address here"), dialog)
             continue
-        elif not re.match(STATION_REGEX, s):
-            display_error(_("Invalid character in callsign"), d)
+        elif not re.match(STATION_REGEX, station_text):
+            display_error(_("Invalid character in callsign"), dialog)
             continue
         break
 
-    p = port.get_active_text()
-    d.destroy()
+    port_text = port.get_active_text()
+    dialog.destroy()
     if res == Gtk.ResponseType.OK:
-        return s, p
-    else:
-        return None, None
+        return station_text, port_text
+    return None, None
+
 
 def prompt_for_string(message, parent=None, orig=""):
-    d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK_CANCEL,
-                          parent=parent,
-                          message_format=message)
-    e = Gtk.Entry()
-    e.set_text(orig)
-    e.show()
-    d.vbox.pack_start(e, 1, 1, 1)
+    '''Prompt for String'''
+    dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK_CANCEL,
+                               parent=parent,
+                               message_format=message)
+    entry = Gtk.Entry()
+    entry.set_text(orig)
+    entry.show()
+    dialog.vbox.pack_start(entry, 1, 1, 1)
 
-    r = d.run()
-    d.destroy()
+    run_status = dialog.run()
+    dialog.destroy()
 
-    if r == Gtk.RESPONSE_OK:
-        return e.get_text()
-    else:
-        return None
+    if run_status == Gtk.ResponseType.OK:
+        return entry.get_text()
+    return None
 
-def set_toolbar_buttons(config, tb):
+
+def set_toolbar_buttons(config, toolbar):
+    '''Set Toolbar Buttons'''
     tbsize = config.get("prefs", "toolbar_button_size")
     if tbsize == _("Default"):
-        tb.unset_style()
-        tb.unset_icon_size()
+        toolbar.unset_style()
+        toolbar.unset_icon_size()
     elif tbsize == _("Small"):
-        tb.set_style(Gtk.ToolbarStyle.ICONS)
-        tb.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
+        toolbar.set_style(Gtk.ToolbarStyle.ICONS)
+        toolbar.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
     elif tbsize == _("Large"):
-        tb.set_style(Gtk.ToolbarStyle.BOTH)
-        tb.set_icon_size(Gtk.IconSize.LARGE_TOOLBAR)
+        toolbar.set_style(Gtk.ToolbarStyle.BOTH)
+        toolbar.set_icon_size(Gtk.IconSize.LARGE_TOOLBAR)
+
 
 class MainWindowElement(GObject.GObject):
+    '''Main Window Element'''
     def __init__(self, wtree, config, prefix):
         self._prefix = prefix
         self._wtree = wtree
@@ -141,9 +150,12 @@ class MainWindowElement(GObject.GObject):
         return tuple(widgets)
 
     def reconfigure(self):
-        pass
+        '''Reconfigure'''
+
 
 class MainWindowTab(MainWindowElement):
+    '''Main Window Tab'''
+
     def __init__(self, wtree, config, prefix):
         MainWindowElement.__init__(self, wtree, config, prefix)
         self._prefix = prefix
@@ -156,13 +168,15 @@ class MainWindowTab(MainWindowElement):
         self._selected = False
 
     def reconfigure(self):
-        pass
+        '''Reconfigure'''
 
     def selected(self):
+        '''Selected'''
         self._selected = True
         self._unnotice()
 
     def deselected(self):
+        '''Deselected'''
         self._selected = False
 
     def _notice(self):
@@ -176,4 +190,3 @@ class MainWindowTab(MainWindowElement):
     def _unnotice(self):
         text = self._tablabel.get_text()
         self._tablabel.set_markup(text)
-

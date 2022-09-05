@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Yencode and Ydecode'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
@@ -53,7 +54,7 @@ def yencode_buffer(buf, banned=None):
 def ydecode_buffer(buf):
     '''ydecode_buffer'''
     out = b""
-    
+
     # Needed for python2 compatibility
     if isinstance(out, str):
         out = bytearray(out)
@@ -66,10 +67,10 @@ def ydecode_buffer(buf):
         char = buf[i]
         if char == yesc:
             i += 1
-            v = buf[i] - OFFSET
-            if v < 0:
-                v += 256
-            out += int_to_byte(v)
+            val = buf[i] - OFFSET
+            if val < 0:
+                val += 256
+            out += int_to_byte(val)
         else:
             out += int_to_byte(char)
 
@@ -91,8 +92,9 @@ def int_to_byte(data):
     return result
 
 
-if __name__=="__main__":
-    import sys
+# pylint: disable=too-many-branches
+def main():
+    '''Unit test module'''
 
     action = '-t'
     argc = len(sys.argv) - 1
@@ -117,7 +119,7 @@ if __name__=="__main__":
         if argc > 2:
             outfile = sys.argv[2]
     else:
-        file_handle = open(sys.argv[2], mode='rb')
+        file_handle = open(infile, mode='rb')
         inbuf = file_handle.read()
         file_handle.close()
         if argc > 3:
@@ -145,5 +147,7 @@ if __name__=="__main__":
     if outfile:
         file_handle = open(outfile, 'wb')
         file_handle.write(outbuf)
-        file_handle.close
+        file_handle.close()
 
+if __name__ == "__main__":
+    main()

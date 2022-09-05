@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Transport'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
@@ -18,20 +19,19 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-#importing printlog() wrapper
-from .debug import printlog
-
 import threading
 import re
 import time
 import random
-import traceback
-import sys
+# import traceback
+# import sys
+from six.moves import range
 
+# importing printlog() wrapper
+from .debug import printlog
 from . import utils
 from . import ddt2
 from . import comm
-from six.moves import range
 
 class BlockQueue(object):
     def __init__(self):
@@ -73,7 +73,7 @@ class BlockQueue(object):
         except:
             el = None
         self._lock.release()
-        
+
         return el
 
     def peek_all(self):
@@ -220,7 +220,7 @@ class Transporter(object):
         f.s_station = "CQCQCQ"
         f.d_station = "CQCQCQ"
         f.data = utils.filter_to_ascii(string)
-        
+
         self._handle_frame(f)
 
     def _parse_gps(self):
@@ -239,7 +239,7 @@ class Transporter(object):
     def parse_gps(self):
         while self._match_gps():
             self._parse_gps()
-            
+
     def send_frames(self):
         delayed = False
 
@@ -289,7 +289,7 @@ class Transporter(object):
         if not self.pipe.is_connected():
             if self.msg_fn:
                 self.msg_fn("Connecting")
-    
+
             try:
                 self.pipe.connect()
             except comm.DataPathNotConnectedError as e:
@@ -335,7 +335,7 @@ class Transporter(object):
         self.inhandler = None
         self.enabled = False
         self.thread.join()
-        
+
     def send_frame(self, frame):
         if not self.enabled:
             printlog("Transport"," : Refusing to queue block for dead transport")
@@ -377,7 +377,7 @@ class TestPipe(object):
             self.buf += b"asg;sajd;jsadnkbasdl;b  as;jhd[SOB]laskjhd" + \
                 b"asdkjh[EOB]a;klsd" + f.get_packed() + b"asdljhasd[EOB]" + \
                 b"asdljb  alsjdljn[asdl;jhas"
-            
+
             if i == 5:
                 self.buf += b"$GPGGA,075519,4531.254,N,12259.400,W,1,3,0,0.0,M,0,M,,*55\r\nK7HIO   ,GPS Info\r"
             elif i == 7:
@@ -386,11 +386,11 @@ class TestPipe(object):
             elif i == 2:
                 self.buf += \
 b"""$GPGGA,023531.36,4531.4940,N,12254.9766,W,1,07,1.3,63.7,M,-21.4,M,,*64\r\n$GPRMC,023531.36,A,4531.4940,N,12254.9766,W,0.00,113.7,010808,17.4,E,A*27\rK7TAY M ,/10-13/\r"""
-                
+
 
         printlog(("Transport :  Made some data: %s" % self.buf))
 
-    
+
     def __init__(self, src="Sender", dst="Recvr"):
         self.make_fake_data(src, dst)
 
@@ -414,7 +414,7 @@ b"""$GPGGA,023531.36,4531.4940,N,12254.9766,W,1,07,1.3,63.7,M,-21.4,M,,*64\r\n$G
 def test_simple():
     p = TestPipe()
     t = Transporter(p)
-    
+
     f = ddt2.DDT2EncodedFrame()
     f.seq = 9
     f.type = 8
