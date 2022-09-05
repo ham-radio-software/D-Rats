@@ -28,8 +28,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
   # Template to allow other tools to parse the output
   tmpl="{path}:{line}: pylint-{symbol}: {msg}"
 
-  pylint="$(command -v pylint)"
-  if [ -z "${pylint}" ]; then
+  if ! pylint="$(command -v pylint)"; then
     echo "pylint not found"
     exit 0
   fi

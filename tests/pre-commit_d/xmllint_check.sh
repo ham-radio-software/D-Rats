@@ -20,8 +20,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
 
   rm -f "${XMLLINT_OUT}"
 
-  xmllint="$(command -v xmllint)"
-  if [ -z "${xmllint}" ]; then
+  if ! xmllint="$(command -v xmllint)"; then
     echo "xmllint not found"
     exit 0
   fi

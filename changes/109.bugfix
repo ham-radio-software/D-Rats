@@ -1,0 +1,2 @@
+Clients will attempt to reconnect to internet ratflector when
+they detect a disconnection.

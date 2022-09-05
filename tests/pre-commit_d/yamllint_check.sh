@@ -20,8 +20,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
 
   rm -f "${YAMLLINT_OUT}"
 
-  yamllint="$(command -v yamllint)"
-  if [ -z "${yamllint}" ]; then
+  if ! yamllint="$(command -v yamllint)"; then
     echo "yamllint not found"
     exit 0
   fi

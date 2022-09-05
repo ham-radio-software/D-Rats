@@ -29,8 +29,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
   # Template to allow other tools to parse the output
   tmpl="--format=gcc"
 
-  shellcheck="$(command -v shellcheck)"
-  if [ -z "${shellcheck}" ]; then
+  if ! shellcheck="$(command -v shellcheck)"; then
     echo "shellcheck not found"
     exit 0
   fi
