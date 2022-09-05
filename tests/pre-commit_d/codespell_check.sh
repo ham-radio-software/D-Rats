@@ -20,8 +20,7 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
 
   rm -f "${CODESPELL_OUT}"
 
-  codespell="$(command -v codespell)"
-  if [ -z "${codespell}" ]; then
+  if ! codespell="$(command -v codespell)"; then
     echo "codespell not found"
     exit 0
   fi
