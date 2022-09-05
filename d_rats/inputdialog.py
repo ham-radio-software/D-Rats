@@ -33,6 +33,7 @@ if not '_' in locals():
 from .miscwidgets import make_choice
 
 
+# pylint: disable=too-few-public-methods
 class TextInputDialog(Gtk.Dialog):
     '''
     Text Input Dialog.
@@ -70,6 +71,7 @@ class TextInputDialog(Gtk.Dialog):
         self.response(Gtk.ResponseType.OK)
 
 
+# pylint: disable=too-few-public-methods
 class ChoiceDialog(Gtk.Dialog):
     '''
     Choice Dialog.
@@ -108,6 +110,7 @@ class ChoiceDialog(Gtk.Dialog):
         self.set_default_response(Gtk.ResponseType.OK)
 
 
+# pylint: disable=too-few-public-methods
 class EditableChoiceDialog(ChoiceDialog):
     '''
     Editable Choice Dialog.
@@ -115,7 +118,7 @@ class EditableChoiceDialog(ChoiceDialog):
     This class does not appear to be used.
     :param choices: List of strings with choices
     :type choices: list[str]
-    :param title: Title for dialog, defult None
+    :param title: Title for dialog, default None
     :type tile: str
     :param parent: Parent widget, default None
     :type parent: :class:`Gtk.Window`
@@ -129,6 +132,7 @@ class EditableChoiceDialog(ChoiceDialog):
         self.choice.child.set_activates_default(True)
 
 
+# pylint: disable=too-few-public-methods
 class ExceptionDialog(Gtk.MessageDialog):
     '''
     Exception Dialog.
@@ -173,8 +177,8 @@ class FieldDialog(Gtk.Dialog):
         if title:
             self.set_title(title)
 
-        for button, responsetype in buttons:
-            self.add_button(button, responsetype)
+        for button, response_type in buttons:
+            self.add_button(button, response_type)
         self.set_default_response(Gtk.ResponseType.OK)
 
         self.set_modal(True)
@@ -187,7 +191,7 @@ class FieldDialog(Gtk.Dialog):
         '''
         Response logging.
 
-        Writes the response to the console instead emiting it.
+        Writes the response to the console instead emitting it.
 
         :param response: Response id for emitting.
         :type response: int

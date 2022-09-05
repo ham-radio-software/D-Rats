@@ -142,7 +142,7 @@ class AccountDialog:
         '''
         Set Fields Internal.
 
-        The field widgets need to be recreated fro each dialog run.
+        The field widgets need to be recreated for each dialog run.
         '''
         if not self._accounts:
             self._get_accounts()

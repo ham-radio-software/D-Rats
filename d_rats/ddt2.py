@@ -319,7 +319,7 @@ class DDT2Frame():
             code = "-"
 
         # data = utils.filter_to_ascii(self.data[:20])
-        # tolto il limite dei 20 caratteri
+        # former limit of first 20 characters
         data = utils.filter_to_ascii(self.data)
         # self.logger.info("-----------")
         # self.logger.info("DDT2%s: %i:%i:%i %s->%s (%s...[%i])" c,

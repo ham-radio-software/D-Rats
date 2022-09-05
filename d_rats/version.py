@@ -21,7 +21,7 @@
 # This means that future git tags need to follow a convention compliant
 # with PEP-440.  A 'v' prefix is allowed for more readability.
 # The EPOCH "N!" will be ignored as we have no reason to set an
-# EPOCH in the forseeable future.
+# EPOCH in the foreseeable future.
 # The ".post" and ".dev" should not be used in git tags.
 
 # When the git metadata is not available the version data is expected
@@ -225,10 +225,10 @@ class Version:
                     if group_num == 2:
                         cls._version['major'] = part_num
                         continue
-                    elif group_num == 3:
+                    if group_num == 3:
                         cls._version['minor'] = part_num
                         continue
-                    elif group_num == 4:
+                    if group_num == 4:
                         cls._version['micro'] = part_num
                         continue
                 except ValueError:
@@ -272,6 +272,7 @@ class Version:
             try:
                 # comments below suppresses pylint and pylance diagnostics
                 # because this module is not in the checked out source tree
+                # pylint: disable=import-outside-toplevel
                 # pylint: disable=import-error, no-name-in-module
                 from d_rats.setup_version import SETUP_VERSION # type: ignore
                 cls._parse_version(SETUP_VERSION)
@@ -280,6 +281,7 @@ class Version:
         if not cls._version:
             try:
                 # Extract the version from the PKG-INFO file.
+                # pylint: disable=unspecified-encoding
                 with open(join(module_dir, 'PKG-INFO')) as file_handle:
                     raw_version = version_re.search(file_handle.read()).group(1)
                     cls._parse_version(raw_version)

@@ -58,6 +58,7 @@ class Spelling:
             if subprocess.DEVNULL:
                 stderr_pipe = subprocess.DEVNULL
 
+        # pylint: disable=consider-using-with
         proc = subprocess.Popen([self.__aspell, "pipe"],
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
@@ -161,7 +162,7 @@ def test_word(spell, word):
     :type spell: :class:`Spelling`
     :param word: Word pattern to check
     :type word: str
-    :returns: list of words that may match a mis-spelled word
+    :returns: list of words that may match a misspelled word
     :rtype: list of str
     '''
     logger = logging.getLogger("sell_test_word")
@@ -215,12 +216,12 @@ def __do_fly_spell(buffer):
     end_iter.backward_chars(len(text) - len(word))
 
     if " " in word:
-        mispelled = False
+        misspelled = False
     else:
         speller = get_spell()
-        mispelled = bool(speller.lookup_word(word))
+        misspelled = bool(speller.lookup_word(word))
 
-    if text.endswith(" ") and mispelled:
+    if text.endswith(" ") and misspelled:
         buffer.apply_tag_by_name("misspelled", start_iter, end_iter)
     else:
         buffer.remove_tag_by_name("misspelled", start_iter, end_iter)

@@ -224,7 +224,7 @@ class TNCSerial(serial.Serial):
         if "port" in kwargs:
             self.name = kwargs["port"]
         self.__buffer = b""
-        self.__tstamp = 0
+        # self.__tstamp = 0
 
     def reconnect(self):
         '''
@@ -274,10 +274,7 @@ class TNCSerial(serial.Serial):
             self.dsr_seen = True
         read_buffer = serial.Serial.read(self, 1024)
         framedata = b""
-        if isinstance(read_buffer, str):
-            self.__buffer += read_buffer.encode('utf-8', 'replace')
-        else:
-            self.__buffer += read_buffer
+        self.__buffer += read_buffer
 
         if kiss_buf_has_frame(self.__buffer):
             framedata, self.__buffer = kiss_recv_frame(self.__buffer)
@@ -554,6 +551,7 @@ class AGWDataPath(DataPath):
             self._agw.enable_raw()
         except (BlockingIOError, socket.error) as err:
             self.logger.info("connect: AGWPE exception on connect: %s", err)
+            # pylint: disable=raise-missing-from
             raise DataPathNotConnectedError("Unable to connect to AGWPE")
 
     def disconnect(self):
@@ -647,6 +645,7 @@ class SerialDataPath(DataPath):
                                      write_timeout=self.timeout,
                                      xonxoff=0)
         except (ValueError, serial.SerialException) as err:
+            # pylint: disable=raise-missing-from
             raise DataPathNotConnectedError("Unable to open serial port %s" %
                                             err)
         # pylint: disable=fixme
@@ -700,6 +699,7 @@ class SerialDataPath(DataPath):
             data = self._serial.read(size)
         except serial.SerialException as err:
             utils.log_exception()
+            # pylint: disable=raise-missing-from
             raise DataPathIOError("Failed to read from serial port %s %s" %
                                   (self, err))
 
@@ -738,6 +738,7 @@ class SerialDataPath(DataPath):
             self._serial.write(buf)
         except (serial.SerialException, serial.SerialTimeoutException) as err:
             utils.log_exception()
+            # pylint: disable=raise-missing-from
             raise DataPathIOError("Failed to write to serial port %s %s" %
                                   (self, err))
 
@@ -1003,6 +1004,7 @@ class SocketDataPath(DataPath):
                 code = int(code)
             except ValueError:
                 self.logger.info("getline: Error parsing line '%s'", line)
+                # pylint: disable=raise-missing-from
                 raise DataPathNotConnectedError("Conversation error")
             return code, string
 
@@ -1057,6 +1059,7 @@ class SocketDataPath(DataPath):
         except (ConnectionError, OSError) as err:
             self.logger.debug("Socket failed to connect", exc_info=True)
             self._socket = None
+            # pylint: disable=raise-missing-from
             raise DataPathNotConnectedError("Unable to connect (%s)" % err)
         if self.passwd is not None:
             self.do_auth()
@@ -1095,11 +1098,11 @@ class SocketDataPath(DataPath):
             except socket.timeout:
                 if time.time() > end:
                     break
-                else:
-                    continue
+                continue
             # On Windows, ConnectionError not based on OSError
             except (ConnectionError, OSError) as err:
                 self.logger.debug("read: error", exc_info=True)
+                # pylint: disable=raise-missing-from
                 raise DataPathIOError("Socket error: %s" % err)
 
             if inp == b'':
@@ -1155,10 +1158,12 @@ class SocketDataPath(DataPath):
         try:
             self._socket.sendall(ba_buf)
         except ConnectionResetError:
+            # pylint: disable=raise-missing-from
             raise DataPathIOError("Socket write failed - Connection Reset")
         # On Windows, ConnectionError not based on OSError
         except (ConnectionError, OSError) as err:
             self.logger.info("write: Socket write failed %s", err)
+            # pylint: disable=raise-missing-from
             raise DataPathIOError("Socket write failed")
 
     def is_connected(self):

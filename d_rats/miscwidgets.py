@@ -111,6 +111,7 @@ class KeyedListWidget(Gtk.Box):
         self.logger = logging.getLogger("KeyedListWidget")
         self.columns = columns
 
+        # pylint: disable=consider-using-generator
         types = tuple([x for x, y in columns])
 
         self.__store = Gtk.ListStore(*types)
@@ -407,7 +408,7 @@ class KeyedListWidget(Gtk.Box):
         '''
         Set Expander.
 
-        :param colum: Column
+        :param column: Column
         :type column: int
         '''
         col = self.__view.get_column(column)
@@ -453,6 +454,7 @@ class ListWidget(Gtk.Box):
     def __init__(self, columns, parent=True):
         Gtk.Box.__init__(self)
         self.logger = logging.getLogger("ListWidget")
+        # pylint: disable=consider-using-generator
         col_types = tuple([x for x, y in columns])
         self._ncols = len(col_types)
 
@@ -801,7 +803,8 @@ class TreeWidget(ListWidget):
             self.logger.info("_set_values: Unknown type: %s", vals)
 
     # Intentional differences in ListWidget and TreeWidget
-    # pylint: disable=arguments-differ
+    # Parameter 'lst' has been renamed to 'vals'
+    # pylint: disable=arguments-differ, arguments-renamed
     def set_values(self, vals):
         '''
         Set Values.
@@ -968,7 +971,7 @@ class ProgressDialog(Gtk.Window):
         '''
         Set Text.
 
-        :parm text: Text to set
+        :param text: Text to set
         :type text: str
         '''
         self.label.set_text(text)
@@ -1016,12 +1019,12 @@ class LatLonEntry(Gtk.Entry):
         if string is None:
             return
 
-        deg = u"\u00b0"
+        deg = "\u00b0"
 
         while " " in string:
             if "." in string:
                 break
-            elif deg not in string:
+            if deg not in string:
                 string = string.replace(" ", deg)
             elif "'" not in string:
                 string = string.replace(" ", "'")
@@ -1075,7 +1078,7 @@ class LatLonEntry(Gtk.Entry):
         :rtype: float
         :raises: :class:`LatLonEntryParseDMSError` on parsing error.
         '''
-        string = string.replace(u"\u00b0", " ")
+        string = string.replace("\u00b0", " ")
         string = string.replace('"', ' ')
         string = string.replace("'", ' ')
         string = string.replace('  ', ' ')
@@ -1085,7 +1088,7 @@ class LatLonEntry(Gtk.Entry):
 
         if len(items) > 3:
             raise LatLonEntryParseDMSError("Invalid format")
-        elif len(items) == 3:
+        if len(items) == 3:
             degrees_str = items[0]
             minutes_str = items[1]
             seconds_str = items[2]
@@ -1160,6 +1163,7 @@ class LatLonEntry(Gtk.Entry):
             return False
 
 
+# pylint: disable=too-few-public-methods
 class YesNoDialog(Gtk.Dialog):
     '''
     Yes No Dialog.

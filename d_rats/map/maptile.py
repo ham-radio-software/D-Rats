@@ -199,7 +199,7 @@ class MapTile():
         This is the offset from the Map Tile x/y coordinates and the
         the upper left corner of the displayed map.
 
-        :returns: Offest from Map Tile to the Displayed map
+        :returns: Offset from Map Tile to the Displayed map
         '''
         return (cls._x_origin, cls._y_origin)
 
@@ -491,7 +491,7 @@ class MapTile():
         '''
         Fetch a tile.
 
-        :returns: True if fetch is successfull or tile is cached.
+        :returns: True if fetch is successful or tile is cached.
         :rtype: bool
         '''
         #verify if tile is local, if not fetches from web
@@ -508,6 +508,7 @@ class MapTile():
             except MapTileNotFetched as err:
                 self.logger.info("fetch: created %s",
                                  self._local_bad_path())
+                # pylint: disable=unspecified-encoding
                 with open(self._local_bad_path(), 'w'):
                     pass
                 self.logger.info("fetch: [%i] Not fetched `%s': %s",
@@ -528,6 +529,7 @@ class MapTile():
         :raises: MapFetchError(MapFetchUrlException) Any other error
         '''
         # for setup of d-rats user_agent
+        # pylint: disable=import-outside-toplevel
         from .. import version
 
         if not self._connected:
@@ -535,10 +537,10 @@ class MapTile():
 
         if self._proxy:
             # proxies = {"http" : PROXY}
-            authinfo = urllib.request.HTTPBasicAuthHandler()
+            auth_info = urllib.request.HTTPBasicAuthHandler()
             proxy_support = urllib.request.ProxyHandler({"http" : self._proxy})
             ftp_handler = urllib.request.CacheFTPHandler
-            opener = urllib.request.build_opener(proxy_support, authinfo,
+            opener = urllib.request.build_opener(proxy_support, auth_info,
                                                  ftp_handler)
             urllib.request.install_opener(opener)
         req = urllib.request.Request(url, None,
@@ -547,6 +549,7 @@ class MapTile():
         try:
             data = urllib.request.urlopen(req)
         except (urllib.error.HTTPError, urllib.error.URLError) as err:
+            # pylint: disable=raise-missing-from
             if hasattr(err, 'code') and err.code == 404:
                 raise MapTileNotFound("404 error code")
             if hasattr(err, 'reason'):

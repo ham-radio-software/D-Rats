@@ -202,7 +202,7 @@ def is_sendable_dest(mycall, string):
 
     # Contains a gratuitous route and we're the last in line
     if ";" in string and string.split(";")[-1] == mycall:
-        MSGROUTING_LOGGER.info("is_sendable_dest: End of grat")
+        MSGROUTING_LOGGER.info("is_sendable_dest: End of gratuitous route")
         return False
 
     MSGROUTING_LOGGER.info("is_sendable_dest: default to call")
@@ -428,7 +428,7 @@ class MessageRouter(GObject.GObject):
                 if msg_is_locked(filename):
                     msg_unlock(filename)
                 continue
-            elif call not in queue:
+            if call not in queue:
                 queue[call] = [filename]
             else:
                 queue[call].append(filename)
@@ -494,7 +494,7 @@ class MessageRouter(GObject.GObject):
                 self.logger.info("_route_msg: Route for %s: %s (%s)",
                                  dst, route, path)
                 break
-            elif "@" in dst and dst not in invalid and \
+            if "@" in dst and dst not in invalid and \
                     not ":" in dst and \
                     self._validate_incoming(self.__config, src, dst):
                 # Out via email
@@ -518,7 +518,7 @@ class MessageRouter(GObject.GObject):
 
             if route.upper().startswith("WL2K:"):
                 break # WL2K is easy
-            elif route != dst and route in path:
+            if route != dst and route in path:
                 self.logger.info("_route_msg: Route %s in path", route)
                 invalid.append(route)
                 route = None # Don't route to the same location twice

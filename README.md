@@ -137,7 +137,7 @@ libs installed):
 Debian packages needed for running or development.
 
 Below if you are not in a locale that is english, you will need the aspell-
-variant dictionary for your locale.  Developers may need apell- variant
+variant dictionary for your locale.  Developers may need aspell- variant
 dictionaries for all locales that D-rats has message files for.
 
 The python2 packages are only needed for running the stable python2 version

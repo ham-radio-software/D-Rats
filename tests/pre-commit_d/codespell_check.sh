@@ -34,7 +34,10 @@ pushd "${BASE_DIR}" > /dev/null || exit 1
   done
 
   if [ "$rc" -ne 0 ] && [ -e "${CODESPELL_OUT}" ]; then
-    grep ':' "${CODESPELL_OUT}"
+    if ! grep ':' "${CODESPELL_OUT}"; then
+      # We have something not reported above?
+      cat "${CODESPELL_OUT}"
+    fi
   fi
 popd > /dev/null || exit 1
 exit "${rc}"

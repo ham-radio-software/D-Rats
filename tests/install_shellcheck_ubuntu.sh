@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # This is for use in a dockerfile or a github action to make sure
 # that the required packages are installed.

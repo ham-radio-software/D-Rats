@@ -1,5 +1,5 @@
 Some platform D-RATS program can not exchange files with programs running on
-other plaforms.  D-Rats was incorrectly sending the file size in
+other platforms.  D-Rats was incorrectly sending the file size in
 native-endian format instead of network-endian format.
 
 D-RAts is now sending the file size in little-endian format instead of

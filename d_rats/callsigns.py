@@ -25,7 +25,7 @@ def find_us_callsigns(string):
 
 def find_au_callsigns(string):
     '''
-    Find Austrailian Callsigns.
+    Find Australian Callsigns.
 
     :param string: Source callsigns
     :type string: str
@@ -59,7 +59,7 @@ CALLSIGN_FUNCTIONS = {
 
 def find_callsigns(config, string):
     '''
-    Find Callsings.
+    Find Callsigns.
 
     :param config:
     :type config: :class:`DratsConfig`
@@ -71,6 +71,7 @@ def find_callsigns(config, string):
     calls = ast.literal_eval(config.get("prefs", "callsigns"))
     enabled = [y for x, y in calls if x]
 
+    # pylint: disable=consider-using-dict-items
     for country in CALLSIGN_FUNCTIONS:
         if country in CALLSIGN_FUNCTIONS and country in enabled:
             call_list += CALLSIGN_FUNCTIONS[country](string)

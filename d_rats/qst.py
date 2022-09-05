@@ -124,6 +124,7 @@ def do_dprs_calculator(initial=""):
 
     dicon = gps.APRS_TO_DPRS[aicon]
 
+    # pylint: disable=import-outside-toplevel
     from . import mainapp # Hack to force import of mainapp
     callsign = mainapp.get_mainapp().config.get("user", "callsign")
     string = "%s%s %s" % (dicon, over, mstr)
@@ -233,6 +234,7 @@ class QSTFile(QSTText):
         '''
         size_limit = self.config.getint("settings", "qst_size_limit")
         try:
+            # pylint: disable=consider-using-width
             file_handle = open(self.text)
         except (PermissionError, FileNotFoundError) as err:
             self.logger.info("Unable to open file `%s': %s", self.text, err)
@@ -262,6 +264,7 @@ class QSTGPS(QSTText):
 
         self.prefix = ""
         self.raw = True
+        # pylint: disable=import-outside-toplevel
         from . import mainapp #hack
         self.mainapp = mainapp.get_mainapp()
         self.fix = None
@@ -350,6 +353,7 @@ class QSTWX(QSTGPS):
 #        linecache.checkcache(self.text)
 #        wx = linecache.getline(self.text, 2).strip()
 # /* from here
+        # pylint: disable=consider-using-width
         file_handle = open(self.text)
        # f = NetFile(self.text)
         wx_line = file_handle.readline()
@@ -372,7 +376,7 @@ class QSTWX(QSTGPS):
 #       return fix.to_aprs(symtab=self.config.get("settings", "aprssymtab"),
 #                          symbol=self.config.get("settings", "aprssymbol")
         self.logger.info("do_qst: "
-                         "GPS postition is not valid, so not sent")
+                         "GPS position is not valid, so not sent")
         return None
 
 
@@ -415,6 +419,7 @@ class QSTThreadedText(QSTText):
 
         # This is a race, but probably pretty safe :)
         self.thread = threading.Thread(target=self.threaded_fire)
+        # pylint: disable=deprecated-method
         self.thread.setDaemon(True)
         self.thread.start()
         self.logger.info("Started a thread for QST data...")
@@ -591,25 +596,26 @@ class QSTOpenWeather(QSTThreadedText):
             url = owuri +"weather?"+ \
                 urllib.parse.urlencode({'q': s_qst, 'appid': owappid})
             self.logger.info("URL=%s", url)
-            urlread = urllib.request.urlopen(url).read()
-            datajson = json.loads(urlread)
-            self.logger.info(datajson)
+            # pylint: disable=consider-using-with
+            url_read = urllib.request.urlopen(url).read()
+            data_json = json.loads(url_read)
+            self.logger.info(data_json)
 
             # Check the value of "cod" key is equal to "404",
             # means city is found otherwise, city is not found
-            if datajson["cod"] != "404":
+            if data_json["cod"] != "404":
 
-                wname = str(datajson['name'])
-                wcountry = str(datajson['sys']['country'])
-                wlat = str(datajson['coord']['lat'])
-                wlon = str(datajson['coord']['lon'])
-                wdesc = str(datajson['weather'][0]['description'])
-                wtmin = float(datajson['main']['temp_min'])
-                wtemp = float(datajson['main']['temp'])
-                wtmax = float(datajson['main']['temp_max'])
-                whumidity = int(datajson['main']['humidity'])
-                wpressure = int(datajson['main']['pressure'])
-                wwindspeed = float(datajson['wind']['speed'])
+                wname = str(data_json['name'])
+                wcountry = str(data_json['sys']['country'])
+                wlat = str(data_json['coord']['lat'])
+                wlon = str(data_json['coord']['lon'])
+                wdesc = str(data_json['weather'][0]['description'])
+                wtmin = float(data_json['main']['temp_min'])
+                wtemp = float(data_json['main']['temp'])
+                wtmax = float(data_json['main']['temp_max'])
+                whumidity = int(data_json['main']['humidity'])
+                wpressure = int(data_json['main']['pressure'])
+                wwindspeed = float(data_json['wind']['speed'])
 
                 weath = ("\nCurrent weather at %s - %s lat: %s Lon: %s \n" %
                          (wname, wcountry, wlat, wlon))
@@ -623,7 +629,7 @@ class QSTOpenWeather(QSTThreadedText):
                 weath = weath + str("Humidity: %d %% \n" % whumidity)
                 weath = weath + str("Pressure: %d hpa \n" %  wpressure)
                 # weath = weath + str("Wind Gust:%s km/hr\n" %
-                #                     float(datajson['wind']['gust']))
+                #                     float(data_json['wind']['gust']))
                 weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
 
                 self.logger.info("Weather %s", weath)
@@ -637,18 +643,18 @@ class QSTOpenWeather(QSTThreadedText):
                 urllib.parse.urlencode({'q': s_qst, 'appid': owappid,
                                         'mode': "json"})
             self.logger.info("Forecast: %s ", url)
-            urlread = urllib.request.urlopen(url).read()
-            datajson = json.loads(urlread)
-            self.logger.info(datajson)
+            url_read = urllib.request.urlopen(url).read()
+            data_json = json.loads(url_read)
+            self.logger.info(data_json)
 
             # Check the value of "cod" key is equal to "404",
             # means city is found otherwise, city is not found
-            if datajson["cod"] != "404":
+            if data_json["cod"] != "404":
 
-                wname = str(datajson['city']['name'])
-                wcountry = str(datajson['city']['country'])
-                wlat = str(datajson['city']['coord']['lat'])
-                wlon = str(datajson['city']['coord']['lon'])
+                wname = str(data_json['city']['name'])
+                wcountry = str(data_json['city']['country'])
+                wlat = str(data_json['city']['coord']['lat'])
+                wlon = str(data_json['city']['coord']['lon'])
 
                 weath = ("\nForecast weather for %s - %s lat: %s Lon: %s \n" %
                          (wname, wcountry, wlat, wlon))
@@ -657,7 +663,7 @@ class QSTOpenWeather(QSTThreadedText):
                 current_date = ''
                 # Iterates through the array of dictionaries named list in
                 # json_data
-                for item in datajson['list']:
+                for item in data_json['list']:
 
                     # Time of the weather data received, partitioned into
                     # 3 hour blocks
@@ -709,7 +715,7 @@ class QSTOpenWeather(QSTThreadedText):
                     weath = weath + ("Humidity: %d %%  " % whumidity)
                     weath = weath + ("Pressure: %d hpa  " %  wpressure)
                     # weath = weath + str("Wind Gust:%s km/hr\n" %
-                    #                     float(datajson['wind']['gust']))
+                    #                     float(data_json['wind']['gust']))
                     weath = weath + str("Wind Speed: %.2f km/hr\n" % wwindspeed)
 
                 self.logger.info("forecast: %s", weath)
@@ -721,7 +727,7 @@ class QSTOpenWeather(QSTThreadedText):
         self.logger.info("Unknown Weather type %s", t_qst)
         return None
 
-#---to be restore when forecats are done
+#---to be restore when forecasts are done
     #    except SomeException as err:
     #        self.logger.info("do_qst: Error getting weather: %s" % err))
     #        return None
@@ -757,6 +763,7 @@ class QSTStation(QSTGPSA):
         :returns: The map source for name or None
         :rtype: :class:`MapSource`
         '''
+        # pylint: disable=import-outside-toplevel
         from . import mainapp # Hack to force mainapp load
         sources = mainapp.get_mainapp().map.get_map_sources()
 
@@ -848,6 +855,7 @@ class QSTEditWidget(Gtk.Box):
         :type content: str
         '''
 
+    # pylint: disable=arguments-differ
     def __str__(self):
         return "Unknown"
 
@@ -1200,6 +1208,7 @@ class QSTStationEditWidget(QSTEditWidget):
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 10)
 
         # This is really ugly, but to fix it requires more work
+        # pylint: disable=import-outside-toplevel
         from . import mainapp
         self.__sources = mainapp.get_mainapp().map.get_map_sources()
         sources = [x.get_name() for x in self.__sources]
@@ -1339,7 +1348,7 @@ class QSTWUEditWidget(QSTEditWidget):
         return self.to_qst()
 
 
-# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes, too-few-public-methods
 class QSTEditDialog(Gtk.Dialog):
     '''
     QST Edit Dialog.
@@ -1384,7 +1393,6 @@ class QSTEditDialog(Gtk.Dialog):
         for i in self._types.values():
             i.set_size_request(-1, 80)
             self.vbox.pack_start(i, 0, 0, 0)
-
 
         if self._config.has_section(self._ident):
             combo_select(self._type, self._config.get(self._ident, "type"))
@@ -1449,12 +1457,12 @@ class QSTEditDialog(Gtk.Dialog):
         self._config.set(self._ident, "port", self._port.get_active_text())
 
 
-def get_qst_class(typestr):
+def get_qst_class(type_string):
     '''
     Get qst class.
 
-    :param typestr: Type String for class
-    :type typestr: str
+    :param type_string: Type String for class
+    :type type_string: str
     :returns: The QST class
     :rtype: :class:`QSTText`
     '''
@@ -1474,9 +1482,9 @@ def get_qst_class(typestr):
 
     if not HAVE_FEEDPARSER:
     # the  HAVE_FEEDPARSER variable is setup at d-rats launch when it checks
-    # if feedparses can be imported.  For any reason feedparser import could
+    # if feedparser can be imported.  For any reason feedparser import could
     # fail also if the module is compiled
     # (as it happens in my case on Windows10)
         del classes[_("RSS")]
 
-    return classes.get(typestr, None)
+    return classes.get(type_string, None)

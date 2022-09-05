@@ -1,0 +1,3 @@
+[codespell]
+skip = *.log,./.git,./temp*,./*venv,./docs/_build,./build,./locale,./*egg*
+ignore-words-list = drats,msdos,ro,speling,teh,warmup
