@@ -3,7 +3,7 @@
 # pylint: disable=too-many-lines
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -177,7 +177,7 @@ class RPCJob(GObject.GObject):
     :type desc: str
     '''
     __gsignals__ = {
-        "state-change" : (GObject.SIGNAL_RUN_LAST,
+        "state-change" : (GObject.SignalFlags.RUN_LAST,
                           GObject.TYPE_NONE,
                           (GObject.TYPE_STRING, GObject.TYPE_PYOBJECT)),
         }

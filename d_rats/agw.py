@@ -500,7 +500,6 @@ class AGW_AX25_Connection:
         def consume(count):
             buffer = self._inbuf[:count]
             self._inbuf = self._inbuf[count:]
-            self.logger.info("recv:consume: buffer %s", type(buffer))
             return buffer
 
         if length and length < len(self._inbuf):
@@ -765,6 +764,7 @@ def test_server(host="127.0.0.1", port=8000):
             agw.send_frame(frame)
         except (ConnectionError, OSError):
             global_logger.info("test_server: failed", exc_info=True)
+
 
 def main():
     '''Unit Test.'''

@@ -111,16 +111,16 @@ FBB_BLOCK_TYPES = {FBB_BLOCK_HDR : "header",
                    }
 
 
-def escaped(string):
+def escaped(data):
     '''
-    Escape a String.
+    Escape new-lines and cariage returns in data.
 
-    :param string: String to escape
-    :type string: str
-    :returns: Escaped string
-    :rtype: str
+    :param data: Data to escape
+    :type string: bytes
+    :returns: Escaped data
+    :rtype: bytes
     '''
-    return string.replace("\n", r"\n").replace("\r", r"\r")
+    return data.replace(b'\n', b'\\n').replace(b'\r', b'\\r')
 
 
 def run_lzhuf(cmd, data):
@@ -199,7 +199,7 @@ def run_lzhuf_encode(data):
     lzh = struct.pack("<H", calc_checksum(lzh)) + lzh
     return lzh
 
-
+# Called by msgrouting.py
 class WinLinkAttachment:
     '''
     WinLink Attachment.
@@ -209,6 +209,7 @@ class WinLinkAttachment:
     :param content: Attachment content
     :type content: bytes
     '''
+
     def __init__(self, name, content):
         self.__name = name
         self.__content = content
@@ -231,7 +232,7 @@ class WinLinkAttachment:
         '''
         return self.__content
 
-
+# Called by msgrouting.py
 # pylint wants only 7 instance attributes for a class
 # pylint: disable=too-many-instance-attributes
 class WinLinkMessage:
@@ -287,29 +288,31 @@ class WinLinkMessage:
         '''
         msgid = time.strftime("D%H%M%S") + src
 
-        msg = "Mid: %s\r\n" % msgid[:12] + \
-            "Subject: %s\r\n" % name + \
-            "From: %s\r\n" % src
+        msg_str = "Mid: %s\r\n" % msgid[:12] + \
+                  "Subject: %s\r\n" % name + \
+                  "From: %s\r\n" % src
         for _dst in dst:
-            msg += "To: %s\r\n" % _dst
+            msg_str += "To: %s\r\n" % _dst
 
-        msg += "Body: %i\r\n" % len(body) + \
+        msg_str += "Body: %i\r\n" % len(body) + \
             "Date: %s\r\n" % time.strftime("%Y/%m/%d %H:%M", time.gmtime())
 
         for attachment in attachments:
-            msg += "File: %i %s\r\n" % (len(attachment.get_content()),
-                                        attachment.get_name())
+            msg_str += "File: %i %s\r\n" % (len(attachment.get_content()),
+                                            attachment.get_name())
 
-        msg += "\r\n" + body + "\r\n"
+        msg_str += "\r\n" + body + "\r\n"
 
+        msg = msg_str.encode('utf-8', 'replace')
         for attachment in attachments:
-            msg += attachment.get_content() + "\r\n"
+            msg += attachment.get_content() + b"\r\n"
 
         if attachments:
-            msg += "\r\n\x00"
+            msg += b"\r\n\x00"
 
         self.set_content(msg, name)
 
+    # called from emailgw.py and mailsrv.py
     # pylint wants only 15 local variables per method
     # pylint: disable=too-many-locals
     def create_form(self, config, callsign):
@@ -324,7 +327,8 @@ class WinLinkMessage:
         :rtype: str
         :raises: :class:`Wl2kMessageHeaderError` if unable to parse header
         '''
-        mail = email.message_from_string(self.__content)
+        content_str = self.__content.decode('utf-8', 'replace')
+        mail = email.message_from_string(content_str)
 
         sender = mail.get("From", "Unknown")
 
@@ -341,9 +345,9 @@ class WinLinkMessage:
             raise Wl2kMessageHeaderError(
                 "Error parsing Body header length `%s'" % body)
 
-        body_start = self.__content.index("\r\n\r\n") + 4
-        rest = self.__content[body_start + body_length:]
-        message = self.__content[body_start:body_start + body_length]
+        body_start = content_str.index("\r\n\r\n") + 4
+        rest = content_str[body_start + body_length:]
+        message = content_str[body_start:body_start + body_length]
 
         if callsign == config.get("user", "callsign"):
             box = "Inbox"
@@ -539,11 +543,11 @@ class WinLinkMessage:
         Get Proposal.
 
         :returns: Proposal
-        :rtype: str
+        :rtype: bytes
         '''
-        return "FC %s %s %i %i 0" % (self.__type, self.__id,
-                                     self.__usize, self.__csize)
-
+        proposal_str = "FC %s %s %i %i 0" % (self.__type, self.__id,
+                                            self.__usize, self.__csize)
+        return proposal.encode('utf-8', 'replace')
 
 class WinLinkCMS:
     '''
@@ -596,18 +600,19 @@ class WinLinkCMS:
 
 
     @staticmethod
-    def __ssid():
-        return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
+    def ssid():
+        ssid_str = "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION_NUM
+        return ssid_str.encode('utf-8', 'replace')
 
-    def _send(self, string):
+    def _send(self, data):
         '''
         Send Internal.
 
-        :param string: data to send
-        :type string: bytes
+        :param data: data to send
+        :type data: bytes
         '''
-        self.logger.info("_send:  -> %s", string)
-        self._conn.send(string + b"\r")
+        self.logger.info("_send:  -> %s", data)
+        self._conn.send(data + b"\r")
 
     def __recv(self):
         '''
@@ -630,7 +635,7 @@ class WinLinkCMS:
         :rtype: bytes
         '''
         received = b";"
-        while received.startswith(";"):
+        while received.startswith(b";"):
             received = self.__recv()
         return received
 
@@ -639,19 +644,19 @@ class WinLinkCMS:
         Send SSID Internal
 
         :param recv_ssid: incoming SSID
-        :type recv_ssid: str
+        :type recv_ssid: bytes
         :raises: :class:`Wl2kCMSBadSSID` if SSID can not be parsed
         :raises: :class:`Wl2kCMSNoPrompt` if prompt not received
         '''
         try:
-            _sw, _ver, _caps = recv_ssid[1:-1].split("-")
+            _sw, _ver, _caps = recv_ssid[1:-1].split(b"-")
         except ValueError:
             raise Wl2kCMSBadSSID(
                 "Conversation error (unparsable SSID `%s')" % recv_ssid)
 
-        self._send(self.__ssid())
+        self._send(self.ssid())
         prompt = self._recv().strip()
-        if not prompt.endswith(">"):
+        if not prompt.endswith(b">"):
             raise Wl2kCMSNoPrompt("Conversation error (never got prompt)")
 
     def __get_list(self):
@@ -662,21 +667,21 @@ class WinLinkCMS:
         :rtype: list of :class:`WinLinkMessage`
         :raises: :class:`Wl2kCMSInvalidLine` if invalid line found.
         '''
-        self._send("FF")
+        self._send(b'FF')
 
         msgs = []
         reading = True
         while reading:
             resp = self._recv()
-            for line in resp.split("\r"):
-                if line.startswith("FC"):
+            for line in resp.split(b"\r"):
+                if line.startswith(b"FC"):
                     self.logger.info("__get_list: Creating message for %s",
                                      line)
                     msgs.append(WinLinkMessage(line))
-                elif line.startswith("F>"):
+                elif line.startswith(b"F>"):
                     reading = False
                     break
-                elif line.startswith("FQ"):
+                elif line.startswith(b"FQ"):
                     reading = False
                     break
                 elif not line:
@@ -700,13 +705,14 @@ class WinLinkCMS:
         self.__messages = self.__get_list()
 
         if self.__messages:
-            self._send("FS %s" % ("Y" * len(self.__messages)))
+            data_str = b"FS %s" % ("Y" * len(self.__messages))
+            self._send(data_str.encode('utf-8', 'replace'))
 
             for msg in self.__messages:
                 self.logger.info("get_message: Getting message...")
                 msg.read_from_socket(self._conn)
 
-            self._send("FQ")
+            self._send(b"FQ")
 
         self._disconnect()
 
@@ -747,15 +753,16 @@ class WinLinkCMS:
         for msg in messages:
             proposal = msg.get_proposal()
             for item in proposal:
-                cs_octet += ord(item)
+                cs_octet += item
             cs_octet += ord("\r")
             self._send(proposal)
 
         cs_octet = ((~cs_octet & 0xFF) + 1)
-        self._send("F> %02X" % cs_octet)
+        data_str = "F> %02X" % cs_octet
+        self._send(data_str.encode('utf-8', 'replace'))
         resp = self._recv()
 
-        if not resp.startswith("FS"):
+        if not resp.startswith(b"FS"):
             raise Wl2kCMSServerError("Error talking to server: %s" % resp)
 
         _fs, accepts = resp.split()
@@ -793,10 +800,6 @@ class WinLinkTelnet(WinLinkCMS):
         WinLinkCMS.__init__(self, callsign)
         self.logger = logging.getLogger("WinLinkTelnet")
 
-    @staticmethod
-    def __ssid():
-        return "[DRATS-%s-B2FHIM$]" % version.DRATS_VERSION
-
     def _connect(self):
         '''Connect.'''
         self._conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -820,39 +823,39 @@ class WinLinkTelnet(WinLinkCMS):
         resp = self._recv()
 
         resp = self._recv()
-        if not resp.startswith("Callsign :"):
+        if not resp.startswith(b"Callsign :"):
             raise Wl2kTelnetNoLogin("Conversation error (never saw login)")
 
         self._send(self._callsign)
         resp = self._recv()
-        if not resp.startswith("Password :"):
+        if not resp.startswith(b"Password :"):
             raise Wl2kTelnetNoPassword("Conversation error (never saw password)")
 
-        self._send("CMSTELNET")
+        self._send(b"CMSTELNET")
         resp = self._recv()
 
         try:
-            _sw, _ver, _caps = resp[1:-1].split("-")
+            _sw, _ver, _caps = resp[1:-1].split(b"-")
         except ValueError:
             raise Wl2kCMSBadSSID(
                 "Conversation error (unparsable SSID `%s')" % resp)
 
         resp = self._recv().strip()
-        if not resp.endswith(">"):
+        if not resp.endswith(b">"):
             raise Wl2kCMSNoPrompt("Conversation error (never got prompt)")
 
         if self.__passwd:
-            self._send("FF")
+            self._send(b"FF")
 
             resp = self._recv().strip()
-            if not resp.startswith("Login ["):
+            if not resp.startswith(b"Login ["):
                 raise Wl2kTelnetNoChallenge(
                     "Conversation error (never saw challenge)")
 
             chall = resp[7:-2]
 
             resp = self._recv().strip()
-            if not resp.endswith(">"):
+            if not resp.endswith(b">"):
                 raise Wl2kCMSNoPrompt(
                     "Conversation error (never got prompt)")
 
@@ -860,7 +863,7 @@ class WinLinkTelnet(WinLinkCMS):
 
             rem = 6
             todo = 3
-            cresp = ""
+            cresp_str = ""
             while rem > 0:
                 octet = random.randint(0, 255)
 
@@ -871,19 +874,19 @@ class WinLinkTelnet(WinLinkCMS):
                     cresp += passwd[int(chall[todo])]
                 rem -= 1
 
-            self._send(cresp)
+            self._send(cresp_str.encode('utf-8', 'replace'))
 
             resp = self._recv()
-            if not resp.startswith("Hello "):
+            if not resp.startswith(b"Hello "):
                 raise Wl2kTelnetNoHello(
                     "Conversation error (never saw hello)")
 
             resp = self._recv().strip()
-            if not resp.endswith(">"):
+            if not resp.endswith(b">"):
                 raise Wl2kCMSNoPrompt(
                     "Conversation error (never got prompt)")
 
-        self._send(self.__ssid())
+        self._send(self.ssid())
 
 
 class WinLinkRMSPacket(WinLinkCMS):
@@ -915,6 +918,7 @@ class WinLinkRMSPacket(WinLinkCMS):
         self._send_ssid(resp)
 
 
+# Also called by sessions/rpc.py
 class WinLinkThread(threading.Thread, GObject.GObject):
     '''
     WinLink Thread.
@@ -930,7 +934,8 @@ class WinLinkThread(threading.Thread, GObject.GObject):
     '''
 
     __gsignals__ = {
-        "mail-thread-complete" : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,
+        "mail-thread-complete" : (GObject.SignalFlags.RUN_LAST,
+                                  GObject.TYPE_NONE,
                                   (GObject.TYPE_BOOLEAN, GObject.TYPE_STRING)),
         "event" : signals.EVENT,
         "form-received" : signals.FORM_RECEIVED,
@@ -1085,6 +1090,7 @@ class WinLinkAGWThread(WinLinkThread):
         return WinLinkRMSPacket(self._callssid, remote, self.__agwconn)
 
 
+# called by mainapp.py and msgrouting.py
 def wl2k_auto_thread(mainapp, *args, **kwargs):
     '''
     W2LK Auto Thread.
@@ -1121,6 +1127,63 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
 
     return message_thread
 
+
+def test_agw_server(host="127.0.0.1", port=8000):
+    '''
+    Test Server.
+
+    :param host: host address to listen on, default '127.0.0.1'
+    :type host : str
+    :param port: Port to listen on, default 80000
+    :type port: int
+    '''
+    logger = logging.getLogger("wl2k_test_agw_server")
+    # Quick and dirty simulator for agwpe unit tests.
+    logger.info("test_server: starting %s:%i", host, port)
+    from time import sleep
+
+    ssid = WinLinkCMS.ssid() + b'\r'
+    conn_state = 0
+    # call_from = None
+
+    agw_conn = agw.AGWConnection(host, port, timeout=10, server=True)
+    _conn = agw_conn.accept_connection()
+    count = 0
+    while count < 5:
+        try:
+            frame = agw_conn.recv_frame()
+            if not frame:
+                count += 1
+                logger.info("test_server: no frame")
+                sleep(1)
+                continue
+
+            logger.info("test_server: Received %s kind %s",
+                        frame, chr(frame.kind))
+            # if frame.kind == ord('X'):
+            #    call_from = frame.call_from
+            if frame.kind == ord('D'):
+                if conn_state >= 1:
+                    frame.len = 3
+                    frame.payload = b"F>\r"
+                    conn_state = 2
+
+            agw_conn.send_frame(frame)
+            logger.info("test_server: sending %s kind %s",
+                        frame, chr(frame.kind))
+
+            if conn_state == 0 and frame.kind == ord('C'):
+                conn_state = 1
+                frame.payload = ssid
+                frame.len = len(ssid)
+                frame.kind = ord('D')
+                logger.info("test_server: sending %s kind %s payload %s",
+                        frame, chr(frame.kind), frame.payload)
+                agw_conn.send_frame(frame)
+        except (ConnectionError, OSError):
+            logger.info("test_server: failed", exc_info=True)
+
+
 def main():
     '''Unit Test.'''
 
@@ -1130,21 +1193,23 @@ def main():
 
     logger = logging.getLogger("wl2k_test")
 
-    # pylint: disable=using-constant-test
-    if True:
-        # wl = WinLinkTelnet("KK7DS", "sandiego.winlink.org")
-        agwc = agw.AGWConnection("127.0.0.1", 8000, 0.5)
-        winlink = WinLinkRMSPacket("KK7DS", "N7AAM-11", agwc)
-        count = winlink.get_messages()
-        logger.info("%i messages", count)
-        for i in range(0, count):
-            logger.info("--Message %i--\n%s\n--End--\n\n",
-                        i, winlink.get_message(i).get_content())
-    # code here commented out as currently unreachable
-    # and appears to be currently broken.
-#    else:
-#        text = "This is a test!"
-#        body = """Mid: 12345_KK7DS\r
+    from time import sleep
+    server = threading.Thread(target=test_agw_server)
+    server.start()
+    sleep(2)
+
+    # winlink = WinLinkTelnet("KK7DS", "sandiego.winlink.org")
+    agwc = agw.AGWConnection("127.0.0.1", 8000, 0.5)
+    winlink = WinLinkRMSPacket("KK7DS", "N7AAM-11", agwc)
+    count = winlink.get_messages()
+    logger.info("%i messages", count)
+    for i in range(0, count):
+        logger.info("--Message %i--\n%s\n--End--\n\n",
+                    i, winlink.get_message(i).get_content())
+
+    # code here commented out and appears to be currently broken.
+    # text = "This is a test!"
+    # body = """Mid: 12345_KK7DS\r
 #From: KK7DS\r
 #To: dsmith@danplanet.com\r
 #Subject: This is a test\r
@@ -1153,12 +1218,12 @@ def main():
 #%s
 #""" % (len(text), text)
 #
-#        message = WinLinkMessage()
-#        message.set_id("1234_KK7DS")
-#        # obvious bug in unreachable code here:
-#        message.set_content(body.get_content())
-#        winlink = WinLinkTelnet("KK7DS")
-#        winlink.send_messages([m])
+#    message = WinLinkMessage()
+#    message.set_id("1234_KK7DS")
+#    # obvious bug in unreachable code here:
+#    message.set_content(body.get_content())
+#    winlink = WinLinkTelnet("KK7DS")
+#    winlink.send_messages([m])
 
 if __name__ == "__main__":
     main()
