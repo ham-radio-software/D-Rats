@@ -23,7 +23,9 @@ import os
 import glob
 import sys
 
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from d_rats import ddt2, signals, emailgw, wl2k
 
@@ -119,18 +121,17 @@ def decode_dict(string):
 
     return result
 
-
-class RPCJob(gobject.GObject):
+class RPCJob(GObject.GObject):
     __gsignals__ = {
-        "state-change" : (gobject.SIGNAL_RUN_LAST,
-                          gobject.TYPE_NONE,
-                          (gobject.TYPE_STRING, gobject.TYPE_PYOBJECT)),
+        "state-change" : (GObject.SIGNAL_RUN_LAST,
+                          GObject.TYPE_NONE,
+                          (GObject.TYPE_STRING, GObject.TYPE_PYOBJECT)),
         }
 
     STATES = ["complete", "timeout", "running"]
 
     def __init__(self, dest, desc):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.__dest = dest
         self.__desc = desc
         self._args = {}
@@ -145,7 +146,7 @@ class RPCJob(gobject.GObject):
         if not isinstance(result, dict):
             raise Exception("Value of result property must be dict")
         if state in self.STATES:
-            gobject.idle_add(self.emit, "state-change", state, result)
+            GObject.idle_add(self.emit, "state-change", state, result)
         else:
             raise Exception("Invalid status `%s'" % state)
 
@@ -247,14 +248,14 @@ class RPCCheckMail(RPCJob):
         return self._args["host"], self._args["user"], self._args["pasw"], \
             int(self._args["port"]), self._args["ssl"] == "True"
 
-class RPCSession(gobject.GObject, stateless.StatelessSession):
+class RPCSession(GObject.GObject, stateless.StatelessSession):
     type = base.T_RPC
 
     T_RPCREQ = 0
     T_RPCACK = 1
 
     def __init__(self, *args, **kwargs):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         try:
             self.__rpcactions = kwargs["rpcactions"]
@@ -269,7 +270,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
         self.__t_retry = 30
         self.__enabled = True
 
-        gobject.timeout_add(1000, self.__worker)
+        GObject.timeout_add(1000, self.__worker)
 
         self.handler = self.incoming_data
 
@@ -337,7 +338,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
 
         elif frame.type == self.T_RPCACK:
             if frame.seq in self.__jobs:
-                ts, att, job = self.__jobs[frame.seq]
+                _ts, _att, job = self.__jobs[frame.seq]
                 del self.__jobs[frame.seq]
                 job.set_state("complete", decode_dict(frame.data))
             else:
@@ -373,7 +374,7 @@ class RPCSession(gobject.GObject, stateless.StatelessSession):
     def stop(self):
         self.__enabled = False
 
-class RPCActionSet(gobject.GObject):
+class RPCActionSet(GObject.GObject):
     __gsignals__ = {
         "rpc-send-file" : signals.RPC_SEND_FILE,
         "rpc-send-form" : signals.RPC_SEND_FORM,
@@ -392,12 +393,12 @@ class RPCActionSet(gobject.GObject):
         self.__config = config
         self.__port = port
 
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
             printlog("RPC","       : Proxy emit %s: %s" % (signal, args))
-            gobject.idle_add(self.emit, signal, *args)
+            GObject.idle_add(self.emit, signal, *args)
 
         return handler
 
@@ -419,7 +420,7 @@ class RPCActionSet(gobject.GObject):
             result["msg"] = fix.to_APRS(symtab=self.__config.get("settings", "aprssymtab"),
                                symbol=self.__config.get("settings", "aprssymbol"))
             
-        except Exception as e:
+        except Exception:
             printlog("RPC","       : Case KO : Exception while getting position of %s: " % rqcall)
             log_exception()
             fix = None
@@ -548,7 +549,7 @@ class RPCActionSet(gobject.GObject):
     
         forms = self.emit("get-message-list", "CQCQCQ")
         result["rc"] = "Form not found"
-        for subj, stamp, filen in forms:
+        for subj, _stamp, filen in forms:
             if filen == job.get_form():
                 fname = os.path.join(self.__config.platform.config_dir(),
                                      "messages", filen)
@@ -571,9 +572,9 @@ class RPCActionSet(gobject.GObject):
         result["os"] = self.__config.platform.os_version_string()
         result["pyver"] = ".".join([str(x) for x in sys.version_info[:3]])
         try:
-            import gtk
-            result["pygtkver"] = ".".join([str(x) for x in gtk.pygtk_version])
-            result["gtkver"] = ".".join([str(x) for x in gtk.gtk_version])
+            from gi.repository import Gtk
+            #result["pygtkver"] = ".".join([str(x) for x in gtk.pygtk_version])
+            result["gtkver"] = ".".join([str(x) for x in Gtk.gtk_version])
         except ImportError:
             result["pygtkver"] = result["gtkver"] = "Unknown"
             printlog("RPC","       : RPC_get_version: %s" % result)

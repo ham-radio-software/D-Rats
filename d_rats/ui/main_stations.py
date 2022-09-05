@@ -21,8 +21,10 @@ from __future__ import print_function
 #importing printlog() wrapper
 from ..debug import printlog
 
-import gtk
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
 
 import time
 import os
@@ -55,11 +57,13 @@ def prompt_for_account(config):
     default = accounts.keys()[0]
 
     account = miscwidgets.make_choice(accounts.keys(), False, default)
-    host = gtk.Entry()
-    user = gtk.Entry()
-    pasw = gtk.Entry()
-    ussl = gtk.CheckButton()
-    port = gtk.SpinButton(gtk.Adjustment(110, 1, 65535, 1), digits=0)
+    host = Gtk.Entry()
+    user = Gtk.Entry()
+    pasw = Gtk.Entry()
+    ussl = Gtk.CheckButton()
+    port = Gtk.SpinButton()
+    port.set_adjustment(Gtk.Adjustment.new(110, 1, 65535, 1, 0, 0))
+    port.set_digits(0)
 
     disable = [host, user, pasw, ussl, port]
 
@@ -86,7 +90,7 @@ def prompt_for_account(config):
     d.add_field("Port", port)
     r = d.run()
     d.destroy()
-    if r == gtk.RESPONSE_CANCEL:
+    if r == Gtk.ResponseType.CANCEL:
         return None
 
     return host.get_text(), user.get_text(), pasw.get_text(), \
@@ -277,36 +281,36 @@ class StationsList(MainWindowTab):
   </popup>
 </ui>
 """
-        ag = gtk.ActionGroup("menu")
+        ag = Gtk.ActionGroup.new("menu")
         actions = [("ping", _("Ping"), None),
                    ("conntest", _("Test Connectivity"), None),
                    ("reqpos", _("Request Position"), None),
                    ("sendfile", _("Send file"), None),
-                   ("remove", _("Remove"), gtk.STOCK_DELETE),
-                   ("reset", _("Reset"), gtk.STOCK_JUMP_TO),
-                   ("version", _("Get version"), gtk.STOCK_ABOUT),
+                   ("remove", _("Remove"), Gtk.STOCK_DELETE),
+                   ("reset", _("Reset"), Gtk.STOCK_JUMP_TO),
+                   ("version", _("Get version"), Gtk.STOCK_ABOUT),
                    ("mcheck", _("Request mail check"), None),
                    ("qrz", _("Check on Qrz.com"), None)]
 
         for action, label, stock in actions:
-            a = gtk.Action(action, label, None, stock)
+            a = Gtk.Action.new(action, label, None, stock)
             a.connect("activate", self._mh, station, port)
             a.set_sensitive(station is not None)
             ag.add_action(a)
 
-        actions = [("clearall", _("Clear All"), gtk.STOCK_CLEAR),
+        actions = [("clearall", _("Clear All"), Gtk.STOCK_CLEAR),
                    ("pingall", _("Ping All Stations"), None),
                    ("reqposall", _("Request all positions"), None)]
         for action, label, stock in actions:
-            a = gtk.Action(action, label, None, stock)
+            a = Gtk.Action.new(action, label, None, stock)
             a.connect("activate", self._mh, station, port)
             ag.add_action(a)
 
-        uim = gtk.UIManager()
+        uim = Gtk.UIManager()
         uim.insert_action_group(ag, 0)
         uim.add_ui_from_string(xml)
 
-        return uim.get_widget("/menu")
+        return uim.get_object("/menu")
 
     def _mouse_cb(self, view, event):
         if event.button != 3:
@@ -319,7 +323,7 @@ class StationsList(MainWindowTab):
                 station = None
                 port = None
             else:
-                view.set_cursor_on_cell(pathinfo[0])
+                view.set_cursor_on_cell(pathinfo[0], None, None, False)
                 (model, iter) = view.get_selection().get_selected()
                 station, port = model.get(iter, 0, 5)
 
@@ -331,13 +335,13 @@ class StationsList(MainWindowTab):
 
         frame, self.__view, = self._getw("stations_frame", "stations_view")
 
-        store = gtk.ListStore(gobject.TYPE_STRING,  # Station
-                              gobject.TYPE_INT,     # Timestamp
-                              gobject.TYPE_STRING,  # Message
-                              gobject.TYPE_INT,     # Status
-                              gobject.TYPE_STRING,  # Status message
-                              gobject.TYPE_STRING)  # Port
-        store.set_sort_column_id(1, gtk.SORT_DESCENDING)
+        store = Gtk.ListStore(GObject.TYPE_STRING,  # Station
+                              GObject.TYPE_INT,     # Timestamp
+                              GObject.TYPE_STRING,  # Message
+                              GObject.TYPE_INT,     # Status
+                              GObject.TYPE_STRING,  # Status message
+                              GObject.TYPE_STRING)  # Port
+        store.set_sort_column_id(1, Gtk.SortType.DESCENDING)
         self.__view.set_model(store)
 
         try:
@@ -375,8 +379,8 @@ class StationsList(MainWindowTab):
             rend.set_property("markup", "<span color='%s'>%s</span>" % (color,
                                                                         msg))
 
-        r = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(_("Stations"), r, text=0)
+        r = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Stations"), r, text=0)
         col.set_cell_data_func(r, render_call)
         self.__view.append_column(col)
 
@@ -394,33 +398,44 @@ class StationsList(MainWindowTab):
             pass
 
         def set_status(cb):
-            self.__status = cb.get_active_text()
-            self._config.set("state", "status_state", self.__status)
+            # TODO this changed with Gtk 3
+            # Commenting it out for now
+            print("TODO: main_stations.StationsList,set_status is broken")
+            print(type(cb))
+            #self.__status = cb.get_active_text()
+            #self._config.set("state", "status_state", self.__status)
 
         def set_smsg(e):
             self.__smsg = e.get_text()
             self._config.set("state", "status_msg", self.__smsg)
 
-        for s in sorted(station_status.get_status_msgs().values()):
-            if s not in [_("Unknown"), _("Offline")]:
-                status.append_text(s)
+        # TODO This changed with GTK3.  I think I need to attach a liststore
+        # object to the combo boxes.   I think that glade generated the
+        # wrong window for this.
+        #for s in sorted(station_status.get_status_msgs().values()):
+        #    if s not in [_("Unknown"), _("Offline")]:
+        #        status.append_text(s)
 
         status.connect("changed", set_status)
         msg.connect("changed", set_smsg)
 
         prev_status = self._config.get("state", "status_state")
-        if not utils.combo_select(status, prev_status):
-            utils.combo_select(status,
-                               station_status.get_status_msgs().values()[0])
+        # TODO This chainged with GTK3.
+        # Commenting it out for now.
+        #if not utils.combo_select(status, prev_status):
+        #    utils.combo_select(status,
+        #                       station_status.get_status_msgs().values()[0])
         msg.set_text(self._config.get("state", "status_msg"))
         set_status(status)
         set_smsg(msg)
 
-        gobject.timeout_add(30000, self._update)
+        GObject.timeout_add(30000, self._update)
 
     def _update_station_count(self):
             hdr, = self._getw("stations_header")
-            hdr.set_markup("<b>Stations (%i)</b>" % len(self.__calls))
+            if hdr:
+                hdr.set_markup("<b>Stations (%i)</b>" % len(self.__calls))
+            #TODO: Do we need an else clause here if all stations are removed?
 
     def saw_station(self, station, port, status=0, smsg=""):
         status_changed = False

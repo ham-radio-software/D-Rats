@@ -11,7 +11,9 @@ import subprocess
 import shutil
 import email
 import threading
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 import struct
 import time
 import re
@@ -55,6 +57,7 @@ def run_lzhuf(cmd, data):
     f.close()
 
     kwargs = {}
+    # pylint: disable=no-member
     if subprocess.mswindows:
         su = subprocess.STARTUPINFO()
         su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -328,11 +331,11 @@ class WinLinkCMS:
         r = ";"
         while r.startswith(";"):
             r = self.__recv()
-        return r;
+        return r
 
     def _send_ssid(self, recv_ssid):
         try:
-            sw, ver, caps = recv_ssid[1:-1].split("-")
+            _sw, _ver, caps = recv_ssid[1:-1].split("-")
         except Exception:
             raise Exception("Conversation error (unparsable SSID `%s')" % resp)
 
@@ -539,10 +542,10 @@ class WinLinkRMSPacket(WinLinkCMS):
         resp = self._recv()
         self._send_ssid(resp)
 
-class WinLinkThread(threading.Thread, gobject.GObject):
+class WinLinkThread(threading.Thread, GObject.GObject):
     __gsignals__ = {
-        "mail-thread-complete" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                                  (gobject.TYPE_BOOLEAN, gobject.TYPE_STRING)),
+        "mail-thread-complete" : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,
+                                  (GObject.TYPE_BOOLEAN, GObject.TYPE_STRING)),
         "event" : signals.EVENT,
         "form-received" : signals.FORM_RECEIVED,
         "form-sent" : signals.FORM_SENT,
@@ -550,12 +553,12 @@ class WinLinkThread(threading.Thread, gobject.GObject):
     _signals = __gsignals__
 
     def _emit(self, *args):
-        gobject.idle_add(self.emit, *args)
+        GObject.idle_add(self.emit, *args)
 
     def __init__(self, config, callsign, callssid=None, send_msgs=[]):
         threading.Thread.__init__(self)
         self.setDaemon(True)
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         if not callssid:
             callssid = callsign

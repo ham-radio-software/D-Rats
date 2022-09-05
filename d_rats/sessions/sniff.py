@@ -2,7 +2,9 @@
 from __future__ import absolute_import
 import struct
 
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from d_rats.sessions import base, control, stateless
 
@@ -15,19 +17,19 @@ session_types = {
     9 : "PForm",
 }
 
-class SniffSession(stateless.StatelessSession, gobject.GObject):
+class SniffSession(stateless.StatelessSession, GObject.GObject):
     __gsignals__ = {
-        "incoming_frame" : (gobject.SIGNAL_RUN_LAST,
-                            gobject.TYPE_NONE,
-                            (gobject.TYPE_STRING,    # Src
-                             gobject.TYPE_STRING,    # Dst
-                             gobject.TYPE_STRING,    # Summary
+        "incoming_frame" : (GObject.SIGNAL_RUN_LAST,
+                            GObject.TYPE_NONE,
+                            (GObject.TYPE_STRING,    # Src
+                             GObject.TYPE_STRING,    # Dst
+                             GObject.TYPE_STRING,    # Summary
                              ))
         }
 
     def __init__(self, *a, **k):
         stateless.StatelessSession.__init__(self, *a, **k)
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.handler = self._handler
 

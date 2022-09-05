@@ -22,8 +22,10 @@ import time
 import os
 from datetime import datetime
 
-import gobject
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
 
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats import utils
@@ -107,7 +109,7 @@ class SessionEvent(Event):
         return self.__restart_info
 
 def filter_rows(model, iter, evtab):
-    search = evtab._wtree.get_widget("event_searchtext").get_text()
+    search = evtab._wtree.get_object("event_searchtext").get_text()
 
     icon, message = model.get(iter, 1, 3)
 
@@ -158,22 +160,22 @@ class EventTab(MainWindowTab):
   </popup>
 </ui>
 """
-        ag = gtk.ActionGroup("menu")
+        ag = Gtk.ActionGroup.new("menu")
 
         actions = [("stop", _("Stop"), not event.is_final()),
                    ("cancel", _("Cancel"), not event.is_final()),
                    ("restart", _("Restart"), event.get_restart_info())]
         for action, label, sensitive in actions:
-            a = gtk.Action(action, label, None, None)
+            a = Gtk.Action.new(action, label, None, None)
             a.connect("activate", self._mh_xfer, event)
             a.set_sensitive(bool(sensitive))
             ag.add_action(a)
 
-        uim = gtk.UIManager()
+        uim = Gtk.UIManager()
         uim.insert_action_group(ag, 0)
         uim.add_ui_from_string(xml)
 
-        return uim.get_widget("/menu")
+        return uim.get_object("/menu")
 
     def _mouse_cb(self, view, uievent):
         if uievent.button != 3:
@@ -185,7 +187,7 @@ class EventTab(MainWindowTab):
             if pathinfo is None:
                 return
             else:
-                view.set_cursor_on_cell(pathinfo[0])
+                view.set_cursor_on_cell(pathinfo[0], None, None, False)
 
         (model, iter) = view.get_selection().get_selected()
         type, id, event = model.get(iter, 1, 0, 6)
@@ -236,10 +238,10 @@ class EventTab(MainWindowTab):
     def __change_sort(self, column):
         srt = column.get_sort_order()
 
-        if srt == gtk.SORT_ASCENDING:
-            srt = gtk.SORT_DESCENDING
+        if srt == Gtk.SortType.ASCENDING:
+            srt = Gtk.SortType.DESCENDING
         else:
-            srt = gtk.SORT_ASCENDING
+            srt = Gtk.SortType.ASCENDING
 
         self._config.set("state", "events_sort", int(srt))
 
@@ -249,7 +251,7 @@ class EventTab(MainWindowTab):
     def _get_sort_asc(self):
         #printlog("MainEvents",": sorting events in ascending order")
         srt = self._config.getint("state", "events_sort")
-        return srt == gtk.SORT_ASCENDING
+        return srt == Gtk.SortType.ASCENDING
 
     def __init__(self, wtree, config):
         MainWindowTab.__init__(self, wtree, config, "event")
@@ -260,29 +262,29 @@ class EventTab(MainWindowTab):
 
         eventlist.connect("button_press_event", self._mouse_cb)
 
-        self.store = gtk.ListStore(gobject.TYPE_STRING,  # 0: id
-                                   gobject.TYPE_OBJECT,  # 1: icon
-                                   gobject.TYPE_INT,     # 2: timestamp
-                                   gobject.TYPE_STRING,  # 3: message
-                                   gobject.TYPE_STRING,  # 4: details
-                                   gobject.TYPE_INT,     # 5: order
-                                   gobject.TYPE_PYOBJECT,# 6: event
+        self.store = Gtk.ListStore(GObject.TYPE_STRING,  # 0: id
+                                   GObject.TYPE_OBJECT,  # 1: icon
+                                   GObject.TYPE_INT,     # 2: timestamp
+                                   GObject.TYPE_STRING,  # 3: message
+                                   GObject.TYPE_STRING,  # 4: details
+                                   GObject.TYPE_INT,     # 5: order
+                                   GObject.TYPE_PYOBJECT,# 6: event
                                    )
         self._filter_icon = None
         filter = self.store.filter_new()
         filter.set_visible_func(filter_rows, self)
         eventlist.set_model(filter)
 
-        col = gtk.TreeViewColumn("", gtk.CellRendererPixbuf(), pixbuf=1)
+        col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=1)
         eventlist.append_column(col)
 
-        def render_time(col, rend, model, iter):
+        def render_time(col, rend, model, iter, data):
             val, = model.get(iter, 2)
             stamp = datetime.fromtimestamp(val)
             rend.set_property("text", stamp.strftime("%Y-%m-%d %H:%M:%S"))
 
-        r = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(_("Time"), r, text=2)
+        r = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Time"), r, text=2)
         col.set_cell_data_func(r, render_time)
         col.set_sort_column_id(5)
         col.connect("clicked", self.__change_sort)
@@ -291,13 +293,13 @@ class EventTab(MainWindowTab):
         try:
             srt = int(self._config.get("state", "events_sort"))
         except ValueError:
-            srt = gtk.SORT_DESCENDING
+            srt = Gtk.SortType.DESCENDING
         self.store.set_sort_column_id(5, srt)
         col.set_sort_indicator(True)
         col.set_sort_order(srt)
 
-        r = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(_("Description"), r, text=3)
+        r = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Description"), r, text=3)
         eventlist.append_column(col)
 
         typesel, = self._getw("typesel")
@@ -318,8 +320,9 @@ class EventTab(MainWindowTab):
         sw, = self._getw("sw")
         adj = sw.get_vadjustment()
         top_scrolled = (adj.get_value() == 0.0)
-        bot_scrolled = (adj.get_value() == (adj.upper - adj.page_size))
-        if (adj.page_size == adj.upper) and self._get_sort_asc():
+        bot_scrolled = (adj.get_value() ==
+                        (adj.get_upper() - adj.get_page_size()))
+        if (adj.get_page_size() == adj.get_upper()) and self._get_sort_asc():
             # This means we're top-sorted, but only because there aren't
             # enough items to have a scroll bar.  So, if we're sorted
             # ascending, default to bottom-sort if we cross that boundary
@@ -364,12 +367,12 @@ class EventTab(MainWindowTab):
             adj.set_value(adj.upper - adj.page_size)
 
         if top_scrolled:
-            gobject.idle_add(top_scroll, adj)
+            GObject.idle_add(top_scroll, adj)
         elif bot_scrolled:
-            gobject.idle_add(bot_scroll, adj)
+            GObject.idle_add(bot_scroll, adj)
 
     def event(self, event):
-        gobject.idle_add(self._event, event)
+        GObject.idle_add(self._event, event)
 
     def finalize_last(self, group):
         iter = self.store.get_iter_first()

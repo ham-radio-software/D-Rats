@@ -14,46 +14,54 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''Input Dialog Module'''
 
 from __future__ import absolute_import
 from __future__ import print_function
-import gtk
+
+import gi
+gi.require_version("Gtk", "3.0")
+# pylint: disable=wrong-import-position
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 from .miscwidgets import make_choice
 
-class TextInputDialog(gtk.Dialog):
+class TextInputDialog(Gtk.Dialog):
+    '''Text input dialog class'''
+
+    # pylint: disable=unused-argument
     def respond_ok(self, *args):
-        self.response(gtk.RESPONSE_OK)
+        ''' Respond Ok '''
+
+        self.response(Gtk.ResponseType.OK)
 
     def __init__(self, **args):
-        buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                   gtk.STOCK_OK, gtk.RESPONSE_OK)
-        gtk.Dialog.__init__(self, buttons=buttons, **args)
+        buttons = (Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL,
+                   Gtk.ButtonsType.OK, Gtk.ResponseType.OK)
+        Gtk.Dialog.__init__(self, buttons=buttons, **args)
 
-        self.label = gtk.Label()
+        self.label = Gtk.Label.new()
         self.label.set_size_request(300, 100)
-        # pylint: disable-msg=E1101
         self.vbox.pack_start(self.label, 1, 1, 0)
-       
-        self.text = gtk.Entry()
+
+        self.text = Gtk.Entry()
         self.text.connect("activate", self.respond_ok, None)
-        # pylint: disable-msg=E1101
         self.vbox.pack_start(self.text, 1, 1, 0)
 
         self.label.show()
         self.text.show()
 
-class ChoiceDialog(gtk.Dialog):
+class ChoiceDialog(Gtk.Dialog):
     editable = False
 
     def __init__(self, choices, **args):
-        buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                   gtk.STOCK_OK, gtk.RESPONSE_OK)
-        gtk.Dialog.__init__(self, buttons=buttons, **args)
+        buttons = (Gtk.ButtonsType.CANCEL, Gtk.ResponseType.CANCEL,
+                   Gtk.ButtonsType.OK, Gtk.ResponseType.OK)
+        Gtk.Dialog.__init__(self, buttons=buttons, **args)
 
-        self.label = gtk.Label()
+        self.label = Gtk.Label.new()
         self.label.set_size_request(300, 100)
-        # pylint: disable-msg=E1101
         self.vbox.pack_start(self.label, 1, 1, 0)
         self.label.show()
 
@@ -63,13 +71,14 @@ class ChoiceDialog(gtk.Dialog):
             default = None
 
         self.choice = make_choice(sorted(choices), self.editable, default)
-        # pylint: disable-msg=E1101
         self.vbox.pack_start(self.choice, 1, 1, 0)
         self.choice.show()
 
-        self.set_default_response(gtk.RESPONSE_OK)
+        self.set_default_response(Gtk.ResponseType.OK)
 
 class EditableChoiceDialog(ChoiceDialog):
+    '''Editable Choice Dialog'''
+
     editable = True
 
     def __init__(self, choices, **args):
@@ -77,37 +86,47 @@ class EditableChoiceDialog(ChoiceDialog):
 
         self.choice.child.set_activates_default(True)
 
-class ExceptionDialog(gtk.MessageDialog):
+class ExceptionDialog(Gtk.MessageDialog):
+    '''Exception for Dialog'''
+
     def __init__(self, exception, **args):
-        gtk.MessageDialog.__init__(self, buttons=gtk.BUTTONS_OK, **args)
+        Gtk.MessageDialog.__init__(self, buttons=Gtk.ButtonsType.OK, **args)
         self.set_property("text", _("An error has occurred"))
         self.format_secondary_text(str(exception))
 
-class FieldDialog(gtk.Dialog):
+class FieldDialog(Gtk.Dialog):
+    '''Field Dialog Task'''
+
     def __init__(self, **kwargs):
         if "buttons" not in list(kwargs.keys()):
-            kwargs["buttons"] = (gtk.STOCK_OK, gtk.RESPONSE_OK,
-                                 gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+            kwargs["buttons"] = (_("Ok"), Gtk.ResponseType.OK,
+                                 _("Cancel"),
+                                 Gtk.ResponseType.CANCEL)
 
         self.__fields = {}
 
-        gtk.Dialog.__init__(self, **kwargs)
-        self.set_default_response(gtk.RESPONSE_OK)
+        Gtk.Dialog.__init__(self, **kwargs)
+        self.set_default_response(Gtk.ResponseType.OK)
 
         self.set_modal(True)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)        
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
 
-    def response(self, _):
-        print("Blocking response")
-        return
+    # Can not find what arguments are actually different
+    # pylint: disable=arguments-differ
+    def response(self, response):
+        '''Response logging'''
+        print("Blocking response %d" % response)
 
-    def add_field(self, label, widget, validator=None, full=False):
+    def add_field(self, label, widget, _validator=None, full=False):
+        ''' Add field to a widget '''
+
         if full:
-            box = gtk.VBox(False, 2)
+            box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         else:
-            box = gtk.HBox(True, 2)
+            box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
+            box.set_homogeneous(True)
 
-        lab = gtk.Label(label)
+        lab = Gtk.Label.new(label)
         lab.show()
 
         widget.set_size_request(150, -1)
@@ -120,22 +139,38 @@ class FieldDialog(gtk.Dialog):
             box.pack_start(widget, 0, 0, 0)
         box.show()
 
-        # pylint: disable-msg=E1101
         if full:
             self.vbox.pack_start(box, 1, 1, 1)
         else:
             self.vbox.pack_start(box, 0, 0, 0)
-    
+
         self.__fields[label] = widget
 
     def get_field(self, label):
         return self.__fields.get(label, None)
 
+
+def main():
+    '''main function for testing'''
+
+    if not __package__:
+        # pylint: disable=redefined-builtin
+        __package__ = '__main__'
+    import gettext
+
+    lang = gettext.translation("D-RATS",
+                               localedir="./locale",
+                               languages=["en"],
+                               fallback=True)
+    lang.install()
+
+    dialog = FieldDialog(buttons=(_("Ok"), Gtk.ResponseType.OK))
+    dialog.add_field("Foo", Gtk.Entry())
+    dialog.add_field("Bar", make_choice(["A", "B"]))
+    dialog.run()
+    Gtk.main()
+    dialog.destroy()
+
+
 if __name__ == "__main__":
-    # pylint: disable-msg=C0103
-    d = FieldDialog(buttons=(gtk.STOCK_OK, gtk.RESPONSE_OK))
-    d.add_field("Foo", gtk.Entry())
-    d.add_field("Bar", make_choice(["A", "B"]))
-    d.run()
-    gtk.main()
-    d.destroy()
+    main()

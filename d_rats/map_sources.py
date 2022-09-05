@@ -27,7 +27,9 @@ import os
 from glob import glob
 
 import libxml2
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from . import utils
 from . import dplatform
@@ -39,18 +41,18 @@ class Callable:
 class MapItem(object):
     pass
 
-class MapPoint(gobject.GObject):
+class MapPoint(GObject.GObject):
     __gsignals__ = {
-        "updated" : (gobject.SIGNAL_RUN_LAST,
-                     gobject.TYPE_NONE,
-                     (gobject.TYPE_STRING,)),
+        "updated" : (GObject.SignalFlags.RUN_LAST,
+                     GObject.TYPE_NONE,
+                     (GObject.TYPE_STRING,)),
         }
 
     def _retr_hook(self, method, attribute):
         pass
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.__latitude = 0.0
         self.__longitude = 0.0
         self.__altitude = 0.0
@@ -159,7 +161,7 @@ class MapPointThreaded(MapPoint):
 
     def __thread_fn(self):
         self.do_update()
-        gobject.idle_add(self.emit, "updated", "FOO")
+        GObject.idle_add(self.emit, "updated", "FOO")
 
 class MapUSGSRiver(MapPointThreaded):
     def do_update(self):
@@ -186,7 +188,7 @@ class MapUSGSRiver(MapPointThreaded):
 
         p = dplatform.get_platform()
         try:
-            fn, headers = p.retrieve_url(url)
+            fn, _headers = p.retrieve_url(url)
             content = open(fn).read()
         except Exception as e:
             printlog("Mapsrc","    :[NSGS] Failed to fetch info for %s: %s" % (self.__site, e))
@@ -211,7 +213,7 @@ class MapUSGSRiver(MapPointThreaded):
 
         p = dplatform.get_platform()
         try:
-            fn, headers = p.retrieve_url(url)
+            fn, _headers = p.retrieve_url(url)
             line = open(fn).readlines()[-1]
         except Exception as e:
             printlog("Mapsrc","    :[NSGS] Failed to fetch info for site %s: %s" % (self.__site,
@@ -238,7 +240,7 @@ class MapNBDCBuoy(MapPointThreaded):
     def do_update(self):
         p = dplatform.get_platform()
         try:
-            fn, headers = p.retrieve_url(self.__url)
+            fn, _headers = p.retrieve_url(self.__url)
             content = open(fn).read()
         except Exception as e:
             printlog("Mapsrc","    :[NBDC] Failed to fetch info for %i: %s" % (self.__buoy, e))
@@ -295,21 +297,21 @@ class MapSourceFailedToConnect(Exception):
 class MapSourcePointError(Exception):
     pass
 
-class MapSource(gobject.GObject):
+class MapSource(GObject.GObject):
     __gsignals__ = {
-        "point-added" : (gobject.SIGNAL_RUN_LAST,
-                         gobject.TYPE_NONE,
-                         (gobject.TYPE_PYOBJECT,)),
-        "point-deleted" : (gobject.SIGNAL_RUN_LAST,
-                           gobject.TYPE_NONE,
-                           (gobject.TYPE_PYOBJECT,)),
-        "point-updated" : (gobject.SIGNAL_RUN_LAST,
-                           gobject.TYPE_NONE,
-                           (gobject.TYPE_PYOBJECT,)),
+        "point-added" : (GObject.SignalFlags.RUN_LAST,
+                         GObject.TYPE_NONE,
+                         (GObject.TYPE_PYOBJECT,)),
+        "point-deleted" : (GObject.SignalFlags.RUN_LAST,
+                           GObject.TYPE_NONE,
+                           (GObject.TYPE_PYOBJECT,)),
+        "point-updated" : (GObject.SignalFlags.RUN_LAST,
+                           GObject.TYPE_NONE,
+                           (GObject.TYPE_PYOBJECT,)),
         }
 
     def __init__(self, name, description, color="red"):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self._name = name
         self._description = description

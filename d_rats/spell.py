@@ -12,6 +12,7 @@ import subprocess
 class Spelling:
     def __open_aspell(self):
         kwargs = {}
+        # pylint: disable=maybe-no-member
         if subprocess.mswindows:
             su = subprocess.STARTUPINFO()
             su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -44,7 +45,7 @@ class Spelling:
 
         try:
             self.__pipe.stdout.readline()
-        except Exception as e:
+        except Exception:
             printlog("Demand-opening aspell...")
             self.__pipe = self.__open_aspell()
             self.__pipe.stdout.readline()
@@ -130,12 +131,14 @@ def __do_fly_spell(buffer):
         buffer.remove_tag_by_name("misspelled", start_iter, end_iter)
 
 def prepare_TextBuffer(buf):
-    import gtk
-    import pango
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    from gi.repository import Pango
 
     tags = buf.get_tag_table()
-    tag = gtk.TextTag("misspelled")
-    tag.set_property("underline", pango.UNDERLINE_SINGLE)
+    tag = Gtk.TextTag("misspelled")
+    tag.set_property("underline", Pango.UNDERLINE_SINGLE)
     tag.set_property("underline-set", True)
     tag.set_property("foreground", "red")
     tags.add(tag)

@@ -42,7 +42,9 @@ except ImportError:
     from email import MIMEText 
     from email import Message 
 
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from . import formgui
 from . import signals
@@ -210,7 +212,7 @@ class MessageRoute(object):
     def __init__(self, line):
         self.dest, self.gw, self.port = line.split()
 
-class MessageRouter(gobject.GObject):
+class MessageRouter(GObject.GObject):
     __gsignals__ = {
         "get-station-list" : signals.GET_STATION_LIST,
         "user-send-form" : signals.USER_SEND_FORM,
@@ -222,7 +224,7 @@ class MessageRouter(gobject.GObject):
     _signals = __gsignals__
 
     def _emit(self, signal, *args):
-        gobject.idle_add(self.emit, signal, *args)
+        GObject.idle_add(self.emit, signal, *args)
 
     def __proxy_emit(self, signal):
         def handler(obj, *args):
@@ -231,7 +233,7 @@ class MessageRouter(gobject.GObject):
         return handler
 
     def __init__(self, config):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.__event = threading.Event()
 
@@ -261,7 +263,7 @@ class MessageRouter(gobject.GObject):
             if not line.strip() or line.startswith("#"):
                 continue
             try:
-                dest, gw, port = line.split()
+                dest, gw, _port = line.split()
                 routes[dest] = gw
             except Exception as e:
                 printlog("Msgrouting",": Error parsing line '%s': %s" % (line, e))
@@ -509,11 +511,11 @@ class MessageRouter(gobject.GObject):
 
         routes = self._get_routes()
 
-        for port, stations in plist.items():
+        for _port, stations in plist.items():
             for station in stations:
                 slist[str(station)] = station
 
-        for dst, callq in queue.items():
+        for _dst, callq in queue.items():
             for msg in callq:
 
                 try:
@@ -536,7 +538,7 @@ class MessageRouter(gobject.GObject):
 
                 try:
                     self._run_one(queue)
-                except Exception as e:
+                except Exception:
                     utils.log_exception()
                     printlog("Msgrouting",": Fail-safe unlocking messages in queue:")
                     for msgs in queue.values():

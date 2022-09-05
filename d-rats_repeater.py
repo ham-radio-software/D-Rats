@@ -208,7 +208,7 @@ class Repeater:
             except Exception as e:
                 printlog("Repeater  : Unable to read auth command: `%s': %s" % (line, e))
 
-                pipe.write("501 Invalid Syntax\r\n")
+                pipe.write(b"501 Invalid Syntax\r\n")
                 break
 
             cmd = cmd.upper()
@@ -218,11 +218,11 @@ class Repeater:
             elif cmd == "PASS" and username and not password:
                 password = value
             else:
-                pipe.write("201 Protocol violation\r\n")
+                pipe.write(b"201 Protocol violation\r\n")
                 break
 
             if username and not password:
-                pipe.write("102 %s okay\r\n" % cmd)
+                pipe.write(b"102 %s okay\r\n" % cmd)
 
         if not username or not password:
             printlog("Repeater  : Negotiation failed with client")
@@ -230,13 +230,13 @@ class Repeater:
         return username, password
 
     def auth_user(self, pipe):
-        host, port = pipe._socket.getpeername()
+        host, _port = pipe._socket.getpeername()
 
         if not self.reqauth:
-            pipe.write("100 Authentication not required\r\n")
+            pipe.write(b"100 Authentication not required\r\n")
             return True
         elif self.trustlocal and host == "127.0.0.1":
-            pipe.write("100 Authentication not required for localhost\r\n")
+            pipe.write(b"100 Authentication not required for localhost\r\n")
             return True
           
         auth_fn = dplatform.get_platform().config_file("users.txt")
@@ -247,7 +247,7 @@ class Repeater:
         except Exception as e:
             printlog("Repeater  : Failed to open %s: %s" % (auth_fn, e))
 
-        pipe.write("101 Authorization required\r\n")
+        pipe.write(b"101 Authorization required\r\n")
         username, password = self.auth_exchange(pipe)
 
         lno = 1
@@ -262,11 +262,11 @@ class Repeater:
 
             if u == username and p == password:
                 printlog(("Authorized user %s" % u))
-                pipe.write("200 Authorized\r\n")
+                pipe.write(b"200 Authorized\r\n")
                 return True
 
         printlog("Repeater  : User %s failed to authenticate" % username)
-        pipe.write("500 Not authorized\r\n")
+        pipe.write(b"500 Not authorized\r\n")
         return False
 
     def accept_new(self):
@@ -382,7 +382,7 @@ class RepeaterUI:
             to = 0
             if dev.startswith("net:"):
                 try:
-                    net, host, port = dev.split(":", 2)
+                    _net, host, port = dev.split(":", 2)
                     port = int(port)
                 except Exception as e:
                     printlog(("Invalid net string: %s (%s)" % (dev, e)))
@@ -396,7 +396,7 @@ class RepeaterUI:
                     path = comm.SocketDataPath((host, port))
             elif dev.startswith("tnc:"):
                 try:
-                    tnc, port, device = dev.split(":", 2)
+                    _tnc, port, device = dev.split(":", 2)
                     device = int(device)
                 except Exception as e:
                     printlog("Repeater  : Invalid tnc string: %s (%s)" % (dev, e))
@@ -416,7 +416,7 @@ class RepeaterUI:
 
 class RepeaterGUI(RepeaterUI):
     def add_serial(self, widget):
-        name, portspec, param = prompt_for_port(None, pname=False)
+        _name, portspec, param = prompt_for_port(None, pname=False)
         if portspec is None:
             return
 
@@ -431,24 +431,24 @@ class RepeaterGUI(RepeaterUI):
     def sig_destroy(self, widget, data=None):
         self.button_off(None, False)
         self.save_config(self.config)
-        gtk.main_quit()
+        Gtk.main_quit()
 
     def ev_delete(self, widget, event, data=None):
         self.button_off(None, False)
         self.save_config(self.config)
         self.repeater.stop()
-        gtk.main_quit()
+        Gtk.main_quit()
 
     def make_side_buttons(self):
-        vbox = gtk.VBox(False, 2)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
-        but_add = gtk.Button("Add")
+        but_add = Gtk.Button.new_with_label("Add")
         but_add.connect("clicked", self.add_serial)
         but_add.set_size_request(75, 30)
         but_add.show()
         vbox.pack_start(but_add, 0,0,0)
 
-        but_remove = gtk.Button("Remove")
+        but_remove = Gtk.Button.new_with_label("Remove")
         but_remove.set_size_request(75, 30)
         but_remove.connect("clicked", self.button_remove)
         but_remove.show()
@@ -467,20 +467,22 @@ class RepeaterGUI(RepeaterUI):
             printlog(("Unable to load devices: %s" % e))
 
     def make_devices(self):
-        frame = gtk.Frame("Paths")
+        frame = Gtk.Frame.new("Paths")
 
-        vbox = gtk.VBox(False, 2)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         frame.add(vbox)
 
-        hbox = gtk.HBox(False, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
-        self.dev_list = miscwidgets.ListWidget([(gobject.TYPE_STRING, "Device"),
-                                                (gobject.TYPE_STRING, "Param")])
+        self.dev_list = miscwidgets.ListWidget([(GObject.TYPE_STRING, "Device"),
+                                                (GObject.TYPE_STRING, "Param")])
         self.dev_list.show()
         self.load_devices()
 
-        sw = gtk.ScrolledWindow()
-        sw.add_with_viewport(self.dev_list)
+        #sw = Gtk.ScrolledWindow()
+        #sw.add_with_viewport(self.dev_list)
+        sw = Gtk.ListBox()
+        sw.add(self.dev_list)
         sw.show()
 
         hbox.pack_start(sw, 1,1,1)
@@ -495,14 +497,15 @@ class RepeaterGUI(RepeaterUI):
         return frame
 
     def make_network(self):
-        frame = gtk.Frame("Network")
+        frame = Gtk.Frame.new("Network")
 
-        vbox = gtk.VBox(False, 2)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         frame.add(vbox)
-        hbox = gtk.HBox(False, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
 
-        self.net_enabled = gtk.CheckButton("Accept incoming connections")
+        self.net_enabled = Gtk.CheckButton.new_with_label(
+            "Accept incoming connections")
         try:
             accept = self.config.getboolean("settings", "acceptnet")
         except:
@@ -513,13 +516,13 @@ class RepeaterGUI(RepeaterUI):
 
         hbox.pack_start(self.net_enabled, 0,0,0)
 
-        self.entry_port = gtk.Entry()
+        self.entry_port = Gtk.Entry()
         try:
             port = self.config.get("settings", "netport")
         except:
             port = "9000"
         
-        self.entry_gpsport = gtk.Entry()
+        self.entry_gpsport = Gtk.Entry()
         try:
             gpsport = self.config.get("settings", "gpsport")
         except :
@@ -530,7 +533,7 @@ class RepeaterGUI(RepeaterUI):
         self.entry_gpsport.show()
         hbox.pack_end(self.entry_gpsport, 0,0,0)
 
-        lab = gtk.Label("GPS Port:")
+        lab = Gtk.Label.new("GPS Port:")
         lab.show()
         hbox.pack_end(lab, 0,0,0)
 
@@ -539,7 +542,7 @@ class RepeaterGUI(RepeaterUI):
         self.entry_port.show()
         hbox.pack_end(self.entry_port, 0,0,0)
 
-        lab = gtk.Label("Port:")
+        lab = Gtk.Label.new("Port:")
         lab.show()
         hbox.pack_end(lab, 0,0,0)
 
@@ -552,15 +555,15 @@ class RepeaterGUI(RepeaterUI):
         return frame
 
     def make_bottom_buttons(self):
-        hbox = gtk.HBox(False, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
-        self.but_on = gtk.Button("On")
+        self.but_on = Gtk.Button.new_with_label("On")
         self.but_on.set_size_request(75, 30)
         self.but_on.connect("clicked", self.button_on)
         self.but_on.show()
         hbox.pack_start(self.but_on, 0,0,0)
 
-        self.but_off = gtk.Button("Off")
+        self.but_off = Gtk.Button.new_with_label("Off")
         self.but_off.set_size_request(75, 30)
         self.but_off.connect("clicked", self.button_off)
         self.but_off.set_sensitive(False)
@@ -572,11 +575,11 @@ class RepeaterGUI(RepeaterUI):
         return hbox        
 
     def make_id(self):
-        frame = gtk.Frame("Repeater Callsign")
+        frame = Gtk.Frame.new("Repeater Callsign")
 
-        hbox = gtk.HBox(False, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
-        self.entry_id = gtk.Entry()
+        self.entry_id = Gtk.Entry()
         try:
             deftxt = self.config.get("settings", "id")
         except:
@@ -606,21 +609,21 @@ class RepeaterGUI(RepeaterUI):
         return frame
 
     def make_auth(self):
-        frame = gtk.Frame("Authentication")
+        frame = Gtk.Frame.new("Authentication")
 
-        hbox = gtk.HBox(False, 20)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 20)
 
         def toggle_option(cb, option):
             self.config.set("settings", option, str(cb.get_active()))
 
-        self.req_auth = gtk.CheckButton("Require Authentication")
+        self.req_auth = Gtk.CheckButton.new_with_label("Require Authentication")
         self.req_auth.connect("toggled", toggle_option, "require_auth")
         self.req_auth.show()
         self.req_auth.set_active(self.config.getboolean("settings",
                                                         "require_auth"))
         hbox.pack_start(self.req_auth, 0, 0, 0)
 
-        self.trust_local = gtk.CheckButton("Trust localhost")
+        self.trust_local = Gtk.CheckButton.new_with_label("Trust localhost")
         self.trust_local.connect("toggled", toggle_option, "trust_local")
         self.trust_local.show()
         self.trust_local.set_active(self.config.getboolean("settings",
@@ -631,7 +634,7 @@ class RepeaterGUI(RepeaterUI):
             p = dplatform.get_platform()
             p.open_text_file(p.config_file("users.txt"))
 
-        edit_users = gtk.Button("Edit Users")
+        edit_users = Gtk.Button.new_with_label("Edit Users")
         edit_users.connect("clicked", do_edit_users)
         edit_users.show()
         edit_users.set_size_request(75, 30)
@@ -643,9 +646,9 @@ class RepeaterGUI(RepeaterUI):
         return frame
 
     def make_settings(self):
-        vbox = gtk.VBox(False, 5)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
 
-        hbox = gtk.HBox(False, 5)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
 
         vbox.pack_start(self.make_devices(), 1,1,1)
         vbox.pack_start(self.make_network(), 0,0,0)
@@ -661,12 +664,12 @@ class RepeaterGUI(RepeaterUI):
         return vbox
 
     def make_connected(self):
-        frame = gtk.Frame("Connected Paths")
+        frame = Gtk.Frame.new("Connected Paths")
 
-        idlist = miscwidgets.ListWidget([(gobject.TYPE_STRING, "ID")])
+        idlist = miscwidgets.ListWidget([(GObject.TYPE_STRING, "ID")])
         idlist.show()
 
-        self.conn_list = gtk.ScrolledWindow()
+        self.conn_list = Gtk.ScrolledWindow()
         self.conn_list.add_with_viewport(idlist)
         self.conn_list.show()
 
@@ -676,19 +679,20 @@ class RepeaterGUI(RepeaterUI):
         return frame
 
     def make_traffic(self):
-        frame = gtk.Frame("Traffic Monitor")
+        frame = Gtk.Frame.new("Traffic Monitor")
 
-        self.traffic_buffer = gtk.TextBuffer()
-        self.traffic_view = gtk.TextView(buffer=self.traffic_buffer)
-        self.traffic_view.set_wrap_mode(gtk.WRAP_WORD)
+        self.traffic_buffer = Gtk.TextBuffer()
+        self.traffic_view = Gtk.TextView.new_with_buffer(
+            buffer=self.traffic_buffer)
+        self.traffic_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.traffic_view.show()
 
         self.traffic_buffer.create_mark("end",
                                         self.traffic_buffer.get_end_iter(),
                                         False)
 
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw = Gtk.ScrolledWindow()
+        sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         sw.add(self.traffic_view)
         sw.show()
 
@@ -698,7 +702,7 @@ class RepeaterGUI(RepeaterUI):
         return frame
 
     def make_monitor(self):
-        vbox = gtk.VBox(False, 5)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
 
         vbox.pack_start(self.make_connected(), 1,1,1)
         vbox.pack_start(self.make_traffic(), 1,1,1)
@@ -713,6 +717,8 @@ class RepeaterGUI(RepeaterUI):
         port = self.entry_port.get_text()
         acceptnet = str(self.net_enabled.get_active())
         devices = self.dev_list.get_values()
+        if not devices:
+            devices = '[]'
         auth = self.req_auth.get_active()
         local = self.trust_local.get_active()
         gpsport = self.entry_gpsport.get_text()
@@ -783,7 +789,7 @@ class RepeaterGUI(RepeaterUI):
         if ("TAP",) in l:
             l.remove(("TAP",))
 
-        self.conn_list.child.set_values(l)            
+        self.conn_list.get_child().set_values(l)
 
         if self.tap:
             traffic = self.tap.peek()
@@ -813,18 +819,19 @@ class RepeaterGUI(RepeaterUI):
     def __init__(self):
         RepeaterUI.__init__(self)
 
-        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window = Gtk.Window()
+        #self.window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
         self.window.set_default_size(450, 380)
         self.window.connect("delete_event", self.ev_delete)
         self.window.connect("destroy", self.sig_destroy)
         self.window.set_title("D-RATS Repeater Proxy")
 
-        vbox = gtk.VBox(False, 5)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
 
-        self.tabs = gtk.Notebook()
-        self.tabs.append_page(self.make_settings(), gtk.Label("Settings"))
+        self.tabs = Gtk.Notebook()
+        self.tabs.append_page(self.make_settings(), Gtk.Label.new("Settings"))
         # FIXME: later
-        # self.tabs.append_page(self.make_monitor(), gtk.Label("Monitor"))
+        # self.tabs.append_page(self.make_monitor(), Gtk.Label.new("Monitor"))
         self.tabs.show()
 
         vbox.pack_start(self.tabs, 1,1,1)
@@ -834,7 +841,7 @@ class RepeaterGUI(RepeaterUI):
         self.window.add(vbox)
         self.window.show()
 
-        #gobject.timeout_add(1000, self.update)
+        #GObject.timeout_add(1000, self.update)
 
         try:
             if self.config.get("settings", "state") == "True":
@@ -884,7 +891,7 @@ if __name__=="__main__":
         else:
             p = dplatform.get_platform()
             #f = file(p.config_file("repeater.log"), "w", 0)
-            f = open(p.config_file("repeater.log"), "a", 0)
+            f = open(p.config_file("repeater.log"), "a", 1)
         if f:
             sys.stdout = f
             sys.stderr = f
@@ -895,14 +902,17 @@ if __name__=="__main__":
         r = RepeaterConsole()
         r.main()
     else:
-        import gtk
-        import gobject
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+        from gi.repository import GObject
         from d_rats.miscwidgets import make_choice
         from d_rats import miscwidgets
         from d_rats.config import prompt_for_port
 
-        gobject.threads_init()
+        # Not needed since version 3.11
+        # GObject.threads_init()
 
         g = RepeaterGUI()
-        gtk.main()
+        Gtk.main()
 

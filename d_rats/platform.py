@@ -90,13 +90,16 @@ class Platform(object):
         return "."
 
     def gui_open_file(self, start_dir=None):
-        import gtk
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
 
-        dlg = gtk.FileChooserDialog("Select a file to open",
-                                    None,
-                                    gtk.FILE_CHOOSER_ACTION_OPEN,
-                                    (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        dlg = Gtk.FileChooserDialog.new("Select a file to open",
+                                        None,
+                                        Gtk.FileChooserAction.OPEN,
+                                        (Gtk.ButtonsType.CANCEL,
+                                         Gtk.ResponseType.CANCEL,
+                                         _("Open"), Gtk.ResponseType.OK))
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -104,19 +107,22 @@ class Platform(object):
         fname = dlg.get_filename()
         dlg.destroy()
 
-        if res == gtk.RESPONSE_OK:
+        if res == Gtk.ResponseType.OK:
             return fname
         else:
             return None
 
     def gui_save_file(self, start_dir=None, default_name=None):
-        import gtk
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
 
-        dlg = gtk.FileChooserDialog("Save file as",
-                                    None,
-                                    gtk.FILE_CHOOSER_ACTION_SAVE,
-                                    (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                     gtk.STOCK_SAVE, gtk.RESPONSE_OK))
+        dlg = Gtk.FileChooserDialog.new("Save file as",
+                                        None,
+                                        Gtk.FileChooserAction.SAVE,
+                                        (Gtk.ButtonsType.CANCEL,
+                                         Gtk.ResponseType.CANCEL,
+                                         _("Save"), Gtk.ResponseType.OK))
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -127,19 +133,22 @@ class Platform(object):
         fname = dlg.get_filename()
         dlg.destroy()
 
-        if res == gtk.RESPONSE_OK:
+        if res == Gtk.ResponseType.OK:
             return fname
         else:
             return None
 
     def gui_select_dir(self, start_dir=None):
-        import gtk
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
 
-        dlg = gtk.FileChooserDialog("Choose folder",
-                                    None,
-                                    gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                    (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                                     gtk.STOCK_SAVE, gtk.RESPONSE_OK))
+        dlg = Gtk.FileChooserDialog.new("Choose folder",
+                                        None,
+                                        Gtk.FileChooserAction.SELECT_FOLDER,
+                                        (Gtk.ButtonsType.CANCEL,
+                                         Gtk.ResponseType.CANCEL,
+                                         _("Save"), Gtk.ResponseType.OK))
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -147,7 +156,7 @@ class Platform(object):
         fname = dlg.get_filename()
         dlg.destroy()
 
-        if res == gtk.RESPONSE_OK and os.path.isdir(fname):
+        if res == Gtk.ResponseType.OK and os.path.isdir(fname):
             return fname
         else:
             return None
@@ -346,6 +355,7 @@ class Win32Platform(Platform):
         subprocess.Popen(["explorer", path])
     
     def list_serial_ports(self):
+        # pylint: disable=import-error
         import win32file
         import win32con
 
@@ -372,6 +382,7 @@ class Win32Platform(Platform):
 
     def gui_open_file(self, start_dir=None):
         # pylint: disable-msg=W0703,W0613
+        # pylint: disable=import-error
         import win32gui
 
         try:
@@ -384,6 +395,7 @@ class Win32Platform(Platform):
 
     def gui_save_file(self, start_dir=None, default_name=None):
         # pylint: disable-msg=W0703,W0613
+        # pylint: disable=import-error
         import win32gui
 
         try:
@@ -396,6 +408,7 @@ class Win32Platform(Platform):
 
     def gui_select_dir(self, start_dir=None):
         # pylint: disable-msg=W0703,W0613
+        # pylint: disable=import-error
         from win32com.shell import shell
 
         try:
@@ -408,6 +421,7 @@ class Win32Platform(Platform):
         return str(fname)
 
     def os_version_string(self):
+        # pylint: disable=import-error
         import win32api
 
         vers = { 4: "Windows 2000",
@@ -421,6 +435,7 @@ class Win32Platform(Platform):
         return vers.get(pform, "Win32 (Unknown %i:%i)" % (pform, build))
 
     def play_sound(self, soundfile):
+        # pylint: disable=import-error
         import winsound
 
         winsound.PlaySound(soundfile, winsound.SND_FILENAME)
