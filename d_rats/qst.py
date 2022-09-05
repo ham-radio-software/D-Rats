@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # pylint: disable=too-many-lines
-'''QST'''
+'''QST.'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
@@ -21,14 +21,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-# import time
 import datetime
-# import copy
+import json
 import logging
 import re
 import threading
-# import os
-from six.moves import range # type: ignore
+import urllib
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -39,14 +37,6 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
-# import linecache   #Works ok on python but not on Windows
-
-# try:
-#    # Python2 compatibility
-#    # pylint: disable=import-error
-#    from commands import getstatusoutput as run
-# except ModuleNotFoundError:
-#    pass
 from .miscwidgets import make_choice
 from . import miscwidgets
 
@@ -56,7 +46,6 @@ from . import dplatform
 from . import inputdialog
 from . import cap
 from . import wu
-# from . import mapdisplay
 from . import gps
 from .utils import combo_select, get_icon
 
@@ -99,7 +88,7 @@ def do_dprs_calculator(initial=""):
     cur = initial
     logger = logging.getLogger("QST_Do_DPRS_Calculator")
 
-    if cur and cur[-3] == "*" and cur[3] == " ":
+    if cur and len(cur) >2 and cur[-3] == "*" and cur[3] == " ":
         msg.set_text(cur[4:-3])
         dsym = cur[:2]
         deficn = gps.DPRS_TO_APRS.get(dsym, "/#")
@@ -283,6 +272,7 @@ class QSTGPS(QSTText):
         Set Fix.
 
         :param fix: Fix to add.
+        :type fix: :class:`GPSPosition`
         '''
         self.fix = fix
 
@@ -336,7 +326,19 @@ class QSTGPSA(QSTGPS):
 
 
 class QSTWX(QSTGPS):
-    '''QST GPS.'''
+    '''
+    QST WX.
+
+    :param config: Configuration object
+    :type config: :class:`DratsConfig`
+    :param content: QST Content
+    :type content: str
+    :param key: Name for QST
+    :type key: str
+    '''
+    def __init__(self, config, content, key):
+        QSTGPS.__init__(self, config, content, key)
+        self.logger = logging.getLogger("QST")
 
     def do_qst(self):
         '''
@@ -357,7 +359,6 @@ class QSTWX(QSTGPS):
 #*/ to here is working on Windows and python
 
         if not self.fix:
-            # from . import mainapp #hack
             fix = self.mainapp.get_position()
         else:
             fix = self.fix
@@ -370,7 +371,9 @@ class QSTWX(QSTGPS):
                                symbol="_")
 #       WX symbol will be used for WXGPS-A.
 #       return fix.to_APRS(symtab=self.config.get("settings", "aprssymtab"),
-#                          symbol=self.config.get("settings", "aprssymbol"))
+#                          symbol=self.config.get("settings", "aprssymbol")
+        self.logger.info("do_qst: "
+                         "GPS postition is not valid, so not sent")
         return None
 
 
@@ -571,8 +574,6 @@ class QSTOpenWeather(QSTThreadedText):
         :returns: Qst text
         :rtype: str
         '''
-        import urllib
-        import json
         weath = ""
         _obs = wu.WUObservation()
         owuri = self.config.get("settings", "qst_owuri")
@@ -588,12 +589,10 @@ class QSTOpenWeather(QSTThreadedText):
 #---to be restore when forecasts are done
      #   try:
         if t_qst == _("Current"):
-            # pylint: disable=no-member
             url = owuri +"weather?"+ \
-                urllib.urlencode({'q': s_qst, 'appid': owappid})
+                urllib.parse.urlencode({'q': s_qst, 'appid': owappid})
             self.logger.info("URL=%s", url)
-            # pylint: disable=no-member
-            urlread = urllib.urlopen(url).read()
+            urlread = urllib.request.urlopen(url).read()
             datajson = json.loads(urlread)
             self.logger.info(datajson)
 
@@ -635,12 +634,11 @@ class QSTOpenWeather(QSTThreadedText):
             return None
 
         if t_qst == _("Forecast"):
-            # pylint: disable=no-member
             url = owuri + "forecast?" + \
-                urllib.urlencode({'q': s_qst, 'appid': owappid, 'mode': "json"})
+                urllib.parse.urlencode({'q': s_qst, 'appid': owappid,
+                                        'mode': "json"})
             self.logger.info("Forecast: %s ", url)
-            # pylint: disable=no-member
-            urlread = urllib.urlopen(url).read()
+            urlread = urllib.request.urlopen(url).read()
             datajson = json.loads(urlread)
             self.logger.info(datajson)
 
@@ -698,7 +696,7 @@ class QSTOpenWeather(QSTThreadedText):
                     wpressure = item['main']['pressure']
                     wwindspeed = item['wind']['speed']
 
-                    #prepare string with weather conditions
+                    # prepare string with weather conditions
                     # Timestamp as [HH:MM AM/PM]
                     weath = weath + ('\n%i:00 %s ' % (hour, meridiem))
                     # Weather forecast and temperatures
@@ -758,6 +756,7 @@ class QSTStation(QSTGPSA):
         :param name: Name of map source
         :type name: str
         :returns: The map source for name or None
+        :rtype: :class:`MapSource`
         '''
         from . import mainapp # Hack to force mainapp load
         sources = mainapp.get_mainapp().map.get_map_sources()
@@ -777,6 +776,7 @@ class QSTStation(QSTGPSA):
         :param station: Station to look up
         :type station: src
         :returns: Point for station or None
+        :rtype: :class:`MapStation`
         '''
         for point in source.get_points():
             if point.get_name() == station:
@@ -1225,7 +1225,9 @@ class QSTStationEditWidget(QSTEditWidget):
         EV Group Selection.
 
         :param group: Group to select.
+        :type group: str
         :param station: Station to get mode of
+        :type station: :class:`MapStation`
         '''
         group = group.get_active_text()
 
@@ -1455,6 +1457,7 @@ def get_qst_class(typestr):
     :param typestr: Type String for class
     :type typestr: str
     :returns: The QST class
+    :rtype: :class:`QSTText`
     '''
     classes = {
         _("Text")    : QSTText,
