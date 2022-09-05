@@ -1,0 +1,3 @@
+D-rats can now be installed in a python virtual enviroment.
+Fixed the paths for where system data is stored and looked for
+to match Python and general conventions.

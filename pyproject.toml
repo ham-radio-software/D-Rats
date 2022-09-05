@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=40"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "D-Rats"
+description = "A communications tool for D-STAR"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "GPL-3"}
+dynamic = ["version"]
+dependencies = [
+    "lxml",
+    "pycairo",
+    "PyGObject",
+    "pyserial",
+    "Pillow",
+    "geopy",
+    "feedparser"
+]
+
+[tool.towncrier]
+directory = "changes"
+package = 'd_rats.version'
+
+[tool.setuptools]
+packages = ['d_rats', 'd_rats.map', 'd_rats.sessions', 'd_rats.ui' ]
+
+[tool.setuptools.dynamic]
+version = {attr = "d_rats.version.DRATS_PEP440_VERSION"}

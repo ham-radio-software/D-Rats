@@ -1,10 +1,12 @@
-20210711 - 0.4.00 pre-release #
+20210711 - 0.3.10b2.dev300 unreleased
+- Future entries will be in NEWS.rst
 - This is experimental use only for development and testing
 - Start of python3 conversion
 - Silencing pylint diagnostics.  Fix issues when practical.
   Had to guess at some variable renaming required to comply with pylint.
 - Add DocStrings - Had to guess at some definitions.
 - Additional debug code has been added.
+
 
 20200529 - 0.3.9 - beta 3
 - added timestamp in repeater log 
