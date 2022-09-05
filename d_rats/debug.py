@@ -63,8 +63,6 @@ def printlog(arg1, *args):
                      'spell',                #d_rats\spell.py
                      'station_status',       #d_rats\station_status.py
 
-
-
                      'wu',                   #d_rats\wu.py
                      'yencode',              #d_rats\yencode.py
                     
@@ -84,8 +82,7 @@ def printlog(arg1, *args):
                      'sessions\\stateless',   #d_rats\sessions\stateless.py
 
                      'ui\\main_common',       #d_rats\ui\main_common.py
-                     ]
-
+                      ]
     date_time = datetime.now().strftime("%m/%d/%Y %H:%M:%S")  
     if (arg1 in modules2print):   
         print(date_time, arg1, *args)

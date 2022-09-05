@@ -20,26 +20,29 @@ from __future__ import print_function
 #importing printlog() wrapper
 from .debug import printlog
 
-import gtk
-import gobject
-import pango
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import Pango
 
 import os
 
 from . import dplatform
 from six.moves import range
 
-class KeyedListWidget(gtk.HBox):
+class KeyedListWidget(Gtk.Box):
     __gsignals__ = {
-        "item-selected" : (gobject.SIGNAL_RUN_LAST,
-                           gobject.TYPE_NONE,
-                           (gobject.TYPE_STRING,)),
-        "item-toggled" : (gobject.SIGNAL_RUN_LAST,
-                          gobject.TYPE_BOOLEAN,
-                          (gobject.TYPE_STRING, gobject.TYPE_BOOLEAN)),
-        "item-set" : (gobject.SIGNAL_RUN_LAST,
-                      gobject.TYPE_NONE,
-                      (gobject.TYPE_STRING,)),
+        "item-selected" : (GObject.SignalFlags.RUN_LAST,
+                           GObject.TYPE_NONE,
+                           (GObject.TYPE_STRING,)),
+        "item-toggled" : (GObject.SignalFlags.RUN_LAST,
+                          GObject.TYPE_BOOLEAN,
+                          (GObject.TYPE_STRING, GObject.TYPE_BOOLEAN)),
+        "item-set" : (GObject.SignalFlags.RUN_LAST,
+                      GObject.TYPE_NONE,
+                      (GObject.TYPE_STRING,)),
         }
 
     def _toggle(self, rend, path, colnum):
@@ -59,7 +62,7 @@ class KeyedListWidget(gtk.HBox):
         x, y = event.get_coords()
         path = self.__view.get_path_at_pos(int(x), int(y))
         if path:
-            self.__view.set_cursor_on_cell(path[0])
+            self.__view.set_cursor_on_cell(path[0], None, None, False)
 
         sel = self.get_selected()
         if sel:
@@ -73,14 +76,14 @@ class KeyedListWidget(gtk.HBox):
             if colnum == 0:
                 continue # Key column
     
-            if typ in [gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_FLOAT]:
-                rend = gtk.CellRendererText()
-                rend.set_property("ellipsize", pango.ELLIPSIZE_END)
-                column = gtk.TreeViewColumn(cap, rend, text=colnum)
-            elif typ in [gobject.TYPE_BOOLEAN]:
-                rend = gtk.CellRendererToggle()
+            if typ in [GObject.TYPE_STRING, GObject.TYPE_INT, GObject.TYPE_FLOAT]:
+                rend = Gtk.CellRendererText()
+                rend.set_property("ellipsize", Pango.EllipsizeMode.END)
+                column = Gtk.TreeViewColumn(cap, rend, text=colnum)
+            elif typ in [GObject.TYPE_BOOLEAN]:
+                rend = Gtk.CellRendererToggle()
                 rend.connect("toggled", self._toggle, colnum)
-                column = gtk.TreeViewColumn(cap, rend, active=colnum)
+                column = Gtk.TreeViewColumn(cap, rend, active=colnum)
             else:
                 raise Exception("Unsupported type %s" % typ)
             
@@ -164,14 +167,14 @@ class KeyedListWidget(gtk.HBox):
         return keys
 
     def __init__(self, columns):
-        gtk.HBox.__init__(self, True, 0)
+        Gtk.Box.__init__(self, True, 0)
     
         self.columns = columns
     
         types = tuple([x for x,y in columns])
     
-        self.__store = gtk.ListStore(*types)
-        self.__view = gtk.TreeView(self.__store)
+        self.__store = Gtk.ListStore(*types)
+        self.__view = Gtk.TreeView(self.__store)
     
         self.pack_start(self.__view, 1, 1, 1)
     
@@ -184,51 +187,54 @@ class KeyedListWidget(gtk.HBox):
         if signame == "item-toggled":
             self.__toggle_connected = True
         
-        gtk.HBox.connect(self, signame, *args)
+        Gtk.Box.connect(self, signame, *args)
 
     def set_editable(self, column, is_editable):
         col = self.__view.get_column(column)
-        rend = col.get_cell_renderers()[0]
+        #rend = col.get_cell_renderers()[0]
+        rend = Gtk.CellRendererText()
         rend.set_property("editable", True)
         rend.connect("edited", self._edited, column + 1)
 
     def set_sort_column(self, column, value=None):
         self.__view.get_model().set_sort_column_id(column,
-                                                   gtk.SORT_ASCENDING)
+                                                   Gtk.SortType.ASCENDING)
     
     def set_resizable(self, column, resizable, ellipsize=False):
         col = self.__view.get_column(column)
         col.set_resizable(resizable)
-        rend = col.get_cell_renderers()[0]
+        #rend = col.get_cell_renderers()[0]
+        rend = Gtk.CellRendererText()
         rend.set_property("ellipsize",
-                          ellipsize and pango.ELLIPSIZE_END \
-                              or pango.ELLIPSIZE_NONE)
+                          ellipsize and Pango.EllipsizeMode.END \
+                              or Pango.EllipsizeMode.NONE)
         
     def set_expander(self, column):
         col = self.__view.get_column(column)
         self.__view.set_expander_column(col)
 
     def set_password(self, column):
-        def render_password(foo, rend, model, iter):
+        def render_password(foo, rend, model, iter, data):
             val = model.get(iter, column+1)[0]
-            rend.set_property("text", "*" * len(val));
+            rend.set_property("text", "*" * len(val))
         
         col = self.__view.get_column(column)
-        rnd = col.get_cell_renderers()[0]
+        #rnd = col.get_cell_renderers()[0]
+        rnd = Gtk.CellRendererText()
         col.set_cell_data_func(rnd, render_password)
         
 
-class ListWidget(gtk.HBox):
+class ListWidget(Gtk.Box):
     __gsignals__ = {
-        "click-on-list" : (gobject.SIGNAL_RUN_LAST,
-                           gobject.TYPE_NONE,
-                           (gtk.TreeView, gtk.gdk.Event)),
-        "item-toggled" : (gobject.SIGNAL_RUN_LAST,
-                          gobject.TYPE_NONE,
-                          (gobject.TYPE_PYOBJECT,)),
+        "click-on-list" : (GObject.SignalFlags.RUN_LAST,
+                           GObject.TYPE_NONE,
+                           (Gtk.TreeView, Gdk.Event)),
+        "item-toggled" : (GObject.SignalFlags.RUN_LAST,
+                          GObject.TYPE_NONE,
+                          (GObject.TYPE_PYOBJECT,)),
         }
 
-    store_type = gtk.ListStore
+    store_type = Gtk.ListStore
 
     def mouse_cb(self, view, event):
         self.emit("click-on-list", view, event)
@@ -243,24 +249,24 @@ class ListWidget(gtk.HBox):
         self.emit("item-toggled", vals)
 
     def make_view(self, columns):
-        self._view = gtk.TreeView(self._store)
+        self._view = Gtk.TreeView(self._store)
 
         for _type, _col in columns:
             if _col.startswith("__"):
                 continue
 
             index = columns.index((_type, _col))
-            if _type == gobject.TYPE_STRING or \
-                    _type == gobject.TYPE_INT or \
-                    _type == gobject.TYPE_FLOAT:
-                rend = gtk.CellRendererText()
-                column = gtk.TreeViewColumn(_col, rend, text=index)
+            if _type == GObject.TYPE_STRING or \
+                    _type == GObject.TYPE_INT or \
+                    _type == GObject.TYPE_FLOAT:
+                rend = Gtk.CellRendererText()
+                column = Gtk.TreeViewColumn(_col, rend, text=index)
                 column.set_resizable(True)
-                rend.set_property("ellipsize", pango.ELLIPSIZE_END)
-            elif _type == gobject.TYPE_BOOLEAN:
-                rend = gtk.CellRendererToggle()
+                rend.set_property("ellipsize", Pango.EllipsizeMode.END)
+            elif _type == GObject.TYPE_BOOLEAN:
+                rend = Gtk.CellRendererToggle()
                 rend.connect("toggled", self._toggle, index)
-                column = gtk.TreeViewColumn(_col, rend, active=index)
+                column = Gtk.TreeViewColumn(_col, rend, active=index)
             else:
                 raise Exception("Unknown column type (%i)" % index)
 
@@ -270,7 +276,7 @@ class ListWidget(gtk.HBox):
         self._view.connect("button_press_event", self.mouse_cb)
 
     def __init__(self, columns, parent=True):
-        gtk.HBox.__init__(self)
+        Gtk.Box.__init__(self)
 
         # pylint: disable-msg=W0612
         col_types = tuple([x for x, y in columns])
@@ -340,7 +346,7 @@ class ListWidget(gtk.HBox):
                 target = lst.get_iter(pos-1)
             elif delta < 0:
                 target = lst.get_iter(pos+1)
-        except Exception as e:
+        except Exception:
             return False
 
         if target:
@@ -363,7 +369,7 @@ class ListWidget(gtk.HBox):
             self.add_item(*i)
 
 class TreeWidget(ListWidget):
-    store_type = gtk.TreeStore
+    store_type = Gtk.TreeStore
 
     # pylint: disable-msg=W0613
     def _toggle(self, render, path, column):
@@ -503,24 +509,24 @@ class TreeWidget(ListWidget):
         else:
             raise Exception("Item not found")
 
-class ProgressDialog(gtk.Window):
+class ProgressDialog(Gtk.Window):
     def __init__(self, title, parent=None):
-        gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
+        Gtk.Window.__init__(self, Gtk.WindowType.TOPLEVEL)
         self.set_modal(True)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.set_title(title)
         if parent:
             self.set_transient_for(parent)
 
         self.set_resizable(False)
 
-        vbox = gtk.VBox(False, 2)
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
 
-        self.label = gtk.Label("")
+        self.label = Gtk.Label.new("")
         self.label.set_size_request(100, 50)
         self.label.show()
 
-        self.pbar = gtk.ProgressBar()
+        self.pbar = Gtk.ProgressBar()
         self.pbar.show()
         
         vbox.pack_start(self.label, 0, 0, 0)
@@ -534,19 +540,19 @@ class ProgressDialog(gtk.Window):
         self.label.set_text(text)
         self.queue_draw()
 
-        while gtk.events_pending():
-            gtk.main_iteration_do(False)
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
 
     def set_fraction(self, frac):
         self.pbar.set_fraction(frac)
         self.queue_draw()
 
-        while gtk.events_pending():
-            gtk.main_iteration_do(False)
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
 
-class LatLonEntry(gtk.Entry):
+class LatLonEntry(Gtk.Entry):
     def __init__(self, *args):
-        gtk.Entry.__init__(self, *args)
+        Gtk.Entry.__init__(self, *args)
 
         self.connect("changed", self.format)
 
@@ -642,11 +648,11 @@ class LatLonEntry(gtk.Entry):
         except:
             return False
 
-class YesNoDialog(gtk.Dialog):
+class YesNoDialog(Gtk.Dialog):
     def __init__(self, title="", parent=None, buttons=None):
-        gtk.Dialog.__init__(self, title=title, parent=parent, buttons=buttons)
+        Gtk.Dialog.__init__(self, title=title, parent=parent, buttons=buttons)
 
-        self._label = gtk.Label("")
+        self._label = Gtk.Label.new("")
         self._label.show()
 
         # pylint: disable-msg=E1101
@@ -657,9 +663,9 @@ class YesNoDialog(gtk.Dialog):
 
 def make_choice(options, editable=True, default=None):
     if editable:
-        sel = gtk.combo_box_entry_new_text()
+        sel = Gtk.ComboBoxText.new_with_entry()
     else:
-        sel = gtk.combo_box_new_text()
+        sel = Gtk.ComboBoxText.new()
 
     for opt in options:
         sel.append_text(opt)
@@ -673,9 +679,9 @@ def make_choice(options, editable=True, default=None):
 
     return sel
 
-class FilenameBox(gtk.HBox):
+class FilenameBox(Gtk.Box):
     __gsignals__ = {
-        "filename-changed" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
+        "filename-changed" : (GObject.SignalFlags.RUN_LAST, GObject.TYPE_NONE, ()),
         }
 
     def do_browse(self, _, dir):
@@ -695,15 +701,15 @@ class FilenameBox(gtk.HBox):
         self.emit("filename_changed")
 
     def __init__(self, find_dir=False, types=[]):
-        gtk.HBox.__init__(self, False, 0)
+        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 0)
 
         self.types = types
 
-        self.filename = gtk.Entry()
+        self.filename = Gtk.Entry()
         self.filename.show()
         self.pack_start(self.filename, 1, 1, 1)
 
-        browse = gtk.Button("...")
+        browse = Gtk.Button.new_with_label("...")
         browse.show()
         self.pack_start(browse, 0, 0, 0)
 
@@ -720,15 +726,15 @@ class FilenameBox(gtk.HBox):
         self.filename.set_sensitive(mutable)
 
 def make_pixbuf_choice(options, default=None):
-    store = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING)
-    box = gtk.ComboBox(store)
+    store = Gtk.ListStore(Gdk.Pixbuf, GObject.TYPE_STRING)
+    box = Gtk.ComboBox.new_with_model(store)
 
-    cell = gtk.CellRendererPixbuf()
-    box.pack_start(cell, True)
+    cell = Gtk.CellRendererPixbuf()
+    box.pack_start(cell, True, True, 0)
     box.add_attribute(cell, "pixbuf", 0)
 
-    cell = gtk.CellRendererText()
-    box.pack_start(cell, True)
+    cell = Gtk.CellRendererText()
+    box.pack_start(cell, True, True, 0)
     box.add_attribute(cell, "text", 1)
 
     _default = None
@@ -744,9 +750,9 @@ def make_pixbuf_choice(options, default=None):
     return box
 
 def test():
-    win = gtk.Window(gtk.WINDOW_TOPLEVEL)
-    lst = ListWidget([(gobject.TYPE_STRING, "Foo"),
-                    (gobject.TYPE_BOOLEAN, "Bar")])
+    win = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+    lst = ListWidget([(GObject.TYPE_STRING, "Foo"),
+                    (GObject.TYPE_BOOLEAN, "Bar")])
 
     lst.add_item("Test1", True)
     lst.set_values([("Test2", True), ("Test3", False)])
@@ -758,15 +764,15 @@ def test():
     win1 = ProgressDialog("foo")
     win1.show()
 
-    win2 = gtk.Window(gtk.WINDOW_TOPLEVEL)
+    win2 = Gtk.Window(Gtk.WindowType.TOPLEVEL)
     lle = LatLonEntry()
     lle.show()
     win2.add(lle)
     win2.show()
 
-    win3 = gtk.Window(gtk.WINDOW_TOPLEVEL)
-    lst = TreeWidget([(gobject.TYPE_STRING, "Id"),
-                      (gobject.TYPE_STRING, "Value")],
+    win3 = Gtk.Window(Gtk.WindowType.TOPLEVEL)
+    lst = TreeWidget([(GObject.TYPE_STRING, "Id"),
+                      (GObject.TYPE_STRING, "Value")],
                      1)
     #l.add_item(None, "Foo", "Bar")
     #l.add_item("Foo", "Bar", "Baz")
@@ -787,7 +793,7 @@ def test():
     lle.set_text("45 13 12")
 
     try:
-        gtk.main()
+        Gtk.main()
     except KeyboardInterrupt:
         pass
 

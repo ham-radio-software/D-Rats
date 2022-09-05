@@ -20,8 +20,10 @@ from ..debug import printlog
 
 import re
 
-import gobject
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
 
 from d_rats import inputdialog, miscwidgets
 from d_rats import signals
@@ -29,28 +31,28 @@ from d_rats import signals
 STATION_REGEX = "^[A-Z0-9- /_]+$"
 
 def ask_for_confirmation(question, parent=None):
-    d = gtk.MessageDialog(buttons=gtk.BUTTONS_YES_NO,
+    d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.YES_NO,
                           parent=parent,
                           message_format=question)
     r = d.run()
     d.destroy()
 
-    return r == gtk.RESPONSE_YES
+    return r == Gtk.ResponseType.YES
 
 def display_error(message, parent=None):
-    d = gtk.MessageDialog(buttons=gtk.BUTTONS_OK,
+    d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
                           parent=parent,
                           message_format=message)
     r = d.run()
     d.destroy()
 
-    return r == gtk.RESPONSE_OK
+    return r == Gtk.ResponseType.OK
 
 def prompt_for_station(_station_list, config, parent=None):
     station_list = [str(x) for x in _station_list]
     port_list = []
     for i in config.options("ports"):
-        enb, port, rate, sniff, raw, name = config.get("ports", i).split(",")
+        enb, port, _rate, _sniff, _raw, name = config.get("ports", i).split(",")
         if enb == "True":
             port_list.append(name)
 
@@ -69,11 +71,11 @@ def prompt_for_station(_station_list, config, parent=None):
     d = inputdialog.FieldDialog(title=_("Enter destination"), parent=parent)
     d.add_field(_("Station"), station)
     d.add_field(_("Port"), port)
-    station.child.set_activates_default(True)
+    station.get_child().set_activates_default(True)
 
     while True:
         res = d.run()
-        if res != gtk.RESPONSE_OK:
+        if res != Gtk.ResponseType.OK:
             break
         s = station.get_active_text().upper()
         if "@" in s:
@@ -87,16 +89,16 @@ def prompt_for_station(_station_list, config, parent=None):
 
     p = port.get_active_text()
     d.destroy()
-    if res == gtk.RESPONSE_OK:
+    if res == Gtk.ResponseType.OK:
         return s, p
     else:
         return None, None
 
 def prompt_for_string(message, parent=None, orig=""):
-    d = gtk.MessageDialog(buttons=gtk.BUTTONS_OK_CANCEL,
+    d = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK_CANCEL,
                           parent=parent,
                           message_format=message)
-    e = gtk.Entry()
+    e = Gtk.Entry()
     e.set_text(orig)
     e.show()
     d.vbox.pack_start(e, 1, 1, 1)
@@ -104,7 +106,7 @@ def prompt_for_string(message, parent=None, orig=""):
     r = d.run()
     d.destroy()
 
-    if r == gtk.RESPONSE_OK:
+    if r == Gtk.RESPONSE_OK:
         return e.get_text()
     else:
         return None
@@ -115,26 +117,26 @@ def set_toolbar_buttons(config, tb):
         tb.unset_style()
         tb.unset_icon_size()
     elif tbsize == _("Small"):
-        tb.set_style(gtk.TOOLBAR_ICONS)
-        tb.set_icon_size(gtk.ICON_SIZE_SMALL_TOOLBAR)
+        tb.set_style(Gtk.ToolbarStyle.ICONS)
+        tb.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
     elif tbsize == _("Large"):
-        tb.set_style(gtk.TOOLBAR_BOTH)
-        tb.set_icon_size(gtk.ICON_SIZE_LARGE_TOOLBAR)
+        tb.set_style(Gtk.ToolbarStyle.BOTH)
+        tb.set_icon_size(Gtk.IconSize.LARGE_TOOLBAR)
 
-class MainWindowElement(gobject.GObject):
+class MainWindowElement(GObject.GObject):
     def __init__(self, wtree, config, prefix):
         self._prefix = prefix
         self._wtree = wtree
         self._config = config
 
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
     def _getw(self, *names):
         widgets = []
 
         for _name in names:
             name = "%s_%s" % (self._prefix, _name)
-            widgets.append(self._wtree.get_widget(name))
+            widgets.append(self._wtree.get_object(name))
 
         return tuple(widgets)
 
@@ -144,7 +146,13 @@ class MainWindowElement(gobject.GObject):
 class MainWindowTab(MainWindowElement):
     def __init__(self, wtree, config, prefix):
         MainWindowElement.__init__(self, wtree, config, prefix)
-        self._tablabel = wtree.get_widget("tab_label_%s" % prefix)
+        self._prefix = prefix
+        self._notebook = wtree.get_object('main_tabs')
+        self._menutab = wtree.get_object("tab_label_%s" % prefix)
+        if self._menutab:
+            self._tablabel = self._notebook.get_menu_label(self._menutab)
+        else:
+            self._tablabel = None
         self._selected = False
 
     def reconfigure(self):

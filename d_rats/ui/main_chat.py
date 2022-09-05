@@ -26,9 +26,11 @@ import time
 import re
 from datetime import datetime
 
-import gobject
-import gtk
-import pango
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Pango
 
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import ask_for_confirmation, display_error, \
@@ -38,24 +40,24 @@ from d_rats import qst
 from d_rats import signals
 from d_rats import spell
 
-class LoggedTextBuffer(gtk.TextBuffer):
+class LoggedTextBuffer(Gtk.TextBuffer):
     def __init__(self, logfile):
-        gtk.TextBuffer.__init__(self)
+        Gtk.TextBuffer.__init__(self)
         self.__logfile = file(logfile, "a", 0)
 
     def get_logfile(self):
         return self.__logfile.name
 
     def insert_with_tags_by_name(self, iter, text, *attrs):
-        gtk.TextBuffer.insert_with_tags_by_name(self, iter, text, *attrs)
+        Gtk.TextBuffer.insert_with_tags_by_name(self, iter, text, *attrs)
         self.__logfile.write(text)
 
 class ChatQM(MainWindowElement):
     __gsignals__ = {
-        "user-sent-qm" : (gobject.SIGNAL_RUN_LAST,
-                          gobject.TYPE_NONE,
-                          (gobject.TYPE_STRING, # Content
-                           gobject.TYPE_STRING, # Should be empty
+        "user-sent-qm" : (GObject.SignalFlags.RUN_LAST,
+                          GObject.TYPE_NONE,
+                          (GObject.TYPE_STRING, # Content
+                           GObject.TYPE_STRING, # Should be empty
                            ))
         }
 
@@ -69,7 +71,7 @@ class ChatQM(MainWindowElement):
         d = inputdialog.TextInputDialog(title=_("Add Quick Message"))
         d.label.set_text(_("Enter text for the new quick message:"))
         r = d.run()
-        if r == gtk.RESPONSE_OK:
+        if r == Gtk.ResponseType.OK:
             key = time.strftime("%Y%m%d%H%M%S")
             store.append((d.text.get_text(), key))
             self._config.set("quick", key, d.text.get_text())
@@ -81,7 +83,7 @@ class ChatQM(MainWindowElement):
             return
 
         if not ask_for_confirmation(_("Really delete?"),
-                                    self._wtree.get_widget("mainwindow")):
+                                    self._wtree.get_object("mainwindow")):
             return
 
         key, = store.get(iter, 1)
@@ -107,15 +109,15 @@ class ChatQM(MainWindowElement):
         qm_add, qm_rem, qm_list = self._getw("qm_add", "qm_remove",
                                              "qm_list")
 
-        store = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_STRING)
+        store = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
         store.connect("row-deleted", self._reorder_rows)
         qm_list.set_model(store)
         qm_list.set_headers_visible(False)
         qm_list.set_reorderable(True)
         qm_list.connect("row-activated", self._send_qm)
 
-        r = gtk.CellRendererText()
-        col = gtk.TreeViewColumn("", r, text=0)
+        r = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn("", r, text=0)
         qm_list.append_column(col)
 
         for key in sorted(self._config.options("quick")):
@@ -126,11 +128,11 @@ class ChatQM(MainWindowElement):
 
 class ChatQST(MainWindowElement):
     __gsignals__ = {
-        "qst-fired" : (gobject.SIGNAL_RUN_LAST,
-                       gobject.TYPE_NONE,
-                       (gobject.TYPE_STRING,  # Content
-                        gobject.TYPE_STRING,  # QST config key
-                        gobject.TYPE_BOOLEAN, # Is raw
+        "qst-fired" : (GObject.SignalFlags.RUN_LAST,
+                       GObject.TYPE_NONE,
+                       (GObject.TYPE_STRING,  # Content
+                        GObject.TYPE_STRING,  # QST config key
+                        GObject.TYPE_BOOLEAN, # Is raw
                         )),
         }
 
@@ -138,7 +140,7 @@ class ChatQST(MainWindowElement):
         store = view.get_model()
         id = store[path][0]
 
-        q, c = self._qsts[id]
+        q, _c = self._qsts[id]
         self._qsts[id] = (q, 0)
 
     def _toggle_qst(self, rend, path, store, enbcol, idcol, fcol):
@@ -154,7 +156,7 @@ class ChatQST(MainWindowElement):
     def _add_qst(self, button, view):
         d = qst.QSTEditDialog(self._config,
                               "qst_%s" % time.strftime("%Y%m%d%H%M%S"))
-        if d.run() == gtk.RESPONSE_OK:
+        if d.run() == Gtk.ResponseType.OK:
             d.save()
             self.reconfigure()
         d.destroy()
@@ -165,7 +167,7 @@ class ChatQST(MainWindowElement):
             return
 
         if not ask_for_confirmation(_("Really delete?"),
-                                    self._wtree.get_widget("mainwindow")):
+                                    self._wtree.get_object("mainwindow")):
             return
 
         ident, = model.get(iter, 0)
@@ -180,7 +182,7 @@ class ChatQST(MainWindowElement):
         ident, = model.get(iter, 0)
 
         d = qst.QSTEditDialog(self._config, ident)
-        if d.run() == gtk.RESPONSE_OK:
+        if d.run() == Gtk.ResponseType.OK:
             d.save()
             self.reconfigure()
         d.destroy()
@@ -193,16 +195,16 @@ class ChatQST(MainWindowElement):
                                                           "qst_edit",
                                                           "qst_list")
 
-        self._store = gtk.ListStore(gobject.TYPE_STRING,
-                                    gobject.TYPE_STRING,
-                                    gobject.TYPE_STRING,
-                                    gobject.TYPE_FLOAT,
-                                    gobject.TYPE_STRING,
-                                    gobject.TYPE_BOOLEAN)
+        self._store = Gtk.ListStore(GObject.TYPE_STRING,
+                                    GObject.TYPE_STRING,
+                                    GObject.TYPE_STRING,
+                                    GObject.TYPE_FLOAT,
+                                    GObject.TYPE_STRING,
+                                    GObject.TYPE_BOOLEAN)
         qst_list.set_model(self._store)
         qst_list.connect("row-activated", self._send_qst)
 
-        def render_remaining(col, rend, model, iter):
+        def render_remaining(col, rend, model, iter, data):
             id, e = model.get(iter, 0, 5)
             try:
                 q, c = self._qsts[id]
@@ -218,21 +220,21 @@ class ChatQST(MainWindowElement):
 
             rend.set_property("text", s)
 
-        typ = gtk.TreeViewColumn("Type",
-                                 gtk.CellRendererText(), text=1)
-        frq = gtk.TreeViewColumn("Freq",
-                                 gtk.CellRendererText(), text=2)
+        typ = Gtk.TreeViewColumn("Type",
+                                 Gtk.CellRendererText(), text=1)
+        frq = Gtk.TreeViewColumn("Freq",
+                                 Gtk.CellRendererText(), text=2)
 
-        r = gtk.CellRendererProgress()
-        cnt = gtk.TreeViewColumn("Remaining", r, value=3)
+        r = Gtk.CellRendererProgress()
+        cnt = Gtk.TreeViewColumn("Remaining", r, value=3)
         cnt.set_cell_data_func(r, render_remaining)
 
-        msg = gtk.TreeViewColumn("Content",
-                                 gtk.CellRendererText(), text=4)
+        msg = Gtk.TreeViewColumn("Content",
+                                 Gtk.CellRendererText(), text=4)
 
-        r = gtk.CellRendererToggle()
+        r = Gtk.CellRendererToggle()
         r.connect("toggled", self._toggle_qst, self._store, 5, 0, 2)
-        enb = gtk.TreeViewColumn("On", r, active=5)
+        enb = Gtk.TreeViewColumn("On", r, active=5)
 
         qst_list.append_column(typ)
         qst_list.append_column(frq)
@@ -247,7 +249,7 @@ class ChatQST(MainWindowElement):
         qst_rem.connect("clicked", self._rem_qst, qst_list)
         qst_edit.connect("clicked", self._edit_qst, qst_list)
 
-        gobject.timeout_add(1000, self._tick)
+        GObject.timeout_add(1000, self._tick)
 
     def _remaining_for(self, freq):
         if freq.startswith(":"):
@@ -267,7 +269,7 @@ class ChatQST(MainWindowElement):
     def _tick(self):
         iter = self._store.get_iter_first()
         while iter:
-            i, t, f, p, c, e = self._store.get(iter, 0, 1, 2, 3, 4, 5)
+            i, _t, f, p, _c, e = self._store.get(iter, 0, 1, 2, 3, 4, 5)
             if e:
                 q, cnt = self._qsts[i]
                 cnt -= 1
@@ -357,12 +359,12 @@ class ChatTab(MainWindowTab):
 
     def _display_selected(self):
         cur = self.__filtertabs.get_current_page()
-        return self.__filtertabs.get_nth_page(cur).child
+        return self.__filtertabs.get_nth_page(cur).get_child()
 
     def _maybe_highlight_header(self, buffer, mark):
         start = buffer.get_iter_at_mark(mark)
         try:
-            s, e = start.forward_search("] ", 0)
+            _s, e = start.forward_search("] ", 0)
         except:
             return
         try:
@@ -417,22 +419,23 @@ class ChatTab(MainWindowTab):
             return
 
         buffer = display.get_buffer()
-        sw = display.parent
+        sw = display.get_parent()
 
-        (start, end) = buffer.get_bounds()
+        (_start, end) = buffer.get_bounds()
         mark = buffer.create_mark(None, end, True)
         buffer.insert_with_tags_by_name(end, text + os.linesep, *attrs)
         self._maybe_highlight_header(buffer, mark)
         buffer.delete_mark(mark)
 
         adj = sw.get_vadjustment()
-        bot_scrolled = (adj.get_value() == (adj.upper - adj.page_size))
+        bot_scrolled = (adj.get_value() ==
+                        (adj.get_upper() - adj.get_page_size()))
 
         endmark = buffer.get_mark("end")
         if bot_scrolled:
             display.scroll_to_mark(endmark, 0.0, True, 0, 1)
 
-        tabnum = self.__filtertabs.page_num(display.parent)
+        tabnum = self.__filtertabs.page_num(display.get_parent())
         if tabnum != self.__filtertabs.get_current_page() and \
                 "ignorecolor" not in attrs:
             self._highlight_tab(tabnum)
@@ -442,7 +445,8 @@ class ChatTab(MainWindowTab):
 
     def _send_button(self, button, dest, entry):
         buffer = entry.get_buffer()
-        text = buffer.get_text(*buffer.get_bounds())
+        start, end = buffer.get_bounds()
+        text = buffer.get_text(start, end, True)
         if not text:
             return
 
@@ -458,7 +462,9 @@ class ChatTab(MainWindowTab):
         elif channel.startswith("@"):
             dcall = channel[1:]
 
-        port = dest.get_active_text()
+        # port = dest.get_active_text()
+        print(type(dest))
+        port = dest.get_active()
         buffer.delete(*buffer.get_bounds())
 
         self.emit("user-send-chat", dcall, port, text, False)
@@ -473,7 +479,8 @@ class ChatTab(MainWindowTab):
             port = _("Current")
             
         if port == _("Current"):
-            port = dest.get_active_text()
+            # port = dest.get_active_text()
+            port = dest.get_active()
             self.emit("user-send-chat", "CQCQCQ", port, msg, raw)
         elif port == _("All"):
             for i in self.__ports:
@@ -487,7 +494,7 @@ class ChatTab(MainWindowTab):
 
         try:
             f = file(fn)
-        except Exception, e:
+        except Exception as e:
             display_error(_("Unable to open file %s: %s") % (fn, e))
             return
 
@@ -498,7 +505,8 @@ class ChatTab(MainWindowTab):
             display_error(_("File is too large to send (>8KB)"))
             return
 
-        port = dest.get_active_text()
+        # port = dest.get_active_text()
+        port = dest.get_active()
         self.emit("user-send-chat", "CQCQCQ", port, "\r\n" + data, False)
 
     def _clear(self, but):
@@ -510,7 +518,7 @@ class ChatTab(MainWindowTab):
         self._unhighlight_tab(num)
         
         #activate the removefilter button in case we are not on the main chat channel (num!=0)
-        delf = self._wtree.get_widget("main_menu_delfilter")
+        delf = self._wtree.get_object("main_menu_delfilter")
         delf.set_sensitive(num != 0)
         self.__tb_buttons[_("Remove Filter")].set_sensitive(num != 0)
 
@@ -524,7 +532,7 @@ class ChatTab(MainWindowTab):
 
         filters = []
         for i in range(0, self.__filtertabs.get_n_pages()):
-            display = self.__filtertabs.get_nth_page(i).child
+            display = self.__filtertabs.get_nth_page(i).get_child()
             if rev.get(display, None):
                 filters.append(rev[display])
 
@@ -540,7 +548,7 @@ class ChatTab(MainWindowTab):
         if not text:
             return
 
-        if r == gtk.RESPONSE_OK:
+        if r == Gtk.ResponseType.OK:
             self._build_filter(text)
             self._save_filters()
 
@@ -568,7 +576,8 @@ class ChatTab(MainWindowTab):
         elif event.keyval >= 65470 and event.keyval <= 65482:
             index = event.keyval - 65470
             msgs = sorted(self._config.options("quick"))
-            port = dest.get_active_text()
+            # port = dest.get_active_text()
+            port = dest.get_active()
             if index < len(msgs):
                 msg = self._config.get("quick", msgs[index])
                 self.emit("user-send-chat", "CQCQCQ", port, msg, False)
@@ -583,7 +592,7 @@ class ChatTab(MainWindowTab):
     
             if not text:
                 return
-            elif r != gtk.RESPONSE_OK:
+            elif r != Gtk.ResponseType.OK:
                 return
 
             if text.startswith("#"):
@@ -607,7 +616,7 @@ class ChatTab(MainWindowTab):
     
             if not text:
                 return
-            elif r != gtk.RESPONSE_OK:
+            elif r != Gtk.ResponseType.OK:
                 return
 
             if text.startswith("@"):
@@ -640,10 +649,10 @@ class ChatTab(MainWindowTab):
 
         c = 0
         for i, l, f in buttons:
-            icon = gtk.Image()
+            icon = Gtk.Image()
             icon.set_from_pixbuf(i)
             icon.show()
-            item = gtk.ToolButton(icon, l)
+            item = Gtk.ToolButton(icon, l)
             item.connect("clicked", f)
             try:
                 item.set_tooltip_text(l)
@@ -669,23 +678,24 @@ class ChatTab(MainWindowTab):
 
         self.__ports = []
 
-        addf = self._wtree.get_widget("main_menu_addfilter")
+        addf = self._wtree.get_object("main_menu_addfilter")
         addf.connect("activate", self._add_filter)
 
-        delf = self._wtree.get_widget("main_menu_delfilter")
+        delf = self._wtree.get_object("main_menu_delfilter")
         delf.connect("activate", self._del_filter)
 
-        vlog = self._wtree.get_widget("main_menu_viewlog")
+        vlog = self._wtree.get_object("main_menu_viewlog")
         vlog.connect("activate", self._view_log)
 
         send.connect("clicked", self._send_button, dest, entry)
-        send.set_flags(gtk.CAN_DEFAULT)
-        send.connect("expose-event", lambda w, e: w.grab_default())
+        send.set_can_default(True)
+        #send.set_flags(Gtk.CAN_DEFAULT)
+        send.connect("draw", lambda w, e: w.grab_default())
 
         if self._config.getboolean("prefs", "check_spelling"):
             spell.prepare_TextBuffer(entry.get_buffer())
 
-        entry.set_wrap_mode(gtk.WRAP_WORD)
+        entry.set_wrap_mode(Gtk.WrapMode.WORD)
         entry.connect("key-press-event", self._enter_to_send, dest)
         entry.grab_focus()
 
@@ -696,10 +706,10 @@ class ChatTab(MainWindowTab):
 
         self._last_date = 0
 
-        bcast = self._wtree.get_widget("main_menu_bcast")
+        bcast = self._wtree.get_object("main_menu_bcast")
         bcast.connect("activate", self._bcast_file, dest)
 
-        clear = self._wtree.get_widget("main_menu_clear")
+        clear = self._wtree.get_object("main_menu_clear")
         clear.connect("activate", self._clear)
 
         try:
@@ -718,19 +728,19 @@ class ChatTab(MainWindowTab):
 
         if not tags.lookup("incomingcolor"):
             for color in ["red", "blue", "green", "grey"]:
-                tag = gtk.TextTag(color)
+                tag = Gtk.TextTag.new(color)
                 tag.set_property("foreground", color)
                 tags.add(tag)
 
-            tag = gtk.TextTag("bold")
-            tag.set_property("weight", pango.WEIGHT_BOLD)
+            tag = Gtk.TextTag.new("bold")
+            tag.set_property("weight", Pango.Weight.BOLD)
             tags.add(tag)
 
-            tag = gtk.TextTag("italic")
-            tag.set_property("style", pango.STYLE_ITALIC)
+            tag = Gtk.TextTag.new("italic")
+            tag.set_property("style", Pango.Style.ITALIC)
             tags.add(tag)
 
-            tag = gtk.TextTag("default")
+            tag = Gtk.TextTag.new("default")
             tag.set_property("indent", -40)
             tag.set_property("indent-set", True)
             tags.add(tag)
@@ -742,7 +752,7 @@ class ChatTab(MainWindowTab):
         for i in regular + reverse:
             tag = tags.lookup(i)
             if not tag:
-                tag = gtk.TextTag(i)
+                tag = Gtk.TextTag.new(i)
                 tags.add(tag)
 
             if i in regular:
@@ -753,7 +763,7 @@ class ChatTab(MainWindowTab):
 
     def _reconfigure_font(self, display):
         fontname = self._config.get("prefs", "font")
-        font = pango.FontDescription(fontname)
+        font = Pango.FontDescription(fontname)
         display.modify_font(font)
 
     def _build_filter(self, text):
@@ -765,22 +775,22 @@ class ChatTab(MainWindowTab):
         buffer = LoggedTextBuffer(fn)
         buffer.create_mark("end", buffer.get_end_iter(), False)
 
-        display = gtk.TextView(buffer)
-        display.set_wrap_mode(gtk.WRAP_WORD_CHAR)
+        display = Gtk.TextView.new_with_buffer(buffer)
+        display.set_wrap_mode(Gtk.WrapMode.CHAR)
         display.set_editable(False)
         display.set_cursor_visible(False)
 
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw = Gtk.ScrolledWindow()
+        sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         sw.add(display)
 
         display.show()
         sw.show()
 
         if text:
-            lab = gtk.Label(text)
+            lab = Gtk.Label.new(text)
         else:
-            lab = gtk.Label(_("Main"))
+            lab = Gtk.Label.new(_("Main"))
 
         lab.show()
 
@@ -829,7 +839,7 @@ class ChatTab(MainWindowTab):
         if model:
             model.clear()
         else:
-            model = gtk.ListStore(gobject.TYPE_STRING)
+            model = Gtk.ListStore(GObject.TYPE_STRING)
             dest.set_model(model)
         for port in self.__ports:
             model.append((port,))
@@ -838,7 +848,8 @@ class ChatTab(MainWindowTab):
 
     def get_selected_port(self):
         dest, = self._getw("destination")
-        return dest.get_active_text()
+        # return dest.get_active_text()
+        return dest.get_active()
 
     def selected(self):
         MainWindowTab.selected(self)
@@ -848,11 +859,11 @@ class ChatTab(MainWindowTab):
                         "main_menu_viewlog"]
         
         for name in make_visible:
-            item = self._wtree.get_widget(name)
+            item = self._wtree.get_object(name)
             item.set_property("visible", True)
 
         entry, = self._getw("entry")
-        gobject.idle_add(entry.grab_focus)
+        GObject.idle_add(entry.grab_focus)
 
     def deselected(self):
         MainWindowTab.deselected(self)
@@ -862,5 +873,5 @@ class ChatTab(MainWindowTab):
                           "main_menu_viewlog"]
         
         for name in make_invisible:
-            item = self._wtree.get_widget(name)
+            item = self._wtree.get_object(name)
             item.set_property("visible", False)

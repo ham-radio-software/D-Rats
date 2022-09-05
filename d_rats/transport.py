@@ -96,7 +96,7 @@ class Transporter(object):
         self.inq = BlockQueue()
         self.outq = BlockQueue()
         self.pipe = pipe
-        self.inbuf = b""
+        self.inbuf = b''
         self.enabled = True
         self.inhandler = inhandler
         self.compat = kwargs.get("compat", False)
@@ -199,8 +199,8 @@ class Transporter(object):
         # Starts with $GP**[a-f0-9]{2}\r?\n?
         inbuf_str = self.inbuf.decode('utf-8', 'replace')
         m = re.search(
-            r"((?:\$GP[^\*]+\*[A-f0-9]{2}\r?\n?){1,2}.{8},.{20})",
-            inbuf_str)
+            b"((?:\x24GP[^\x42]+\x42[A-f0-9]{2}\x0d?\x0a?){1,2}.{8},.{20})",
+                      self.inbuf)
         if m:
             return bytearray(m.group(1), 'utf-8', 'replace')
 

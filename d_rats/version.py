@@ -1,10 +1,10 @@
 #!/usr/bin/python
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# minor mods 2015-2020 by Maurizio Andreotti <iz2lxi>
-#                         maurizioandreottilc@gmail.com>
+# minor mods 2015-2020 by Maurizio Andreotti iz2lxi
+#                         <maurizioandreottilc@gmail.com>
 #
-##this module contains the d-rats version variables
+# #this module contains the d-rats version variables
 
 from __future__ import print_function
 #importing printlog() wrapper
@@ -12,7 +12,7 @@ from .debug import printlog
 
 import sys
 
-DRATS_VERSION = "0.3.10 beta 6"
+DRATS_VERSION = "0.4.00 Alpha"
 DRATS_NAME="d-rats"
 DRATS_DESCRIPTION="D-RATS"
 DRATS_LONG_DESCRIPTION = "A communications tool for D-STAR"

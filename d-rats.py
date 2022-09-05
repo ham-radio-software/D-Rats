@@ -23,7 +23,11 @@ import os
 from optparse import OptionParser
 
 import traceback
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
+
 
 #importing print() wrapper
 from d_rats.debug import printlog
@@ -48,8 +52,12 @@ def handle_exception(exctyp, value, tb):
     if exctyp is KeyboardInterrupt or IGNORE_ALL:
         return original_excepthook(exctyp, value, tb)
 
-    gtk.gdk.pointer_ungrab()
-    gtk.gdk.keyboard_ungrab()
+    Gdk.pointer_ungrab(Gdk.CURRENT_TIME)
+    Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)
+    # WB8TYW: Gdk.pointer_ungrab and Gdk_keyboard_ungrab are marked as
+    # deprecated.  Documentation says to use Gdk.ungrab() instead.
+    # That generates a AttributeError, Gdk has no attribute 'ungrab'.
+    # Gdk.ungrab()
 
     _trace = traceback.format_exception(exctyp, value, tb)
     trace = os.linesep.join(_trace)
@@ -63,25 +71,26 @@ If you need to ignore all additional warnings for this session, click <b>Ignore 
 """
 
     def extra(dialog):
-        dialog.add_button(_("Debug Log"), gtk.RESPONSE_HELP);
-        dialog.add_button(_("Ignore"), gtk.RESPONSE_CLOSE);
-        dialog.add_button(_("Ignore All"), -1);
-        dialog.add_button(gtk.STOCK_QUIT, gtk.RESPONSE_CANCEL);
-        dialog.set_default_response(gtk.RESPONSE_CANCEL)
+        dialog.add_button(_("Debug Log"), Gtk.ResponseType.HELP)
+        dialog.add_button(_("Ignore"), Gtk.ResponseType.CLOSE)
+        dialog.add_button(_("Ignore All"), -1)
+        dialog.add_button(_("Quit"), Gtk.ResponseType.CANCEL)
+        # dialog.add_button(Gtk.STOCK_QUIT, Gtk.ResponseType.CANCEL)
+        dialog.set_default_response(Gtk.ResponseType.CANCEL)
 
     while True:
         r = utils.make_error_dialog(msg, trace,
-                                    gtk.BUTTONS_NONE,
-                                    gtk.MESSAGE_ERROR,
+                                    Gtk.ButtonsType.NONE,
+                                    Gtk.MessageType.ERROR,
                                     extra=extra)
-        if r == gtk.RESPONSE_CANCEL:
+        if r == Gtk.ResponseType.CANCEL:
             sys.exit(1)
-        elif r == gtk.RESPONSE_CLOSE:
+        elif r == Gtk.ResponseType.CLOSE:
             break
         elif r == -1:
             IGNORE_ALL=True
             break
-        elif r == gtk.RESPONSE_HELP:
+        elif r == Gtk.ResponseType.HELP:
             p = dplatform.get_platform()
             p.open_text_file(p.config_file("debug.log"))
 

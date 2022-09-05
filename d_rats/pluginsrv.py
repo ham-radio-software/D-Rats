@@ -25,7 +25,9 @@ import os
 import threading
 from six.moves.xmlrpc_server import SimpleXMLRPCServer
 
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import GObject
 
 from . import signals
 from . import utils
@@ -53,7 +55,7 @@ class DRatsChatEvent(object):
     def wait(self, timeout):
         self.__event.wait(timeout)
 
-class DRatsPluginProxy(gobject.GObject):
+class DRatsPluginProxy(GObject.GObject):
     __gsignals__ = {
         "user-send-chat" : signals.USER_SEND_CHAT,
         "get-station-list" : signals.GET_STATION_LIST,
@@ -63,7 +65,7 @@ class DRatsPluginProxy(gobject.GObject):
     _signals = __gsignals__
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.__idcount = 0
         self.__persist = {}
 
@@ -174,7 +176,7 @@ class DRatsPluginServer(SimpleXMLRPCServer):
         self.__thread = None
 
         self.__proxy = DRatsPluginProxy()
-            
+
         self.register_function(self.__proxy.send_chat, "send_chat")
         self.register_function(self.__proxy.list_ports, "list_ports")
         self.register_function(self.__proxy.send_file, "send_file")

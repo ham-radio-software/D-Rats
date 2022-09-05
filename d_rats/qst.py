@@ -21,9 +21,10 @@ from __future__ import print_function
 #importing printlog() wrapper
 from .debug import printlog
 
-import gtk
-import pygtk
-import gobject
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GObject
 import time
 import datetime
 import copy
@@ -31,7 +32,10 @@ import re
 import threading
 #import linecache   #Works ok on python but not on Windows
 
-from commands import getstatusoutput as run
+try:
+    from commands import getstatusoutput as run
+except ModuleNotFoundError:
+    pass
 from .miscwidgets import make_choice, KeyedListWidget
 from . import miscwidgets
 
@@ -65,7 +69,8 @@ def do_dprs_calculator(initial=""):
         oversel.set_sensitive(icons[iconsel.get_active()][1][0] == "\\")
 
     d = inputdialog.FieldDialog(title=_("DPRS message"))
-    msg = gtk.Entry(13)
+    msg = Gtk.Entry()
+    msg.set_max_length(13)
 
     overlays = [chr(x) for x in range(ord(" "), ord("_"))]
 
@@ -102,7 +107,7 @@ def do_dprs_calculator(initial=""):
     mstr = msg.get_text().upper()
     over = oversel.get_active_text()
     d.destroy()
-    if r != gtk.RESPONSE_OK:
+    if r != Gtk.ResponseType.OK:
         return
 
     dicon = gps.APRS_TO_DPRS[aicon]
@@ -115,15 +120,15 @@ def do_dprs_calculator(initial=""):
 
     return string + check
 
-class QSTText(gobject.GObject):
+class QSTText(GObject.GObject):
     __gsignals__ = {
-        "qst-fired" : (gobject.SIGNAL_RUN_LAST,
-                 gobject.TYPE_NONE,
-                 (gobject.TYPE_STRING, gobject.TYPE_STRING)),
+        "qst-fired" : (GObject.SignalFlags.RUN_LAST,
+                 GObject.TYPE_NONE,
+                 (GObject.TYPE_STRING, GObject.TYPE_STRING)),
         }
 
     def __init__(self, config, content, key):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.config = config
         self.prefix = "[QST] "
@@ -257,7 +262,7 @@ class QSTThreadedText(QSTText):
             printlog("Qst","       : Skipping QST because no data was returned")
             return
 
-        gobject.idle_add(self.emit, "qst-fired",
+        GObject.idle_add(self.emit, "qst-fired",
                          "%s%s" % (self.prefix, msg), self.key)
 
     def fire(self):
@@ -495,7 +500,7 @@ class QSTOpenWeather(QSTThreadedText):
 
 class QSTStation(QSTGPSA):
     def get_source(self, name):
-        from . import mainapp # Hack to foce mainapp load
+        from . import mainapp # Hack to force mainapp load
         sources = mainapp.get_mainapp().map.get_map_sources()
 
         for source in sources:
@@ -539,10 +544,10 @@ class QSTStation(QSTGPSA):
 
         return QSTGPSA.do_qst(self)
 
-class QSTEditWidget(gtk.VBox):
+class QSTEditWidget(Gtk.Box):
     def __init__(self, *a, **k):
-        gtk.VBox.__init__(self, *a, **k)
-
+        Gtk.Box.__init__(self, *a, **k)
+        self.set_orientation(Gtk.Orientation.VERTICAL)
         self._id = None
 
     def to_qst(self):
@@ -566,20 +571,20 @@ class QSTTextEditWidget(QSTEditWidget):
     def __init__(self):
         QSTEditWidget.__init__(self, False, 2)
 
-        lab = gtk.Label(self.label_text)
+        lab = Gtk.Label.new(self.label_text)
         lab.show()
         self.pack_start(lab, 0, 0, 0)
 
-        self.__tb = gtk.TextBuffer()
+        self.__tb = Gtk.TextBuffer()
         
-        ta = gtk.TextView(self.__tb)
+        ta = Gtk.TextView.new_with_buffer(self.__tb)
         ta.show()
 
         self.pack_start(ta, 1, 1, 1)
 
     def __str__(self):
         return self.__tb.get_text(self.__tb.get_start_iter(),
-                                  self.__tb.get_end_iter())
+                                  self.__tb.get_end_iter(), True)
 
     def reset(self):
         self.__tb.set_text("")
@@ -599,7 +604,7 @@ class QSTFileEditWidget(QSTEditWidget):
     def __init__(self):
         QSTEditWidget.__init__(self, False, 2)
         
-        lab = gtk.Label(self.label_text)
+        lab = Gtk.Label.new(self.label_text)
         lab.set_line_wrap(True)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
@@ -672,20 +677,21 @@ class QSTGPSEditWidget(QSTEditWidget):
     def __init__(self, config):
         QSTEditWidget.__init__(self, False, 2)
 
-        lab = gtk.Label(_("Enter your GPS message:"))
+        lab = Gtk.Label.new(_("Enter your GPS message:"))
         lab.set_line_wrap(True)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
 
-        hbox = gtk.HBox(False, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         hbox.show()
         self.pack_start(hbox, 0, 0, 0)
 
-        self.__msg = gtk.Entry(self.msg_limit)
+        self.__msg = Gtk.Entry()
+        self.__msg.set_max_length(self.msg_limit)
         self.__msg.show()
         hbox.pack_start(self.__msg, 1, 1, 1)
 
-        dprs = gtk.Button("DPRS")
+        dprs = Gtk.Button.new_with_label("DPRS")
 
         if not isinstance(self, QSTGPSAEditWidget):
             dprs.show()
@@ -725,11 +731,11 @@ class QSTRSSEditWidget(QSTEditWidget):
     def __init__(self):
         QSTEditWidget.__init__(self, False, 2)
 
-        lab = gtk.Label(self.label_string)
+        lab = Gtk.Label.new(self.label_string)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
 
-        self.__url = gtk.Entry()
+        self.__url = Gtk.Entry()
         self.__url.set_text("http://")
         self.__url.show()
         self.pack_start(self.__url, 0, 0, 0)
@@ -778,11 +784,11 @@ class QSTStationEditWidget(QSTEditWidget):
     def __init__(self):
         QSTEditWidget.__init__(self, False, 2)
 
-        lab = gtk.Label(_("Choose a station whose position will be sent"))
+        lab = Gtk.Label.new(_("Choose a station whose position will be sent"))
         lab.show()
         self.pack_start(lab, 1, 1, 1)
 
-        hbox = gtk.HBox(False, 10)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 10)
 
         # This is really ugly, but to fix it requires more work
         from . import mainapp
@@ -823,15 +829,15 @@ class QSTWUEditWidget(QSTEditWidget):
     def __init__(self):
         QSTEditWidget.__init__(self)
 
-        lab = gtk.Label(self.label_text)
+        lab = Gtk.Label.new(self.label_text)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
 
-        hbox = gtk.HBox(False, 2)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
         hbox.show()
         self.pack_start(hbox, 0, 0, 0)
         
-        self.__station = gtk.Entry()
+        self.__station = Gtk.Entry()
         self.__station.show()
         hbox.pack_start(self.__station, 0, 0, 0)
 
@@ -858,7 +864,7 @@ class QSTWUEditWidget(QSTEditWidget):
     def to_human(self):
         return self.to_qst()
 
-class QSTEditDialog(gtk.Dialog):
+class QSTEditDialog(Gtk.Dialog):
     def _select_type(self, box):
         wtype = box.get_active_text()
 
@@ -868,7 +874,7 @@ class QSTEditDialog(gtk.Dialog):
         self.__current.show()
 
     def _make_controls(self):
-        hbox = gtk.HBox(False, 5)
+        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
 
         self._type = make_choice(list(self._types.keys()), False, default=_("Text"))
         self._type.set_size_request(100, -1)
@@ -876,7 +882,7 @@ class QSTEditDialog(gtk.Dialog):
         self._type.connect("changed", self._select_type)
         hbox.pack_start(self._type, 0, 0, 0)
 
-        lab = gtk.Label(_("every"))
+        lab = Gtk.Label.new(_("every"))
         lab.show()
         hbox.pack_start(lab, 0, 0 , 0)
 
@@ -886,7 +892,7 @@ class QSTEditDialog(gtk.Dialog):
         self._freq.show()
         hbox.pack_start(self._freq, 0, 0, 0)
 
-        lab = gtk.Label(_("minutes on port"))
+        lab = Gtk.Label.new(_("minutes on port"))
         lab.show()
         hbox.pack_start(lab, 0, 0, 0)
 
@@ -913,10 +919,11 @@ class QSTEditDialog(gtk.Dialog):
             _("OpenWeather") : QSTWUEditWidget(),
             }
 
-        gtk.Dialog.__init__(self,
+        Gtk.Dialog.__init__(self,
                             parent=parent,
-                            buttons=(gtk.STOCK_OK, gtk.RESPONSE_OK,
-                                     gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+                            buttons=(Gtk.ButtonsType.OK, Gtk.ResponseType.OK,
+                                     Gtk.ButtonsType.CANCEL,
+                                     Gtk.ResponseType.CANCEL))
         self._ident = ident
         self._config = config
 
@@ -969,8 +976,10 @@ def get_qst_class(typestr):
         }
 
     if not HAVE_FEEDPARSER:
-    #the  HAVE_FEEDPARSER varibale is setup at d-rats launch when it checks if feedparses can be imported 
-    #for any reason feedparser import could fail also if the module is compiled (as it happens in my case on Windows10)       
+    # the  HAVE_FEEDPARSER variable is setup at d-rats launch when it checks
+    # if feedparses can be imported.  For any reason feedparser import could
+    # fail also if the module is compiled
+    # (as it happens in my case on Windows10)
         del classes[_("RSS")]
 
     return classes.get(typestr, None)

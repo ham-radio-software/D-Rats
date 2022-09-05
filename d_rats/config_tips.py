@@ -68,6 +68,8 @@ CONFIG_TIPS = {
 }
     
 def get_tip(section, value):
+    ''' Get tip text '''
+
     try:
         tip = CONFIG_TIPS[section][value]
     except KeyError:

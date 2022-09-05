@@ -245,7 +245,7 @@ class AGWDataPath(DataPath):
     def __init__(self, pathspec, timeout=0):
         DataPath.__init__(self, pathspec, timeout)
 
-        agw, self._addr, self._port = pathspec.split(":")
+        _agw, self._addr, self._port = pathspec.split(":")
         self._agw = None
 
     def connect(self):
@@ -503,7 +503,8 @@ class SocketDataPath(DataPath):
                 code, string = line.split(" ", 1)
                 code = int(code)
             except Exception as e:
-                printlog("Comm","        : Error parsing line %s: %s" % (line, e))
+                printlog("Comm","        : Error parsing line '%s': %s" %
+                         (line, e))
                 raise DataPathNotConnectedError("Conversation error")
 
             return code, string
@@ -558,7 +559,7 @@ class SocketDataPath(DataPath):
         self._socket = None
 
     def read(self, count):
-        data = ""
+        data = b''
         end = time.time() + self.timeout
 
         if not self._socket:
@@ -570,7 +571,7 @@ class SocketDataPath(DataPath):
         while len(data) < count:
 
             try:
-                x = time.time()
+                # x = time.time()
                 inp = self._socket.recv(count - len(data))
             except socket.timeout:
                 if time.time() > end:
@@ -580,7 +581,7 @@ class SocketDataPath(DataPath):
             except Exception as e:
                 raise DataPathIOError("Socket error: %s" % e)
 
-            if inp == "":
+            if inp == b'':
                 raise DataPathIOError("Socket disconnected")
 
             end = time.time() + self.timeout
@@ -595,18 +596,21 @@ class SocketDataPath(DataPath):
 
         self._socket.setblocking(False)
 
-        r, w, x = select.select([self._socket], [], [], self.timeout)
+        r, _w, _x = select.select([self._socket], [], [], self.timeout)
         if not r:
-            return ""
+            return b''
 
-        data = ""
+        data = b''
         while True:
             try:
                 d = self._socket.recv(4096)
             except Exception as e:
+                # Best practice is to trap the specific exceptions that
+                # are known to occur.
+                printlog("Comm""Generic Exception %s %s" % (type(e), e))
                 break
             if not d:
-                raise DataPathIOError("Socket disconnected")
+                raise DataPathIOError("Socket disconnected: %s")
             data += d
 
         return data

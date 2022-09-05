@@ -21,7 +21,9 @@ import sys
 DEFAULT_BANNED = b"\x11\x13\x1A\00\xFD\xFE\xFF"
 OFFSET = 64
 
+
 def yencode_buffer(buf, banned=None):
+    '''yencode_buffer'''
     if not banned:
         banned = DEFAULT_BANNED
 
@@ -49,6 +51,7 @@ def yencode_buffer(buf, banned=None):
     return out
 
 def ydecode_buffer(buf):
+    '''ydecode_buffer'''
     out = b""
     
     # Needed for python2 compatibility
@@ -74,8 +77,11 @@ def ydecode_buffer(buf):
 
     return out
 
+
 def int_to_byte(data):
-    # python2 compatibility hack
+    '''int to byte
+
+       python2 compatibility hack'''
     if isinstance(data, str):
         data = ord(data)
     if sys.version_info[0] > 2:
@@ -83,6 +89,7 @@ def int_to_byte(data):
     else:
         result = chr(data)
     return result
+
 
 if __name__=="__main__":
     import sys
@@ -110,9 +117,9 @@ if __name__=="__main__":
         if argc > 2:
             outfile = sys.argv[2]
     else:
-        f = open(sys.argv[2], mode='rb')
-        inbuf = f.read()
-        f.close()
+        file_handle = open(sys.argv[2], mode='rb')
+        inbuf = file_handle.read()
+        file_handle.close()
         if argc > 3:
             outfile = sys.argv[3]
 
@@ -136,7 +143,7 @@ if __name__=="__main__":
             print('[PASSED]')
 
     if outfile:
-        f = open(outfile, 'wb')
-        f.write(outbuf)
-        f.close
+        file_handle = open(outfile, 'wb')
+        file_handle.write(outbuf)
+        file_handle.close
 

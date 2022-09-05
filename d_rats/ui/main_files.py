@@ -23,8 +23,11 @@ import time
 from glob import glob
 from datetime import datetime
 
-import gobject
-import gtk
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk
+from gi.repository import Gtk
+from gi.repository import GObject
 
 from d_rats.ui.main_common import MainWindowElement, MainWindowTab
 from d_rats.ui.main_common import ask_for_confirmation, set_toolbar_buttons
@@ -43,11 +46,11 @@ class FileView(object):
         self._view = view
         self._path = path
 
-        self._store = gtk.ListStore(gobject.TYPE_OBJECT,
-                                    gobject.TYPE_STRING,
-                                    gobject.TYPE_INT,
-                                    gobject.TYPE_INT)
-        self._store.set_sort_column_id(1, gtk.SORT_ASCENDING)
+        self._store = Gtk.ListStore(GObject.TYPE_OBJECT,
+                                    GObject.TYPE_STRING,
+                                    GObject.TYPE_INT,
+                                    GObject.TYPE_INT)
+        self._store.set_sort_column_id(1, Gtk.SortType.ASCENDING)
         view.set_model(self._store)
 
         self._file_icon = config.ship_img("file.png")
@@ -89,8 +92,8 @@ class LocalFileView(FileView):
                 sz = stat.st_size
                 nm = os.path.basename(file)
                 self._store.append((self._file_icon, nm, sz, ts))
-            except Exception, e:
-                printlog("Mainfiles","  : Failed to add local file: %s" % e)
+            except Exception as err:
+                printlog("Mainfiles","  : Failed to add local file: %s" % err)
 
 class RemoteFileView(FileView):
     def _file_list_cb(self, job, state, result):
@@ -148,7 +151,7 @@ class FilesTab(MainWindowTab):
     _signals = __gsignals__
 
     def _emit(self, *args):
-        gobject.idle_add(self.emit, *args)
+        GObject.idle_add(self.emit, *args)
 
     def _stop_throb(self):
         throbber, = self._getw("remote_throb")
@@ -197,7 +200,7 @@ class FilesTab(MainWindowTab):
 
         throbber, = self._getw("remote_throb")
         img = self._config.ship_obj_fn(os.path.join("images", THROB_IMAGE))
-        anim = gtk.gdk.PixbufAnimation(img)
+        anim = Gdk.PixbufAnimation(img)
         throbber.set_from_animation(anim)
 
         job = self._remote.refresh()
@@ -222,7 +225,7 @@ class FilesTab(MainWindowTab):
             return
 
         question = _("Really delete %s?") % fname
-        mainwin = self._wtree.get_widget("mainwindow")
+        mainwin = self._wtree.get_object("mainwindow")
         if not ask_for_confirmation(question, mainwin):
             return
 
@@ -289,7 +292,7 @@ class FilesTab(MainWindowTab):
         d = inputdialog.TextInputDialog()
         d.label.set_text(_("Password for %s (blank if none):" % station))
         d.text.set_visibility(False)
-        if d.run() != gtk.RESPONSE_OK:
+        if d.run() != Gtk.ResponseType.OK:
             return
         passwd = d.text.get_text()
         d.destroy()
@@ -318,10 +321,10 @@ class FilesTab(MainWindowTab):
         def populate_tb(tb, buttons):
             c = 0
             for i, l, f, d in buttons:
-                icon = gtk.Image()
+                icon = Gtk.Image()
                 icon.set_from_pixbuf(i)
                 icon.show()
-                item = gtk.ToolButton(icon, l)
+                item = Gtk.ToolButton(icon, l)
                 item.connect("clicked", f, d)
                 try:
                     item.set_tooltip_text(l)
@@ -360,12 +363,12 @@ class FilesTab(MainWindowTab):
         populate_tb(rtb, rbuttons)
 
     def _setup_file_view(self, view):
-        def render_date(col, rend, model, iter):
+        def render_date(col, rend, model, iter, data):
             ts, = model.get(iter, 3)
             stamp = datetime.fromtimestamp(ts).strftime("%H:%M:%S %Y-%m-%d")
             rend.set_property("text", stamp)
 
-        def render_size(col, rend, model, iter):
+        def render_size(col, rend, model, iter, data):
             sz, = model.get(iter, 2)
             if sz < 1024:
                 s = "%i B" % sz
@@ -373,21 +376,21 @@ class FilesTab(MainWindowTab):
                 s = "%.1f KB" % (sz / 1024.0)
             rend.set_property("text", s)
 
-        col = gtk.TreeViewColumn("", gtk.CellRendererPixbuf(), pixbuf=0)
+        col = Gtk.TreeViewColumn("", Gtk.CellRendererPixbuf(), pixbuf=0)
         view.append_column(col)
 
-        col = gtk.TreeViewColumn(_("Filename"), gtk.CellRendererText(), text=1)
+        col = Gtk.TreeViewColumn(_("Filename"), Gtk.CellRendererText(), text=1)
         col.set_sort_column_id(1)
         view.append_column(col)
 
-        r = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(_("Size"), r, text=2)
+        r = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Size"), r, text=2)
         col.set_sort_column_id(2)
         col.set_cell_data_func(r, render_size)
         view.append_column(col)
 
-        r = gtk.CellRendererText()
-        col = gtk.TreeViewColumn(_("Date"), r, text=3)
+        r = Gtk.CellRendererText()
+        col = Gtk.TreeViewColumn(_("Date"), r, text=3)
         col.set_sort_column_id(3)
         col.set_cell_data_func(r, render_date)
         view.append_column(col)
@@ -401,11 +404,18 @@ class FilesTab(MainWindowTab):
         _ports = []
         _stations = []
 
-        sstore = stations.get_model()
-        sstore.clear()
+        # wb8tyw: This is currently failing to return an object
+        # adding the if sstore: and if pstore: just to stop the GUI crashing.
+        #sstore = stations.get_model()
+        #if sstore:
+        #    sstore.clear()
+        stations.remove_all()
 
-        pstore = ports.get_model()
-        pstore.clear()
+        #pstore = ports.get_model()
+        #print(type(ports))
+        ports.remove_all()
+        #if pstore:
+        #    pstore.clear()
 
         if stationlist:
             for port, stations in stationlist.items():
@@ -414,10 +424,17 @@ class FilesTab(MainWindowTab):
                     _stations.append(str(station))
 
             for station in sorted(_stations):
-                sstore.append((station,))
+                stations.append_text(station)
 
             for port in sorted(_ports):
-                pstore.append((port,))
+                ports.append_text(port)
+                #if pstore:
+                #    print(type(port))
+                #    print(port)
+                #    print(type(pstore))
+                #    print(dir(pstore))
+                #    print(Gtk.Buildable.get_name(pstore))
+                #    pstore.append_text(port)
 
         ports.set_active(activeport)
 
@@ -434,8 +451,11 @@ class FilesTab(MainWindowTab):
         self._setup_file_view(lview)
         self._setup_file_view(rview)
 
-        stations, = self._getw("sel_station")
-        utils.set_entry_hint(stations.child, REMOTE_HINT)
+        # TODO
+        # Not sure how to make this work for GTK+ ComboBox
+        # Can live with out a hint while debuging
+        #stations, = self._getw("sel_station")
+        #utils.set_entry_hint(stations, REMOTE_HINT)
 
         ddir = self._config.get("prefs", "download_dir")
 
@@ -467,7 +487,7 @@ class FilesTab(MainWindowTab):
         self.__selected = True
         ssel, psel = self._get_ssel()
         self._refresh_calls(ssel, psel)
-        gobject.timeout_add(1000, self._refresh_calls, ssel, psel)
+        GObject.timeout_add(1000, self._refresh_calls, ssel, psel)
 
     def deselected(self):
         MainWindowTab.deselected(self)
