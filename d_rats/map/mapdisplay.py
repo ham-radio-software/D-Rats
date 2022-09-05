@@ -65,17 +65,29 @@ class MapDisplay(Gtk.Application):
         self.cmd_args = cmd_args
         get_platform(cmd_args.config)
 
-        mapurl = self.config.get("settings", "mapurlbase")
+        maptype = self.config.get("settings", "maptype")
+        if maptype == "cycle":
+            mapurl = self.config.get("settings", "mapurlcycle")
+            mapkey = self.config.get("settings", "keyformapurlcycle")
+        elif maptype == "landscape":
+            mapurl = self.config.get("settings", "mapurllandscape")
+            mapkey = self.config.get("settings", "keyformapurllandscape")
+        elif maptype == "outdoors":
+            mapurl = self.config.get("settings", "mapurloutdoors")
+            mapkey = self.config.get("settings", "keyformapurloutdoors")
+        else:
+            mapurl = self.config.get("settings", "mapurlbase")
+            mapkey = None
 
         Map.Tile.set_connected(True)
 
         lifetime = self.config.getint("settings", "map_tile_ttl") * 3000
         Map.Tile.set_tile_lifetime(lifetime)
         mapdir = self.config.get("settings", "mapdir")
-        maptype = self.config.get("settings", "maptype")
+
         map_path = os.path.join(mapdir, maptype)
 
-        Map.Tile.set_map_info(map_path, mapurl)
+        Map.Tile.set_map_info(map_path, mapurl, mapkey)
         Map.Tile.set_proxy = self.config.get("settings", "http_proxy") or None
         self.map_window = None
         self.stations_overlay = None
