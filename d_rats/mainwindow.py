@@ -2,7 +2,7 @@
 '''Main Window'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# review 2015 Maurizio Andreotti 
+# review 2015 Maurizio Andreotti
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

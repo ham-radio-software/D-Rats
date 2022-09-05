@@ -280,7 +280,7 @@ class Platform():
         '''
         Retrieve URL.
 
-        :param url: Url to retrieve
+        :param url: Url to retrieve if connected.
         :raises: Exception if not connected
         '''
         if self._connected:
