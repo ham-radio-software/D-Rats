@@ -1,3 +1,4 @@
+'''Sock'''
 from __future__ import absolute_import
 from __future__ import print_function
 import socket
@@ -5,7 +6,14 @@ from threading import Thread
 
 from d_rats.sessions import base, stateful
 
+
 class SocketSession(stateful.StatefulSession):
+    '''
+    Socket Session.
+
+    :param name: Session name
+    :param status_cb: Status call back function
+    '''
     type = base.T_SOCKET
 
     IDLE_TIMEOUT = None
@@ -18,12 +26,27 @@ class SocketSession(stateful.StatefulSession):
         else:
             self.status_cb = self._status
 
+    # pylint: disable=no-self-use
     def _status(self, msg):
         print(("Sock      : Socket Status: %s" % msg))
 
-class SocketListener(object):
-    def __init__(self, sm, dest, sport, dport, addr='0.0.0.0'):
-        self.sm = sm
+
+# pylint: disable=too-many-instance-attributes
+class SocketListener():
+    '''
+    Socket Listener.
+
+    :param session_mgr: SessionManager object
+    :param dest: Destination to listen to
+    :param sport: Source Port
+    :param dport: Destination Port
+    :param addr: TCP address, default='0.0.0.0'
+    '''
+
+    # pylint: disable=too-many-arguments
+    def __init__(self, session_mgr, dest, sport, dport, addr='0.0.0.0'):
+        # pylint: disable=invalid-name
+        self.sm = session_mgr
         self.dest = dest
         self.sport = sport
         self.dport = dport
@@ -36,10 +59,12 @@ class SocketListener(object):
         self.thread.start()
 
     def stop(self):
+        '''Stop.'''
         self.enabled = False
         self.thread.join()
 
     def listener(self):
+        '''Listener.'''
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET,
                         socket.SO_REUSEADDR,
@@ -57,23 +82,27 @@ class SocketListener(object):
                 (self.dsock, addr) = sock.accept()
             except socket.timeout:
                 continue
-            except Exception as e:
-                print(("Sock      : Socket exception: %s" % e))
+            # pylint: disable=broad-except
+            except Exception as err:
+                print("Sock      : Socket exception: %s -%s-" %
+                      (type(err),err))
                 self.enabled = False
                 break
 
-            print(("Sock      : %i: Incoming socket connection from %s" % (self.dport, addr)))
+            print("Sock      :",
+                  " %i: Incoming socket connection from %s" %
+                  (self.dport, addr))
 
-            s = self.sm.start_session(name=name,
-                                      dest=self.dest,
-                                      cls=SocketSession)
+            session = self.sm.start_session(name=name,
+                                            dest=self.dest,
+                                            cls=SocketSession)
 
-            while s.get_state() != base.ST_CLSD and self.enabled:
-                s.wait_for_state_change(1)
+            while session.get_state() != base.ST_CLSD and self.enabled:
+                session.wait_for_state_change(1)
 
             print(("Sock      : %s ended" % name))
             self.dsock.close()
             self.dsock = None
 
         sock.close()
-        print(("Sock      : TCP:%i shutdown" % self.dport))
+        print("Sock      : TCP:%i shutdown" % self.dport)

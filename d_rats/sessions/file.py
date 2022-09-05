@@ -14,7 +14,7 @@ import struct
 import os
 import time
 import zlib
-import sys # Needed for python2 only
+import sys # python 2 support only
 
 from six.moves import range
 from d_rats.sessions import base, stateful
@@ -22,7 +22,12 @@ from d_rats.sessions import base, stateful
 
 # pylint: disable=too-many-ancestors
 class NotifyDict(UserDict):
-    '''Notify Dictionary'''
+    '''
+    Notify Dictionary.
+
+    :param callback: Callback function
+    :param data: data for function
+    '''
 
     def __init__(self, callback, data=None):
         UserDict.__init__(self)
@@ -35,17 +40,31 @@ class NotifyDict(UserDict):
 
 
 class FileTransferSession(stateful.StatefulSession):
-    '''File Transfer Session'''
+    '''
+    File Transfer Session.
+
+    :param name: Name of session
+    :param status_cb: Status call back, default=None
+    :param kwargs: Keyword arguments
+    '''
 
     type = base.T_FILEXFER
 
     # pylint: disable=no-self-use
     def internal_status(self, vals):
-        '''Internal Status'''
+        '''
+        Internal Status.
+
+        :param vals: dict with "msg' member with status
+        '''
         print("XFER STATUS: %s" % vals["msg"])
 
     def status(self, msg):
-        '''Status'''
+        '''
+        Status Message
+
+        :param msg: Message to set as status
+        '''
         vals = dict(self.stats)
 
         vals["msg"] = msg
@@ -74,25 +93,14 @@ class FileTransferSession(stateful.StatefulSession):
         self.stats = NotifyDict(self.status_tick, self.stats)
         self.stats["total_size"] = 0
 
-    def get_file_data(self, filename):
-        '''Get the file data'''
-        print("*** get_file_data uncompressed called!")
-        file_handle = open(filename, "rb")
-        data = file_handle.read()
-        file_handle.close()
-
-        return data
-
-    def put_file_data(self, filename, data):
-        '''Put the file data'''
-        print("*** put_file_data uncompressed called!")
-        file_handle = open(filename, "wb")
-        file_handle.write(data)
-        file_handle.close()
-
     # pylint: disable=too-many-branches,too-many-statements
     def send_file(self, filename):
-        '''Send a file'''
+        '''
+        Send a file.
+
+        :param filename: Filename to send
+        :returns: True if file tranferred.
+        '''
         data = self.get_file_data(filename)
         if not data:
             return False
@@ -129,7 +137,8 @@ class FileTransferSession(stateful.StatefulSession):
                     offset = int(_offset)
                 # pylint: disable=broad-except
                 except Exception as err:
-                    print("Unable to parse RESUME value: %s" % err)
+                    print("Unable to parse RESUME value: %s -%s-" %
+                          (type(err), err))
                     offset = 0
                 self.status(_("Resuming at") + "%i" % offset)
                 break
@@ -164,7 +173,12 @@ class FileTransferSession(stateful.StatefulSession):
         return True
 
     def recv_file(self, dest_dir):
-        '''Receive a file'''
+        '''
+        Receive a file.
+
+        :param dest_dir: Destination directory
+        :returns: filename received or None
+        '''
         self.status(_("Waiting for transfer to start"))
         for _i in range(40):
             try:
@@ -238,7 +252,7 @@ class FileTransferSession(stateful.StatefulSession):
                 os.remove(partfilename)
         # pylint: disable=broad-except
         except Exception as err:
-            print("Failed to write transfer data: %s" % err)
+            print("Failed to write transfer data: %s -%s-" % (type(err), err))
             self.put_file_data(partfilename, data)
             return None
 
@@ -252,8 +266,12 @@ class FileTransferSession(stateful.StatefulSession):
 
     # pylint: disable=no-self-use
     def get_file_data(self, filename):
-        '''Get file data Compressed'''
-        print("*** get)_file_data compressed called!")
+        '''
+        Get file data amd compress it.
+
+        :param filename: Filename to get data from
+        :returns: Compressed data
+        '''
         file_handle = open(filename, "rb")
         data = file_handle.read()
         file_handle.close()
@@ -262,10 +280,19 @@ class FileTransferSession(stateful.StatefulSession):
 
     # pylint: disable=no-self-use
     def put_file_data(self, filename, zdata):
-        '''Put file data compressed'''
-        print("*** put_file_data compressed called!")
+        '''
+        Put file data that is compressed.
+
+        :param filename: Filename to write
+        :param zdata:  Compressed data
+        :raises: zlib.err is can not decompress
+        '''
         try:
-            data = zlib.decompress(zdata)
+            if sys.version_info[0] > 2:
+                data = zlib.decompress(zdata)
+            else:
+                comp_data = zlib.decompress(str(zdata))
+                data = bytearray(comp_data)
             file_handle = open(filename, "wb")
             file_handle.write(data)
             file_handle.close()
