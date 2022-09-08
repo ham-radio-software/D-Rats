@@ -21,7 +21,7 @@ Windows 7 support is being dropped by the third party libraries needed soon.
 IF YOU ARE ALREADY A USER OF D-RATS
 
 COMPATIBILITY NOTES
-** D-RATS 0.3.5 --> 0.3.6** 
+** D-RATS 0.3.5 --> 0.3.9** 
 This version share the same configuration file of 0.3.5 - there are no actions
 to be done.
 
