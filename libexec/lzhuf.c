@@ -1105,7 +1105,7 @@ int send_yapp(int usock, struct fwd *f, char *subj, int b2f)
       oFile = fopen(f->oFile, "rb");
 
 #ifdef LZHDEBUG
-         printf("we opended %s for input.\n",  f->oFile);
+         printf("we opened %s for input.\n",  f->oFile);
 #endif
 
       // Grab some space. Largest YAPP packet is 250+ bytes.
