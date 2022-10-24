@@ -1,4 +1,3 @@
-#!/usr/bin/python
 '''ddt2'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
@@ -17,73 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 import struct
 import zlib
 import sys
 import threading
 
+from .crc_checksum import calc_checksum
 from . import yencode
 from . import utils
 
 ENCODED_HEADER = b"[SOB]"
 ENCODED_TRAILER = b"[EOB]"
-
-
-def update_crc(c_byte, crc):
-    '''
-    Update the CRC.
-
-    :param c_byte: Character byte to add
-    :type c_byte: int
-    :param crc: CRC to update
-    :type crc: int
-    :returns: 16 bit CRC
-    :rtype: int
-    '''
-    # python 2 compatibility hack
-    # :type c_byte: may be str for python2
-    if isinstance(c_byte, str):
-        c_byte = ord(c_byte)
-    for _ in range(0, 8):
-        c_byte <<= 1
-
-        if (c_byte & 0o400) != 0:
-            value = 1
-        else:
-            value = 0
-
-        if crc & 0x8000:
-            crc <<= 1
-            crc += value
-            crc ^= 0x1021
-        else:
-            crc <<= 1
-            crc += value
-
-    return crc & 0xFFFF
-
-
-def calc_checksum(data):
-    '''
-    Calculate a checksum
-
-    :param data: Data to checksum
-    :type data: bytes
-    :returns: checksum
-    :rtype: int
-    '''
-    # :type data: is str for python2
-    checksum = 0
-    for i in data:
-        checksum = update_crc(i, checksum)
-
-    checksum = update_crc(0, checksum)
-    checksum = update_crc(0, checksum)
-    return checksum
 
 
 def encode(data):
@@ -273,17 +217,17 @@ class DDT2Frame():
         self.logger.debug("unpack: seq:%s session:%s type:%s",
                           self.seq, self.session, self.type)
         # utils.hexprintlog(header)
-        _header = struct.pack(self.format,
-                              magic,
-                              self.seq,
-                              self.session,
-                              self.type,
-                              0,
-                              length,
-                              s_station,
-                              d_station)
+        in_header = struct.pack(self.format,
+                                magic,
+                                self.seq,
+                                self.session,
+                                self.type,
+                                0,
+                                length,
+                                s_station,
+                                d_station)
 
-        _checksum = calc_checksum(_header + data)
+        in_checksum = calc_checksum(in_header + data)
 
         s_station = s_station.replace(b"~", b"")
         d_station = d_station.replace(b"~", b"")
@@ -296,9 +240,9 @@ class DDT2Frame():
         else:
             self.d_station = d_station.decode('utf-8', 'replace')
 
-        if _checksum != checksum:
+        if in_checksum != checksum:
             self.logger.info("unpack: Checksum failed: %s != %s",
-                             checksum, _checksum)
+                             checksum, in_checksum)
             return False
 
         if self.compress:

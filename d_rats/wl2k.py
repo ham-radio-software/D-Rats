@@ -1,8 +1,6 @@
 '''WL2K.'''
 # pylint wants only 1000 lines per module
 # pylint: disable=too-many-lines
-from __future__ import absolute_import
-from __future__ import print_function
 
 import logging
 import os
@@ -23,13 +21,11 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from gi.repository import GObject
 
-# sys.path.insert(0, "..")
-
 from d_rats import version
 from d_rats import dplatform
 from d_rats import formgui
 from d_rats import signals
-from d_rats.ddt2 import calc_checksum
+from d_rats.crc_checksum import calc_checksum
 from d_rats import agw
 from d_rats.dratsexception import DataPathIOError
 
@@ -341,6 +337,7 @@ class WinLinkMessage:
         try:
             body_length = int(body)
         except ValueError:
+            # pylint: disable=raise-missing-from
             raise Wl2kMessageHeaderError(
                 "Error parsing Body header length `%s'" % body)
 
@@ -656,6 +653,7 @@ class WinLinkCMS:
         try:
             _sw, _ver, _caps = recv_ssid[1:-1].split(b"-")
         except ValueError:
+            # pylint: disable=raise-missing-from
             raise Wl2kCMSBadSSID(
                 "Conversation error (unparsable SSID `%s')" % recv_ssid)
 
@@ -842,6 +840,7 @@ class WinLinkTelnet(WinLinkCMS):
         try:
             _sw, _ver, _caps = resp[1:-1].split(b"-")
         except ValueError:
+            # pylint: disable=raise-missing-from
             raise Wl2kCMSBadSSID(
                 "Conversation error (unparsable SSID `%s')" % resp)
 
@@ -1146,6 +1145,7 @@ def test_agw_server(host="127.0.0.1", port=8000):
     logger = logging.getLogger("wl2k_test_agw_server")
     # Quick and dirty simulator for agwpe unit tests.
     logger.info("test_server: starting %s:%i", host, port)
+    # pylint: disable=import-outside-toplevel
     from time import sleep
 
     ssid = WinLinkCMS.ssid() + b'\r'
@@ -1199,6 +1199,7 @@ def main():
 
     logger = logging.getLogger("wl2k_test")
 
+    # pylint: disable=import-outside-toplevel
     from time import sleep
     server = threading.Thread(target=test_agw_server)
     server.start()
