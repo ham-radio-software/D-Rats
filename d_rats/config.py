@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # pylint wants a max of 1000 lines
 # pylint: disable=too-many-lines
 #
@@ -21,9 +20,6 @@
 
 '''D-Rats Configuration Module.'''
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import ast
 import os
 import random
@@ -45,7 +41,7 @@ from . import utils
 from . import miscwidgets
 from . import inputdialog
 
-from . import dplatform
+from .dplatform import Platform
 # change from 0.3.3> was this commented out which causes pylint error.
 from . import geocode_ui
 
@@ -135,7 +131,7 @@ _DEF_SETTINGS = {
     "qst_owappid" : "ecd42c31b76e59e83de5cb8c16f7bd95a",
 
     # MAPS APIs
-    "mapdir" : os.path.join(dplatform.get_platform().config_dir(), "maps"),
+    "mapdir" : os.path.join(Platform.get_platform().config_dir(), "maps"),
     "maptype": "base",
     # "mapurlbase":  "http://a.tile.openstreetmap.org/",
     "mapurlbase":  "https://tile.openstreetmap.de/",
@@ -174,7 +170,7 @@ _DEF_SETTINGS = {
     "msg_forward" : "True",       # changed from False to True in 0.3.6
     "station_msg_ttl" : "600",    # changed from 3660 to 600 in 0.3.6
 
-    "form_logo_dir" : os.path.join(dplatform.get_platform().config_dir(),
+    "form_logo_dir" : os.path.join(Platform.get_platform().config_dir(),
                                    "logos"),
 
     "mapserver_ip": "localhost",
@@ -313,11 +309,12 @@ def prompt_for_port(portspec=None, info=None, pname=None):
     :rtype: tuple[str, str, str]
     '''
     wtree = Gtk.Builder()
-    path = os.path.join(dplatform.get_platform().source_dir(),
+    platform = Platform.get_platform()
+    path = os.path.join(platform.sys_data(),
                         "ui/addport.glade")
     wtree.add_from_file(path)
 
-    ports = dplatform.get_platform().list_serial_ports()
+    ports = platform.list_serial_ports()
 
     sportsel = wtree.get_object("serial_port")
     tportsel = wtree.get_object("tnc_port")
@@ -481,6 +478,8 @@ def disable_by_combo(combo, map_var):
     set_disables(combo, map_var)
 
 
+# pylint wants at least 2 public methods
+# pylint: disable=too-few-public-methods
 class AddressLookup(Gtk.Button):
     '''
     Lookup Latitude and Longitude.
@@ -500,7 +499,8 @@ class AddressLookup(Gtk.Button):
         self.logger = logging.getLogger("ConfigAddressLookup")
         self.connect("clicked", self.clicked_handler, latw, lonw, window)
 
-    def clicked_handler(self, _button, latw, lonw, window):
+    @staticmethod
+    def clicked_handler(_button, latw, lonw, window):
         '''
         Button Clicked handler.
 
@@ -917,7 +917,7 @@ class DratsConfigWidget(Gtk.Box):
             :type _button: :class:`Gtk.Button`
             '''
             self.logger.info("Testing playback of %s", self.value)
-            platform_info = dplatform.get_platform()
+            platform_info = Platform.get_platform()
             platform_info.play_sound(self.value)
 
         fname_box = miscwidgets.FilenameBox(find_dir=False)
@@ -1343,7 +1343,7 @@ class DratsGPSPanel(DratsPanel):
         alt.add_numeric(0, 29028, 1)
         self.make_view(_("Altitude"), alt)
 
-        ports = dplatform.get_platform().list_serial_ports()
+        ports = Platform.get_platform().list_serial_ports()
 
         val = DratsConfigWidget(config, "settings", "gpsenabled")
         val.add_bool()
@@ -1374,6 +1374,7 @@ class DratsGPSPanel(DratsPanel):
             :param val: GPS Enabled Configuration Widget
             :type val: :class:`DratsConfigWidget`
             '''
+            # pylint: disable=import-outside-toplevel
             from . import qst
             dprs = qst.do_dprs_calculator(config.get("settings",
                                                      "default_gps_comment"))
@@ -1652,7 +1653,8 @@ class DratsRadioPanel(DratsPanel):
             list_widget.set_item(values[6], values[1], port, info, values[4],
                                  values[5], values[6])
 
-    def but_rem(self, _button, list_widget):
+    @staticmethod
+    def but_rem(_button, list_widget):
         '''
         Button remove.
 
@@ -1826,6 +1828,7 @@ class DratsTCPPanel(DratsPanel):
 
     INITIAL_ROWS = 2
 
+    # pylint: disable=arguments-differ
     def make_view(self, _title, *widgets):
         '''
         Make View.
@@ -2095,6 +2098,7 @@ class DratsInEmailPanel(DratsPanel):
 
         self.make_view(_("Incoming Accounts"), val, add, edit, rem)
 
+    # pylint: disable=arguments-differ
     def make_view(self, _title, *widgets):
         '''
         Make View.
@@ -2334,6 +2338,7 @@ class DratsEmailAccessPanel(DratsPanel):
 
         self.make_view(_("Email Access"), val, add, edit, rem)
 
+    # pylint: disable=arguments-differ
     def make_view(self, _title, *widgets):
         '''
         Make View.
@@ -2413,8 +2418,7 @@ class DratsEmailAccessPanel(DratsPanel):
                     if n_field == _("Callsign"):
                         if not value:
                             raise ValueError("empty")
-                        else:
-                            value = value.upper()
+                        value = value.upper()
                     ret[n_field] = t_field(value)
                 except ValueError as error:
                     e_dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK)
@@ -2629,7 +2633,7 @@ class DratsConfig(configparser.ConfigParser):
     def __init__(self, _mainapp, _safe=False):
         configparser.ConfigParser.__init__(self)
 
-        self.platform = dplatform.get_platform()
+        self.platform = Platform.get_platform()
         self.filename = self.platform.config_file("d-rats.config")
         self.logger = logging.getLogger("DratsConfig")
 
@@ -2641,7 +2645,7 @@ class DratsConfig(configparser.ConfigParser):
 
         # create "D-RATS Shared" folder for file transfers
         if self.get("prefs", "download_dir") == ".":
-            default_dir = os.path.join(dplatform.get_platform().default_dir(),
+            default_dir = os.path.join(self.platform.default_dir(),
                                        "D-RATS Shared")
             self.logger.info("%s", default_dir)
             if not os.path.exists(default_dir):
@@ -2701,7 +2705,7 @@ class DratsConfig(configparser.ConfigParser):
         file_handle.close()
 
     # This is an intentional method override.
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ, arguments-renamed
     def getboolean(self, sec, key):
         '''
         Get Boolean value.
@@ -2774,7 +2778,7 @@ class DratsConfig(configparser.ConfigParser):
         :returns: Path for object
         :rtype: str
         '''
-        return os.path.join(self.platform.source_dir(), name)
+        return os.path.join(self.platform.sys_data(), name)
 
     def ship_img(self, name):
         '''
@@ -2791,6 +2795,7 @@ class DratsConfig(configparser.ConfigParser):
 
 def main():
     '''Main package for testing.'''
+    # pylint: disable=import-outside-toplevel
     import sys
     sys.path.insert(0, ".")
 

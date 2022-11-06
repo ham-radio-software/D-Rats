@@ -23,6 +23,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import argparse
 import ast
 import logging
 import os
@@ -43,7 +44,7 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 from d_rats.version import __version__
-from d_rats import dplatform
+from d_rats.dplatform import Platform
 from d_rats import transport
 from d_rats import comm
 from d_rats.miscwidgets import make_choice
@@ -321,7 +322,7 @@ class Repeater:
             pipe.write(b"100 Authentication not required for localhost\r\n")
             return True
 
-        auth_fname = dplatform.get_platform().config_file("users.txt")
+        auth_fname = Platform.get_platform().config_file("users.txt")
         try:
             auth = open(auth_fname)
             lines = auth.readlines()
@@ -339,7 +340,7 @@ class Repeater:
             try:
                 user, passwd = line.split(" ", 1)
                 user = user.upper()
-            except ValueError as err:
+            except ValueError:
                 self.logger.info("auth_user: Failed to parse "
                                  "line %i in users.txt: %s",
                                  lno, line)
@@ -421,6 +422,7 @@ class Repeater:
     def repeat(self):
         '''Repeat.'''
         self.repeat_thread = threading.Thread(target=self._repeat)
+        # pylint: disable=deprecated-method
         self.repeat_thread.setDaemon(True)
         self.repeat_thread.start()
 
@@ -453,7 +455,7 @@ class RepeaterUI:
         self.tap = None
         self.tick = 0
 
-        self.platform = dplatform.get_platform()
+        self.platform = Platform.get_platform()
         self.config = self.load_config()
 
     def load_config(self):
@@ -939,8 +941,7 @@ class RepeaterGUI(RepeaterUI):
             :param _button: Button Widget signaled, unused
             :type _button: :class:`Gtk.Button`
             '''
-            platform = dplatform.get_platform()
-            platform.open_text_file(platform.config_file("users.txt"))
+            self.platform.open_text_file(self.platform.config_file("users.txt"))
 
         edit_users = Gtk.Button.new_with_label("Edit Users")
         edit_users.connect("clicked", clicked_edit_users)
@@ -1214,8 +1215,6 @@ class RepeaterConsole(RepeaterUI):
 def main():
     '''D-Rats Repeater main program.'''
 
-    import argparse
-
     gettext.install("D-RATS")
     lang = gettext.translation("D-RATS",
                                localedir="locale",
@@ -1225,7 +1224,7 @@ def main():
     global _
     _ = lang.gettext
 
-    platform = dplatform.get_platform()
+    platform = Platform.get_platform()
     def_config_dir = platform.config_dir()
 
     # pylint wants at least 2 public methods, but we do not need them

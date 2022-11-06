@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # pylint: disable=too-many-lines
 '''QST.'''
 #
@@ -17,9 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import absolute_import
-from __future__ import print_function
 
 import datetime
 import json
@@ -41,27 +37,25 @@ if not '_' in locals():
 from .miscwidgets import make_choice
 from . import miscwidgets
 
-from . import dplatform
+from .dplatform import Platform
 from . import inputdialog
 from . import cap
-# from . import wu
 from . import gps
 from .utils import combo_select, get_icon
 
-# pylint: disable=invalid-name
-module_logger = logging.getLogger("QST")
+QST_LOGGER = logging.getLogger("QST")
 
 try:
     import feedparser
     HAVE_FEEDPARSER = True
 except ImportError:
-    module_logger.info("FeedParser not available")
+    QST_LOGGER.info("FeedParser not available")
     HAVE_FEEDPARSER = False
 
 try:
     from hashlib import md5
 except ImportError:
-    module_logger.info("Installing hashlib replacement hack")
+    QST_LOGGER.info("Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
 
 
@@ -201,7 +195,7 @@ class QSTExec(QSTText):
         :rtype: str
         '''
         size_limit = self.config.getint("settings", "qst_size_limit")
-        pform = dplatform.get_platform()
+        pform = Platform.get_platform()
         status, output = pform.run_sync(self.text)
         if status:
             self.logger.info("Command failed with status %i", status)

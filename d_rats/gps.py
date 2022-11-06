@@ -1,4 +1,3 @@
-#!/usr/bin/python
 '''GPS Module.'''
 # pylint wants only 1000 lines
 # pylint: disable=too-many-lines
@@ -20,10 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 import re
 import time
@@ -37,7 +32,7 @@ import socket
 from math import pi, cos, acos, sin, atan2
 import serial
 
-from . import dplatform
+from .dplatform import Platform
 
 from . import utils
 
@@ -53,7 +48,7 @@ TEST = "$GPGGA,180718.02,4531.3740,N,12255.4599,W,1,07,1.4," \
 EARTH_RADIUS = 3963.1
 EARTH_UNITS = "mi"
 
-DEGREE = u"\u00b0"
+DEGREE = "\u00b0"
 
 DPRS_TO_APRS = {}
 
@@ -179,7 +174,7 @@ def parse_dms(string):
     :returns: Degrees
     :rtype: float
     '''
-    string = string.replace(u"\u00b0", " ")
+    string = string.replace("\u00b0", " ")
     string = string.replace('"', ' ')
     string = string.replace("'", ' ')
     string = string.replace('  ', ' ')
@@ -673,8 +668,7 @@ class GPSPosition():
                 comment,
                 new_distance,
                 direct)
-        else:
-            return "(" + _("Invalid GPS data") + ")"
+        return "(" + _("Invalid GPS data") + ")"
 
     @staticmethod
     def _nmea_format(val, latitude):
@@ -1000,7 +994,9 @@ class NMEAGPSPosition(GPSPosition):
     def _parse_gpgga(self, string):
         elements = string.split(",", 14)
         if len(elements) < 15:
-            raise GpsGpggaParseError("Unable to split GPGGA" % len(elements))
+            raise GpsGpggaParseError("Unable to split GPGGA, "
+                                     "have %s of 15" %
+                                     len(elements))
 
         time_str = time.strftime("%m%d%y") + elements[1]
         if "." in time_str:
@@ -1093,6 +1089,7 @@ class NMEAGPSPosition(GPSPosition):
         try:
             self._parse_gpgga(string)
         except GpsGpggaException as err:
+            # pylint: disable=import-outside-toplevel
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
@@ -1103,6 +1100,7 @@ class NMEAGPSPosition(GPSPosition):
         try:
             self._parse_gprmc(string)
         except GpsGprmcException as err:
+            # pylint: disable=import-outside-toplevel
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
@@ -1313,7 +1311,7 @@ class MapImage():
         fhandle.write(self.make_html())
         fhandle.flush()
         fhandle.close()
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         platform.open_html_file(fhandle.name)
 
 
@@ -1597,7 +1595,7 @@ class StaticGPSSource(GPSSource):
         return _("Static position")
 
 
-def parse_GPS(string):
+def parse_gps(string):
     '''
     Parse GPS string.
 

@@ -35,7 +35,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from d_rats.version import __version__
-from d_rats import dplatform
+from d_rats.dplatform import Platform
 
 
 # Default gettext function which is needed for pylance
@@ -124,7 +124,7 @@ possible.
             IGNORE_ALL = True
             break
         if response == Gtk.ResponseType.HELP:
-            platform = dplatform.get_platform()
+            platform = Platform.get_platform()
             platform.open_text_file(platform.config_file("debug.log"))
 
 
@@ -142,7 +142,7 @@ def uninstall_excepthook():
 def main():
     '''D-Rats Main module.'''
 
-    platform = dplatform.get_platform()
+    platform = Platform.get_platform()
     def_config_dir = platform.config_dir()
 
     # pylint wants at least 2 public methods, but we do not need them
@@ -208,9 +208,10 @@ def main():
         platform.set_config_dir(args.config)
 
     # import the D-Rats main application
+    # pylint: disable=import-outside-toplevel
     from d_rats import mainapp
 
-    # stores away the value of sys.excepthook
+     # stores away the value of sys.excepthook
     install_excepthook()
 
     # create the mainapp with the basic options
@@ -222,6 +223,8 @@ def main():
     # see what happens)
     if args.profile:
         MODULE_LOGGER.info("main: Executing with cprofile")
+        # Contrary to pylint, we do not want to import this unless needed.
+        # pylint: disable=import-outside-toplevel
         import cProfile
         cProfile.runctx('app.main()', globals(), locals())
     else:

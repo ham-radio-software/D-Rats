@@ -1,4 +1,3 @@
-#!/usr/bin/python
 '''Map Display Unit Test for GTK3'''
 #
 # Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
@@ -19,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
-
+import argparse
 import logging
 import os
 import gi
@@ -31,7 +27,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gio
 from gi.repository import Gtk
 
-from d_rats.dplatform import get_platform
+from d_rats.dplatform import Platform
 from d_rats import config
 from d_rats import map_sources
 
@@ -63,7 +59,7 @@ class MapDisplay(Gtk.Application):
 
         self.config = config.DratsConfig(None)
         self.cmd_args = cmd_args
-        get_platform(cmd_args.config)
+        Platform.get_platform(cmd_args.config)
 
         maptype = self.config.get("settings", "maptype")
         if maptype == "cycle":
@@ -152,8 +148,6 @@ class MapDisplay(Gtk.Application):
 def main():
     '''Main function for unit testing.'''
 
-    import argparse
-
     gettext.install("D-RATS")
     lang = gettext.translation("D-RATS",
                                localedir="locale",
@@ -193,7 +187,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=_('MAP DISPLAY TEST'))
     parser.add_argument('-c', '--config',
-                        default=get_platform().config_dir(),
+                        default=Platform.get_platform().config_dir(),
                         help=_("USE ALTERNATE CONFIGURATION DIRECTORY"))
 
     # While loglevel actually returns an int, it needs to be set to the

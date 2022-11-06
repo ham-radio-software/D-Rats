@@ -17,9 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 import re
 import time
@@ -27,9 +24,9 @@ import threading
 import os
 import urllib
 from glob import glob
-from lxml import etree
 from configparser import NoSectionError
 from configparser import NoOptionError
+from lxml import etree
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -37,7 +34,7 @@ from gi.repository import GLib
 from gi.repository import GObject
 
 from . import utils
-from . import dplatform
+from .dplatform import Platform
 
 
 class MapSourcesException(Exception):
@@ -85,6 +82,7 @@ class MapPoint(GObject.GObject):
 
     def __init__(self):
         GObject.GObject.__init__(self)
+        # pylint: disable=unused-private-member
         self.__latitude = 0.0
         self.__longitude = 0.0
         self.__altitude = 0.0
@@ -137,15 +135,18 @@ class MapPoint(GObject.GObject):
         # Probably should raise an exception
         return None
 
+    # pylint: disable=arguments-differ
     def __repr__(self):
         msg = "%s@%.4f,%.4f" % (self.get_name(),
                                 self.get_latitude(),
                                 self.get_longitude())
         return msg
 
+    # pylint: disable=arguments-differ
     def __str__(self):
         return self.get_name()
 
+    # pylint: disable=arguments-differ
     def __eq__(self, point):
         return self.get_name() == point.get_name()
 
@@ -299,7 +300,7 @@ class MapUSGSRiver(MapPointThreaded):
               "?format=mapper&sites=%s&siteOutput=expanded&siteStatus=all" % \
               self.__site
 
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         try:
             filter_filename, _headers = platform.retrieve_url(url)
             content = open(filter_filename).read()
@@ -328,7 +329,7 @@ class MapUSGSRiver(MapPointThreaded):
             "http://waterdata.usgs.gov/nwis/uv?format=rdb&period=1&site_no=%s" \
             % self.__site
 
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         try:
             file_name, _headers = platform.retrieve_url(url)
             line = open(file_name).readlines()[-1]
@@ -368,7 +369,7 @@ class MapNBDCBuoy(MapPointThreaded):
 
     def do_update(self):
         '''Do Update.'''
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         try:
             fname, _headers = platform.retrieve_url(self.__url)
             content = open(fname).read()
@@ -594,6 +595,7 @@ class MapFileSource(MapSource):
         except (PermissionError, FileNotFoundError) as err:
             msg = "Failed to open %s: %s" % (filename, err)
             self.logger.info("Failed to open %s: %s")
+            # pylint: disable=raise-missing-from
             raise MapSourceFailedToConnect(msg)
 
         lines = input_handle.readlines()
@@ -653,6 +655,7 @@ class MapFileSource(MapSource):
             ident, icon, lat, lon, alt, comment, show = line.split(",", 6)
         except ValueError:
             self.logger.info("parse_line failed (%s)")
+            # pylint: disable=raise-missing-from
             raise MapSourcePointError
 
         if alt:
@@ -844,6 +847,7 @@ class MapNBDCBuoySource(MapSource):
             logger.info("_open_source_by_name: No option %s.label",
                         name, exc_info=True)
             _name = name
+        # pylint: disable=unnecessary-comprehension, consider-using-generator
         sites = tuple([x for x in _sites])
 
         return MapNBDCBuoySource(_name, "NBDC Buoys", *sites)

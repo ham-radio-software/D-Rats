@@ -1,5 +1,6 @@
-#!/usr/bin/python
 '''D-Rats Platform'''
+# pylint wants only 1000 lines in a module
+# pylint: disable=too-many-lines
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -18,17 +19,65 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
-import os
-import sys
 import glob
+import os
+import shutil
 import subprocess
+import sys
+
+if os.name == "nt":
+    # There has been some problems with various Windows Python
+    # implementations in the past.  Having these modules may make
+    # D-Rats harder to use.  There are some hacks like manually
+    # editing configuration files to allow testing.
+    # The type: ignore is needed for pylance not handling cross-platform checks
+    try:
+        import win32api # type: ignore
+    except ImportError:
+        pass
+    try:
+        import pywintypes # type: ignore
+    except ImportError:
+        pass
+    try:
+        from win32com.shell import shell # type: ignore
+    except ImportError:
+        pass
+    try:
+        import win32con # type: ignore
+    except ImportError:
+        pass
+    try:
+        import win32file # type: ignore
+    except ImportError:
+        pass
+    try:
+        import win32gui # type: ignore
+    except ImportError:
+        pass
+    try:
+        import winsound # type: ignore
+    except ImportError:
+        pass
+else:
+    # These are optional - Need to see if they are available for Win32
+    try:
+        import ossaudiodev
+    except ImportError:
+        pass
+    try:
+        import sndhdr
+    except ImportError:
+        pass
+
 import urllib.request
 import urllib.parse
 import urllib.error
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 
 
 if '_' not in locals():
@@ -43,7 +92,8 @@ class PlatformException(Exception):
 class NotConnectedError(PlatformException):
     '''Not connected Error.'''
 
-
+# pylint wants only 20 public methods.
+# pylint: disable=too-many-public-methods
 class Platform():
     '''
     Platform.
@@ -52,11 +102,18 @@ class Platform():
     :type basepath: str
     '''
     logger = logging.getLogger("Platform")
+    my_class = None
 
     def __init__(self, basepath):
         self.set_config_dir(basepath)
         my_dir = os.path.realpath(os.path.dirname(__file__))
-        self._sys_data = os.path.dirname(my_dir)
+        self._base_dir = os.path.dirname(my_dir)
+        self._sys_data = None
+        if os.path.exists(os.path.join(self._base_dir, '.git')):
+            # We need to know if we are running from a git checkout, in that
+            # case we want to use the data from the git checkout directory
+            # instead of data from an package install.
+            self._sys_data = self._base_dir
         self._connected = True
 
     def __str__(self):
@@ -67,7 +124,29 @@ class Platform():
 
         return os.linesep.join(text)
 
+    @classmethod
+    def get_platform(cls, basepath=None):
+        '''
+        Get platform class object instance.
+
+        There is always only one platform class instance.
+
+        :param basepath: Optional basepath only used for first call.
+        :type basepath: str
+        :returns: Platform class instance
+        :rtype: :class:`Platform`
+        '''
+        if cls.my_class:
+            return cls.my_class
+        cls.my_class = UnixPlatform(basepath)
+        if os.name == "nt":
+            cls.my_class = Win32Platform(basepath)
+        elif sys.platform == "darwin":
+            cls.my_class = MacOSXPlatform(basepath)
+        return cls.my_class
+
     def set_config_dir(self, basepath):
+
         '''
         Set the configuration directory.
 
@@ -106,28 +185,44 @@ class Platform():
         # /usr - programs installed by official packages
         # /opt - programs installed from tarballs and some third party packages
         # /usr/local - Non official programs installed by system owner
-        # <path> - programs installed by pip.  While pip does install into
-        # the /usr path by default, that is considered a very bad practice,
-        # as it can interfere with official packages.
+        # <path> - programs installed by pip.  While pip does install into the
+        #          /usr path by default, that is considered a very bad practice,
+        #          as it can interfere with official packages.
+        if self._sys_data:
+            return self._sys_data
         if '/lib/' in __file__:
             my_prefix = __file__.split('/lib/')
             my_share = os.path.join(my_prefix[0], 'share', 'd-rats')
             if os.path.exists(my_share):
                 # Using standard location or a VENV
-                return my_share
+                self._sys_data = my_share
+                return self._sys_data
         # punt, assume running from source
+        self._sys_data = self._base_dir
         return self._sys_data
 
-    def source_dir(self):
+    @staticmethod
+    def get_exe_path(name):
         '''
-        The system application data directory.
+        Get the absolute path for an executable program.
 
-        To be deprecated as name does not match the purpose.
-
-        :returns: Directory for built in application data.
+        :param name: Name of executable program
+        :type name: str
+        :returns: Path to the executable program.
         :rtype: str
         '''
-        return self.sys_data()
+        # Make trivial check from the normal paths
+        exe_path = shutil.which(name)
+        if exe_path:
+            return exe_path
+        programfiles = os.getenv("PROGRAMFILES")
+        if programfiles:
+            for program in [programfiles, programfiles + " (x86)"]:
+                test_path=os.path.join(program, name)
+                exe_path = shutil.which(name, path=test_path)
+                if exe_path:
+                    return exe_path
+        return None
 
     def log_dir(self):
         '''
@@ -234,10 +329,6 @@ class Platform():
         :returns: Filename or None
         :rtype: str
         '''
-        import gi
-        gi.require_version("Gtk", "3.0")
-        from gi.repository import Gtk
-
         dlg = Gtk.FileChooserDialog(
             title="Select a file to open",
             action=Gtk.FileChooserAction.OPEN)
@@ -267,10 +358,6 @@ class Platform():
         :returns: Filename to save or None
         :rtype: str
         '''
-        import gi
-        gi.require_version("Gtk", "3.0")
-        from gi.repository import Gtk
-
         dlg = Gtk.FileChooserDialog(
             title="Save file as",
             action=Gtk.FileChooserAction.SAVE)
@@ -301,10 +388,6 @@ class Platform():
         :returns: Directory selected or None
         :rtype: str
         '''
-        import gi
-        gi.require_version("Gtk", "3.0")
-        from gi.repository import Gtk
-
         dlg = Gtk.FileChooserDialog(
             title="Choose folder",
             action=Gtk.FileChooserAction.SELECT_FOLDER)
@@ -524,12 +607,13 @@ class UnixPlatform(Platform):
         :param soundfile: Sound file to try.
         :rtype: str
         '''
-        import ossaudiodev
-        import sndhdr
-
+        # pylint: disable=broad-except
         try:
             (file_type, rate, channels, _f, bits) = sndhdr.what(soundfile)
-        # pylint: disable=broad-except
+        except NameError:
+            self.logger.info("play_sound: sndhdr or "
+                             "related package not installed")
+            return
         except Exception:
             self.logger.info("play_sound: Unable to determine"
                              "sound header of %s: broad-exception",
@@ -547,6 +631,7 @@ class UnixPlatform(Platform):
             return
 
         dev = None
+        # pylint: disable=broad-except
         try:
             dev = ossaudiodev.open("w")
             dev.setfmt(ossaudiodev.AFMT_S16_LE)
@@ -558,7 +643,9 @@ class UnixPlatform(Platform):
             file_handle.close()
 
             dev.close()
-        # pylint: disable=broad-except
+        except NameError:
+            self.logger.info("play_sound: ossaudiodev or "
+                             "related package not installed")
         except Exception:
             self.logger.info("play_sound: Error playing sound %s: %s",
                              soundfile, "broad-exception", exc_info=True)
@@ -644,18 +731,23 @@ class MacOSXPlatform(UnixPlatform):
         # See the Unix platform class for more details
         # Since many developers do not have MacOSX this needs
         # some diagnostics if it does not work.
+        if self._sys_data:
+            return self._sys_data
         if '/lib/' in __file__:
             my_prefix = __file__.split('/lib/')
             my_share = os.path.join(my_prefix[0], 'share', 'd-rats')
             if os.path.exists(my_share):
                 # Using standard location or a VENV
-                return my_share
+                self._sys_data = my_share
+                return self._sys_data
             mac_prefix = '../Resources'
             if os.path.exists(os.path.join('mac_prefix', 'ui')):
-                return mac_prefix
-            self.logger.info('Can not find d-rats internal data files'
-                             'Looked in %s and %s.',
-                             my_share, mac_prefix)
+                self._sys_data = mac_prefix
+                return self._sys_data
+        self.logger.debug('Can not find d-rats internal data files'
+                          'Looked in %s and %s.',
+                          my_share, mac_prefix)
+        self._sys_data = self._base_dir
         return self._sys_data
 
 
@@ -670,7 +762,6 @@ class Win32Platform(Platform):
 
     def __init__(self, basepath=None):
         self.set_config_dir(basepath)
-
         Platform.__init__(self, basepath)
 
     def set_config_dir(self, basepath):
@@ -739,39 +830,32 @@ class Win32Platform(Platform):
         :returns: List of serial ports
         :rtype: list[str]
         '''
-        # pylint not handing cross-platform import checks
-        # pylint: disable=import-error
-        try:
-            import win32file # type: ignore
-            import pywintypes # type: ignore
-            import win32con # type: ignore
-        except ImportError:
-            self.logger.info("Python win32api related packaging missing",
-                             exc_info=True)
-            return []
-
         ports = []
-        for i in range(1, 257):
-            try:
-                portname = "COM%i" % i
-                mode = win32con.GENERIC_READ | win32con.GENERIC_WRITE
-                port = \
-                    win32file.CreateFile(portname,
-                                         mode,
-                                         win32con.FILE_SHARE_READ,
-                                         None,
-                                         win32con.OPEN_EXISTING,
-                                         0,
-                                         None)
-                ports.append(portname)
-                win32file.CloseHandle(port)
-                port = None
+        try:
+            for i in range(1, 257):
+                try:
+                    portname = "COM%i" % i
+                    mode = win32con.GENERIC_READ  # type: ignore
+                    mode |= win32con.GENERIC_WRITE  # type: ignore
+                    port = win32file.CreateFile(  # type: ignore
+                        portname,
+                        mode,
+                        win32con.FILE_SHARE_READ,  # type: ignore
+                        None,
+                        win32con.OPEN_EXISTING,  # type: ignore
+                        0,
+                        None)
+                    ports.append(portname)
+                    win32file.CloseHandle(port)  # type: ignore
+                    port = None
 
-            except pywintypes.error as err:
-                # Error code 5 Apparently if the serial port is in use.
-                if err.args[0] not in [2, 5]:
-                    self.logger.info("list_serial_ports", exc_info=True)
-
+                except pywintypes.error as err:  # type: ignore
+                    # Error code 5 Apparently if the serial port is in use.
+                    if err.args[0] not in [2, 5]:
+                        self.logger.info("list_serial_ports", exc_info=True)
+        except NameError:
+            self.logger.info("Unable to look up serial ports, "
+                             "win32con or other python package missing!")
         return ports
 
     def gui_open_file(self, start_dir=None):
@@ -783,22 +867,17 @@ class Win32Platform(Platform):
         :returns: Filename to open or none.
         :rtype: str
         '''
-        # pylint not handing cross-platform import checks
-        # pylint: disable=import-error
         try:
-            import win32gui # type: ignore
-            import pywintypes # type: ignore
-        except ImportError:
-            self.logger.info("Python win32api related packaging missing",
-                             exc_info=True)
-            return None
-
-        try:
-            fname, _filter, __flags = win32gui.GetOpenFileNameW()
-        except pywintypes.error as err:
+            fname, _filter, __flags = \
+                win32gui.GetOpenFileNameW()  # type: ignore
+            return str(fname)
+        except pywintypes.error as err:  # type: ignore
             self.logger.info("gui_open_file: Failed to get filename: %s", err)
-            return None
-        return str(fname)
+        except NameError:
+            self.logger.info("Cannot open file, "
+                             "win32gui or other python packages missing!")
+        return None
+
 
     def gui_save_file(self, start_dir=None, default_name=None):
         '''
@@ -811,23 +890,16 @@ class Win32Platform(Platform):
         :returns: filename to save to or None
         :rtype: str
         '''
-        # pylint not handing cross-platform import checks
-        # pylint: disable=import-error
-        try:
-            import win32gui # type: ignore
-            import pywintypes # type: ignore
-        except ImportError:
-            self.logger.info("Python win32api related packaging missing",
-                             exc_info=True)
-            return None
-
         try:
             fname, _filter, _flags = \
-                win32gui.GetSaveFileNameW(File=default_name)
-        except pywintypes.error as err:
+                win32gui.GetSaveFileNameW(File=default_name)  # type: ignore
+            return str(fname)
+        except pywintypes.error as err:  # type: ignore
             self.logger.info("gui_save_file: Failed to get filename: %s", err)
-            return None
-        return str(fname)
+        except NameError:
+            self.logger.info("Cannot open file, "
+                             "win32gui or other python packages missing!")
+        return None
 
     def gui_select_dir(self, start_dir=None):
         '''
@@ -838,28 +910,26 @@ class Win32Platform(Platform):
         :returns: selected directory or None
         :rtype: str
         '''
-        # pylint not handing cross-platform import checks
-        # pylint: disable=import-error
+        pidl = None
         try:
-            from win32com.shell import shell # type: ignore
-            import pywintypes # type: ignore
-        except ImportError:
-            self.logger.info("Python win32com related packaging missing",
-                             exc_info=True)
-            return None
-
-        try:
-            err = "No error detected"
-            pidl, _display_name, _ilmage_list = shell.SHBrowseForFolder()
-        except pywintypes.com_error as err:
-            pidl = None
-        if not pidl:
-            self.logger.info("gui_select_dir: failed to get directory: %s", err)
-            return None
-        fname = shell.SHGetPathFromIDList(pidl)
-        if not isinstance(fname, str):
-            fname = fname.decode('utf-8', 'replace')
-        return str(fname)
+            try:
+                err = "No error detected"
+                pidl, _display_name, _ilmage_list = \
+                    shell.SHBrowseForFolder()  # type: ignore
+            except pywintypes.com_error:  # type: ignore
+                pass
+            if not pidl:
+                self.logger.info("gui_select_dir: failed to get directory: %s",
+                                 err)
+                return None
+            fname = shell.SHGetPathFromIDList(pidl)  # type: ignore
+            if not isinstance(fname, str):
+                fname = fname.decode('utf-8', 'replace')
+            return str(fname)
+        except NameError:
+            self.logger.info("Cannot open file, "
+                             "win32com or other python packages missing!")
+        return None
 
     def os_version_string(self):
         '''
@@ -868,15 +938,6 @@ class Win32Platform(Platform):
         :returns: Platform version string
         :rtype: str
         '''
-        # pylint not handing cross-platform import checks
-        # pylint: disable=import-error, unused-import
-        try:
-            import win32api # type: ignore
-        except ImportError:
-            self.logger.info("os_version_string: Failed to load win32api",
-                             exc_info=True)
-            return "Windows Unknown."
-        # platform: try to identify Microsoft Windows version
         vers = {"11.0": "Windows 11",
                 "10.0": "Windows 10",
                 "6.2": "Windows 8->10",
@@ -886,14 +947,17 @@ class Win32Platform(Platform):
                 "5.1": "Windows XP",
                 "5.0": "Windows 2000",
                }
-        # pylint not handing cross-platform import checks
-        # pylint: disable=undefined-variable
         (major_version, minor_version, _build_number, _platform_id, _version) \
             = win32api.GetVersionEx() # type: ignore
-        return vers.get(str(major_version) + "." + str(minor_version),
-                        "Win32 (Unknown %i.%i)" %
-                        (major_version, minor_version)) + \
-                        " " + str(win32api.GetVersionEx()) # type: ignore
+        try:
+            return vers.get(str(major_version) + "." + str(minor_version),
+                            "Win32 (Unknown %i.%i)" %
+                            (major_version, minor_version)) + \
+                            " " + str(win32api.GetVersionEx()) # type: ignore
+        except NameError:
+            self.logger.info("Cannot Get Windows Version, "
+                             "win32api or other python packages missing!")
+        return "Windows Unknown."
 
     def play_sound(self, soundfile):
         '''
@@ -902,40 +966,12 @@ class Win32Platform(Platform):
         :param soundfile: file to play sound from
         :type soundfile: str
         '''
-        # pylint not handing cross-platform import checks
-        # pylint: disable=import-error
-        import winsound
-
-        winsound.PlaySound(soundfile, winsound.SND_FILENAME)
-
-
-def _get_platform(basepath):
-    if os.name == "nt":
-        return Win32Platform(basepath)
-    if sys.platform == "darwin":
-        return MacOSXPlatform(basepath)
-    return UnixPlatform(basepath)
-
-
-PLATFORM = None
-
-
-def get_platform(basepath=None):
-    '''
-    Get Platform.
-
-    :param basepath: configuration file path, default None
-    :returns: platform information
-    :rtype: :class:`Platform`
-    '''
-
-    # pylint: disable=global-statement
-    global PLATFORM
-
-    if not PLATFORM:
-        PLATFORM = _get_platform(basepath)
-
-    return PLATFORM
+        try:
+            winsound.PlaySound(soundfile,              # type: ignore
+                               winsound.SND_FILENAME)  # type: ignore
+        except NameError:
+            self.logger.info("Cannot play sound, "
+                             "winsound or other python packages missing!")
 
 
 def do_test():
@@ -946,7 +982,7 @@ def do_test():
                         level=logging.INFO)
 
     logger = logging.getLogger("dplatform")
-    pform = get_platform()
+    pform = Platform.get_platform()
 
     logger.info("Config dir: %s", pform.config_dir())
     logger.info("Default dir: %s", pform.default_dir())

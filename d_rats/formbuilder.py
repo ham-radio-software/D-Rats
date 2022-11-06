@@ -17,9 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import ast
 import os
 import glob
@@ -38,7 +35,7 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
-from d_rats import dplatform
+from .dplatform import Platform
 from .miscwidgets import make_choice
 from .formgui import FormDialog, FormFile, xml_escape, FormguiFileException
 
@@ -916,7 +913,7 @@ class FormManagerGUI():
         :param _button: Button clicked, unused
         :type _button: :class:`Gtk.Button`
         '''
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         fname = platform.gui_open_file()
         if not fname:
             return
@@ -944,7 +941,7 @@ class FormManagerGUI():
         (filename, ident) = sel_list.get(sel_iter, self.col_file,
                                          self.col_id)
 
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         fname = platform.gui_save_file(default_name="%s.xml" % ident)
         if fname:
             shutil.copy(filename, fname)
@@ -1015,6 +1012,8 @@ class FormManagerGUI():
         return hbox
 
 
+# pylint wants at least 2 public methods.
+# pylint: disable=too-few-public-methods
 class TestFormbuilderGUI(Gtk.Application):
     '''
     Test application.
@@ -1025,6 +1024,7 @@ class TestFormbuilderGUI(Gtk.Application):
                                  application_id='localhost.d-rats.fbg',
                                  flags=Gio.ApplicationFlags.NON_UNIQUE)
 
+        # pylint: disable=import-outside-toplevel
         from . import config
         self.config = config.DratsConfig(None)
         logging.basicConfig(level=logging.INFO)

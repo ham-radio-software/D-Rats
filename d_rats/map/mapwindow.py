@@ -36,7 +36,7 @@ from gi.repository import Gdk
 from gi.repository import GLib
 from gi.repository import GObject
 
-from .. import dplatform
+from ..dplatform import Platform
 from .. import inputdialog
 from .. import map_sources
 from .. import miscwidgets
@@ -762,7 +762,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :returns: False to prevent timer retriggering
         :rtype: bool
         '''
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
 
         file_handle = tempfile.NamedTemporaryFile()
         fname = file_handle.name
@@ -900,7 +900,7 @@ class MapWindow(Gtk.ApplicationWindow):
         :param bounds: Bounds to save, Default None
         :type bounds: tuple[int, int, int, int]
         '''
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         fname = platform.gui_save_file(default_name="map_%s.png" % \
                                        time.strftime("%m%d%Y%_H%M%S"))
         if not fname:

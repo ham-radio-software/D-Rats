@@ -2,6 +2,9 @@
 
 set -ue
 
+# Needed for some platforms
+export NO_AT_BRIDGE=1
+
 # Default list of files to lint
 : "${CHANGED_FILES:=}"
 if [ -z "$CHANGED_FILES" ]; then

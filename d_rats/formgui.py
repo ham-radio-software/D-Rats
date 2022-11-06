@@ -1,4 +1,3 @@
-#
 '''Form GUI'''
 # pylint wants only 1000 lines per module
 # pylint: disable=too-many-lines
@@ -18,9 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import base64
 from configparser import NoOptionError
 import logging
@@ -36,7 +32,6 @@ from lxml import etree
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-# from gi.repository import Gdk
 from gi.repository import GObject
 
 if not '_' in locals():
@@ -49,7 +44,7 @@ MODULE_LOGGER = logging.getLogger("Formgui")
 from .miscwidgets import make_choice, KeyedListWidget
 from .utils import run_or_error
 from .ui.main_common import ask_for_confirmation
-from . import dplatform
+from .dplatform import Platform
 from . import spell
 
 # Not currently used
@@ -1567,7 +1562,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         '''
         self.logger.info("but_save: what is calling this?",
                          stack_info=True)
-        platform = dplatform.get_platform()
+        platform = Platform.get_platform()
         outfile = platform.gui_save_file(default_name="%s.html" % self.ident)
         if not outfile:
             return
@@ -1601,7 +1596,7 @@ class FormDialog(FormFile, Gtk.Dialog):
 
         self.logger.info("button_printable: Exported to temporary file: %s",
                          name)
-        dplatform.get_platform().open_html_file(name)
+        Platform.get_platform().open_html_file(name)
 
     @staticmethod
     def calc_check(buffer, check_widget):
@@ -1745,7 +1740,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             :type _button: :class:`GtkWidget`
             '''
             # pylint: disable=consider-using-with
-            fname = dplatform.get_platform().gui_open_file()
+            fname = Platform.get_platform().gui_open_file()
             if fname:
                 name = os.path.basename(fname)
                 file_handle = open(fname, "rb")
@@ -1788,7 +1783,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             name = self.attachment_box.get_selected()
             if not name:
                 return
-            fname = dplatform.get_platform().gui_save_file(default_name=name)
+            fname = Platform.get_platform().gui_save_file(default_name=name)
             if fname:
                 # pylint: disable=consider-using-with
                 file_handle = open(fname, "wb")
@@ -2144,11 +2139,14 @@ def main():
         logger.info("response: %d = %s", response, act)
         logger.info("info: %s", info)
 
-    form = FormDialog("Form", sys.argv[1], config=config_data)
+    if len(sys.argv) > 1:
+        form = FormDialog("Form", sys.argv[1], config=config_data)
 
-    form.connect("response", form_done, current_info)
-    form.run_dialog()
-    form.destroy()
+        form.connect("response", form_done, current_info)
+        form.run_dialog()
+        form.destroy()
+    else:
+        print("Need a form parameter from the forms directory.")
 
 if __name__ == "__main__":
     main()

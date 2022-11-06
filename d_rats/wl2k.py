@@ -22,7 +22,7 @@ from gi.repository import GLib
 from gi.repository import GObject
 
 from d_rats import version
-from d_rats import dplatform
+from d_rats.dplatform import Platform
 from d_rats import formgui
 from d_rats import signals
 from d_rats.crc_checksum import calc_checksum
@@ -130,7 +130,7 @@ def run_lzhuf(cmd, data):
     :type data: bytes
     '''
     logger = logging.getLogger("run_lzhuf")
-    platform = dplatform.get_platform()
+    platform = Platform.get_platform()
 
     cwd = tempfile.mkdtemp()
 
@@ -150,7 +150,7 @@ def run_lzhuf(cmd, data):
     else:
         lzhuf = "lzhuf"
 
-    lzhuf_path = os.path.abspath(os.path.join(platform.source_dir(),
+    lzhuf_path = os.path.abspath(os.path.join(platform.sys_data(),
                                               "libexec", lzhuf))
     shutil.copy(os.path.abspath(lzhuf_path), cwd)
     run = [lzhuf_path, cmd, "input", "output"]
