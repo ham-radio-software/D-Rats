@@ -1,4 +1,3 @@
-#
 '''utility Methods.'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com> python3 gtk3 update
@@ -16,9 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 from io import FileIO
 
@@ -27,7 +23,13 @@ import tempfile
 
 import urllib.request
 
-from . import dplatform
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+
+from .dplatform import Platform
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -45,10 +47,6 @@ def open_icon_map(iconfn):
     :returns: Icon Map or None
     :rtype: :class:`GdkPixbuf.Pixbuf`
     '''
-    import gi
-    gi.require_version("Gdk", "3.0")
-    from gi.repository import GdkPixbuf
-
     logger = logging.getLogger("Utils.open_icon_map")
     if not os.path.exists(iconfn):
         logger.info("Icon file %s not found", iconfn)
@@ -71,9 +69,9 @@ def init_icon_maps():
     global ICON_MAPS
 
     ICON_MAPS = {
-        "/" : open_icon_map(os.path.join(dplatform.get_platform().source_dir(),
+        "/" : open_icon_map(os.path.join(Platform.get_platform().sys_data(),
                                          "images", "aprs_pri.png")),
-        "\\": open_icon_map(os.path.join(dplatform.get_platform().source_dir(),
+        "\\": open_icon_map(os.path.join(Platform.get_platform().sys_data(),
                                          "images", "aprs_sec.png")),
         }
 
@@ -220,9 +218,6 @@ def run_gtk_locked(function):
     :returns: function result or raise error
     :rtype: any
     '''
-    import gi
-    gi.require_version("Gdk", "3.0")
-    from gi.repository import Gdk
 
     def runner(*args, **kwargs):
         Gdk.threads_enter()
@@ -248,9 +243,7 @@ def run_or_error(function):
     :type function: function
     :returns: Function result or raise error
     '''
-    # import gi
-    # gi.require_version("Gtk", "3.0")
-    # from gi.repository import Gtk
+    # pylint: disable=import-outside-toplevel
     from d_rats.ui import main_common
 
     def runner(*args, **kwargs):
@@ -268,6 +261,7 @@ def run_or_error(function):
 # possibly deprecated to be replaced by logging module.
 def print_stack():
     '''Print Stack'''
+    # pylint: disable=import-outside-toplevel
     import traceback
     import sys
     traceback.print_stack(file=sys.stdout)
@@ -287,10 +281,6 @@ def get_sub_image(iconmap, h_offset, v_offset, size=20):
     :returns: icon extracted from icon map
     :rtype: :class:`GdkPixbuf.Pixbuf`
     '''
-    import gi
-    gi.require_version("Gdk", "3.0")
-    from gi.repository import GdkPixbuf
-
     # Account for division lines (1px per icon)
     x_coord = (h_offset * size) + h_offset + 1
     y_coord = (v_offset * size) + v_offset + 1
@@ -389,12 +379,11 @@ class NetFile(FileIO):
                 self.logger.info("init: Retrieving %s -> %s", uri, self.__fn)
                 urllib.request.urlretrieve(uri, self.__fn)
                 break
-
-        super(NetFile, self).__init__(self, self.__fn, mode, buffering)
+        super().__init__(self, self.__fn, mode, buffering)
 
     def close(self):
         '''close'''
-        super(NetFile, self).close(self)
+        super().close(self)
 
         if self.is_temp:
             os.remove(self.__fn)
@@ -413,6 +402,7 @@ class ExternalHash():
         :param val: value to write
         :type val: bytes
         '''
+        # pylint: disable=import-outside-toplevel
         from subprocess import Popen, PIPE
         proc = Popen("md5sum", shell=True,
                      stdin=PIPE, stdout=PIPE, close_fds=True)
@@ -455,6 +445,7 @@ def combo_select(box, value):
 
 def log_exception():
     '''Log Exception.'''
+    # pylint: disable=import-outside-toplevel
     import traceback
     import sys
 
@@ -478,11 +469,6 @@ def set_entry_hint(entry, hint, default_focused=False):
     :param default_focus: Optional make default focused
     :type default_focus: bool
     '''
-    import gi
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
-    from gi.repository import Gdk
-
     def focus(entry, _event, direction):
         if direction == "out" and not entry.get_text():
             entry.set_text(hint)
@@ -536,9 +522,6 @@ def make_error_dialog(msg, stack, buttons, msg_type, extra):
     :returns: Result of running error dialog
     :rtype: :class:`Gtk.ResponseType`
     '''
-    import gi
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
     dialog = Gtk.MessageDialog(buttons=buttons, type=msg_type)
 
     if extra:

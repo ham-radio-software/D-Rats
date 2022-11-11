@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 import random
 import time
@@ -28,7 +25,11 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from gi.repository import GObject
 
-from d_rats import signals, dplatform, gps, utils, station_status
+from d_rats import gps
+from d_rats import signals
+from d_rats import station_status
+from d_rats import utils
+from d_rats.dplatform import Platform
 from d_rats.version import DRATS_VERSION
 from d_rats.sessions import base, stateless
 from d_rats.ddt2 import DDT2EncodedFrame, DDT2RawData
@@ -103,7 +104,7 @@ class ChatSession(stateless.StatelessSession, GObject.GObject):
         :returns: A standard ping response text with d-rats version
         :rtype: str
         '''
-        pform = dplatform.get_platform()
+        pform = Platform.get_platform()
         return _("Running") + " D-RATS %s (%s)" % (DRATS_VERSION,
                                                    pform.os_version_string())
 
@@ -130,7 +131,7 @@ class ChatSession(stateless.StatelessSession, GObject.GObject):
         self.logger.debug("incoming_data: Got chat frame: %s", frame)
         frame_data = frame.data.decode('utf-8', 'replace')
         if frame.type == self.T_DEF:
-            fix = gps.parse_GPS(frame_data)
+            fix = gps.parse_gps(frame_data)
             if fix and fix.valid:
                 self._incoming_gps(fix)
             else:

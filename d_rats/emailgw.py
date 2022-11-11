@@ -1,4 +1,3 @@
-#!/usr/bin/python
 '''Email Gateway.'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
@@ -17,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 import os
 import threading
@@ -36,7 +32,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GObject
 from gi.repository import GLib
 
-from . import dplatform
+from .dplatform import Platform
 from . import formgui
 from .ui import main_events
 from . import signals
@@ -99,10 +95,10 @@ def create_form_from_mail(config, mail, tmpfn):
         for part in mail.walk():
             if part.get_content_maintype() == "multipart":
                 continue
-            elif part.get_content_type() == "d-rats/form_xml":
+            if part.get_content_type() == "d-rats/form_xml":
                 xml = str(part.get_payload())
                 break # A form payload trumps all
-            elif part.get_content_type() == "text/plain":
+            if part.get_content_type() == "text/plain":
                 body += part.get_payload(decode=True)
             elif part.get_content_type() == "text/html":
                 html = part.get_payload(decode=True)
@@ -223,7 +219,7 @@ class MailThread(threading.Thread, GObject.GObject):
         ident = self.config.get("user", "callsign") + \
             time.strftime("%m%d%Y%H%M%S") + \
             mail.get("Message-id", str(random.randint(0, 1000)))
-        mid = dplatform.get_platform().filter_filename(ident)
+        mid = Platform.get_platform().filter_filename(ident)
         ffn = os.path.join(self.config.form_store_dir(),
                            _("Inbox"),
                            "%s.xml" % mid)
@@ -355,6 +351,7 @@ class AccountMailThread(MailThread):
             host, user, pasw, poll, ssl, port, action, enb = \
                 settings.split(",", 7)
         except ValueError:
+            # pylint: disable=raise-missing-from
             raise BadAccountSettingsError(
                 "Unable to parse account settings for `%s'" %
                 account)
@@ -367,6 +364,7 @@ class AccountMailThread(MailThread):
         try:
             self.__action = actions[action]
         except KeyError:
+            # pylint: disable=raise-missing-from
             raise UnsupportedActionError("Unsupported action `%s' for %s@%s" %
                                          (action, user, host))
 
@@ -398,7 +396,7 @@ class AccountMailThread(MailThread):
                 if part.get_content_type() == "text/plain":
                     body = part.get_payload(decode=True)
                     break
-                elif part.get_content_type() == "text/html":
+                if part.get_content_type() == "text/html":
                     html = part.get_payload(decode=True)
             if not body:
                 body = html

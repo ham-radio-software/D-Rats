@@ -1,4 +1,3 @@
-#
 '''Misc Widgets.'''
 # pylint wants only 1000 lines per module.
 # pylint: disable=too-many-lines
@@ -18,9 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from __future__ import print_function
-
 import logging
 import os
 
@@ -32,7 +28,7 @@ from gi.repository import GdkPixbuf
 from gi.repository import GObject
 from gi.repository import Pango
 
-from . import dplatform
+from .dplatform import Platform
 from .dratsexception import LatLonEntryParseDMSError
 from .dratsexception import LatLonEntryValueError
 
@@ -1278,9 +1274,9 @@ class FilenameBox(Gtk.Box):
             start = None
 
         if directory:
-            fname = dplatform.get_platform().gui_select_dir(start)
+            fname = Platform.get_platform().gui_select_dir(start)
         else:
-            fname = dplatform.get_platform().gui_save_file(start)
+            fname = Platform.get_platform().gui_save_file(start)
         if fname:
             self.filename.set_text(fname)
 

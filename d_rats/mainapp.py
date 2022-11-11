@@ -1,4 +1,3 @@
-#!/usr/bin/python
 '''mainapp'''
 # pylint wants only 1000 lines
 # pylint: disable=too-many-lines
@@ -19,10 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import absolute_import
-from __future__ import print_function
-
 
 from configparser import NoOptionError
 import logging
@@ -45,7 +40,7 @@ from gi.repository import Gio
 from gi.repository import GObject      # to manage multitasking
 from gi.repository import GLib
 
-from . import dplatform
+from .dplatform import Platform
 
 logging.basicConfig(level=logging.INFO)
 
@@ -54,7 +49,7 @@ MAINAPP_LOGGER = logging.getLogger("Mainapp")
 # This code is assuming that mainapp is only imported in d-rats
 # This needs to be moved to later, but before the first message is written.
 # The also needs to be integrated into the logging module.
-DEBUG_PATH = dplatform.get_platform().config_file("debug.log")
+DEBUG_PATH = Platform.get_platform().config_file("debug.log")
 if sys.platform == "win32" or not os.isatty(0):
     sys.stdout = open(DEBUG_PATH, "w")
     sys.stderr = sys.stdout
@@ -89,7 +84,6 @@ from .emailgw import PeriodicAccountMailThread
 from .emailgw import AccountMailThread
 from .emailgw import validate_incoming
 from .emailgw import EmailGatewayException
-from .dplatform import get_platform
 from .ui import main_events
 from .ui.main_common import prompt_for_station
 
@@ -154,6 +148,7 @@ def ping_file(filename):
     try:
         fhandle = NetFile(filename, "r")
     except IOError as err:
+        # pylint: disable=raise-missing-from
         raise MainappFileOpenError("Unable to open file %s: %s" %
                                    (filename, err))
 
@@ -175,7 +170,7 @@ def ping_exec(command):
     :returns: Output of command
     :rtype: str
     '''
-    pform = get_platform()
+    pform = Platform.get_platform()
     scmd, ocmd = pform.run_sync(command)
     if scmd:
         raise MainappExecError("Failed to run command: %s" % command)
@@ -996,7 +991,7 @@ class MainApp(Gtk.Application):
         locale = locales.get(self.config.get("prefs", "language"), "English")
         self.logger.info("_refresh_lang: Loading locale `%s'", locale)
 
-        localedir = os.path.join(dplatform.get_platform().source_dir(),
+        localedir = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
         self.logger.info("_refresh_lang: Locale dir is: %s", localedir)
 
@@ -2017,7 +2012,7 @@ class MainApp(Gtk.Application):
         self.logger.info("D-RATS v%s starting at %s on %s",
                          version.DRATS_VERSION,
                          time.asctime(),
-                         dplatform.get_platform())
+                         Platform.get_platform())
 
     def get_position(self):
         '''
@@ -2079,7 +2074,7 @@ class MainApp(Gtk.Application):
     def main(self):
         '''Main.'''
         # Copy default forms before we start
-        distdir = dplatform.get_platform().source_dir()
+        distdir = Platform.get_platform().sys_data()
         userdir = self.config.form_source_dir()
         dist_forms = glob.glob(os.path.join(distdir, "forms", "*.x?l"))
         for form in dist_forms:
