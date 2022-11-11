@@ -82,21 +82,30 @@ things.
 
 ## Supported systems
 
-Currently this experimental fork is only being tested by John Malmberg
-on Anti-X linux, which can run both the experimental version and the stable version and Msys2 mingw64 on Microsoft Windows which can only run the Python 3 version.
+This should run on any system with currently supported Python 3 and a GTK 3
+library.
 
-Anti-X Linux is a Debian based distribution that will run on older systems
-with limited memory.
+There may be commercial Pythons that are free for non-commercial use that
+may come with a GTK+ 3 library.  John Malmberg will not be testing any
+product that requires a paid license for commercial use.  If someone wants
+to contribute instructions on how to install on a Commercial Python to
+<https://github.com/ham-radio-software/D-Rats/wiki> that will help others.
+
+### Microsoft Windows
+
+This generally requires installing the msys2 package from
+<https://www.msys2.org/wiki/MSYS2-installation/>, which is what is currently
+used for testing.
+
+Other alternatives Windows Subsystem for Linux with a Linux installed or
+Cygwin <https://www.cygwin.com/install.html>.  At the present time those
+are not being tested.
+
+### Linux and MAC OS-X
+
+Current testing is primarily done with Anti-X Linux which is a Debian based distribution that will run on older systems with limited memory.
 
 This version requires Python 3.7+ and GTK-3.
-
-For now support or the pre-built executables has been dropped.
-You will need to install a Python 3 interpreter.
-
-John Malmberg will not be installing or testing any Python interpreter
-that requires a paid license for commercial work, even if that license allows
-free non-commercial use.  Some Python distributions for Desktop platforms
-have this restriction.
 
 ---
 
@@ -125,6 +134,22 @@ Quick update by John Malmberg
 
 See also <https://github.com/ham-radio-software/D-Rats/wiki>
 
+You must have a compatible python3 and GTK 3 installed on the system to run
+D-Rats as listed above.
+
+For msys2, the script msys2_packages.sh will hopefully install all the
+needed packages after you have installed msys2.  The "dev" parameter
+is passed to install extra images needed for development, or installing
+ directly from a git archive.
+
+If the script is updating certain packages, it may need to have the msys2
+windows shutdown after running, and then need to be re-run to complete the
+install.
+
+Repeat running the script until it no longer requests a msys2 restart.
+Normally an msys2 restart or install should not require a reboot of
+Microsoft Windows.
+
 The installation steps are quite easy (assuming one has all the needed Python
 libs installed):
 
@@ -152,23 +177,11 @@ aspell-it yamllint
 Anti-x 22 Can not run the older D-rats on Python 2, so only the Python 3
 packages can be installed.
 
-aspell aspell-en bandit(future) gedit python3 pylint pylint3 glade
-python3-gi python3-serial python3-lxml python3-simplejson
-python3-feedparser python3-flask python3-gevent python3-greenlet
-python3-ipykernel python3-gi-cairo python3-geopy python3-pil
-python3-pip shellcheck codespell libxml2-utils aspell-it yamllint
-
-For msys2, the script msys2_packages.sh will hopefully install all the
-needed packages.  The "dev" parameter is passed to install extra images
-needed for development, or installing directly from a git archive.
-
-If the script is updating certain packages, it may need to have the msys2
-windows shutdown after running, and then need to be re-run to complete the
-install.
-
-Repeat running the script until it no longer requests a msys2 restart.
-Normally an msys2 restart or install should not require a reboot of
-Microsoft Windows.
+aspell aspell-en aspell-it bandit(future) codespell gedit glade libxml2-utils
+pylint pylint3 python3 python3-feedparser python3-flask python3-geopy
+python3-gevent python3-gi python3-gi-cairo python3-greenlet python3-ipykernel
+python3-lxml python3-pil python3-pip python3-serial python3-simplejson
+python3-sphinx python3_venv shellcheck yamllint
 
 Other Python interpreters should be similar.  If the Python distribution does
 not supply all of the packages, then PIP can be used to supply the missing
@@ -178,6 +191,25 @@ environment.
 See: <https://github.com/ham-radio-software/D-Rats/wiki/101.010-Running-D-Rats-in-a-Python-virtual-environment-and-PIP>
 
 And read the rest of this document for more tips.
+
+If you want to connect to WinLInk, you will need to install lzhuf.
+
+The lzhuf source code is in its own repository and can easily be built on
+most Linux or OS-X based systems.
+<https://github.com/ham-radio-software/lzhuf>
+
+If you locally build lzhuf on a Linux or Mac OS system, the lzhuf binary
+built should be placed in /usr/local/bin for D-Rats to use it.
+
+For some platforms, prebuilt lzhuf binaries may be available for download
+from the files section of <https://groups.io/g/d-rats> group.
+
+You must be a member of the <https://groups.io/g/d-rats> group and logged
+in to the web page in order for thed ownload link of
+<https://groups.io/g/d-rats/files/D-Rats>.
+
+Currently prebuilt MSI packages are available for Microsoft Windows,
+and Debian packages for some Debian and Ubuntu releases.
 
 ### Running directly from the D-rats source
 
@@ -190,9 +222,8 @@ archive of any commit or pull request.
 Before running D-Rats there are two optional tasks if you want everything
 to work.
 
-If you want Winlink support to work, you need to build the lzhuf binary.
-
-- make -C libexec
+If you want Winlink support to work, you need to download or build the lzhuf
+binary,  which is now in its own repository as noted above.
 
 If you want the internationalization to work, and especially if you want
 to add more languages you have to build the message catalogs.
