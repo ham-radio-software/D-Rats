@@ -69,6 +69,14 @@ d\_rats.config\_tips module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.crc\_checksum module
+---------------------------
+
+.. automodule:: d_rats.crc_checksum
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.ddt2 module
 -------------------
 
@@ -153,6 +161,14 @@ d\_rats.inputdialog module
 --------------------------
 
 .. automodule:: d_rats.inputdialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.lzhuf module
+----------------------
+
+.. automodule:: d_rats.lzhuf
     :members:
     :undoc-members:
     :show-inheritance:

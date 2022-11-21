@@ -658,6 +658,10 @@ class MessageRouter(GObject.GObject):
         :returns: True
         :rtype bool
         '''
+        if not wl2k.WinLinkMessage.have_winlink:
+            self.logger.info('_route_via_station: '
+                             'Winlink lzhuf compression not installed.')
+            return False
         # Temporary to get diagnostics about wl2k failures.
         self.logger.info('_route_via_station: '
                          'src %s %s dst %s %s msgfn %s %s',

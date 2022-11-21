@@ -5,10 +5,6 @@
 import logging
 import os
 import socket
-import sys
-import tempfile
-import subprocess
-import shutil
 import email
 import threading
 import struct
@@ -22,10 +18,9 @@ from gi.repository import GLib
 from gi.repository import GObject
 
 from d_rats import version
-from d_rats.dplatform import Platform
 from d_rats import formgui
+from d_rats.lzhuf import Lzhuf
 from d_rats import signals
-from d_rats.crc_checksum import calc_checksum
 from d_rats import agw
 from d_rats.dratsexception import DataPathIOError
 
@@ -120,80 +115,6 @@ def escaped(data):
     return data.replace(b'\n', b'\\n').replace(b'\r', b'\\r')
 
 
-def run_lzhuf(cmd, data):
-    '''
-    Run lzhuf.
-
-    :param cmd: lzhuf command
-    :type cmd: str
-    :param data: Data to process
-    :type data: bytes
-    '''
-    logger = logging.getLogger("run_lzhuf")
-    platform = Platform.get_platform()
-
-    cwd = tempfile.mkdtemp()
-
-    file_handle = open(os.path.join(cwd, "input"), "wb")
-    file_handle.write(data)
-    file_handle.close()
-
-    kwargs = {}
-    if sys.platform == 'win32':
-        child = subprocess.STARTUPINFO()
-        child.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        child.wShowWindow = subprocess.SW_HIDE
-        kwargs["startupinfo"] = child
-
-    if os.name == "nt":
-        lzhuf = "LZHUF_1.EXE"
-    else:
-        lzhuf = "lzhuf"
-
-    lzhuf_path = os.path.abspath(os.path.join(platform.sys_data(),
-                                              "libexec", lzhuf))
-    shutil.copy(os.path.abspath(lzhuf_path), cwd)
-    run = [lzhuf_path, cmd, "input", "output"]
-
-    logger.info("Running %s in %s", run, cwd)
-
-    ret = subprocess.call(run, cwd=cwd, **kwargs)
-    logger.info("LZHUF returned %s", ret)
-    if ret:
-        return None
-
-    file_handle = open(os.path.join(cwd, "output"), "rb")
-    data = file_handle.read()
-    file_handle.close()
-
-    return data
-
-
-def run_lzhuf_decode(data):
-    '''
-    Run LZHUF Decode.
-
-    :param data: Encoded data
-    :type data: bytes
-    :returns: Uncompressed data
-    :rtype: bytes
-    '''
-    return run_lzhuf("d", data[2:])
-
-
-def run_lzhuf_encode(data):
-    '''
-    Run LZHUF Encode.
-
-    :param data: Unencoded data
-    :type data: bytes
-    :returns: Compressed data
-    :rtype: bytes
-    '''
-    lzh = run_lzhuf("e", data)
-    lzh = struct.pack("<H", calc_checksum(lzh)) + lzh
-    return lzh
-
 # Called by msgrouting.py
 class WinLinkAttachment:
     '''
@@ -257,12 +178,10 @@ class WinLinkMessage:
                     "Offset support not implemented")
 
     @staticmethod
-    def __decode_lzhuf(data):
-        return run_lzhuf_decode(data)
-
-    @staticmethod
-    def __encode_lzhuf(data):
-        return run_lzhuf_encode(data)
+    @property
+    def have_winlink():
+        '''True if winlink lzhuf compression is available.'''
+        return Lzhuf.have_lzhuf
 
     # pylint wants only 5 arguments per method
     # pylint: disable=too-many-arguments
@@ -307,7 +226,6 @@ class WinLinkMessage:
 
         self.set_content(msg, name)
 
-    # called from emailgw.py and mailsrv.py
     # pylint wants only 15 local variables per method
     # pylint: disable=too-many-locals
     def create_form(self, config, callsign):
@@ -336,10 +254,9 @@ class WinLinkMessage:
 
         try:
             body_length = int(body)
-        except ValueError:
-            # pylint: disable=raise-missing-from
+        except ValueError as err:
             raise Wl2kMessageHeaderError(
-                "Error parsing Body header length `%s'" % body)
+                "Error parsing Body header length `%s'" % body) from err
 
         body_start = content_str.index("\r\n\r\n") + 4
         rest = content_str[body_start + body_length:]
@@ -455,7 +372,7 @@ class WinLinkMessage:
                 break
 
         self.logger.info("read_from_socket: Got data: %i bytes", len(data))
-        self.__content = self.__decode_lzhuf(data)
+        self.__content = Lzhuf.decode(data)
         if self.__content is None:
             raise Wl2kMessageDecodeError("Failed to decode compressed message")
 
@@ -514,7 +431,7 @@ class WinLinkMessage:
         '''
         self.__name = name
         self.__content = content
-        self.__lzh_content = self.__encode_lzhuf(content)
+        self.__lzh_content = Lzhuf.encode(content)
         self.__usize = len(self.__content)
         self.__csize = len(self.__lzh_content)
 
@@ -652,10 +569,10 @@ class WinLinkCMS:
         '''
         try:
             _sw, _ver, _caps = recv_ssid[1:-1].split(b"-")
-        except ValueError:
-            # pylint: disable=raise-missing-from
+        except ValueError as err:
             raise Wl2kCMSBadSSID(
-                "Conversation error (unparsable SSID `%s')" % recv_ssid)
+                "Conversation error (unparsable SSID `%s')" %
+                recv_ssid) from err
 
         self._send(self.ssid())
         prompt = self._recv().strip()
@@ -703,6 +620,9 @@ class WinLinkCMS:
         :returns: Number of messages
         :rtype: int
         '''
+        if not Lzhuf.have_lzhuf:
+            self.logger.info("get_messages: Lzhuf package not installed.")
+            return 0
         self._connect()
         self._login()
         self.__messages = self.__get_list()
@@ -839,10 +759,9 @@ class WinLinkTelnet(WinLinkCMS):
 
         try:
             _sw, _ver, _caps = resp[1:-1].split(b"-")
-        except ValueError:
-            # pylint: disable=raise-missing-from
+        except ValueError as err:
             raise Wl2kCMSBadSSID(
-                "Conversation error (unparsable SSID `%s')" % resp)
+                "Conversation error (unparsable SSID `%s')" % resp) from err
 
         resp = self._recv().strip()
         if not resp.endswith(b">"):
@@ -1103,7 +1022,7 @@ def wl2k_auto_thread(mainapp, *args, **kwargs):
     :param mainapp: Main application
     :type mainapp: :class:`MainApp`
     :returns: Telnet thread
-    :rtype: :class:`WinLinkTelnetThread`
+    :rtype: :class:`WinLinkThread`
     :raises: :class:`Wl2kAutoThreadNoSuchPort` if AGW port does not exist
     :raises: :class:`Wl2kAutoThreadUnknownMode` for unknown WinLink modes
     '''
@@ -1145,8 +1064,6 @@ def test_agw_server(host="127.0.0.1", port=8000):
     logger = logging.getLogger("wl2k_test_agw_server")
     # Quick and dirty simulator for agwpe unit tests.
     logger.info("test_server: starting %s:%i", host, port)
-    # pylint: disable=import-outside-toplevel
-    from time import sleep
 
     ssid = WinLinkCMS.ssid() + b'\r'
     conn_state = 0
@@ -1161,7 +1078,7 @@ def test_agw_server(host="127.0.0.1", port=8000):
             if not frame:
                 count += 1
                 logger.info("test_server: no frame")
-                sleep(1)
+                time.sleep(1)
                 continue
 
             logger.info("test_server: Received %s kind %s",
@@ -1199,11 +1116,9 @@ def main():
 
     logger = logging.getLogger("wl2k_test")
 
-    # pylint: disable=import-outside-toplevel
-    from time import sleep
     server = threading.Thread(target=test_agw_server)
     server.start()
-    sleep(2)
+    time.sleep(2)
 
     # winlink = WinLinkTelnet("KK7DS", "sandiego.winlink.org")
     agwc = agw.AGWConnection("127.0.0.1", 8000, 0.5)
