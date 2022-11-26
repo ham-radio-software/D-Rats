@@ -177,11 +177,12 @@ aspell-it yamllint
 Anti-x 22 Can not run the older D-rats on Python 2, so only the Python 3
 packages can be installed.
 
-aspell aspell-en aspell-it bandit(future) codespell gedit glade libxml2-utils
-pylint pylint3 python3 python3-feedparser python3-flask python3-geopy
-python3-gevent python3-gi python3-gi-cairo python3-greenlet python3-ipykernel
-python3-lxml python3-pil python3-pip python3-serial python3-simplejson
-python3-sphinx python3_venv shellcheck yamllint
+aspell aspell-en aspell-it bandit(future) codespell gedit glade libcairo2-dev
+libgirepository1.0-dev libxml2-utils pkg-config pylint pylint3 python3
+python3-dev python3-feedparser python3-flask python3-geopy python3-gevent
+python3-gi python3-gi-cairo python3-greenlet python3-ipykernel python3-lxml
+python3-pil python3-pip python3-serial python3-simplejson python3-sphinx
+python3_venv shellcheck yamllint
 
 Other Python interpreters should be similar.  If the Python distribution does
 not supply all of the packages, then PIP can be used to supply the missing
@@ -205,7 +206,7 @@ For some platforms, prebuilt lzhuf binaries may be available for download
 from the files section of <https://groups.io/g/d-rats> group.
 
 You must be a member of the <https://groups.io/g/d-rats> group and logged
-in to the web page in order for thed ownload link of
+in to the web page in order for the download link of
 <https://groups.io/g/d-rats/files/D-Rats>.
 
 Currently prebuilt MSI packages are available for Microsoft Windows,
@@ -261,37 +262,38 @@ The current build procedure requires setting up a Python virtual environment
 also referred to as a venv.
 See: <https://github.com/ham-radio-software/D-Rats/wiki/101.010-Running-D-Rats-in-a-Python-virtual-environment-and-PIPP>
 
-For Msys2, if you have made an update to the Msys2 packages, you may need
-to delete and recreate your Python venv.
-
 Activate the venv as per the link above.
 
 Change the default to your D-Rats source directory
 
-Install the packages needed for building into the venv.
-issue 'pip install -r requirements.txt'
+Install the packages needed for building into the virtual environment.
+
+If you make any major upgrades to your development platform, you will likely
+need to delete and recreate the virtual environment.
+
+Issue 'pip install -r requirements.txt'.
+
+You should be able to do add a "-U" after the install.  It will take
+a lot longer to run, and I have only tested it on AntiX-21.
+The upgrade option may not work because it may try to upgrade the
+Gi/GOobject/GTK packages, and that does not work on all platforms at this
+time.
 
 Microsoft Windows users may need to 'pip install pywin32 into the venv
 depending which Python distribution they are using.  It is not needed for
 Msys2.
 
-Use 'pip freeze' to see what Python modules are currently installed.
+Use 'pip freeze' to see what Python modules are currently installed if you
+are curious.
 
-You can upgrade PIP with the command given if yoo are getting a message
-about it needing and upgrade.  With the venv activated all changes are
-local to the venv.
+Issue 'python ./python_prebuild.py'
 
-If you are using a shared directory for multiple platforms, before
-running the build procedure remove the old lzhuf binary so the setup
-procedure will build the correct binary for the target.
+This does a preparation for creating a package.
 
-Normally a Python package does not include a pre-built binary, and instead
-runs a script to built on a Pip install.  That would add additional software
-to be installed by the end user.
+The script all the internationalization message catalogs, and compresses some
+documentation files.
 
-Issue 'python -m build'
-
-The build script will use towncrier to build an updated NEWS.rst file.
+The script will use towncrier to build an updated NEWS.rst file.
 It will modify the checked out git directory with the changes that it did.
 
 If you are just testing the build process, then you need to revert those
@@ -300,19 +302,23 @@ changes from your local git checkout.
 For a real release, these changes should be pushed as a followup pull
 request for that branch and merged in.
 
+Issue 'python -m build'
+
 The build procedure will create a dist directory if it does not exist and
 create what is known as a tarball, and a wheel file.
 
-We do not currently use the wheel file which has an extension of '.whl'.
+We do not currently use the wheel file which has an extension of '.whl' for
+Msys2 or Linux.  It may be needed for Mac OS-X installs.
 
 The tarball has a double extension on it of ".tar.gz".  As compression
 standards evolve, the extension of ".gz" may change to match.
 
 Previously on MS-DOS and other platforms that only supported one dot in a
-filename, the extension of ".tgz" was used instead of ".tar.gz", and that convention is still widely used on those platforms.
+filename, the extension of ".tgz" was used instead of ".tar.gz", and that
+convention is still widely used on those platforms.
 
-Before distributing the tarball, it should be renamed to be indicate the
-platform and architecture in the name.
+A tarball built on any platform should be usable on any other platform as
+it does not contain any binaries or build any binaries when it is installed.
 
 The built tarball name of 'D-Rats-0.3.10b2.dev301.tar.gz' has these parts:
 
@@ -321,20 +327,6 @@ The built tarball name of 'D-Rats-0.3.10b2.dev301.tar.gz' has these parts:
 - Version: '0.3.10b2.dev301'
 
 - Extension: '.tar.gz'
-
-The platform specific designation is typically put between the version
-and the extension, in the form of '-platform-arch'.
-
-Each Operating System Distribution has conventions on what they use for
-platform and version and these should be followed if known.
-
-So a rename for Msys2 would be 'D-Rats-0.3.10b2.dev301-mingw-w64-x86_64.tar.gz'.
-
-For Linux, it is probably more generic so that
-'D-Rats-0.3.10b2.dev301-linux-x86_64.tar.gz' can be used.
-
-I do not know what the name would be for Mac-OSX, we need some guidance from
-the community.
 
 ### Install of a built tarball
 
@@ -347,6 +339,10 @@ For Msys2, I had to set my default directory to a different directory
 than the development directory for the pip install to work.
 
 pip install ./dist/D-Rats-0.3.3.10b2.dev300.tar.gz
+
+Note, due to some bug, this will fail on AntiX-21 linux until you issue
+a command of 'pip install -U pip' to upgrade pip.  This may be needed
+on other platforms.
 
 you can now execute D-Rats from terminal:
 
