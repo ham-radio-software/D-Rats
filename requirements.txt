@@ -1,18 +1,19 @@
 # requirements for d-rats
 # Packages needed for running
 lxml
+Pillow
 pycairo
 PyGObject
 pyserial
-Pillow
 # packages recommended for running
 geopy
 feedparser
 # packages needed for development
-Sphinx
-virtualenv
-pylint
 build
+pip
+pylint
 setuptools
-wheel
+Sphinx
 towncrier
+virtualenv
+wheel
