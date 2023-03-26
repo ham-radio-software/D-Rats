@@ -1,5 +1,0 @@
-The lzhuf program will now build on Mac OSX platforms and
-probably other platforms that it did not build on before.
-
-This version of the program will only work on little-endian
-systems.
