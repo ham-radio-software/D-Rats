@@ -4,7 +4,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -75,9 +75,9 @@ import urllib.request
 import urllib.parse
 import urllib.error
 
-import gi
+import gi  # type: ignore # Needed for pylance on Microsoft Windows
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk # type: ignore
 
 
 if '_' not in locals():
@@ -173,8 +173,7 @@ class Platform():
         assumed to be a read only directory after installation is complete.
 
         For most projects the packaging procedure and install will have
-        a will have a parameter with "prefix" in its name and be named
-        "share"
+        a parameter with "prefix" in its name and be named "share"
 
         :returns: Directory for built in application data.
         :rtype: str
@@ -492,7 +491,7 @@ class UnixPlatform(Platform):
             basepath = os.path.abspath(os.path.join(self.default_dir(),
                                                     ".d-rats-ev"))
         if not os.path.isdir(basepath):
-            os.mkdir(basepath)
+            os.makedirs(basepath, exist_ok=True)
         self._base = basepath
 
     def default_dir(self):
@@ -582,7 +581,7 @@ class UnixPlatform(Platform):
             issue.close()
             ver = "%s - %s" % (os.uname()[0], ver)
         except IOError as err:
-            if err.errno == 2: # No such file or directory
+            if err.errno == 2:  # No such file or directory
                 # Linux use of this file seems to be deprecated.
                 pass
             ver = " ".join(os.uname())
@@ -609,7 +608,8 @@ class UnixPlatform(Platform):
         '''
         # pylint: disable=broad-except
         try:
-            (file_type, rate, channels, _f, bits) = sndhdr.what(soundfile)
+            (file_type, rate,
+             channels, _f, bits) = sndhdr.what(soundfile)  # type: ignore
         except NameError:
             self.logger.info("play_sound: sndhdr or "
                              "related package not installed")
@@ -633,8 +633,8 @@ class UnixPlatform(Platform):
         dev = None
         # pylint: disable=broad-except
         try:
-            dev = ossaudiodev.open("w")
-            dev.setfmt(ossaudiodev.AFMT_S16_LE)
+            dev = ossaudiodev.open("w")  # type: ignore
+            dev.setfmt(ossaudiodev.AFMT_S16_LE)  # type: ignore
             dev.channels(channels)
             dev.speed(rate)
 
@@ -778,7 +778,7 @@ class Win32Platform(Platform):
             basepath = os.path.abspath(os.path.join(appdata, "D-RATS-EV"))
 
         if not os.path.isdir(basepath):
-            os.mkdir(basepath)
+            os.makedirs(basepath, exist_ok=True)
         self._base = basepath
 
     def default_dir(self):

@@ -20,12 +20,20 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 from os import system
+from os import makedirs
 from os.path import dirname
+from os.path import join
+from os.path import realpath
 from glob import glob
 
 
 def default_build():
     '''Default Build.'''
+
+    # towncrier needs a changes directory
+    my_dir = realpath(dirname(__file__))
+    changes = join(my_dir, 'changes')
+    makedirs(changes, exist_ok=True)
 
     system('towncrier build --yes')
 

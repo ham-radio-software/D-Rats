@@ -1,8 +1,7 @@
-#!/usr/bin/python
 '''Main Files'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,12 +22,12 @@ import time
 from glob import glob
 from datetime import datetime
 
-import gi
+import gi  # type: ignore  # Needed for pylance on Microsoft Windows
 gi.require_version("Gtk", "3.0")
-from gi.repository import GdkPixbuf
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import GLib
+from gi.repository import GdkPixbuf  # type: ignore
+from gi.repository import Gtk        # type: ignore
+from gi.repository import GObject    # type: ignore
+from gi.repository import GLib       # type: ignore
 
 from d_rats.ui.main_common import MainWindowTab
 from d_rats.ui.main_common import ask_for_confirmation, set_toolbar_buttons
@@ -54,7 +53,7 @@ class FileView():
     FileView
 
     :param view: view object
-    :type view: :class;`Gtk.TreeView`
+    :type view: :class:`Gtk.TreeView`
     :param path: path to view files on
     :type path: str
     :param config: Configuration data
@@ -189,9 +188,9 @@ class RemoteFileView(FileView):
             self.logger.info("_file_list_cb : Incomplete job")
             return
 
-        unit_decoder = {u"B" : 0,
-                        u"KB": 10,
-                        u"MB": 20}
+        unit_decoder = {"B" : 0,
+                        "KB": 10,
+                        "MB": 20}
 
         # pylint: disable=fixme
         # FIXME: This might need to be in the idle loop

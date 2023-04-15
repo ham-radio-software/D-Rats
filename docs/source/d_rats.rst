@@ -70,7 +70,7 @@ d\_rats.config\_tips module
     :show-inheritance:
 
 d\_rats.crc\_checksum module
----------------------------
+----------------------------
 
 .. automodule:: d_rats.crc_checksum
     :members:

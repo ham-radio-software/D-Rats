@@ -3,7 +3,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,12 +26,12 @@ import random
 import logging
 import configparser
 
-import gi
+import gi  # type: ignore # Needed for pylance on Windows.
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-from gi.repository import GObject
+from gi.repository import Gtk        # type: ignore
+from gi.repository import Gdk        # type: ignore
+from gi.repository import GdkPixbuf  # type: ignore
+from gi.repository import GObject    # type: ignore
 
 if not '_' in locals():
     import gettext
@@ -489,7 +489,7 @@ class AddressLookup(Gtk.Button):
     :param latw: Latitude
     :type latw: float
     :param lonw: Longitude
-    :type latw: float
+    :type lonw: float
     :param window: Dialog object, default=None
     :type window: :class:`DratsConfigUI`
     '''
@@ -571,6 +571,7 @@ class DratsConfigWidget(Gtk.Box):
             rbutton = Gtk.Button.new_with_label(_('Revert'))
             rbutton.connect("clicked", self._revert)
             rbutton.show()
+            # pylint: disable=no-member
             self.pack_end(rbutton, 0, 0, 0)
 
     def _revert(self, _button=None):
@@ -1888,6 +1889,7 @@ class DratsTCPPanel(DratsPanel):
         ret = {}
 
         done = False
+        # pylint: disable=no-member
         while not done and field_dialog.run() == Gtk.ResponseType.OK:
             done = True
             for n_field, t_field in fields:
@@ -2176,6 +2178,7 @@ class DratsInEmailPanel(DratsPanel):
         ret = {}
 
         done = False
+        # pylint: disable=no-member
         while not done and dlg.run() == Gtk.ResponseType.OK:
             done = True
             for n_field, t_field, _d_field in fields:
@@ -2406,6 +2409,7 @@ class DratsEmailAccessPanel(DratsPanel):
         ret = {}
 
         done = False
+        # pylint: disable=no-member
         while not done and dlg.run() == Gtk.ResponseType.OK:
             done = True
             for n_field, t_field, _d_field in fields:
@@ -2608,6 +2612,7 @@ class DratsConfigUI(Gtk.Dialog):
         self.panels["prefs"].show()
 
         hbox.show()
+        # pylint: disable=no-member
         self.vbox.pack_start(hbox, 1, 1, 1)
 
         self.__tree.expand_all()
@@ -2651,22 +2656,22 @@ class DratsConfig(configparser.ConfigParser):
             if not os.path.exists(default_dir):
                 self.logger.info("Creating directory for downloads: %s",
                                  default_dir)
-                os.mkdir(default_dir)
+                os.makedirs(default_dir, exist_ok=True)
                 self.set("prefs", "download_dir", default_dir)
 
         # create the folder structure for storing the map tiles
         map_dir = self.get("settings", "mapdir")
         if not os.path.exists(map_dir):
             self.logger.info("Creating directory for maps: %s", map_dir)
-            os.mkdir(map_dir)
+            os.makedirs(map_dir, exist_ok=True)
         if not os.path.exists(os.path.join(map_dir, "base")):
-            os.mkdir(os.path.join(map_dir, "base"))
+            os.makedirs(os.path.join(map_dir, "base"), exist_ok=True)
         if not os.path.exists(os.path.join(map_dir, "cycle")):
-            os.mkdir(os.path.join(map_dir, "cycle"))
+            os.makedirs(os.path.join(map_dir, "cycle"), exist_ok=True)
         if not os.path.exists(os.path.join(map_dir, "outdoors")):
-            os.mkdir(os.path.join(map_dir, "outdoors"))
+            os.makedirs(os.path.join(map_dir, "outdoors"), exist_ok=True)
         if not os.path.exists(os.path.join(map_dir, "landscape")):
-            os.mkdir(os.path.join(map_dir, "landscape"))
+            os.makedirs(os.path.join(map_dir, "landscape"), exist_ok=True)
 
     def set_defaults(self):
         '''
@@ -2690,6 +2695,7 @@ class DratsConfig(configparser.ConfigParser):
         :rtype: bool
         '''
         drats_ui = DratsConfigUI(self, parent)
+        # pylint: disable=no-member
         result = drats_ui.run()
         if result == Gtk.ResponseType.OK:
             drats_ui.save()
@@ -2726,18 +2732,35 @@ class DratsConfig(configparser.ConfigParser):
 
     # This is an intentional method override.
     # pylint: disable=arguments-differ
-    #def getint(self, sec, key):
-    #    '''
-    #    Get Integer.
-    #
-    #    :param sec: Section of parameter file
-    #    :type sec: str
-    #    :param key: Key in section
-    #    :type key: str
-    #    :returns: integer value.
-    #    :rtype: int
-    #    '''
-    #    return int(float(configparser.ConfigParser.get(self, sec, key)))
+    def getint(self, sec, key):
+        '''
+        Temporary override for getint.
+
+        Code should be using getint_tolerant.
+        '''
+        return self.getint_tolerant(sec, key)
+
+    def getint_tolerant(self, section, key):
+        '''
+        Get Integer, tolerate errors.
+
+        :param section: Section of parameter file
+        :type section: str
+        :param key: Key in section
+        :type key: str
+        :returns: integer value.
+        :rtype: int
+        '''
+        ret_val = 0
+        try:
+            ret_val = configparser.ConfigParser.getint(self, section, key)
+        except ValueError:
+            ret_val_str = configparser.ConfigParser.get(self, section, key)
+            self.logger.info(
+                "Error in config file: %s/%s data %s is not an int",
+                section, key, ret_val_str)
+            ret_val = int(float(ret_val_str))
+        return ret_val
 
     def form_source_dir(self):
         '''
@@ -2750,7 +2773,7 @@ class DratsConfig(configparser.ConfigParser):
         '''
         form_dir = os.path.join(self.platform.config_dir(), "Form_Templates")
         if not os.path.isdir(form_dir):
-            os.mkdir(form_dir)
+            os.makedirs(form_dir, exist_ok=True)
 
         return form_dir
 
@@ -2765,7 +2788,7 @@ class DratsConfig(configparser.ConfigParser):
         '''
         form_dir = os.path.join(self.platform.config_dir(), "messages")
         if not os.path.isdir(form_dir):
-            os.mkdir(form_dir)
+            os.makedirs(form_dir, exist_ok=True)
 
         return form_dir
 
@@ -2813,6 +2836,7 @@ def main():
     parser.widgets = []
 
     config = DratsConfigUI(parser)
+    # pylint: disable=no-member
     if config.run() == Gtk.ResponseType.OK:
         config.save()
         logger.info("run result = OK")

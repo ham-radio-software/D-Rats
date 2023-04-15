@@ -1,8 +1,7 @@
-#!/usr/bin/python
 '''Main Messages.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,9 +27,11 @@ import random
 
 from glob import glob
 
-import gi
+# Some packages not available to Visual Studio Code Python
+# Need an ignore for pylance.
+import gi  # type: ignore
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk  # type: ignore
 
 from d_rats.ui.main_common import MainWindowTab
 from d_rats.ui.main_common import prompt_for_station
@@ -125,7 +126,7 @@ class MessagesTab(MainWindowTab):
 
         if msg_type is None:
             parent = self._wtree.get_object("mainwindow")
-            dialog = inputdialog.ChoiceDialog(forms.keys(),
+            dialog = inputdialog.ChoiceDialog(list(forms),
                                               title=_("Choose a form"),
                                               parent=parent)
             result = dialog.run()
