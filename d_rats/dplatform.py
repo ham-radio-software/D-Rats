@@ -744,9 +744,9 @@ class MacOSXPlatform(UnixPlatform):
             if os.path.exists(os.path.join('mac_prefix', 'ui')):
                 self._sys_data = mac_prefix
                 return self._sys_data
-        self.logger.debug('Can not find d-rats internal data files'
-                          'Looked in %s and %s.',
-                          my_share, mac_prefix)
+            self.logger.debug('Cannot find d-rats internal data files'
+                              'Looked in %s and %s.',
+                              my_share, mac_prefix)
         self._sys_data = self._base_dir
         return self._sys_data
 
