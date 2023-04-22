@@ -245,7 +245,7 @@ for the most current procedures for submitting Pull Requests.
 
 This should work for all platforms.
 
-When a pull request is submitted, it should have a file put in the changes
+When a pull request is submitted, it should have a file put in the "changes"
 directory for the tickets that resolves.
 
 Note that we do not do the 'towncrier build' command.  The packaging

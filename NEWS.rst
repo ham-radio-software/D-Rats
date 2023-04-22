@@ -2,12 +2,6 @@ For the python 2 version see the changelog file.
 
 .. towncrier release notes start
 
-D_Rats.Version 0.4.0.dev1 (2023-04-15)
-======================================
-
-No significant changes.
-
-
 D_Rats.Version 0.4.0 (2023-03-26)
 =================================
 

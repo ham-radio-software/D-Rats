@@ -49,7 +49,7 @@ def default_build():
     data_files.append(('share/man/man1', section_files))
 
     locale_mo_files = glob("locale/*/LC_MESSAGES/D-RATS.mo")
-    mo_prefix = 'share/d-rats'
+    mo_prefix = 'share/d-rats/'
     for file_name in locale_mo_files:
         data_files.append((mo_prefix + dirname(file_name), [file_name]))
 

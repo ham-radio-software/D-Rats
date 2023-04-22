@@ -13,5 +13,6 @@ include share/d-rats2.xpm
 include d-rats2.ico
 include MANIFEST.in
 include COPYING
+include PKG-INFO
 include changelog.gz
 include NEWS.rst.gz
