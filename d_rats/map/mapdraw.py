@@ -1,6 +1,6 @@
 '''Map Draw Module.'''
 #
-# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2023 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -24,16 +24,17 @@ from __future__ import unicode_literals
 
 import logging
 import os
-import cairo
+import cairo  # type: ignore # Needed for Pylance on Microsoft Windows
 
-import gi
+import gi  # type: ignore
 gi.require_version("Gdk", "3.0")
 gi.require_version("PangoCairo", "1.0")
-from gi.repository import Gdk
-from gi.repository import PangoCairo
+from gi.repository import Gdk          # type: ignore
+from gi.repository import PangoCairo   # type: ignore
 
 from .. import map as Map
 from .. import utils
+from ..dplatform import Platform
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -193,11 +194,9 @@ class MapDraw():
         if self.__broken_tile:
             return self.__broken_tile
 
-        module_path = os.path.abspath(__file__)
-        module_dir = os.path.dirname(module_path)
-        map_dir = os.path.dirname(module_dir)
-        base_dir = os.path.dirname(map_dir)
-        broken_path = os.path.join(base_dir, "images", "broken_tile.png")
+        platform = Platform.get_platform()
+        sys_data = platform.sys_data()
+        broken_path = os.path.join(sys_data, "images", "broken_tile.png")
         # pylint: disable=no-member
         self.__broken_tile = cairo.ImageSurface.create_from_png(broken_path)
         return self.__broken_tile

@@ -3,6 +3,7 @@
 mingw='mingw-w64-x86_64'
 
 pacman -Syu --noconfirm \
+    "${mingw}-ca-certificates" \
     "${mingw}-python" \
     "${mingw}-gtk3" \
     "${mingw}-gettext" \

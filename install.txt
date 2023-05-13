@@ -14,14 +14,14 @@ GNU General Public License for more details.
 # Python3 conversion Copyright 2020-2022 John Malmberg <wb8tyw@qsl.net>
 -----------------------
 
-Welcome to D-Rats compiled for Windows - tested on 7, and Windows 10
+Welcome to D-Rats, tested on Ubuntu 22.04, Windows 7, and Windows 10.
 Windows 7 support is being dropped by the third party libraries needed soon.
 
 --------------------------------------
 IF YOU ARE ALREADY A USER OF D-RATS
 
 COMPATIBILITY NOTES
-** D-RATS 0.3.5 --> 0.3.9** 
+** D-RATS 0.3.5 --> 0.4.0 **
 This version share the same configuration file of 0.3.5 - there are no actions
 to be done.
 

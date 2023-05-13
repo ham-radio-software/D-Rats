@@ -2,7 +2,7 @@
 '''Python setup.py.'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2015-2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2022-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ def default_build():
     section_files = glob("share/*.desktop")
     data_files.append(('share/applications', section_files))
 
-    data_files.append(('share/icons', ['share/d-rats2.xpm']))
+    data_files.append(('share/pixmaps/', ['share/d-rats2.xpm']))
 
     section_files = glob("forms/*.x?l")
     data_files.append(('share/d-rats/forms', section_files))
@@ -45,11 +45,11 @@ def default_build():
     section_files = ['COPYING']
     data_files.append(('share/doc/d-rats/', section_files))
 
-    section_files = []
+    section_files = ['share/d-rats.py.1.gz', 'share/d-rats_repeater.py.1.gz']
     data_files.append(('share/man/man1', section_files))
 
     locale_mo_files = glob("locale/*/LC_MESSAGES/D-RATS.mo")
-    mo_prefix = 'share/'
+    mo_prefix = 'share/d-rats/'
     for file_name in locale_mo_files:
         data_files.append((mo_prefix + dirname(file_name), [file_name]))
 
@@ -70,4 +70,7 @@ def default_build():
           scripts=['d-rats.py', 'd-rats_repeater.py'],
           data_files=data_files)
 
+print("The setup.py is only used in building a pip installable tarball.")
+print("The setup.py is not used for actually installing d-rats" +
+      "and will not work.")
 default_build()

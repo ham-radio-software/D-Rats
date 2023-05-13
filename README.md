@@ -4,7 +4,7 @@ D-RATS is a communications tool for D-STAR amateur radio low-speed data
 (DV mode). It provides: Multi-user chat capabilities; File transfers
 Structured data transport (forms); and Position tracking and mapping.
 
-## Copyright note
+## License note
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -99,11 +99,13 @@ used for testing.
 
 Other alternatives Windows Subsystem for Linux with a Linux installed or
 Cygwin <https://www.cygwin.com/install.html>.  At the present time those
-are not being tested.
+are not being tested.  Windows Subsystem for linux may have issues accessing
+serial devices.
 
 ### Linux and MAC OS-X
 
-Current testing is primarily done with Anti-X Linux which is a Debian based distribution that will run on older systems with limited memory.
+Current testing is primarily done with Ubuntu 22.04 Linux which is a Debian
+based distribution.
 
 This version requires Python 3.7+ and GTK-3.
 
@@ -243,7 +245,7 @@ for the most current procedures for submitting Pull Requests.
 
 This should work for all platforms.
 
-When a pull request is submitted, it should have a file put in the changes
+When a pull request is submitted, it should have a file put in the "changes"
 directory for the tickets that resolves.
 
 Note that we do not do the 'towncrier build' command.  The packaging

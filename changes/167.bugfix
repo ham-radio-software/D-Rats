@@ -1,0 +1,1 @@
+Fix crash on invalid integer data in config file.
