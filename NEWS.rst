@@ -2,6 +2,18 @@ For the python 2 version see the changelog file.
 
 .. towncrier release notes start
 
+D_Rats.Version 0.4.1 (2023-05-13)
+=================================
+
+Bugfixes
+--------
+
+- Make sure parent directories are created. (#149)
+- Fix crash on invalid integer data in config file. (#167)
+- Fix crash in new message creation. (#170)
+- Fix finding files for installed d-rats packages. (#174)
+- Generate PKG-INFO for python packages (#180)
+
 D_Rats.Version 0.4.0 (2023-03-26)
 =================================
 
