@@ -245,13 +245,19 @@ for the most current procedures for submitting Pull Requests.
 
 This should work for all platforms.
 
-When a pull request is submitted, it should have a file put in the "changes"
-directory for the tickets that resolves.
+We use towncrier for maintaining the NEWS.rst file.
+See <https://pypi.org/project/towncrier/>
+
+When a pull request is submitted, it should have a file put in the
+"changes" directory for the tickets that it resolves.
+
+This file will have filename of the GitHub ticket number and a suffix of
+".doc" for documentation change, ".bugfix" for bug fix, ".feature" for a
+new feature, and ".misc" for most others.
 
 Note that we do not do the 'towncrier build' command.  The packaging
 building process will to that.  You can use the 'towncrier build --draft'
 command to see what will be appended to the NEWS.rst file.
-See <https://pypi.org/project/towncrier/>
 
 If you run the 'towncrier build' command by accident, you will need
 revert the local changes that it makes to your checked out git repository.
@@ -301,8 +307,11 @@ It will modify the checked out git directory with the changes that it did.
 If you are just testing the build process, then you need to revert those
 changes from your local git checkout.
 
-For a real release, these changes should be pushed as a followup pull
-request for that branch and merged in.
+After a real release is made, the default version in the file
+d_rats/version.py should have DRATS_VERSION_NUM_DEFAULT set to the current
+version.
+
+The version.py and the towncrier created changes should be pushed as a followup pull request for that branch and merged in.
 
 Issue 'python -m build'
 
