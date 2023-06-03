@@ -16,7 +16,9 @@ dependencies = [
     "pyserial",
     "Pillow",
     "geopy",
-    "feedparser"
+    "feedparser",
+    "pyaudio",
+    "pydub"
 ]
 
 [tool.towncrier]

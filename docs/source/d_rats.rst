@@ -93,6 +93,38 @@ d\_rats.debug module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.dplatform_generic module
+--------------------------------
+
+.. automodule:: d_rats.dplatform_generic
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.dplatform_macos module
+------------------------------
+
+.. automodule:: d_rats.dplatform_macos
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.dplatform_unix module
+-----------------------------
+
+.. automodule:: d_rats.dplatform_unix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.dplatform_win32 module
+------------------------------
+
+.. automodule:: d_rats.dplatform_win32
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.dplatform module
 ------------------------
 
