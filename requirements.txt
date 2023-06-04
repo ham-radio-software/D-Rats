@@ -8,6 +8,8 @@ pyserial
 # packages recommended for running
 geopy
 feedparser
+pyaudio
+pydub
 # packages needed for development
 build
 pip

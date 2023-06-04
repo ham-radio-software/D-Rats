@@ -161,35 +161,19 @@ Below if you are not in a locale that is english, you will need the aspell-
 variant dictionary for your locale.  Developers may need aspell- variant
 dictionaries for all locales that D-rats has message files for.
 
-The Python 2 packages are only needed for running the Python 2 version
-of d-rats.
-
-Anti-x 19 Can run the older d-rats using Python 2, and the newer D-rats using
-Python 3
-
-aspell aspell-en bandit(future) gedit python2 python3 pylint pylint3 glade
-python-gobject python-gtk2 python3-gi python-glade2 python-serial
-python3-serial python-libxml2 python-libxslt1 python3-lxml python-simplejson
-python-feedparser python-flask python-gevent python3-gevent python-socketio
-python3-greenlet python-ipykernel python-gi-cairo python-geopy python-pil
-python3-simplejson python3-feedparser python3-flask python3-ipykernel
-python3-gi-cairo python3-geopy python3-pil shellcheck codespell libxml2-utils
-aspell-it yamllint
-
-Anti-x 22 Can not run the older D-rats on Python 2, so only the Python 3
-packages can be installed.
+Anti-x 22 Can not run the older D-rats on Python 2.
 
 aspell aspell-en aspell-it bandit(future) codespell gedit glade libcairo2-dev
 libgirepository1.0-dev libxml2-utils pkg-config pylint pylint3 python3
 python3-dev python3-feedparser python3-flask python3-geopy python3-gevent
 python3-gi python3-gi-cairo python3-greenlet python3-ipykernel python3-lxml
-python3-pil python3-pip python3-serial python3-simplejson python3-sphinx
-python3_venv shellcheck yamllint
+python3-pil python3-pip python3-pyaudio python3-pydub python3-serial
+python3-simplejson python3-sphinx python3_venv shellcheck yamllint
 
-Other Python interpreters should be similar.  If the Python distribution does
-not supply all of the packages, then PIP can be used to supply the missing
-packages.  PIP generally should always be used with a Python virtual
-environment.
+Other Python interpreters on other distributions should be similar.  If the
+Python distribution does not supply all of the packages, then PIP can be
+used to supply the missing packages.  PIP generally should always be used
+with a Python virtual environment.
 
 See: <https://github.com/ham-radio-software/D-Rats/wiki/101.010-Running-D-Rats-in-a-Python-virtual-environment-and-PIP>
 
@@ -311,7 +295,8 @@ After a real release is made, the default version in the file
 d_rats/version.py should have DRATS_VERSION_NUM_DEFAULT set to the current
 version.
 
-The version.py and the towncrier created changes should be pushed as a followup pull request for that branch and merged in.
+The version.py and the towncrier created changes should be pushed as a
+followup pull request for that branch and merged in.
 
 Issue 'python -m build'
 
