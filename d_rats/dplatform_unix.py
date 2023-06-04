@@ -21,7 +21,6 @@ import logging
 import glob
 import os
 import subprocess
-import sys
 
 from .dplatform_generic import PlatformGeneric
 
@@ -78,49 +77,6 @@ class UnixPlatform(PlatformGeneric):
         :rtype: str
         '''
         return filename.replace("/", "")
-
-    def _unix_doublefork_run(self, *args):
-        pid1 = os.fork()
-        if pid1 == 0:
-            pid2 = os.fork()
-            if pid2 == 0:
-                self.logger.info("Exec'ing %s", str(args))
-                os.execlp(args[0], *args)
-            else:
-                sys.exit(0)
-        else:
-            os.waitpid(pid1, 0)
-            self.logger.info("Exec child exited")
-
-    def open_text_file(self, path):
-        '''
-        Open Text File for editing.
-
-        :param path: Path to text file
-        :type path: str
-        '''
-        # pylint: disable=fixme
-        # todo find and replace calls with GTK function.
-        self.logger.info("open_text_file: received order"
-                         " to open in gedit %s s", path)
-        self.logger.info("If after this message your linux box crashes, "
-                         "please install gedit")
-        self._unix_doublefork_run("gedit", path)
-
-    def open_html_file(self, path):
-        '''
-        Open HTML file in Firefox.
-
-        :param path: Path of file to open
-        :type path: str
-        '''
-        # pylint: disable=fixme
-        # todo find and replace calls with GTK function.
-        self.logger.info("open_html_file:"
-                         " received order to open in firefox %s", path)
-        self.logger.info("If after this message your linux box crashes, "
-                         "please install firefox")
-        self._unix_doublefork_run("firefox", path)
 
     def list_serial_ports(self):
         '''

@@ -47,25 +47,6 @@ class MacOSXPlatform(UnixPlatform):
 
         UnixPlatform.__init__(self, basepath)
 
-    def open_html_file(self, path):
-        '''
-        Open HTML File.
-
-        :param path: file to open
-        :type path: str
-        '''
-        self._unix_doublefork_run("open", path)
-
-    def open_text_file(self, path):
-        '''
-        Open Text File for edit.
-
-        :param path: Path to textfile
-        :type path: str
-        '''
-        macos_textedit = "/Applications/TextEdit.app/Contents/MacOS/TextEdit"
-        self._unix_doublefork_run(macos_textedit, path)
-
     def list_serial_ports(self):
         '''
         List Serial Ports.
