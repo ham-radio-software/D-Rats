@@ -20,6 +20,7 @@
 import logging
 import glob
 import os
+import sys
 
 from .dplatform_unix import UnixPlatform
 
@@ -104,3 +105,47 @@ class MacOSXPlatform(UnixPlatform):
                               my_share, mac_prefix)
         self._sys_data = self._base_dir
         return self._sys_data
+
+    @staticmethod
+    def _unix_doublefork_run(*args):
+        pid1 = os.fork()
+        if pid1 == 0:
+            pid2 = os.fork()
+            if pid2 == 0:
+                # self.logger.info("Exec'ing %s", str(args))
+                os.execlp(args[0], *args)
+            else:
+                sys.exit(0)
+        else:
+            os.waitpid(pid1, 0)
+            # self.logger.info("Exec child exited")
+
+    @staticmethod
+    def open_html_file(path):
+        '''
+        Open HTML File Hack.
+
+        Something is broken in a library used by Gio.DesktopAppInfo
+        on the versions of Mac OS that we have.
+        This is a temporary workaround until we can find the correct fix.
+
+        :param path: file to open
+        :type path: str
+        '''
+        MacOSXPlatform._unix_doublefork_run("open", path)
+
+    @staticmethod
+    def open_text_file(path):
+        '''
+        Open Text File for edit hack.
+
+        Something is broken in a library used by Gio.DesktopAppInfo
+
+        on the versions of Mac OS that we have.
+        This is a temporary workaround until we can find the correct fix.
+
+        :param path: Path to textfile
+        :type path: str
+        '''
+        macos_textedit = "/Applications/TextEdit.app/Contents/MacOS/TextEdit"
+        MacOSXPlatform._unix_doublefork_run(macos_textedit, path)
