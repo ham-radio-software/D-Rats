@@ -44,6 +44,7 @@ import urllib.error
 import gi  # type: ignore # Needed for pylance on Microsoft Windows
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk # type: ignore
+from gi.repository import Gio # type: ignore
 
 
 if '_' not in locals():
@@ -233,33 +234,31 @@ class PlatformGeneric():
         return os.path.join(self.config_dir(),
                             self.filter_filename(filename))
 
-    def open_text_file(self, _path):
+    @staticmethod
+    def open_text_file(path):
         '''
         Open Text File.
 
-        :param _path: Path to file
+        :param path: Path to file
         :type _path: str
-        :raises: :class:`NotImplementedError`
         '''
-        # This is wrong.
-        # GTK should have a built in cross platform method to open
-        # text file, and that should be called instead of this
-        # method to open the file in a safe (read-only/no-macros) manor.
-        raise NotImplementedError("The base class can't do that")
+        content = Gio.content_type_from_mime_type('text/plain')
+        appinfo = Gio.app_info_get_default_for_type(content, False)
+        gio_path = Gio.File.parse_name(path)
+        appinfo.launch([gio_path], None)
 
-    def open_html_file(self, _path):
+    @staticmethod
+    def open_html_file(path):
         '''
         Open HTML File
 
-        :param _path: Path to file
-        :type _path: str
-        :raises: :class:`NotImplementedError`
+        :param path: Path to file
+        :type path: str
         '''
-        # This is wrong.
-        # GTK Should have a built in cross platform method to open
-        # a web browser to an HTML or JPG file that should be called
-        # instead of this method.
-        raise NotImplementedError("The base class can't do that")
+        content = Gio.content_type_from_mime_type('text/html')
+        appinfo = Gio.app_info_get_default_for_type(content, False)
+        gio_path = Gio.File.parse_name(path)
+        appinfo.launch([gio_path], None)
 
     @staticmethod
     def list_serial_ports():

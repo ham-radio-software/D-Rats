@@ -19,7 +19,6 @@
 
 import logging
 import os
-import subprocess
 
 # There has been some problems with various Windows Python
 # implementations in the past.  Having these modules may make
@@ -118,24 +117,6 @@ class Win32Platform(PlatformGeneric):
             filename = filename.replace(char, "")
 
         return filename
-
-    def open_text_file(self, path):
-        '''
-        Open Text File for editing.
-
-        :param path: path of file to open
-        :type path: str
-        '''
-        subprocess.Popen(["notepad", path])
-
-    def open_html_file(self, path):
-        '''
-        Open Html File in explorer.
-
-        :param path: Path to file
-        :type path: str
-        '''
-        subprocess.Popen(["explorer", path])
 
     def list_serial_ports(self):
         '''
