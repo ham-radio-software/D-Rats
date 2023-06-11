@@ -149,6 +149,14 @@ d\_rats.emailgw module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.filenamebox module
+--------------------------
+
+.. automodule:: d_rats.filenamebox
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.formbuilder module
 --------------------------
 

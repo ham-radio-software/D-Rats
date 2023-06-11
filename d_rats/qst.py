@@ -34,8 +34,9 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
+from .filenamebox import FilenameBox
 from .miscwidgets import make_choice
-from . import miscwidgets
+from .miscwidgets import make_pixbuf_choice
 
 from .dplatform import Platform
 from . import inputdialog
@@ -98,9 +99,9 @@ def do_dprs_calculator(initial=""):
         icon = get_icon(sym)
         if icon:
             icons.append((icon, sym))
-    iconsel = miscwidgets.make_pixbuf_choice(icons, deficn)
+    iconsel = make_pixbuf_choice(icons, deficn)
 
-    oversel = miscwidgets.make_choice(overlays, False, defovr)
+    oversel = make_choice(overlays, False, defovr)
     iconsel.connect("changed", ev_sym_changed, oversel, icons)
     ev_sym_changed(iconsel, oversel, icons)
 
@@ -824,13 +825,17 @@ class QSTEditWidget(Gtk.Box):
     '''
     QST Edit Widget.
 
-    :param a: :class:`Gtk.Box` arguments
-    :param k: :class: `Gtk.Box` Keyword arguments
+    :param orientation: Orientation for the Gtk Box.
+    :type orientation: :class:`Gtk.Orientation`,
+                       default Gtk.Orientation.VERTICAL
+    :param spacing: the number of pixels between children
+    :type: spacing: int
     '''
 
-    def __init__(self, *a, **k):
-        Gtk.Box.__init__(self, *a, **k)
-        self.set_orientation(Gtk.Orientation.VERTICAL)
+    def __init__(self, orientation=Gtk.Orientation.VERTICAL, spacing=0):
+        Gtk.Box.__init__(self)
+        self.set_orientation(orientation)
+        self.set_spacing(spacing)
         self._id = None
 
     def to_qst(self):
@@ -871,7 +876,7 @@ class QSTTextEditWidget(QSTEditWidget):
     label_text = _("Enter a message:")
 
     def __init__(self):
-        QSTEditWidget.__init__(self, False, 2)
+        QSTEditWidget.__init__(self, spacing=2)
 
         lab = Gtk.Label.new(self.label_text)
         lab.show()
@@ -927,14 +932,14 @@ class QSTFileEditWidget(QSTEditWidget):
                    "The contents will be used when the QST is sent.")
 
     def __init__(self):
-        QSTEditWidget.__init__(self, False, 2)
+        QSTEditWidget.__init__(self, spacing=2)
 
         lab = Gtk.Label.new(self.label_text)
         lab.set_line_wrap(True)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
 
-        self.__fn = miscwidgets.FilenameBox()
+        self.__fn = FilenameBox(save=False)
         self.__fn.show()
         self.pack_start(self.__fn, 0, 0, 0)
 
@@ -980,14 +985,13 @@ class QSTWXFileEditWidget(QSTEditWidget):
                    "The contents will be used when the WXGPS-A is sent.")
 
     def __init__(self):
-        QSTEditWidget.__init__(self, False, 2)
-
+        QSTEditWidget.__init__(self, spacing=2)
         lab = Gtk.Label(self.label_text)
         lab.set_line_wrap(True)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
 
-        self.__fn = miscwidgets.FilenameBox()
+        self.__fn = FilenameBox(save=False)
         self.__fn.show()
         self.pack_start(self.__fn, 0, 0, 0)
 
@@ -1043,7 +1047,7 @@ class QSTGPSEditWidget(QSTEditWidget):
     type = "GPS"
 
     def __init__(self, config):
-        QSTEditWidget.__init__(self, False, 2)
+        QSTEditWidget.__init__(self, spacing=2)
 
         lab = Gtk.Label.new(_("Enter your GPS message:"))
         lab.set_line_wrap(True)
@@ -1136,8 +1140,7 @@ class QSTRSSEditWidget(QSTEditWidget):
     label_string = _("Enter the URL of an RSS feed:")
 
     def __init__(self):
-        QSTEditWidget.__init__(self, False, 2)
-
+        QSTEditWidget.__init__(self, spacing=2)
         lab = Gtk.Label.new(self.label_string)
         lab.show()
         self.pack_start(lab, 1, 1, 1)
@@ -1192,7 +1195,7 @@ class QSTStationEditWidget(QSTEditWidget):
     '''QST Station Edit Widget.'''
 
     def __init__(self):
-        QSTEditWidget.__init__(self, False, 2)
+        QSTEditWidget.__init__(self, spacing=2)
 
         lab = Gtk.Label.new(_("Choose a station whose position will be sent"))
         lab.show()
@@ -1206,13 +1209,11 @@ class QSTStationEditWidget(QSTEditWidget):
         from . import mainapp
         self.__sources = mainapp.get_mainapp().map.get_map_sources()
         sources = [x.get_name() for x in self.__sources]
-        self.__group = miscwidgets.make_choice(sources,
-                                               False,
-                                               _("Stations"))
+        self.__group = make_choice(sources, False, _("Stations"))
         self.__group.show()
         hbox.pack_start(self.__group, 0, 0, 0)
 
-        self.__station = miscwidgets.make_choice([], False)
+        self.__station = make_choice([], False)
         self.__station.show()
         hbox.pack_start(self.__station, 0, 0, 0)
 
@@ -1284,7 +1285,7 @@ class QSTWUEditWidget(QSTEditWidget):
     label_text = _("Enter an Open Weather station name:")
 
     def __init__(self):
-        QSTEditWidget.__init__(self)
+        QSTEditWidget.__init__(self, spacing=2)
 
         lab = Gtk.Label.new(self.label_text)
         lab.show()
@@ -1301,7 +1302,7 @@ class QSTWUEditWidget(QSTEditWidget):
         hbox.pack_start(self.__station, 0, 0, 0)
 
         types = [_("Current"), _("Forecast")]
-        self.__type = miscwidgets.make_choice(types, False, types[0])
+        self.__type = make_choice(types, False, types[0])
         self.__type.show()
         hbox.pack_start(self.__type, 0, 0, 0)
 
@@ -1407,7 +1408,7 @@ class QSTEditDialog(Gtk.Dialog):
         self.__current.show()
 
     def _make_controls(self):
-        hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
+        hbox = Gtk.Box.new(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
 
         self._type = make_choice(list(self._types.keys()),
                                  False, default=_("Text"))
