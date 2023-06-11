@@ -437,7 +437,7 @@ class PlatformGeneric():
         '''
         if not HAVE_AUDIO:
             self.logger.info("play_sound: "
-                             "bydub and pyaudio not installed!")
+                             "pydub and pyaudio not installed!")
 
         sound = AudioSegment.from_wav(soundfile)
         with suppress_stderr():
