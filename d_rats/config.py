@@ -922,7 +922,8 @@ class DratsConfigWidget(Gtk.Box):
             platform_info = Platform.get_platform()
             platform_info.play_sound(self.value)
 
-        fname_box = FilenameBox(find_dir=False, save=False)
+        fname_box = FilenameBox(find_dir=False, save=False,
+                                mime_types=['audio/x-wav'])
         fname_box.set_filename(self.value)
         fname_box.connect("filename-changed", filename_changed)
         fname_box.show()

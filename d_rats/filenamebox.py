@@ -30,27 +30,24 @@ class FilenameBox(Gtk.Box):
     '''
     File Name Box.
 
+    :param mime_types: Optional Mime types to filter, detault None
+    :type mime_types: list[str]
     :params find_dir: Find directory, default False
     :type find_dir: bool
     :params save: File is for saving, default False
     :type save: bool
-    :param types: types, default []
-    :type types: list[str]
     '''
     __gsignals__ = {
         "filename-changed" : (GObject.SignalFlags.RUN_LAST,
                               GObject.TYPE_NONE, ()),
         }
 
-    def __init__(self, find_dir=False, types=None, save=True):
+    def __init__(self, mime_types=None, find_dir=False, save=True):
         Gtk.Box.__init__(self,
                          orientation=Gtk.Orientation.HORIZONTAL,
                          spacing=0)
 
-        if types:
-            self.types = types
-        else:
-            self.types = []
+        self.mime_types = mime_types
 
         self.save = save
         self.filename = Gtk.Entry()
@@ -78,12 +75,15 @@ class FilenameBox(Gtk.Box):
         else:
             start = None
 
+        platform = Platform.get_platform()
         if directory:
-            fname = Platform.get_platform().gui_select_dir(start)
+            fname = platform.gui_select_dir(start_dir=start)
         elif self.save:
-            fname = Platform.get_platform().gui_save_file(start)
+            fname = platform.gui_save_file(mime_types=self.mime_types,
+                                           start_dir=start)
         else:
-            fname = Platform.get_platform().gui_open_file(start)
+            fname = platform.gui_open_file(mime_types=self.mime_types,
+                                           start_dir=start)
         if fname:
             self.filename.set_text(fname)
 
@@ -125,7 +125,7 @@ class FilenameBox(Gtk.Box):
 
 
 def test():
-    '''Unit Test for Filenamebox.'''
+    '''Unit Test for FilenameBox.'''
 
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
                         datefmt="%m/%d/%Y %H:%M:%S",

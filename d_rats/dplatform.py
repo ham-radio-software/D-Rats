@@ -1,4 +1,10 @@
-'''D-Rats Platform.'''
+'''
+D-Rats Platform.
+
+The Plaform class is intended to be a Singleton class.
+
+The specific platform subclass is duck typed as the class to be used.
+'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -101,7 +107,10 @@ def do_test():
 
         pform.open_text_file("d-rats.py")
 
-        logger.info("Open file: %s", pform.gui_open_file())
+        test_file = pform.gui_open_file(mime_types=['audio/x-wav'])
+        logger.info("Open file: %s", test_file)
+        if test_file and test_file.endswith('.wav'):
+            pform.play_sound(soundfile=test_file)
         logger.info("Save file: %s",
                     pform.gui_save_file(default_name="Foo.txt"))
         logger.info("Open folder: %s", pform.gui_select_dir("/tmp"))
