@@ -30,7 +30,7 @@ class FilenameBox(Gtk.Box):
     '''
     File Name Box.
 
-    :param mime_types: Optional Mime types to filter, detault None
+    :param mime_types: Optional Mime types to filter, default None
     :type mime_types: list[str]
     :params find_dir: Find directory, default False
     :type find_dir: bool
