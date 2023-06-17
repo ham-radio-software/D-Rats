@@ -282,6 +282,7 @@ class PlatformGeneric():
         return "."
 
     @staticmethod
+    # pylint: disable=unused-argument
     def gui_open_file(mime_types=None, start_dir=None):
         '''
         GUI Open File.
@@ -304,15 +305,15 @@ class PlatformGeneric():
         # system and it looks like it will take some time to debug.
         # If the filter is added, only directories are displayed.
         # if mime_types:
-        #    filter = Gtk.FileFilter()
+        #    filter_mime = Gtk.FileFilter()
         #    for mime_type in mime_types:
         #        exts = mimetypes.guess_all_extensions(mime_type, strict=True)
-        #        filter.set_name=(exts)
+        #        filter_mime.set_name=(exts)
                 # In this case it does not seem to matter what string was
-                # passed to the filter, the filter shows up as unamed.
+                # passed to the filter, the filter shows up as unnamed.
                 # This issue does not reproduce in a quick test program.
-        #        filter.add_mime_type=(mime_type)
-        #       dlg.add_filter(filter)
+        #        filter_mime.add_mime_type=(mime_type)
+        #        dlg.add_filter(filter_mime)
         #    filter_any = Gtk.FileFilter()
         #    filter_any.set_name(_("All files"))
             # In this case the filter name gets set prpoerly unlike above.
@@ -331,6 +332,7 @@ class PlatformGeneric():
         return None
 
     @staticmethod
+    # pylint: disable=unused-argument
     def gui_save_file(mime_types=None, start_dir=None, default_name=None):
         '''
         GUI Save File.
@@ -352,10 +354,10 @@ class PlatformGeneric():
                         _("Save"), Gtk.ResponseType.OK)
         # See gui_open_file
         # if mime_types:
-        #    filter = Gtk.FileFilter()
+        #    filter_mime = Gtk.FileFilter()
         #    for mime_type in mime_types:
-        #        filter.add_mime_type=(mime_type)
-        #    dlg.add_filter(filter)
+        #        filter_mime.add_mime_type=(mime_type)
+        #    dlg.add_filter(filter_mime)
         #    filter_any = Gtk.FileFilter()
         #    filter_any.set_name(_("All files"))
         #    filter_any.add_pattern=("*")

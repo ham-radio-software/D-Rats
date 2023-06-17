@@ -1,7 +1,7 @@
 '''
 D-Rats Platform.
 
-The Plaform class is intended to be a Singleton class.
+The Platform class is intended to be a Singleton class.
 
 The specific platform subclass is duck typed as the class to be used.
 '''

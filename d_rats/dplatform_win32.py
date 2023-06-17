@@ -157,7 +157,7 @@ class Win32Platform(PlatformGeneric):
     @staticmethod
     def _mime_to_filter(mime_types):
         '''
-        Mime types to Microsoft Fitering.
+        Mime types to Microsoft Filtering.
 
         :param mime_types: A list of wanted mime types
         :type mime_type: list[str]
@@ -166,7 +166,7 @@ class Win32Platform(PlatformGeneric):
         '''
         if not mime_types:
             return None
-        filter=''
+        win_filter=''
         for mime_type in mime_types:
             exts = mimetypes.guess_all_extensions(mime_type, strict=True)
             ext_str = ''
@@ -174,9 +174,9 @@ class Win32Platform(PlatformGeneric):
                 ext_str = '*' + ext + ';'
             if ext_str:
                 new_filter = mime_type + '\\0' + ext_str + '\\0'
-                filter += new_filter
-        if filter:
-            return filter
+                win_filter += new_filter
+        if win_filter:
+            return win_filter
         return None
 
     def gui_open_file(self, mime_types=None, start_dir=None):
