@@ -210,8 +210,7 @@ def main():
     if args.version:
         print("version: %s" % DRATS_VERSION)
         sys.exit()
-        
-        
+
     if args.config:
         MODULE_LOGGER.info("main: re-config option found -- Reconfigure D-rats")
         MODULE_LOGGER.info("main: args.config = %s", args.config)
