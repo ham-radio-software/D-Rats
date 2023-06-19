@@ -35,6 +35,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from d_rats.version import __version__
+from d_rats.version import DRATS_VERSION
 from d_rats.dplatform import Platform
 
 
@@ -196,16 +197,26 @@ def main():
                         action="store_true",
                         help="Safe mode (ignore configuration)")
 
+    parser.add_argument("-v", "--version",
+                        action="store_true",
+                        help="Show version.")
+
+
     args = parser.parse_args()
 
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
                         datefmt="%m/%d/%Y %H:%M:%S",
                         level=args.loglevel)
-
+    if args.version:
+        print("version: %s" % DRATS_VERSION)
+        sys.exit()
+        
+        
     if args.config:
         MODULE_LOGGER.info("main: re-config option found -- Reconfigure D-rats")
         MODULE_LOGGER.info("main: args.config = %s", args.config)
         platform.set_config_dir(args.config)
+
 
     # import the D-Rats main application
     # pylint: disable=import-outside-toplevel
