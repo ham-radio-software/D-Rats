@@ -203,8 +203,10 @@ class TNCSerial(serial.Serial):
     :param dsr_control: Use DSR to control connections
     :type dsr_control: bool
     '''
+
+    logger = logging.getLogger("TNCSerial")
+
     def __init__(self, **kwargs):
-        self.logger = logging.getLogger("TNCSerial")
         if "tncport" in kwargs:
             self.__tncport = kwargs["tncport"]
             del kwargs["tncport"]
@@ -310,9 +312,9 @@ class SWFSerial(serial.Serial):
     '''
 
     __swf_debug = False
+    logger = logging.getLogger("SWFSerial")
 
     def __init__(self, **kwargs):
-        self.logger = logging.getLogger("SWFSerial")
         self.logger.info("Software XON/XOFF control initialized")
         serial.Serial.__init__(self, **kwargs)
         self.dtr = True
@@ -532,9 +534,10 @@ class AGWDataPath(DataPath):
     :param timeout: Timeout in seconds, default 0
     :type timeout: float
     '''
+    logger = logging.getLogger("AGWDataPath")
+
     def __init__(self, pathspec, timeout=0):
         DataPath.__init__(self, pathspec, timeout)
-        self.logger = logging.getLogger("AGWDataPath")
 
         _agw, self._addr, self._port = pathspec.split(":")
         self._agw = None
@@ -624,10 +627,10 @@ class SerialDataPath(DataPath):
     :param timeout: Time out in seconds, default 0.25
     :type timeout: float
     '''
+    logger = logging.getLogger("SerialDataPath")
 
     def __init__(self, pathspec, timeout=0.25):
         DataPath.__init__(self, pathspec, timeout)
-        self.logger = logging.getLogger("SerialDataPath")
 
         (self.port, self.baud) = pathspec
         self._serial = None
@@ -768,10 +771,10 @@ class TNCDataPath(SerialDataPath):
     :param timeout: Time out in seconds, default 0.25
     :type timeout: float
     '''
+    logger = logging.getLogger("TNCDataPath")
 
     def __init__(self, pathspec, timeout=0.25):
         SerialDataPath.__init__(self, pathspec, timeout)
-        self.logger = logging.getLogger("TNCDataPath")
 
     def connect(self):
         '''
@@ -860,8 +863,9 @@ class TNCAX25DataPath(TNCDataPath):
     :param timeout: Time out in seconds, default 0.25
     :type timeout: float
     '''
+    logger = logging.getLogger("TNCAX25DataPath")
+
     def __init__(self, pathspec, **kwargs):
-        self.logger = logging.getLogger("TNCAX25DataPath")
         (port, rate, self.__call, self.__path) = pathspec
 
         self.__buffer = b""
@@ -931,9 +935,10 @@ class SocketDataPath(DataPath):
     :param timeout: Timeout in seconds, default 0.25
     :type timeout: float
     '''
+    logger = logging.getLogger("SocketDataPath")
+
     def __init__(self, pathspec, timeout=0.25):
         DataPath.__init__(self, pathspec, timeout)
-        self.logger = logging.getLogger("SocketDataPath")
         self._socket = None
         self._name = None
         self._pathspec = pathspec
@@ -1023,7 +1028,8 @@ class SocketDataPath(DataPath):
 
         self.logger.info("getline: Doing authentication")
         self.logger.info("getline: Sending username: %s", self.call)
-        self._socket.send("USER %s\r\n" % self.call)
+        out_data = "USER %s\r\n" % self.call
+        self._socket.send(out_data.encode('utf-8', 'replace'))
 
         count, line = getline(self._socket)
         if count == 200:
@@ -1033,7 +1039,8 @@ class SocketDataPath(DataPath):
 
         self.logger.info("getline: Sending password: %s",
                          "*" * len(self.passwd))
-        self._socket.send("PASS %s\r\n" % self.passwd)
+        out_data = "PASS %s\r\n" % self.passwd
+        self._socket.send(out_data.encode('utf-8', 'replace'))
 
         count, line = getline(self._socket)
         self.logger.info("getline : Host responded: %i %s", count, line)

@@ -30,6 +30,7 @@ import os
 import threading
 import time
 import socket
+import sys
 import configparser
 
 # This makes pylance happy with out overriding settings
@@ -44,6 +45,7 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 from d_rats.version import __version__
+from d_rats.version import DRATS_VERSION
 from d_rats.dplatform import Platform
 from d_rats import transport
 from d_rats import comm
@@ -144,9 +146,10 @@ class Repeater:
     :type gps_ok_ports: list
     '''
 
+    logger = logging.getLogger("Repeater")
+
     def __init__(self, ident="D-RATS Network Proxy",
                  require_auth=False, trust_local=False, gps_okay_ports=None):
-        self.logger = logging.getLogger("Repeater")
         self.paths = []
         self.calls = {}
         self.thread = None
@@ -296,7 +299,8 @@ class Repeater:
                 break
 
             if username and not password:
-                pipe.write(b"102 %s okay\r\n" % cmd)
+                out_data = b"102 %s okay\r\n" % cmd.encode('utf-8', 'replace')
+                pipe.write(out_data)
 
         if not username or not password:
             self.logger.info("auth_exchange: Negotiation failed with client")
@@ -422,8 +426,7 @@ class Repeater:
     def repeat(self):
         '''Repeat.'''
         self.repeat_thread = threading.Thread(target=self._repeat)
-        # pylint: disable=deprecated-method
-        self.repeat_thread.setDaemon(True)
+        self.repeat_thread.daemon = True
         self.repeat_thread.start()
 
     def stop(self):
@@ -449,14 +452,16 @@ class Repeater:
 class RepeaterUI:
     '''Repeater UI.'''
 
+    logger = logging.getLogger("RepeaterUI")
+
     def __init__(self):
-        self.logger = logging.getLogger("RepeaterUI")
         self.repeater = None
         self.tap = None
         self.tick = 0
 
         self.platform = Platform.get_platform()
         self.config = self.load_config()
+        self.logger.info("Version: %s", DRATS_VERSION)
 
     def load_config(self):
         '''
@@ -472,7 +477,7 @@ class RepeaterUI:
         config.set("settings", "devices", "[]")
         config.set("settings", "acceptnet", "True")
         config.set("settings", "netport", "9000")
-        config.set("settings", "id", "W1AW")
+        config.set("settings", "id", "NotSet")
         config.set("settings", "idfreq", "30")
         config.set("settings", "require_auth", "False")
         config.set("settings", "trust_local", "True")
@@ -589,10 +594,11 @@ class RepeaterUI:
 class RepeaterGUI(RepeaterUI):
     '''Repeater GUI.'''
 
+    logger = logging.getLogger("RepeaterGUI")
+
     def __init__(self):
         RepeaterUI.__init__(self)
 
-        self.logger = logging.getLogger("RepeaterGUI")
         self.window = Gtk.Window()
         # self.window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
         self.window.set_default_size(450, 380)
@@ -1175,9 +1181,10 @@ class RepeaterGUI(RepeaterUI):
 class RepeaterConsole(RepeaterUI):
     '''Repeater Console.'''
 
+    logger = logging.getLogger("RepeaterConsole")
+
     def __init__(self):
         RepeaterUI.__init__(self)
-        self.logger = logging.getLogger("RepeaterConsole")
 
     def main(self):
         '''Main Routine.'''
@@ -1224,6 +1231,7 @@ def main():
     global _
     _ = lang.gettext
 
+    enable_gui = Gtk.init_check(None)[0]
     platform = Platform.get_platform()
     def_config_dir = platform.config_dir()
 
@@ -1282,6 +1290,10 @@ def main():
                         dest="log_path",
                         help="Use alternate log file directory")
 
+    parser.add_argument("-v", "--version",
+                        action="store_true",
+                        help="Show version.")
+
     args = parser.parse_args()
 
     log_filename = platform.config_file("repeater.log")
@@ -1300,10 +1312,14 @@ def main():
             datefmt="%m/%d/%Y %H:%M:%S",
             level=args.loglevel)
 
+    if args.version:
+        print("version: %s" % DRATS_VERSION)
+        sys.exit()
+
     if args.config:
         platform.set_config_dir(args.config)
 
-    if args.console:
+    if args.console or not enable_gui:
         repeater = RepeaterConsole()
         repeater.main()
     else:
