@@ -18,6 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+# import mimetypes
 import os
 import shutil
 import subprocess
@@ -281,21 +282,44 @@ class PlatformGeneric():
         return "."
 
     @staticmethod
-    def gui_open_file(start_dir=None):
+    # pylint: disable=unused-argument
+    def gui_open_file(mime_types=None, start_dir=None):
         '''
         GUI Open File.
 
+        :type mime_types: list[str]
+        :returns: Filename or None
         :param start_dir: Directory to start in, default None
         :type start_dir: str
-        :returns: Filename or None
+        :param mime_types: Optional Mime types to filter
         :rtype: str
         '''
         dlg = Gtk.FileChooserDialog(
-            title="Select a file to open",
+            title=_("Select a file to open"),
             action=Gtk.FileChooserAction.OPEN)
         dlg.add_buttons(_("Cancel"),
                         Gtk.ResponseType.CANCEL,
                         _("Open"), Gtk.ResponseType.OK)
+
+        # This code should work, but does not in D-Rats on my Anti-X test
+        # system and it looks like it will take some time to debug.
+        # If the filter is added, only directories are displayed.
+        # if mime_types:
+        #    filter_mime = Gtk.FileFilter()
+        #    for mime_type in mime_types:
+        #        exts = mimetypes.guess_all_extensions(mime_type, strict=True)
+        #        filter_mime.set_name=(exts)
+                # In this case it does not seem to matter what string was
+                # passed to the filter, the filter shows up as unnamed.
+                # This issue does not reproduce in a quick test program.
+        #        filter_mime.add_mime_type=(mime_type)
+        #        dlg.add_filter(filter_mime)
+        #    filter_any = Gtk.FileFilter()
+        #    filter_any.set_name(_("All files"))
+            # In this case the filter name gets set prpoerly unlike above.
+        #    filter_any.add_pattern=('*')
+        #    dlg.add_filter(filter_any)
+
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -308,10 +332,13 @@ class PlatformGeneric():
         return None
 
     @staticmethod
-    def gui_save_file(start_dir=None, default_name=None):
+    # pylint: disable=unused-argument
+    def gui_save_file(mime_types=None, start_dir=None, default_name=None):
         '''
         GUI Save File.
 
+        :param mime_types: Optional Mime types to filter
+        :type mime_types: list[str]
         :param start_dir: Directory to start in, default None
         :type start_dir: str
         :param default_name: Default filename, default None
@@ -320,11 +347,21 @@ class PlatformGeneric():
         :rtype: str
         '''
         dlg = Gtk.FileChooserDialog(
-            title="Save file as",
+            title=_("Save file as"),
             action=Gtk.FileChooserAction.SAVE)
         dlg.add_buttons(_("Cancel"),
                         Gtk.ResponseType.CANCEL,
                         _("Save"), Gtk.ResponseType.OK)
+        # See gui_open_file
+        # if mime_types:
+        #    filter_mime = Gtk.FileFilter()
+        #    for mime_type in mime_types:
+        #        filter_mime.add_mime_type=(mime_type)
+        #    dlg.add_filter(filter_mime)
+        #    filter_any = Gtk.FileFilter()
+        #    filter_any.set_name(_("All files"))
+        #    filter_any.add_pattern=("*")
+        #    dlg.add_filter(filter_any)
         if start_dir and os.path.isdir(start_dir):
             dlg.set_current_folder(start_dir)
 
@@ -350,7 +387,7 @@ class PlatformGeneric():
         :rtype: str
         '''
         dlg = Gtk.FileChooserDialog(
-            title="Choose folder",
+            title=_("Choose folder"),
             action=Gtk.FileChooserAction.SELECT_FOLDER)
         dlg.add_buttons(_("Cancel"),
                         Gtk.ResponseType.CANCEL,

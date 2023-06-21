@@ -18,6 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import mimetypes
 import os
 
 # There has been some problems with various Windows Python
@@ -153,18 +154,46 @@ class Win32Platform(PlatformGeneric):
                              "win32con or other python package missing!")
         return ports
 
-    def gui_open_file(self, start_dir=None):
+    @staticmethod
+    def _mime_to_filter(mime_types):
+        '''
+        Mime types to Microsoft Filtering.
+
+        :param mime_types: A list of wanted mime types
+        :type mime_type: list[str]
+        :returns: Microsoft file filter string
+        :rtype: str
+        '''
+        if not mime_types:
+            return None
+        win_filter=''
+        for mime_type in mime_types:
+            exts = mimetypes.guess_all_extensions(mime_type, strict=True)
+            ext_str = ''
+            for ext in exts:
+                ext_str = '*' + ext + ';'
+            if ext_str:
+                new_filter = mime_type + '\\0' + ext_str + '\\0'
+                win_filter += new_filter
+        if win_filter:
+            return win_filter
+        return None
+
+    def gui_open_file(self, mime_types=None, start_dir=None):
         '''
         GUI open file.
 
+        :param mime_types: Optional Mime types to filter
+        :type mime_types: list[str]
         :param start_dir: Directory to start in, default None
         :type start_dir: str
         :returns: Filename to open or none.
         :rtype: str
         '''
+        win_filter = self._mime_to_filter(mime_types=mime_types)
         try:
             fname, _filter, __flags = \
-                win32gui.GetOpenFileNameW()  # type: ignore
+                win32gui.GetOpenFileNameW(Filter=win_filter)  # type: ignore
             return str(fname)
         except pywintypes.error as err:  # type: ignore
             self.logger.info("gui_open_file: Failed to get filename: %s", err)
@@ -174,20 +203,22 @@ class Win32Platform(PlatformGeneric):
         return None
 
 
-    def gui_save_file(self, start_dir=None, default_name=None):
+    def gui_save_file(self, mime_types=None, start_dir=None, default_name=None):
         '''
         GUI Save File.
 
+        :param mime_types: Optional Mime types to filter
+        :type mime_types: list[str]
         :param start_dir: directory to start in, default None
-        :type default_name: str
-        :param default_name: Default name of file, default None.
         :type default_name: str
         :returns: filename to save to or None
         :rtype: str
         '''
+        win_filter = self._mime_to_filter(mime_types)
         try:
             fname, _filter, _flags = \
-                win32gui.GetSaveFileNameW(File=default_name)  # type: ignore
+                win32gui.GetSaveFileNameW(File=default_name,
+                                          Filter=win_filter)  # type: ignore
             return str(fname)
         except pywintypes.error as err:  # type: ignore
             self.logger.info("gui_save_file: Failed to get filename: %s", err)

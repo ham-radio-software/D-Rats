@@ -18,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import os
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -28,7 +27,6 @@ from gi.repository import GdkPixbuf
 from gi.repository import GObject
 from gi.repository import Pango
 
-from .dplatform import Platform
 from .dratsexception import LatLonEntryParseDMSError
 from .dratsexception import LatLonEntryValueError
 
@@ -1224,97 +1222,6 @@ def make_choice(options, editable=True, default=None):
         except ValueError:
             pass
     return sel
-
-
-class FilenameBox(Gtk.Box):
-    '''
-    File Name Box.
-
-    :params find_dir: Find directory, default False
-    :type find_dir: bool
-    :param types: types, default []
-    :type types: list
-    '''
-    __gsignals__ = {
-        "filename-changed" : (GObject.SignalFlags.RUN_LAST,
-                              GObject.TYPE_NONE, ()),
-        }
-
-    def __init__(self, find_dir=False, types=None):
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL, 0)
-
-        if types:
-            self.types = types
-        else:
-            self.types = []
-
-        self.filename = Gtk.Entry()
-        self.filename.show()
-        self.pack_start(self.filename, 1, 1, 1)
-
-        browse = Gtk.Button.new_with_label("...")
-        browse.show()
-        self.pack_start(browse, 0, 0, 0)
-
-        self.filename.connect("changed", self.do_changed)
-        browse.connect("clicked", self.do_browse, find_dir)
-
-    def do_browse(self, _button, directory):
-        '''
-        Do Browse Button Handler.
-
-        :param _button: Button widget
-        :type _button: :class:`Gtk.Button`
-        :param directory: Is a directory
-        :type directory: bool
-        '''
-        if self.filename.get_text():
-            start = os.path.dirname(self.filename.get_text())
-        else:
-            start = None
-
-        if directory:
-            fname = Platform.get_platform().gui_select_dir(start)
-        else:
-            fname = Platform.get_platform().gui_save_file(start)
-        if fname:
-            self.filename.set_text(fname)
-
-    def do_changed(self, _dummy):
-        '''
-        Do Changed Handler.
-
-        :param _dummy: Unused
-        '''
-        self.emit("filename_changed")
-
-    def set_filename(self, fname):
-        '''
-        Set Filename.
-
-        :param fname: File name
-        :type fname: str
-        '''
-        self.filename.set_text(fname)
-
-    def get_filename(self):
-        '''
-        Get Filename.
-
-        :returns: Filename
-        :rtype: str
-        '''
-        return self.filename.get_text()
-
-    # WB8TYW: I can not find a caller of this method.
-    def set_mutable(self, mutable):
-        '''
-        Set Mutable.
-
-        :param mutable: Set mutable property
-        :type mutable: bool
-        '''
-        self.filename.set_sensitive(mutable)
 
 
 def make_pixbuf_choice(options, default=None):

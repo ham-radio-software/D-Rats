@@ -37,6 +37,7 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
+from .filenamebox import FilenameBox
 from . import utils
 from . import miscwidgets
 from . import inputdialog
@@ -602,7 +603,7 @@ class DratsConfigWidget(Gtk.Box):
             self.child_widget.set_value(float(self.value))
         elif isinstance(self.child_widget, Gtk.CheckButton):
             self.child_widget.set_active(self.value.upper() == "TRUE")
-        elif isinstance(self.child_widget, miscwidgets.FilenameBox):
+        elif isinstance(self.child_widget, FilenameBox):
             self.child_widget.set_filename(self.value)
         else:
             self.logger.info("AAACK: I don't know how to do a %s",
@@ -887,11 +888,11 @@ class DratsConfigWidget(Gtk.Box):
             FilenameBox filename-changed box.
 
             :param box: FilenameBox widget
-            :type box: :class:`miscwidgets.FilenameBox`
+            :type box: :class:`filenamebox.FilenameBox`
             '''
             self.value = box.get_filename()
 
-        fname_box = miscwidgets.FilenameBox(find_dir=True)
+        fname_box = FilenameBox(find_dir=True)
         fname_box.set_filename(self.value)
         fname_box.connect("filename-changed", filename_changed)
         fname_box.show()
@@ -906,7 +907,7 @@ class DratsConfigWidget(Gtk.Box):
             FilenameBox filename-changed box.
 
             :param box: FilenameBox widget
-            :type box: :class:`miscwidgets.FilenameBox`
+            :type box: :class:`filenamebox.FilenameBox`
             '''
             self.value = box.get_filename()
 
@@ -921,7 +922,8 @@ class DratsConfigWidget(Gtk.Box):
             platform_info = Platform.get_platform()
             platform_info.play_sound(self.value)
 
-        fname_box = miscwidgets.FilenameBox(find_dir=False)
+        fname_box = FilenameBox(find_dir=False, save=False,
+                                mime_types=['audio/x-wav'])
         fname_box.set_filename(self.value)
         fname_box.connect("filename-changed", filename_changed)
         fname_box.show()
