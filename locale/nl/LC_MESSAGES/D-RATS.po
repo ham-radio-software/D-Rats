@@ -1,0 +1,317 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: DRats\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-01-01 14:08-0800\n"
+"PO-Revision-Date: 2009-03-18 01:40-0800\n"
+"Last-Translator: N1KEZ <rob@n1kez.net>\n"
+"Language-Team: WashCoARES - N1KEZ <rob@n1kez.net>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Dutch\n"
+"X-Poedit-Country: NETHERLANDS\n"
+
+msgid "Access"
+msgstr "Toegang"
+
+msgid "Action"
+msgstr "Aktie"
+
+msgid "Add"
+msgstr "Toevoegen"
+
+msgid "Address"
+msgstr "Stuur"
+
+msgid "All"
+msgstr "Alle"
+
+msgid "Allow remote stations to pull forms"
+msgstr "Sta stations op afstand toe formlieren te downloaden"
+
+msgid "Altitude"
+msgstr "Hoogte"
+
+msgid "Appearance"
+msgstr "Vertoning"
+
+msgid "Block size"
+msgstr "Block grootte"
+
+msgid "Both"
+msgstr "Beide"
+
+msgid "Callsign"
+msgstr "Callsign"
+
+msgid "Chat"
+msgstr "Chat"
+
+msgid "Chat font"
+msgstr "Chat lettertype"
+
+msgid "Choose a form"
+msgstr "Kies een forumulier"
+
+msgid "Clear All"
+msgstr "Verwijder alles"
+
+msgid "Config"
+msgstr "Instellen"
+
+msgid "Connected to Internet"
+msgstr "Verbindt met het Internet"
+
+msgid "Create filter"
+msgstr "Creeer filter"
+
+msgid "Delete"
+msgstr "Verwijder"
+
+msgid "Edit"
+msgstr "Bewerk"
+
+msgid "Email Access"
+msgstr "Email Toegang"
+
+msgid "Email Filter"
+msgstr "Email filter"
+
+msgid "Enabled"
+msgstr "Ingeschakeld"
+
+msgid "External GPS"
+msgstr "Externe GPS"
+
+msgid "Force transmission delay"
+msgstr "Forceer verzendvertraging"
+
+msgid "Form"
+msgstr "Formulier"
+
+msgid "GPS"
+msgstr "GPS"
+
+msgid "GPS-A Symbol"
+msgstr "GPS-A Symbool"
+
+msgid "Going offline (D-RATS)"
+msgstr "Gaat offline (D-RATS)"
+
+msgid "Host"
+msgstr "Host"
+
+msgid "Ignore RegEx"
+msgstr "Negeer RegEx"
+
+msgid "Incoming"
+msgstr "Inkomend"
+
+msgid "Incoming Accounts"
+msgstr "Inkomende namen"
+
+msgid "Invalid value for"
+msgstr "Ongeldige waarde voor"
+
+msgid "Language"
+msgstr "Taal"
+
+msgid "Latitude"
+msgstr "Breedtegraad"
+
+msgid "Load log tail"
+msgstr "Laad einde logbestand"
+
+msgid "Local"
+msgstr "Lokaal"
+
+msgid "Local Port"
+msgstr "Lokale poort"
+
+msgid "Log chat traffic"
+msgstr "Sla chat berichten op"
+
+msgid "Longitude"
+msgstr "Lengtegraad"
+
+msgid "Lookup by address"
+msgstr "Zoek op adres"
+
+msgid "Main"
+msgstr "Start"
+
+msgid "Map"
+msgstr "Kaart"
+
+msgid "Message"
+msgstr "Bericht"
+
+msgid "Name"
+msgstr "Naam"
+
+msgid "Network"
+msgstr "Netwerk"
+
+msgid "New"
+msgstr "Nieuw"
+
+msgid "None"
+msgstr "Geen"
+
+msgid "Notice RegEx"
+msgstr "Meld RegEx"
+
+msgid "Online (D-RATS)"
+msgstr "Online (D-RATS)"
+
+msgid "Outgoing"
+msgstr "Uitgaand"
+
+msgid "Outgoing Email"
+msgstr "Uitgaande Email"
+
+msgid "Password"
+msgstr "Wachtwoord"
+
+msgid "Paths"
+msgstr "Paden"
+
+msgid "Ping Station"
+msgstr "Ping Station"
+
+msgid "Ping reply"
+msgstr "Ping antwoord"
+
+msgid "Pipeline blocks"
+msgstr "Pipeline blokken"
+
+msgid "Poll Interval"
+msgstr "Test interval"
+
+msgid "Port"
+msgstr "Poort"
+
+msgid "Port and Mode"
+msgstr "Poort en Mode"
+
+msgid "Preferences"
+msgstr "Voorkeuren"
+
+msgid "Quick Messages"
+msgstr "Snel Berichten"
+
+msgid "Radio"
+msgstr "Radio"
+
+msgid "Remote"
+msgstr "Andere zijde"
+
+msgid "Remote Port"
+msgstr "Poort op afstand"
+
+msgid "Remote file transfers"
+msgstr "Bestandsverzendingen"
+
+msgid "Remove"
+msgstr "Verwijderen"
+
+msgid "Reply"
+msgstr "Antwoord"
+
+msgid "Request Position"
+msgstr "Vraag positie"
+
+msgid "Requires a D-RATS restart"
+msgstr "D-RATS start opnieuw op"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "SMTP Password"
+msgstr "SMTP Wachtwoord"
+
+msgid "SMTP Server"
+msgstr "SMTP Server"
+
+msgid "SMTP Username"
+msgstr "SMTP Gebruikersnaam"
+
+msgid "Scrollback Lines"
+msgstr "Terug blader regels"
+
+msgid "Send"
+msgstr "Zenden"
+
+msgid "Serial Port"
+msgstr "Serieele poort"
+
+msgid "Server"
+msgstr "Server"
+
+msgid "Show debug log"
+msgstr "Toon debug log"
+
+msgid "Show time in UTC"
+msgstr "Toon tijd in UTC"
+
+msgid "Sign-off Message"
+msgstr "Uitlogbericht"
+
+msgid "Sign-on Message"
+msgstr "Inlogbericht"
+
+msgid "Source Address"
+msgstr "Bron adres"
+
+msgid "Station"
+msgstr "Station"
+
+msgid "Stations"
+msgstr "Stations"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Symbol:"
+msgstr "Symbool"
+
+msgid "TCP Forwarding"
+msgstr "TCP Doorsturen"
+
+msgid "TCP Gateway"
+msgstr "TCP Gateway"
+
+msgid "Table:"
+msgstr "Tabel:"
+
+msgid "Transfers"
+msgstr "Verzendingen"
+
+msgid "Units"
+msgstr "Eenheden"
+
+msgid "Unknown"
+msgstr "Onbekend"
+
+msgid "Use External GPS"
+msgstr "Gebruik GPS"
+
+msgid "Use SSL"
+msgstr "Gebruik SSL"
+
+msgid "Username"
+msgstr "Gebruikersnaam"
+
+msgid "Warmup Length"
+msgstr "Opwarmlengte"
+
+msgid "Warmup timeout"
+msgstr "Opwarmtijd"
+
+msgid "Your current altitude"
+msgstr "De huidige hoogte "
+
+msgid "_File"
+msgstr "_Bestand"
