@@ -27,12 +27,12 @@ from __future__ import unicode_literals
 
 import gettext
 import logging
-
+import sys
 
 def main():
     '''Main function for unit testing.'''
 
-    import sys
+
 
     gettext.install("D-RATS")
 
