@@ -13,16 +13,16 @@ msgstr ""
 "X-Generator: Poedit 3.3.1\n"
 
 msgid " on port "
-msgstr "auf Port"
+msgstr " auf Port"
 
 msgid " when a new chat arrives"
-msgstr "wenn ein neuer Chat ankommt"
+msgstr "wenn ein neuer Chat ankommt "
 
 msgid " when new file activity occurs"
-msgstr "wenn eine neue Dateiaktivität auftritt"
+msgstr "wenn eine neue Dateiaktivität auftritt "
 
 msgid " when new message activity occurs"
-msgstr "wenn eine neue Nachrichtenaktivität auftritt"
+msgstr " wenn eine neue Nachrichtenaktivität auftritt"
 
 msgid "%s Color"
 msgstr "%s Farbe"
@@ -123,7 +123,7 @@ msgid "An error has occurred"
 msgstr "Ein Fehler ist aufgetreten"
 
 msgid "An error occurred: "
-msgstr "Ein Fehler trat auf:"
+msgstr "Ein Fehler trat auf "
 
 msgid "Appearance"
 msgstr "Erscheinung"
@@ -183,7 +183,7 @@ msgid "Center on this"
 msgstr "Hier zentrieren"
 
 msgid "Channel names must be a single-word "
-msgstr "Kanalname darf nur ein Wort sein"
+msgstr "Kanalname darf nur ein Wort sein "
 
 msgid "Chat activity"
 msgstr "ChataktivitÃ¤t"
@@ -204,7 +204,7 @@ msgid ""
 "Choose a script to execute.  The output will be used when the QST is sent"
 msgstr ""
 "Wähle ein Skript aus, das ausgeführt wird und deren Ausgabe gesendet wird, "
-"wenn ein QST gesendet wird."
+"wenn ein QST gesendet wird"
 
 msgid "Choose a station whose position will be sent"
 msgstr "Wähle eine Station, deren Position gesendet wird"
@@ -215,7 +215,7 @@ msgstr ""
 "wird."
 
 msgid "Choose the port where chat "
-msgstr "Wähle den Port, an dem der Chat"
+msgstr "Wähle den Port, an dem der Chat "
 
 msgid "Clear All"
 msgstr "Alles löschen"
@@ -482,7 +482,7 @@ msgid "Forward"
 msgstr "Weiterleiten"
 
 msgid "Forward via"
-msgstr "Weiterleiten über..."
+msgstr "Weiterleiten über "
 
 msgid "Freshen map after"
 msgstr "Karte aktualisieren nach"
@@ -989,7 +989,7 @@ msgid "Send messages in the Outbox"
 msgstr "Sende Nachrichten im Ausgang"
 
 msgid "Send via"
-msgstr "Senden über..."
+msgstr "Senden über "
 
 msgid "Send/Receive"
 msgstr "Senden/Empfangen"
@@ -1034,7 +1034,7 @@ msgid "Sign-on Message"
 msgstr "Nachricht beim Anmelden"
 
 msgid "Since this is your first time running D-RATS, "
-msgstr "Da es das erste Mal ist, dass Du D-RATS startest,"
+msgstr "Da es das erste Mal ist, dass Du D-RATS startest "
 
 msgid "Sites (comma separated)"
 msgstr "Einsatzorte (durch Beistrich getrennt)"
@@ -1076,7 +1076,7 @@ msgid "Station map"
 msgstr "Stationskarte"
 
 msgid "Station must be a plain "
-msgstr "Station muss eine Fläche sein"
+msgstr "Station muss eine Fläche sein "
 
 msgid "Stations"
 msgstr "Stationen"
@@ -1091,7 +1091,7 @@ msgid "TCP Forwarding"
 msgstr "TCP Weiterleitung"
 
 msgid "Table:"
-msgstr "Tabelle"
+msgstr "Tabelle:"
 
 msgid "Test Connectivity"
 msgstr "Teste Verbindung"
@@ -1125,10 +1125,10 @@ msgid "There are no parameters for dongle operation"
 msgstr "Für die Dongle-Benutzung gibt es keine Parameter"
 
 msgid "This is the message other stations will "
-msgstr "Das ist die Nachricht, die anderen Stationen"
+msgstr "Das ist die Nachricht, die anderen Stationen "
 
 msgid "This is the state other stations will "
-msgstr "Das ist der Status, die andere Stationen"
+msgstr "Das ist der Status, die andere Stationen "
 
 msgid ""
 "This utility will allow you to send D*Query commands to the local gateway "
@@ -1259,13 +1259,13 @@ msgid ""
 "disabled, default to local time"
 msgstr ""
 "Wenn aktiviert, Zeiteingaben werden auf aktuelle Uhrzeit in UTC "
-"voreingestellt, wenn deaktiviert, auf lokale Zeit."
+"voreingestellt, wenn deaktiviert, auf lokale Zeit"
 
 msgid "You must enter a callsign to continue"
 msgstr "Musst Du ein Rufzeichen eingeben, bevor Du weitermachst"
 
 msgid "You must enter a station callsign.  "
-msgstr "Du muss ein Rufzeichen eingeben."
+msgstr "Du muss ein Rufzeichen eingeben "
 
 msgid "Your current altitude"
 msgstr "Deine aktuelle HÃ¶he"
