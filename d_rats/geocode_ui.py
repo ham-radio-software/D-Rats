@@ -30,8 +30,10 @@ except ModuleNotFoundError:
 
 # The geopy package is not in all platform distributions.
 # We do not want d-rats to fail to run if it is missing
+HAVE_GEOCODERS = False
 try:
     from geopy import geocoders
+    HAVE_GEOCODERS = True
 except (ModuleNotFoundError, ImportError):
     pass
 
@@ -52,41 +54,42 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
-# pylint wants only 7 instance attributes
-# pylint disable=too-many-instance-attributes
 class AddressAssistant(Gtk.Assistant):
     '''Address Assistant for Geocode Query.'''
+
+    logger = logging.getLogger("Geocode_ui_AddressAssistant")
 
     def __init__(self):
         Gtk.Assistant.__init__(self)
 
-        self.logger = logging.getLogger("Geocode_ui_AddressAssistant")
         try:
             self.geocoders = geocoders
         except NameError:
             self.geocoders = None
             self.logger.info("No geopy module available.")
 
-        self.response = None
+        self._response = None
 
         self.vals = {}
+        self.pages = {}
 
         self.place = self.lat = self.lon = None
 
-        self.entry_page = self.make_address_entry_page()
-        self.append_page(self.entry_page)
-        self.set_page_title(self.entry_page, _("Locate an address"))
-        self.set_page_type(self.entry_page, Gtk.AssistantPageType.CONTENT)
+        self.pages['entry'] = self.make_address_entry_page()
+        self.append_page(self.pages['entry'])
+        self.set_page_title(self.pages['entry'], _("Locate an address"))
+        self.set_page_type(self.pages['entry'], Gtk.AssistantPageType.CONTENT)
 
-        self.sel_page = self.make_address_selection()
-        self.append_page(self.sel_page)
-        self.set_page_title(self.sel_page, _("Locations found"))
-        self.set_page_type(self.sel_page, Gtk.AssistantPageType.CONTENT)
+        self.pages['selection'] = self.make_address_selection()
+        self.append_page(self.pages['selection'])
+        self.set_page_title(self.pages['selection'], _("Locations found"))
+        self.set_page_type(self.pages['selection'],
+                           Gtk.AssistantPageType.CONTENT)
 
-        self.conf_page = self.make_address_confirm_page()
-        self.append_page(self.conf_page)
-        self.set_page_title(self.conf_page, _("Confirm address"))
-        self.set_page_type(self.conf_page, Gtk.AssistantPageType.CONFIRM)
+        self.pages['confirm'] = self.make_address_confirm_page()
+        self.append_page(self.pages['confirm'])
+        self.set_page_title(self.pages['confirm'], _("Confirm address"))
+        self.set_page_type(self.pages['confirm'], Gtk.AssistantPageType.CONFIRM)
 
         self.connect("prepare", self.prepare_page)
         self.set_size_request(500, 300)
@@ -232,17 +235,17 @@ class AddressAssistant(Gtk.Assistant):
         :param page: Gtk.Box object with page
         :type page: :class:`Gtk.Widget`
         '''
-        if page == self.sel_page:
+        if page == self.pages['selection']:
             self.logger.info("Selection")
             self.prepare_sel(assistant, page)
             return
-        if page == self.conf_page:
+        if page == self.pages['confirm']:
             self.logger.info("Confirmation")
             self.prepare_conf(assistant, page)
             return
-        if page == self.entry_page:
+        if page == self.pages['entry']:
             self.logger.info("Entry")
-            self.sel_page.show()
+            self.pages['selection'].show()
         else:
             self.logger.info("I dunno")
 
@@ -255,7 +258,7 @@ class AddressAssistant(Gtk.Assistant):
         :param response: Response to exit with.
         :type response: :class:`Gtk.ResponseType`
         '''
-        self.response = response
+        self._response = response
         Gtk.main_quit()
 
     def run(self):
@@ -266,7 +269,60 @@ class AddressAssistant(Gtk.Assistant):
         Gtk.main()
         self.hide()
 
-        return self.response
+        return self._response
+
+    @staticmethod
+    def have_geocode():
+        '''
+        Have Gecode?
+
+        :returns: True if Geocode lookup will work
+        :rtype: bool
+        '''
+        return HAVE_GEOCODERS
+
+    @staticmethod
+    def button(caption, latw, lonw, window=None):
+        '''
+        Button for looking up address for use.
+
+        :param caption: Caption for button
+        :type caption: str
+        :param latw: Latitude Configuration Widget
+        :type latw: :class:`DratsConfigWidget`
+        :param lonw: Longitude Configuration Widget
+        :type lonw: :class:`DratsConfigWidget`
+        :param window: parent widget for button
+        :type window: :class:`DratsConfigUI`
+        '''
+        geo_button = Gtk.Button.new_with_label(caption)
+        geo_button.connect("clicked",
+                           AddressAssistant.clicked_handler,
+                           latw, lonw, window)
+        return geo_button
+
+    @staticmethod
+    def clicked_handler(_button, latw, lonw, window):
+        '''
+        Button Clicked handler.
+
+        :param _button: Button widget, unused
+        :type _button: :class:`Gtk.Button`
+        :param latw: Latitude Configuration Widget
+        :type latw: :class:`DratsConfigWidget`
+        :param lonw: Longitude Configuration Widget
+        :type lonw: :class:`DratsConfigWidget`
+        :param window: Parent window
+        :type window: :class:`DratsConfigUI`
+        '''
+        assistant = AddressAssistant()
+        if assistant.geocoders:
+            assistant.set_transient_for(window)
+            run_result = assistant.run()
+            if run_result == Gtk.ResponseType.OK:
+                latw.latlon.set_text("%.5f" % assistant.lat)
+                lonw.latlon.set_text("%.5f" % assistant.lon)
+            return
 
 
 def main():

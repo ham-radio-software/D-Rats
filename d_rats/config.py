@@ -43,8 +43,7 @@ from . import miscwidgets
 from . import inputdialog
 
 from .dplatform import Platform
-# change from 0.3.3> was this commented out which causes pylint error.
-from . import geocode_ui
+from .geocode_ui import AddressAssistant
 
 from . import config_tips
 from . import spell
@@ -478,52 +477,6 @@ def disable_by_combo(combo, map_var):
     combo.connect("changed", set_disables, map_var)
     set_disables(combo, map_var)
 
-
-# pylint wants at least 2 public methods
-# pylint: disable=too-few-public-methods
-class AddressLookup(Gtk.Button):
-    '''
-    Lookup Latitude and Longitude.
-
-    :param caption: Caption for lookup
-    :type caption: str
-    :param latw: Latitude
-    :type latw: float
-    :param lonw: Longitude
-    :type lonw: float
-    :param window: Dialog object, default=None
-    :type window: :class:`DratsConfigUI`
-    '''
-
-    def __init__(self, caption, latw, lonw, window=None):
-        Gtk.Button.__init__(self, caption)
-        self.logger = logging.getLogger("ConfigAddressLookup")
-        self.connect("clicked", self.clicked_handler, latw, lonw, window)
-
-    @staticmethod
-    def clicked_handler(_button, latw, lonw, window):
-        '''
-        Button Clicked handler.
-
-        :param _button: Button widget, unused
-        :type _button: :class:`Gtk.Button`
-        :param latw: latitude
-        :type latw: float
-        :param latw: Longitude
-        :type latw: float
-        :param window: Parent window
-        :type window: :class:`DratsConfigUI`
-        '''
-        assistant = geocode_ui.AddressAssistant()
-        if assistant.geocoders:
-            assistant.set_transient_for(window)
-            run_result = assistant.run()
-            if run_result == Gtk.ResponseType.OK:
-                latw.latlon.set_text("%.5f" % assistant.lat)
-                lonw.latlon.set_text("%.5f" % assistant.lon)
-            return
-
-
 # pylint wants a max of 7 instance attributes
 # pylint: disable=too-many-instance-attributes
 class DratsConfigWidget(Gtk.Box):
@@ -796,9 +749,9 @@ class DratsConfigWidget(Gtk.Box):
 
         entry = miscwidgets.LatLonEntry()
         entry.connect("changed", changed, self)
-        self.logger.info("Setting LatLon value: %s", self.value)
+        self.logger.debug("Setting LatLon value: %s", self.value)
         entry.set_text(self.value)
-        self.logger.info("LatLon text: %s", entry.get_text())
+        self.logger.debug("LatLon text: %s", entry.get_text())
         entry.show()
 
         # Dirty ugly hack!
@@ -1331,16 +1284,18 @@ class DratsGPSPanel(DratsPanel):
         DratsPanel.__init__(self, config)
         self.logger = logging.getLogger("DratsGPSPanel")
 
+        lon = DratsConfigWidget(config, "user", "longitude")
         lat = DratsConfigWidget(config, "user", "latitude")
+        if AddressAssistant.have_geocode():
+            # Geo IP lookup is an optional feature
+            geo = AddressAssistant.button(_("Lookup"), lat, lon, _window)
+            self.make_view(_("From Address"), geo)
+
         lat.add_coords()
         self.make_view(_("Latitude"), lat)
 
-        lon = DratsConfigWidget(config, "user", "longitude")
         lon.add_coords()
         self.make_view(_("Longitude"), lon)
-
-        # geo = AddressLookup(_("Lookup"), lat, lon, _window)
-        # self.make_view(_("Lookup by address"), geo)
 
         alt = DratsConfigWidget(config, "user", "altitude")
         alt.add_numeric(0, 29028, 1)
@@ -1381,7 +1336,7 @@ class DratsGPSPanel(DratsPanel):
             from . import qst
             dprs = qst.do_dprs_calculator(config.get("settings",
                                                      "default_gps_comment"))
-            self.logger.info("Setting GPS comment to DPRS: %s ", dprs)
+            self.logger.debug("Setting GPS comment to DPRS: %s ", dprs)
             if dprs is not None:
                 config.set("settings", "default_gps_comment", dprs)
                 val.child_widget.set_text(dprs)
