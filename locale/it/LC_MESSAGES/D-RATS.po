@@ -1,49 +1,43 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: D-Rats-EV\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-01-01 14:08-0800\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
 "PO-Revision-Date: \n"
-"Last-Translator: IZ5FSA Leo <iz5fsa@gmail.com>\n"
+"Last-Translator: IZ2LXI maurizio \n"
 "Language-Team: \n"
-"Language: en\n"
+"Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.7.6\n"
-"X-Poedit-Basepath: D:\\git\\D-Rats-0.3.ev\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Poedit-SourceCharset: UTF-8\n"
-"X-Poedit-SearchPath-0: D:\\git\\D-Rats-0.3.ev\\d-rats\n"
+"X-Generator: Poedit 3.3.1\n"
 
 #: internationalization_test.py:70
-# from google translate
 msgid "HELLO_WORLD"
 msgstr "Ciao mondo"
 
 #: internationalization_test.py:79
 msgid "COMMAND ARGS NOT IMPLEMENTED!"
-msgstr "Argomenti di comando non implementati."
+msgstr "Argomenti di comando non implementati!"
 
 #: internationalization_test.py:82
 msgid "DEFAULT ARGUMENTS NOT IMPLEMENTED!"
-msgstr "Valori di default non implementati."
+msgstr "Valori di default non implementati!"
 
 #: internationalization_test.py:84
 msgid "EXECUTING UNIT TEST FUNCTION."
-msgstr "UNIT TEST in corso"
+msgstr "UNIT TEST in corso."
 
 msgid " on port "
-msgstr "sulla porta"
+msgstr " sulla porta "
 
 msgid " when a new chat arrives"
-msgstr "quando arriva una chat"
+msgstr " quando arriva una chat"
 
 msgid " when new file activity occurs"
-msgstr "quando arriva un file"
+msgstr " quando arriva un file"
 
 msgid " when new message activity occurs"
-msgstr "quando arriva un nuovo messaggio"
+msgstr " quando arriva un nuovo messaggio"
 
 msgid "%s Color"
 msgstr "Colore %s"
@@ -125,8 +119,8 @@ msgid ""
 "After this many hours, a map tile will be re-fetched, regardless of if it is "
 "already stored locally.  0 means never re-fetch.  720 hours is 30 days."
 msgstr ""
-"Dopo questo numero di ore la mappa verrà riscaricata in locale. "
-"Valori: 0 per non fare mai aggiornamenti. 720 ore sono 30 giorni."
+"Dopo questo numero di ore la mappa verrà riscaricata in locale. Valori: 0 "
+"per non fare mai aggiornamenti. 720 ore sono 30 giorni."
 
 msgid "Airport"
 msgstr "Aereoporto"
@@ -151,7 +145,7 @@ msgid "Allow POP3 Gateway"
 msgstr "Abilita Gateway POP3"
 
 msgid "Allow WL2K Gateway"
-msgstr "Abilita Gateway WL2K "
+msgstr "Abilita Gateway WL2K"
 
 msgid "Allow remote stations to pull files"
 msgstr "Abilita stazioni remote a prendere file"
@@ -180,7 +174,7 @@ msgid "An error has occurred"
 msgstr "Si è verificato un errore"
 
 msgid "An error occurred: "
-msgstr "Si è verificato un errore:"
+msgstr "Si è verificato un errore: "
 
 msgid "Appearance"
 msgstr "Aspetto"
@@ -213,7 +207,7 @@ msgid "Broadcast Location"
 msgstr "Posizone di Trasmissione"
 
 msgid "Broadcast Text File"
-msgstr "Invia File di Testo"
+msgstr "Invia File di Testo a tutti"
 
 msgid "Broadcast this location"
 msgstr "Trasmetti questa posizione"
@@ -249,7 +243,7 @@ msgid "Center on this"
 msgstr "Centra questo punto"
 
 msgid "Channel names must be a single-word "
-msgstr "Il nome dei canale deve essere una parola intera"
+msgstr "Il nome dei canali deve essere una parola intera "
 
 msgid "Chat"
 msgstr "Chat"
@@ -272,7 +266,7 @@ msgstr "Scegli un modello"
 msgid ""
 "Choose a script to execute.  The output will be used when the QST is sent"
 msgstr ""
-"Scegli uno script da eseguire. Il risultato sarà inviato come messaggio QST."
+"Scegli uno script da eseguire. Il risultato sarà inviato come messaggio QST"
 
 msgid "Choose a station whose position will be sent"
 msgstr "Scegli la stazione per la quale inviare la posizione"
@@ -281,7 +275,7 @@ msgid "Choose a text file.  The contents will be used when the QST is sent."
 msgstr "Scegli un file di testo. Il contenuto sarà inviato come messaggio QST."
 
 msgid "Choose the port where chat "
-msgstr "Scegli la porta dove 'chattare'"
+msgstr "Scegli la porta dove 'chattare' "
 
 msgid "Clear All"
 msgstr "Pulisci i campi"
@@ -360,13 +354,13 @@ msgid "Date"
 msgstr "Data"
 
 msgid "Default"
-msgstr "default"
+msgstr "Default"
 
 msgid "Default GPS comment"
 msgstr "Commento GPS (default)"
 
 msgid "Default is 25.  Set to the value given by your ISP"
-msgstr "Default a 25. Assegnare il valore indicato dal provider."
+msgstr "Default a 25. Assegnare il valore indicato dal provider"
 
 msgid "Default state for private flag on new forms"
 msgstr "Stato di default privato per i nuovi messaggi"
@@ -513,10 +507,10 @@ msgid "Failed to connect to"
 msgstr "Impossibile connettere"
 
 msgid "Failed to receive file (incomplete)"
-msgstr "Mancata ricezione file (incompleta)"
+msgstr "Ricezione file fallita(incompleta)"
 
 msgid "Failed to send file (incomplete)"
-msgstr "Mancato invio file (incompleto)"
+msgstr "Invio file fallito (incompleto)"
 
 msgid "File"
 msgstr "File"
@@ -627,7 +621,7 @@ msgid ""
 "be a gateway for email forms.  If left blank, this feature is disabled"
 msgstr ""
 "Hostname per server SMTP in uscita. Se specificato, questa stazione sarà "
-"gateway per invio e-mail. Se vuoto, la caratteristica sarà disabilitata"
+"gateway per invio e-mail. Se vuoto, la funzionalità sarà disabilitata"
 
 msgid "Icon"
 msgstr "Icona"
@@ -696,7 +690,7 @@ msgid "Incoming Messages"
 msgstr "Messaggi in Arrivo"
 
 msgid "Increment size"
-msgstr "Incrementa dimensione"
+msgstr "Incrementa la dimensione"
 
 msgid "Invalid GPS data"
 msgstr "Dati GPS non corretti"
@@ -823,7 +817,7 @@ msgid "Min"
 msgstr "Min"
 
 msgid "Misc"
-msgstr "Misc"
+msgstr "Varie"
 
 msgid "More"
 msgstr "Ancora"
@@ -850,10 +844,10 @@ msgid "New Chat Messages"
 msgstr "Nuovo Messaggio Chat"
 
 msgid "New marker here"
-msgstr "Nuovo Segnaposto qui"
+msgstr "Inserisci un Segnaposto qui"
 
 msgid "No start block received!"
-msgstr "Blocco di avvio non ricevuto"
+msgstr "Blocco di avvio non ricevuto!"
 
 msgid "No support for resizing images.  Send unaltered?"
 msgstr "Supporto per ridimensionamento immagine mancante. Invio inalterato?"
@@ -871,7 +865,7 @@ msgid "Now"
 msgstr "Adesso"
 
 msgid "Number of packets"
-msgstr "Numero di pacchetti "
+msgstr "Numero di pacchetti"
 
 msgid "Offline"
 msgstr "Disattivo"
@@ -980,7 +974,7 @@ msgid "Printable (visible area)"
 msgstr "Stampabile (area visibile)"
 
 msgid "QST Size Limit"
-msgstr "Limite messaggio QST"
+msgstr "Limite del messaggio QST"
 
 msgid "QSTs"
 msgstr "QST"
@@ -1100,10 +1094,10 @@ msgid "Routing Information"
 msgstr "Informazioni di Routing"
 
 msgid "Run Test"
-msgstr "Lancia la prova"
+msgstr "Esegui test"
 
 msgid "Running"
-msgstr "Lanciato"
+msgstr "In esecuzione"
 
 msgid "SMTP Gateway"
 msgstr "Gateway SMTP"
@@ -1216,7 +1210,7 @@ msgid "Sign-on Message"
 msgstr "Messaggio di apertura"
 
 msgid "Since this is your first time running D-RATS, "
-msgstr "Questo è il primo avvio del D-RATS,"
+msgstr "Poiché è la prima volta che avvii primo D-RATS, "
 
 msgid "Sites (comma separated)"
 msgstr "Siti (separati da virgola)"
@@ -1267,7 +1261,7 @@ msgid "Station map"
 msgstr "Mappa della Stazione"
 
 msgid "Station must be a plain "
-msgstr "La stazione deve essere <plain>"
+msgstr "La stazione deve essere <plain> "
 
 msgid "Station:"
 msgstr "Stazione:"
@@ -1330,16 +1324,16 @@ msgid "The symbol character for GPS-A beacons"
 msgstr "Il carattere simbolo per i beacon GPS-A"
 
 msgid "The symbol table character for GPS-A beacons"
-msgstr "La tavella dei caratteri simbolo per i beacon GPS-A"
+msgstr "La tabella dei caratteri simbolo per i beacon GPS-A"
 
 msgid "There are no parameters for dongle operation"
 msgstr "Non ci sono parametri per operazioni via Dongle"
 
 msgid "This is the message other stations will "
-msgstr "Questo è il messaggio che le altre stazioni"
+msgstr "Questo è il messaggio che le altre stazioni "
 
 msgid "This is the state other stations will "
-msgstr "Questo è lo stato che le altre stazioni"
+msgstr "Questo è lo stato che le altre stazioni "
 
 msgid ""
 "This utility will allow you to send D*Query commands to the local gateway "
@@ -1431,7 +1425,7 @@ msgid "Username"
 msgstr "Nome Utente"
 
 msgid "Username for SMTP authentication.  Disabled if blank"
-msgstr "Utente per l'autenticazione SMTP. Disabilitato se vuoto."
+msgstr "Utente per l'autenticazione SMTP. Disabilitato se vuoto"
 
 msgid "Version and OS Info"
 msgstr "Info Sistema Operativo e Versione"
@@ -1461,7 +1455,7 @@ msgid "Warmup timeout"
 msgstr "Intervallo di warm-up"
 
 msgid "Weather (WU)"
-msgstr "Meteo (WU)"
+msgstr "Meteo"
 
 msgid ""
 "When enabled, form time fields will default to current time in UTC.  When "
@@ -1474,7 +1468,7 @@ msgid "You must enter a callsign to continue"
 msgstr "Digitare un nominativo per continuare"
 
 msgid "You must enter a station callsign.  "
-msgstr "Digitare un nominativo di stazione"
+msgstr "Digitare un nominativo di stazione "
 
 msgid "Your current altitude"
 msgstr "Altitudine attuale"
@@ -1484,14 +1478,14 @@ msgid ""
 "or D*M'S\".  Use a space for special characters"
 msgstr ""
 "La tua latitudine corrente. Usa gradi decimali (DD.DDDD)\n"
-"oppure D*M'\". Usa uno spazio per passare da gradi a minuti e secondi."
+"oppure D*M'\". Usa uno spazio per passare da gradi a minuti e secondi"
 
 msgid ""
 "Your current longitude.  Use decimal degrees (DD.DDDDD)\n"
 "or D*M'S\".  Use a space for special characters"
 msgstr ""
 "La tua longitudine corrente. Usa gradi decimali (DD.DDDD)\n"
-"oppure D*M'\". Usa uno spazio per passare da gradi a minuti e secondi."
+"oppure D*M'\". Usa uno spazio per passare da gradi a minuti e secondi"
 
 msgid "Zoom"
 msgstr "Zoom"
@@ -1624,7 +1618,7 @@ msgid "reporting"
 msgstr "relazione"
 
 msgid "requested a mail check"
-msgstr "Richiesto controllo posta"
+msgstr "ha richiesto un controllo posta"
 
 msgid "retries"
 msgstr "riprova"
@@ -1636,4 +1630,13 @@ msgid "seconds"
 msgstr "secondi"
 
 msgid "sent"
-msgstr "invia"
+msgstr "inviato"
+
+msgid "Debug Log"
+msgstr "Debug Log"
+
+msgid "Ignore"
+msgstr "Ignora"
+
+msgid "Ignore All"
+msgstr "Ignora tutti"

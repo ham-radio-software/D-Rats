@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 '''
 Internationalization Test.
 
@@ -27,12 +27,12 @@ from __future__ import unicode_literals
 
 import gettext
 import logging
-
+import sys
 
 def main():
     '''Main function for unit testing.'''
 
-    import sys
+
 
     gettext.install("D-RATS")
 

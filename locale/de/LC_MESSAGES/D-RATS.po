@@ -1,0 +1,1360 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: D-RATS\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-01-01 14:08-0800\n"
+"PO-Revision-Date: \n"
+"Last-Translator: IZ2LXI maurizio \n"
+"Language-Team: Christof Bodner <oe8bck@oevsv.at>\n"
+"Language: de_AT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.3.1\n"
+
+msgid " on port "
+msgstr " auf Port"
+
+msgid " when a new chat arrives"
+msgstr "wenn ein neuer Chat ankommt "
+
+msgid " when new file activity occurs"
+msgstr "wenn eine neue Dateiaktivität auftritt "
+
+msgid " when new message activity occurs"
+msgstr " wenn eine neue Nachrichtenaktivität auftritt"
+
+msgid "%s Color"
+msgstr "%s Farbe"
+
+msgid "9600 for mobile radios, 38400 for handhelds"
+msgstr "9600 fÃ¼r MobilgerÃ¤te, 38400 fÃ¼r HandfunkgerÃ¤te"
+
+msgid "<b>My Status</b>"
+msgstr "<b>Mein Status</b>"
+
+msgid "<b>Stations</b>"
+msgstr "<b>Stationen</b>"
+
+msgid "Access"
+msgstr "Zugang"
+
+msgid "Action"
+msgstr "Aktion"
+
+msgid "Add"
+msgstr "HinzufÃ¼gen"
+
+msgid "Add Filter"
+msgstr "Filter hinzufügen"
+
+msgid "Add Marker"
+msgstr "Markierung hinzufügen"
+
+msgid "Add Quick Message"
+msgstr "Füge Schnellnachricht hinzu"
+
+msgid "Add a port"
+msgstr "Port hinzufügen"
+
+msgid "Add filter"
+msgstr "Filter hinzufügen"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid ""
+"After this many hours, a map tile will be re-fetched, regardless of if it is "
+"already stored locally.  0 means never re-fetch.  720 hours is 30 days."
+msgstr ""
+"Anzahl der Stunden, nach denen ein Kartenabschnitt neu geholt wird, auch "
+"wenn es schon lokal gespeichert ist. 0 bedeutet niemals, 720 Stunden "
+"bedeuten 30 Tage."
+
+msgid "Airport"
+msgstr "Flughafen"
+
+msgid "All"
+msgstr "Alles"
+
+msgid ""
+"All\n"
+"File Transfers\n"
+"Form Transfers\n"
+"Position Reports\n"
+"Pings"
+msgstr ""
+"Alles\n"
+"Dateiübertragungen\n"
+"Formularübertragungen\n"
+"Postionsmeldungen\n"
+"Pings "
+
+msgid "Allow POP3 Gateway"
+msgstr "Erlaube POP3 Zugang"
+
+msgid "Allow WL2K Gateway"
+msgstr "Erlaube WL2K Zugang"
+
+msgid "Allow remote stations to pull files"
+msgstr "Elaube entfernten Stationen das Abrufen von Dateien"
+
+msgid "Allow remote stations to pull forms"
+msgstr "Erlaube entfernten Stationen das Abrufen von Formularen"
+
+msgid "Alternate location to store cached map images"
+msgstr "Alternativer Ort zum Zwischenspeichern von Kartenbildern"
+
+msgid "Altitude"
+msgstr "HÃ¶he"
+
+msgid "Amount of fake data to send during a warmup cycle"
+msgstr "Umfang der erfundenen Daten zum Senden wÃ¤hrend der PrÃ¤ambelphase"
+
+msgid ""
+"Amount of time to wait between transmissions in seconds (a positive number "
+"is a fixed delay, a negative value means 'randomly choose between 0 and X')"
+msgstr ""
+"Wartezeit zwischen Übertragungen in Sekunden (eine positive Zahl ist eine "
+"fix eingestellte Wartezeit, eine negative bedeutet 'wähle eine zufällige "
+"Zahl zwischen 0 und X')"
+
+msgid "An error has occurred"
+msgstr "Ein Fehler ist aufgetreten"
+
+msgid "An error occurred: "
+msgstr "Ein Fehler trat auf "
+
+msgid "Appearance"
+msgstr "Erscheinung"
+
+msgid "Are you sure you want to clear your map cache?"
+msgstr "Willst Du den Zwischenspeicher für die Karte wirklich löschen?"
+
+msgid "Attachments"
+msgstr "Anhänge"
+
+msgid "Attempts per size"
+msgstr "Versuche pro Größe"
+
+msgid "Automatically forward messages"
+msgstr "Automatische Weiterleiten von Nachrichten"
+
+msgid "Baud Rate"
+msgstr "Baudrate"
+
+msgid "Block size"
+msgstr "BlockgrÃ¶Ãe"
+
+msgid "Both"
+msgstr "Beide"
+
+msgid "Broadcast Location"
+msgstr "Standort aussenden"
+
+msgid "Broadcast Text File"
+msgstr "Textdatei ausstrahlen"
+
+msgid "Broadcast this location"
+msgstr "Sende diesen Standort aus"
+
+msgid "Broken Color"
+msgstr "Unterbrochene Farbe"
+
+msgid "Buoys (comma separated)"
+msgstr "Bojen (durch Beistrich getrennt)"
+
+msgid "Callsign"
+msgstr "Rufzeichen"
+
+msgid "Callsign Color"
+msgstr "Farbe des Rufzeichens"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Center"
+msgstr "Mittelpunkt"
+
+msgid "Center here"
+msgstr "Zentriere hier"
+
+msgid "Center on this"
+msgstr "Hier zentrieren"
+
+msgid "Channel names must be a single-word "
+msgstr "Kanalname darf nur ein Wort sein "
+
+msgid "Chat activity"
+msgstr "ChataktivitÃ¤t"
+
+msgid "Chat font"
+msgstr "Farbe des Chats"
+
+msgid "Check spelling"
+msgstr "RechtschreibprÃ¼fung"
+
+msgid "Checking mail for"
+msgstr "Emails checken fÃ¼r"
+
+msgid "Choose a form"
+msgstr "Wähle ein Formular"
+
+msgid ""
+"Choose a script to execute.  The output will be used when the QST is sent"
+msgstr ""
+"Wähle ein Skript aus, das ausgeführt wird und deren Ausgabe gesendet wird, "
+"wenn ein QST gesendet wird"
+
+msgid "Choose a station whose position will be sent"
+msgstr "Wähle eine Station, deren Position gesendet wird"
+
+msgid "Choose a text file.  The contents will be used when the QST is sent."
+msgstr ""
+"Wähle eine Textdatei aus. Der Inhalt wird gesendet, wenn ein QST gesendet "
+"wird."
+
+msgid "Choose the port where chat "
+msgstr "Wähle den Port, an dem der Chat "
+
+msgid "Clear All"
+msgstr "Alles löschen"
+
+msgid "Clear Cache"
+msgstr "Zwischenspeicher löschen"
+
+msgid "Command:"
+msgstr "Befehl:"
+
+msgid "Comment"
+msgstr "Kommentar"
+
+msgid "Complete"
+msgstr "Fertig"
+
+msgid "Config"
+msgstr "Konfiguration"
+
+msgid ""
+"Configure data paths below.  This may include any number of serial-attached "
+"radios and network-attached proxies."
+msgstr ""
+"Konfiguriere Datenpfad unten. Das kann eine Anzahl von FunkgerÃ¤ten, die an "
+"die serielle Schnittstelle angeschlossen sind, und Ã¼ber Netzwerk "
+"angeschlossene Proxies beinhalten."
+
+msgid "Confirm address"
+msgstr "Adresse bestätigen"
+
+msgid "Confirm exit"
+msgstr "Ausstieg bestÃ¤tigen"
+
+msgid "Connect"
+msgstr "Verbinden"
+
+msgid "Connected to Internet"
+msgstr "Mit dem Internet verbunden"
+
+msgid "Containing text:"
+msgstr "Textinhalt:"
+
+msgid "Control: ACK"
+msgstr "Kontrolle: ACK"
+
+msgid "Control: END session %s"
+msgstr "Kontrolle: ENDE Sitzung %s"
+
+msgid "Control: NEW session"
+msgstr "Kontrolle: NEUE Sitzung"
+
+msgid "Control: UNKNOWN"
+msgstr "Kontrolle: UNBEKANNT"
+
+msgid "Create"
+msgstr "Erzeugen"
+
+msgid "Create a new message for sending"
+msgstr "Erstellen einer neuen Nachricht zum Senden"
+
+msgid "Create filter"
+msgstr "Erzeuge Filter"
+
+msgid "D-RATS Started"
+msgstr "D-RATS gestartet"
+
+msgid "DPRS message"
+msgstr "DPRS Nachticht"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Default"
+msgstr "Standard"
+
+msgid "Default GPS comment"
+msgstr "GPS Standardkommentar"
+
+msgid "Default is 25.  Set to the value given by your ISP"
+msgstr ""
+"Vorgabe ist 25. Setze es auf den Wert, der vom Internetprovider vorgegeben "
+"wird"
+
+msgid "Default state for private flag on new forms"
+msgstr "Voreinstellung der Privat-Markierung bei neuen Formularen"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "Delete Filter"
+msgstr "Filter löschen"
+
+msgid "Delete the currently selected message"
+msgstr "Gegenwärtig ausgewählte Nachricht löschen"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Destination Callsign"
+msgstr "Rufzeichen des Empfängers"
+
+msgid "Direction"
+msgstr "Richtung"
+
+msgid "Disconnect"
+msgstr "Trennen"
+
+msgid ""
+"Display information about packets seen that are destined for other stations"
+msgstr ""
+"Zeige Informationen über Pakete an, die für andere Stationen bestimmt sind"
+
+msgid "Distance"
+msgstr "Entfernung"
+
+msgid "Download"
+msgstr "Laden"
+
+msgid "Drafts"
+msgstr "Entwürfe"
+
+msgid "Echo of"
+msgstr "Echo von"
+
+msgid "Echo request of"
+msgstr "Echoanfrage von"
+
+msgid "Edit"
+msgstr "Editieren"
+
+msgid "Edit Map Source"
+msgstr "Bearbeite Kartenquelle"
+
+msgid "Edit Map Sources"
+msgstr "Bearbeite Kartenquellen"
+
+msgid "Edit Sources"
+msgstr "Bearbeite Quellen"
+
+msgid "Email Access"
+msgstr "Emailzugang"
+
+msgid "Email Accounts"
+msgstr "Emailkonten"
+
+msgid "Email address to set on outgoing form email messages"
+msgstr "Emailadresse für ausgehende Nachrichten"
+
+msgid "Ending size"
+msgstr "Größe am Ende"
+
+msgid "Enter a WeatherUnderground station ID:"
+msgstr "Gib eine WeatherUnderground Stations-ID ein:"
+
+msgid "Enter a filter search string:"
+msgstr "Gib eine Filtersuchzeichenkette ein:"
+
+msgid "Enter a message:"
+msgstr "Gibt eine Nachticht ein:"
+
+msgid "Enter an address, postal code, or intersection"
+msgstr "Adresse, Postleitzahl oder Kreuzung angeben"
+
+msgid "Enter channel name:"
+msgstr "Gib Kanalname ein:"
+
+msgid "Enter destination"
+msgstr "Gib Bestimmungsort ein"
+
+msgid "Enter filter text"
+msgstr "Gib einen Filtertext ein"
+
+msgid "Enter remote callsign"
+msgstr "Gib entferntes Rufzeichen ein"
+
+msgid "Enter station:"
+msgstr "Gib Station ein:"
+
+msgid "Enter text for the new quick message:"
+msgstr "Gib den Text für die Schnellnachricht ein:"
+
+msgid "Enter the URL of a CAP feed:"
+msgstr "Gib die URL eine CAP-Feeds ein:"
+
+msgid "Enter the URL of an RSS feed:"
+msgstr "Gib die URL eines RSS-Feeds ein:"
+
+msgid "Enter your GPS message:"
+msgstr "Gib Deine GPS Nachricht ein:"
+
+msgid "Error starting socket session: %s"
+msgstr "Fehler beim Starten der Socket-Session: %s"
+
+msgid "Event Log"
+msgstr "Ereignis-Log"
+
+msgid "Exec"
+msgstr "Ausführen"
+
+msgid "Export"
+msgstr "Exportieren"
+
+msgid "Export Message"
+msgstr "Exportiere Nachricht"
+
+msgid "External GPS"
+msgstr "Externes GPS"
+
+msgid "Failed to connect to"
+msgstr "Fehler beim Verbinden mit"
+
+msgid "Failed to receive file (incomplete)"
+msgstr "Fehler beim Empfangen der Datei (unvollständig)"
+
+msgid "Failed to send file (incomplete)"
+msgstr "Fehler beim Senden der Datei (unvollständig)"
+
+msgid "File"
+msgstr "Datei"
+
+msgid "File Transfer Path"
+msgstr "Pfad fÃ¼r DateiÃ¼bertragungen"
+
+msgid "File Transfers"
+msgstr "Dateiübertragung"
+
+msgid "File activity"
+msgstr "DateiaktivitÃ¤t"
+
+msgid "File is too large to send (>8KB)"
+msgstr "Datei ist zu groß zum Senden (>8kB)"
+
+msgid "File transfer of %s started with %s"
+msgstr "Dateiübertragung von %s begann mit %s"
+
+msgid "Filename"
+msgstr "Dateiname"
+
+msgid "Files"
+msgstr "Dateien"
+
+msgid "For a network connection, use something like 'net:host:9000'"
+msgstr "FÃ¼r eine Netzwerkverbindung, benutze soetwas wie 'net:host:9000'"
+
+msgid ""
+"For each position report recieved, change the callsign to 'callsign."
+"datestamp'.  NOTE: This will generate a LOT of map pointers, use with "
+"caution!"
+msgstr ""
+"Ändere das Rufzeichen auf 'Rufzeichen.Zeitstempel' für jeden empfangenen "
+"Positionsreport. ACHTUNG: Das erzeugt eine MENGE Einträge, vorsichtig "
+"benutzen!"
+
+msgid "Force transmission delay"
+msgstr "Erzwinge Aufschub der Ãbertragung"
+
+msgid "Form"
+msgstr "Eingabemaske"
+
+msgid "Form Transfers"
+msgstr "Formularübertragung"
+
+msgid "Forward"
+msgstr "Weiterleiten"
+
+msgid "Forward via"
+msgstr "Weiterleiten über "
+
+msgid "Freshen map after"
+msgstr "Karte aktualisieren nach"
+
+msgid "GPS Locked"
+msgstr "GPS gerastet"
+
+msgid "GPS Not Locked"
+msgstr "GPS nicht gerastet"
+
+msgid "GPS-A Symbol"
+msgstr "GPS-A Symbol"
+
+msgid "GPSd Locked"
+msgstr "GPSd gerastet"
+
+msgid "GPSd Not Locked"
+msgstr "GPSd nicht gerastet"
+
+msgid "GPSd Socket closed"
+msgstr "GPSd Socket geschlossen"
+
+msgid "Generated at"
+msgstr "Erzeugt um"
+
+msgid "Get version"
+msgstr "Hole Version"
+
+msgid "Gradually increasing packet sizes"
+msgstr "Allmählich zunehmende Paketgröße"
+
+msgid "Group"
+msgstr "Gruppe"
+
+msgid "Heading"
+msgstr "Richtung"
+
+msgid ""
+"Hostname of outgoing SMTP server.  If this is specified, this station will "
+"be a gateway for email forms.  If left blank, this feature is disabled"
+msgstr ""
+"Hostname des ausgehenden SMTP Servers. Falls es spezifiziert ist, wird diese "
+"Station als Gateway für Email-Formulare fungieren. Falls es leer bleibt, ist "
+"diese Funktion deaktivert"
+
+msgid ""
+"If a station was last heard more than this many seconds ago, do not assume "
+"you have a clear path (ping it first)"
+msgstr ""
+"Wenn eine Station das letzte Mal vor x Sekunden gehört wurde, dann nimm "
+"keinen freien Übertragungsweg an (Ping zuerst)"
+
+msgid "If enabled, attempt to negotiate TLS/SSL with SMTP server"
+msgstr "Wenn aktiviert, versuche TLS/SSL an SMTP-Server"
+
+msgid "If enabled, take current position from the external GPS"
+msgstr "Wenn angewÃ¤hlt, benutze aktuelle Position des externen GPS"
+
+msgid "If prefixed by a ! character, interpret as a path to a script"
+msgstr ""
+"Als Pfad zu einem Skript zu interpretieren, wenn es mit einem '!' beginnt"
+
+msgid "If prefixed by a > character, interpret as a path to a text file"
+msgstr ""
+"Als Pfad zu einem Textfile zu interpretieren, wenn es mit einem '>' beginnt"
+
+msgid ""
+"If the TNC is a multi-port unit, this\n"
+"specifies which port will be used\n"
+"(starting with 0 as the first one)"
+msgstr ""
+"Falls das TNC ein Multi-Port-Gerät ist,\n"
+"wird dieser Port benutzt\n"
+"(beginnend mit 0)"
+
+msgid "Ignore Color"
+msgstr "Farbe von nicht zur Kenntnis nehmen"
+
+msgid "Ignore RegEx"
+msgstr "RegEx ignorieren"
+
+msgid "Import Message"
+msgstr "Importiere Nachricht"
+
+msgid "Include original in reply"
+msgstr "Original als Anhang in der Antwort"
+
+msgid ""
+"Include the text of the original message when replying (not recommended as "
+"it wastes bandwidth)"
+msgstr ""
+"EinfÃ¼gen des originalen Inhalts beim Beantworten (nicht empfohlen, da es "
+"Bandbreite verschwendet)"
+
+msgid "Incoming"
+msgstr "Eingang"
+
+msgid "Incoming Accounts"
+msgstr "Ankommende Konten"
+
+msgid "Incoming Color"
+msgstr "Eingehende Farbe"
+
+msgid "Incoming Files"
+msgstr "Ankommende Files"
+
+msgid "Incoming Messages"
+msgstr "Ankommende Nachrichten"
+
+msgid "Increment size"
+msgstr "Schrittweite"
+
+msgid "Invalid GPS data"
+msgstr "Ungültige GPS Daten"
+
+msgid "Invalid character in callsign"
+msgstr "Ungültiges Zeichen im Rufzeichen"
+
+msgid "Invalid port string"
+msgstr "Ungültige Port Zeichenkette"
+
+msgid "Invalid value"
+msgstr "Ungültiger Wert"
+
+msgid "Invalid value for"
+msgstr "UngÃ¼ltiger Wert fÃ¼r"
+
+msgid "Join Channel"
+msgstr "Betritt Kanal"
+
+msgid "Language"
+msgstr "Sprache"
+
+msgid "Large"
+msgstr "Gross"
+
+msgid "Latitude"
+msgstr "Breite"
+
+msgid ""
+"Length of time between transmissions that must pass before we send a warmup "
+"block to open the power-save circuits on handhelds"
+msgstr ""
+"Zeit zwischen Übertragungen die vergehen muss, bevor wir einen Präambelblock "
+"zum Aufwecken aus dem Schlafmodus von Handhelds senden"
+
+msgid "Load log tail"
+msgstr "Ende des Logs laden"
+
+msgid "Loaded"
+msgstr "Geladen"
+
+msgid "Loading"
+msgstr "Ladend"
+
+msgid "Local"
+msgstr "Lokal"
+
+msgid "Local Port"
+msgstr "Lokaler Port"
+
+msgid "Locate an address"
+msgstr "Finde eine Adresse"
+
+msgid "Locations found"
+msgstr "Ort gefunden"
+
+msgid "Log chat traffic"
+msgstr "Chat Verkehr loggen"
+
+msgid "Longitude"
+msgstr "LÃ¤nge"
+
+msgid "Lookup"
+msgstr "Nachschlagen"
+
+msgid "Lookup by address"
+msgstr "Adresse nachschlagen"
+
+msgid "ME"
+msgstr "MICH"
+
+msgid "Main"
+msgstr "Haupt"
+
+msgid "Manually direct a message to another station"
+msgstr "Manuelles Weiterleiten einer Nachricht an eine andere Station"
+
+msgid "Map"
+msgstr "Karte"
+
+msgid "Map Storage Path"
+msgstr "Pfad fÃ¼r Kartenspeicher"
+
+msgid "Mark Read"
+msgstr "Als gelesen markieren"
+
+msgid "Mark Unread"
+msgstr "Als ungelesen markieren"
+
+msgid "Mark the currently selected message as read"
+msgstr "Markiere gegenwärtig ausgewählte Nachrichten als gelesen"
+
+msgid "Mark the currently selected message as unread"
+msgstr "Markiere gegenwärtig ausgewählte Nachrichten als nicht gelesen"
+
+msgid "Message"
+msgstr "Nachricht"
+
+msgid "Message Sent"
+msgstr "Nachricht gesendet"
+
+msgid "Message Templates"
+msgstr "Nachrichtenvorlage"
+
+msgid "Message activity"
+msgstr "NachrichtenanktivitÃ¤t"
+
+msgid "Message transfer of %s started with %s"
+msgstr "Nachrichtenübertragung von %s begann mit %s"
+
+msgid "Messages"
+msgstr "Nachrichten"
+
+msgid "Metric"
+msgstr "Metrisch"
+
+msgid "Misc"
+msgstr "Vermischtes"
+
+msgid "More"
+msgstr "Mehr"
+
+msgid "Multiple fixed-size packets"
+msgstr "Mehrfache Pakete mit fester Größe"
+
+msgid "My Winlink SSID"
+msgstr "Meine Winlink SSID"
+
+msgid "Negotiation Complete"
+msgstr "Verhandlung abgeschlossen"
+
+msgid "Network"
+msgstr "Netzwerk"
+
+msgid "New"
+msgstr "Neu"
+
+msgid "New Chat Messages"
+msgstr "Neue Chat Nachrichten"
+
+msgid "New marker here"
+msgstr "Neue Markierung hier"
+
+msgid "No start block received!"
+msgstr "Kein Startblock empfangen!"
+
+msgid "No support for resizing images.  Send unaltered?"
+msgstr "Keine Unterstützung zum Ändern der Größe. Original senden?"
+
+msgid "None"
+msgstr "Keine"
+
+msgid "Notice Color"
+msgstr "Nachrichtenfarbe"
+
+msgid "Notice RegEx"
+msgstr "RegEx der Notiz"
+
+msgid "Now"
+msgstr "Jetzt"
+
+msgid "Number of packets"
+msgstr "Anzahl der Pakete"
+
+msgid "On UNIX, use something like '/dev/ttyUSB0'"
+msgstr "Unter UNIX, benutze soetwas wie '/dev/ttyUSB0'"
+
+msgid "On Windows, use something like 'COM12'"
+msgstr "Unter Windows, benutze soetwas wie 'COM12'"
+
+msgid ""
+"Online\n"
+"Unattended"
+msgstr ""
+"Online\n"
+"Unbeaufsichtigt"
+
+msgid "Open Private Chat"
+msgstr "Öffne einen privaten Chat"
+
+msgid "Options"
+msgstr "Optionen"
+
+msgid "Outbox"
+msgstr "Ausgang"
+
+msgid "Outgoing"
+msgstr "Ausgang"
+
+msgid "Outgoing Color"
+msgstr "Ausgehende Farbe"
+
+msgid "Outgoing Email"
+msgstr "Emails im Ausgang"
+
+msgid "Overlay"
+msgstr "Überlagerung"
+
+msgid "Packet size"
+msgstr "Paketgröße"
+
+msgid "Packets"
+msgstr "Pakete"
+
+msgid "Password"
+msgstr "Passwort"
+
+msgid "Password for SMTP authentication"
+msgstr "Passwort für SMTP Authentifizierung"
+
+msgid "Paths"
+msgstr "Pfad"
+
+msgid "Personal"
+msgstr "Persönlich"
+
+msgid "Ping All Stations"
+msgstr "Ping an alle Stationen"
+
+msgid "Ping reply"
+msgstr "Antwort auf Ping"
+
+msgid "Pipeline blocks"
+msgstr "BlÃ¶cke in der Leitung"
+
+msgid "Poll Interval"
+msgstr "Abfrageintervall"
+
+msgid "Port and Mode"
+msgstr "Port und Modus"
+
+msgid "Position Reports"
+msgstr "Positionsmeldungen"
+
+msgid "Preferences"
+msgstr "Voreinstellungen"
+
+msgid "Preview"
+msgstr "Vorschau"
+
+msgid "Printable"
+msgstr "Druckfähig"
+
+msgid "Printable (visible area)"
+msgstr "Druckfähig (sichtbarer Bereich)"
+
+msgid "QST Size Limit"
+msgstr "QST GrÃ¶Ãenlimit"
+
+msgid "Quality"
+msgstr "Qualität"
+
+msgid "Query User"
+msgstr "Frage Benutzer"
+
+msgid "Queue flush interval"
+msgstr "Intervall des Leerens der Warteschlange"
+
+msgid "Quick Messages"
+msgstr "Schnellnachricht"
+
+msgid "Radio"
+msgstr "FunkgerÃ¤t"
+
+msgid "Raw Text"
+msgstr "Rohtext"
+
+msgid "Really delete %s?"
+msgstr "%s wirklich löschen?"
+
+msgid "Really delete?"
+msgstr "Wirklich löschen?"
+
+msgid "Received"
+msgstr "Empfangen"
+
+msgid "Received %i messages"
+msgstr "%i Nachrichten sind angekommen"
+
+msgid "Received Events"
+msgstr "Empfangene Ereignisse"
+
+msgid "Receiving"
+msgstr "Empfange"
+
+msgid "Receiving file"
+msgstr "Empfange Datei"
+
+msgid "Recipient"
+msgstr "Empfänger"
+
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+msgid "Remote"
+msgstr "Entfernt"
+
+msgid "Remote Port"
+msgstr "Entfernter Port"
+
+msgid "Remote file transfers"
+msgstr "Entfernte DateiÃ¼bertragungen"
+
+msgid "Remote station:"
+msgstr "Entfernte Station:"
+
+msgid "Remove"
+msgstr "Entfernen"
+
+msgid "Remove Filter"
+msgstr "Lösche Filter"
+
+msgid "Rename"
+msgstr "Umbenennen"
+
+msgid "Reply"
+msgstr "Antworten"
+
+msgid "Reply to the currently selected message"
+msgstr "Auf gegenwärtig ausgewählte Nachricht antworten"
+
+msgid "Request Position"
+msgstr "Positionsanfrage"
+
+msgid "Request all positions"
+msgstr "Frage alle Positionen ab"
+
+msgid "Request mail check"
+msgstr "Erbitte Postabfrage"
+
+msgid "Requested file %s"
+msgstr "Angefordertes File %s"
+
+msgid "Requested file list"
+msgstr "Angeforderte Liste der Dateien"
+
+msgid "Requested message %s"
+msgstr "Angeforderte Nachricht %s"
+
+msgid "Requested message list"
+msgstr "Angeforderte Liste der Nachrichten"
+
+msgid "Requires a D-RATS restart"
+msgstr "Erfordert einen Neustart von D-RATS"
+
+msgid "Resize to"
+msgstr "Größe ändern auf"
+
+msgid "Restart"
+msgstr "Neustart"
+
+msgid "Resuming at"
+msgstr "Wiederaufnehmen bei"
+
+msgid "Retrieving"
+msgstr "Empfangen"
+
+msgid "Run Test"
+msgstr "Starte Test"
+
+msgid "Running"
+msgstr "Laufend"
+
+msgid "SMTP Password"
+msgstr "SMTP Passwort"
+
+msgid "Save Image"
+msgstr "Speicher Bild"
+
+msgid "Save Image (visible area)"
+msgstr "Speichere Bild (sichtbarer Bereich)"
+
+msgid "Scrollback Lines"
+msgstr "Linien des ZurÃ¼ckrollens"
+
+msgid ""
+"Seconds between each attempt to process forwarded messages.  Do not set this "
+"too low!"
+msgstr ""
+"Sekunden Wartezeit zwischen Zustellversuchen von weitergeleiteten "
+"Nachrichten. Nicht zu klein setzen!"
+
+msgid "Send"
+msgstr "Senden"
+
+msgid "Send D*Query"
+msgstr "Sende D*Query"
+
+msgid "Send file"
+msgstr "Sende Datei"
+
+msgid "Send messages in the Outbox"
+msgstr "Sende Nachrichten im Ausgang"
+
+msgid "Send via"
+msgstr "Senden über "
+
+msgid "Send/Receive"
+msgstr "Senden/Empfangen"
+
+msgid "Sent"
+msgstr "Gesendet"
+
+msgid "Serial"
+msgstr "Serielle Schnittstelle"
+
+msgid "Serial port for an NMEA-compliant external GPS"
+msgstr "Serieller Anschluss fÃ¼r ein NMEA-kompatibles, externes GPS"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Show"
+msgstr "Zeigen"
+
+msgid "Show debug log"
+msgstr "Zeige Debug-Log"
+
+msgid "Show event type:"
+msgstr "Zeige Ereignistyp:"
+
+msgid "Show station list"
+msgstr "Zeige Stationsliste"
+
+msgid "Show status updates in chat"
+msgstr "Zeige Statusneuigkeiten im Chat"
+
+msgid "Show time in UTC"
+msgstr "Zeit in UTC anzeigen"
+
+msgid "Side Pane"
+msgstr "Seitenpinne"
+
+msgid "Sign-off Message"
+msgstr "Nachricht beim Abmelden"
+
+msgid "Sign-on Message"
+msgstr "Nachricht beim Anmelden"
+
+msgid "Since this is your first time running D-RATS, "
+msgstr "Da es das erste Mal ist, dass Du D-RATS startest "
+
+msgid "Sites (comma separated)"
+msgstr "Einsatzorte (durch Beistrich getrennt)"
+
+msgid "Size"
+msgstr "Größe"
+
+msgid "Size (bytes)"
+msgstr "Größe (Bytes)"
+
+msgid "Small"
+msgstr "Klein"
+
+msgid "Socket session %s started with %s"
+msgstr "Socket-Sitzung %s begann mit %s"
+
+msgid "Sounds"
+msgstr "KlÃ¤nge"
+
+msgid "Source Address"
+msgstr "Adresse der Quelle"
+
+msgid "Source Callsign"
+msgstr "Rufzeichen des Senders"
+
+msgid "Specify a .WAV file to be played"
+msgstr "Gib ein .WAV-File an, das gespielt wird"
+
+msgid "Starting size"
+msgstr "Größe zu Beginn"
+
+msgid "Static position"
+msgstr "Statische Position"
+
+msgid "Station TTL"
+msgstr "TTL der Station"
+
+msgid "Station map"
+msgstr "Stationskarte"
+
+msgid "Station must be a plain "
+msgstr "Station muss eine Fläche sein "
+
+msgid "Stations"
+msgstr "Stationen"
+
+msgid "Statistics"
+msgstr "Statistik"
+
+msgid "Subject"
+msgstr "Betreff"
+
+msgid "TCP Forwarding"
+msgstr "TCP Weiterleitung"
+
+msgid "Table:"
+msgstr "Tabelle:"
+
+msgid "Test Connectivity"
+msgstr "Teste Verbindung"
+
+msgid "Test Parameters"
+msgstr "Testparameter"
+
+msgid "Test Type"
+msgstr "Typ des Tests"
+
+msgid "Text string to return in response to a ping."
+msgstr "Zeichenkette als Antwort auf einen Ping."
+
+msgid "The NMEA standard is 4800"
+msgstr "Der Standard von NMEA ist 4800"
+
+msgid ""
+"The baud rate used to communicate with\n"
+"the TNC (not the rate over the air)"
+msgstr ""
+"Die Baudrate, mit der mit dem TNC\n"
+"kommuniziert wird (nicht die über Funk)"
+
+msgid "The symbol character for GPS-A beacons"
+msgstr "Das Symbol fÃ¼r GPS-A Baken"
+
+msgid "The symbol table character for GPS-A beacons"
+msgstr "Das Symbol aus der Zeichentabelle fÃ¼r GPS-A Baken"
+
+msgid "There are no parameters for dongle operation"
+msgstr "Für die Dongle-Benutzung gibt es keine Parameter"
+
+msgid "This is the message other stations will "
+msgstr "Das ist die Nachricht, die anderen Stationen "
+
+msgid "This is the state other stations will "
+msgstr "Das ist der Status, die andere Stationen "
+
+msgid ""
+"This utility will allow you to send D*Query commands to the local gateway "
+"(if supported).  Type a command here (such as <i>wx</i>) and hit <b>Send</"
+"b>.  If successful, the result will appear in the chat window."
+msgstr ""
+"Dieses Dienstprogramm erlaubt es, D*Query-Kommandos an das lokale Gateway zu "
+"senden (wenn unterstützt). Gib hier das Kommando ein (z.B. <i>wx</i>) und "
+"drücke <b>Send</b>. Wenn erfolgreich, erscheint im Chat-Fenster die Antwort."
+
+msgid "Time"
+msgstr "Zeit"
+
+msgid "Timestamp Positions"
+msgstr "Position des Zeitstempels"
+
+msgid "Timestamp chat messages"
+msgstr "Zeitstempel fÃ¼r Chatnachrichten"
+
+msgid "Toolbar buttons"
+msgstr "KnÃ¶pfe der Werkzeugleiste"
+
+msgid "Total"
+msgstr "Gesamt"
+
+msgid "Track center"
+msgstr "Mittelpunkt der Spur"
+
+msgid "Transfer Completed"
+msgstr "Übertragung abgeschlossen"
+
+msgid "Transfer Interrupted"
+msgstr "Übertragung unterbrochen"
+
+msgid "Transfers"
+msgstr "Ãbertragung"
+
+msgid "Trash"
+msgstr "Müll"
+
+msgid ""
+"Treat incoming raw text (and garbage) as chat data and display it on-screen"
+msgstr ""
+"Behandle einlaufenden Rohtext (und MÃ¼ll) als Zeichen und stelle sie am "
+"Bildschirm dar"
+
+msgid "UNKNOWN"
+msgstr "UNBEKANNT"
+
+msgid "Unable to connect"
+msgstr "Verbindung konnte nicht hergestellt werden"
+
+msgid "Unable to open GPS port"
+msgstr "GPS Port konnte nicht geöffnet werden"
+
+msgid "Unable to open file %s: %s"
+msgstr "Kann Date %s: %s nicht öffnen"
+
+msgid "Unable to open: message in use by another task"
+msgstr "Öffnen erfolglos: Nachricht wird von einem anderen Task benutzt"
+
+msgid "Unable to parse address"
+msgstr "Adresse konnte nicht analysiert werden"
+
+msgid "Unable to send: message in use by another task"
+msgstr "Senden  erfolglos: Nachricht wird von einem anderen Task benutzt"
+
+msgid "Units"
+msgstr "Einheiten"
+
+msgid "Unknown"
+msgstr "Unbekannt"
+
+msgid "Unknown image type"
+msgstr "Unbekanntes Bildformat"
+
+msgid "Upload"
+msgstr "Hochladen"
+
+msgid "Use External GPS"
+msgstr "Externes GPS benutzen"
+
+msgid "Use SSL"
+msgstr "SSL benutzen"
+
+msgid "Username for SMTP authentication.  Disabled if blank"
+msgstr ""
+"Username für SMTP-Authentifizierung. Keine Authentifizierung, wenn leer"
+
+msgid "Version and OS Info"
+msgstr "Versions- und Betriebssysteminformation"
+
+msgid "WL2K Connection"
+msgstr "WL2K Verbindung"
+
+msgid "WL2K Network Server"
+msgstr "WL2K Netzwerk Server"
+
+msgid "Waiting for first block"
+msgstr "Warte auf ersten Block"
+
+msgid "Waiting for response"
+msgstr "Warte auf Antwort"
+
+msgid "Waiting for transfer to start"
+msgstr "Warte auf Übertragungsbeginn"
+
+msgid "Warmup Length"
+msgstr "LÃ¤nge der PrÃ¤ambel"
+
+msgid "Warmup timeout"
+msgstr "PrÃ¤ambel ZeitÃ¼berschreitung"
+
+msgid "Weather (WU)"
+msgstr "Wetter (WU)"
+
+msgid ""
+"When enabled, D-RATS will encapsulate\n"
+"its packets in AX.25 UI frames which can be\n"
+"passed through a digipeater"
+msgstr ""
+"Wenn aktiviert wird D-RATS die Pakete\n"
+"in AX.25 UI Frames verpacken, die einen\n"
+"Digipeater passieren können"
+
+msgid ""
+"When enabled, form time fields will default to current time in UTC.  When "
+"disabled, default to local time"
+msgstr ""
+"Wenn aktiviert, Zeiteingaben werden auf aktuelle Uhrzeit in UTC "
+"voreingestellt, wenn deaktiviert, auf lokale Zeit"
+
+msgid "You must enter a callsign to continue"
+msgstr "Musst Du ein Rufzeichen eingeben, bevor Du weitermachst"
+
+msgid "You must enter a station callsign.  "
+msgstr "Du muss ein Rufzeichen eingeben "
+
+msgid "Your current altitude"
+msgstr "Deine aktuelle HÃ¶he"
+
+msgid ""
+"Your current latitude.  Use decimal degrees (DD.DDDDD)\n"
+"or D*M'S\".  Use a space for special characters"
+msgstr ""
+"Deine aktuelle Breite in Dezimalgraden (DD.DDDDD)\n"
+"oder D*M'S\".  Benutze ein Leerzeichen fÃ¼r spezielle Zeichen"
+
+msgid ""
+"Your current longitude.  Use decimal degrees (DD.DDDDD)\n"
+"or D*M'S\".  Use a space for special characters"
+msgstr ""
+"Deine aktuelle LÃ¤nge in Dezimalgraden (DD.DDDDD)\n"
+"oder D*M'S\".  Benutze ein Leerzeichen fÃ¼r spezielle Zeichen"
+
+msgid "away"
+msgstr "abwesend"
+
+msgid "bytes"
+msgstr "Bytes"
+
+msgid "chat"
+msgstr "Chat"
+
+msgid "degrees"
+msgstr "Grad"
+
+msgid "does not exist.  Do you want to create it?"
+msgstr "existiert nicht. Willst Du es erzeugen?"
+
+msgid "forwarding to"
+msgstr "weiterleiten an"
+
+msgid "from"
+msgstr "von"
+
+msgid "hours"
+msgstr "Stunden"
+
+msgid "is now"
+msgstr "ist jetzt"
+
+msgid "last seen at"
+msgstr "zuletzt gesehen um"
+
+msgid "of size"
+msgstr "von Größe"
+
+msgid "on port"
+msgstr "auf Port"
+
+msgid "page 1"
+msgstr "Seite 1"
+
+msgid "page 2"
+msgstr "Seite 2"
+
+msgid "page 3"
+msgstr "Seite 3"
+
+msgid "page 4"
+msgstr "Seite 4"
+
+msgid "page 5"
+msgstr "Seite 5"
+
+msgid "received"
+msgstr "empfangen"
+
+msgid "received from"
+msgstr "erhalten von"
+
+msgid "reporting"
+msgstr "meldend"
+
+msgid "requested a mail check"
+msgstr "Mail Check angefordert"
+
+msgid "retries"
+msgstr "Wiederholungen"
+
+msgid "says"
+msgstr "sagt"
+
+msgid "seconds"
+msgstr "Sekunden"
+
+msgid "sent"
+msgstr "gesendet"
