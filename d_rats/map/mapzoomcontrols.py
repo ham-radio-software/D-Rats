@@ -22,7 +22,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-# import logging
 import time
 
 import gi
@@ -185,6 +184,7 @@ class MapZoomControls(Gtk.Frame):
             self.__prev_level = zoom_value
             Map.Tile.set_zoom(zoom_value)
             Map.Draw.set_zoom_changed()
+            self.map_widget.zoom_changed()
             # This should signal a map redraw event
             self.map_widget.queue_draw()
         return False

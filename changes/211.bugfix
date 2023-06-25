@@ -1,0 +1,2 @@
+Fix NMEA to decimal degree conversions.
+Add correction for latitude display on Map.

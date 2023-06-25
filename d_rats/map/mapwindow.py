@@ -82,13 +82,13 @@ class MapWindow(Gtk.ApplicationWindow):
     STATUS_COORD = 0
     STATUS_CENTER = 1
     STATUS_GPS = 2
+    logger = logging.getLogger("MapWindow")
 
     # pylint wants only 50 statements per method
     # pylint: disable=too-many-statements
     def __init__(self, application, config):
         Gtk.ApplicationWindow.__init__(self, application=application)
 
-        self.logger = logging.getLogger("MapWindow")
         self.application = application
 
         self.connect("destroy", self.ev_destroy)
@@ -588,8 +588,8 @@ class MapWindow(Gtk.ApplicationWindow):
 
         position = Map.Tile.display2deg(mx_axis, my_axis)
 
-        self.logger.info("Button %i at %i,%i",
-                         event.button, mx_axis, my_axis)
+        self.logger.debug("Button %i at %i,%i",
+                          event.button, mx_axis, my_axis)
         # Need to test for _2BUTTON_PRESS before testing
         # for a normal button press.
         # This is not a protected-access, it is the actual

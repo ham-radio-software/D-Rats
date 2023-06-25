@@ -95,6 +95,7 @@ class MapTile():
     _proxy = None
     _tile_lifetime = 0
     _zoom = 0
+    _fudge = {'x': 2, 'y': 12.5}
     _num_tiles = 0
     _map_widget = None
     _tilesize = 256
@@ -110,10 +111,11 @@ class MapTile():
     center = None
     _last_fetch_time = None
     _last_fetch_lock = threading.Lock()
+    logger = logging.getLogger("MapTile")
+
 
     def __init__(self, position=None, x_axis=None, y_axis=None):
 
-        self.logger = logging.getLogger("MapTile")
         if position:
             self.position = position
             self.x_tile, self.y_tile, self.x_fraction, self.y_fraction = \
@@ -285,6 +287,15 @@ class MapTile():
         '''
         cls._zoom = zoom
         cls._num_tiles = pow(2, cls._zoom)
+        # For some unknown reason positions on the map are
+        # off by this approximate amount, which seems to be
+        # related to the zoom level until zoom level 14, and
+        # then becomes constant.
+        divisor = 2 ** (18 - cls._zoom)
+        # cls._fudge['x'] = max(16 / divisor, 2)
+        cls._fudge['x'] = 0
+        cls._fudge['y'] = max(208 / (divisor), 12)
+        cls.logger.debug("fudge %s", cls._fudge)
         if not cls._center:
             return
         cls._set_x_origin()
@@ -340,8 +351,8 @@ class MapTile():
         x_tile_decimal, y_tile_decimal = cls.deg2num(position)
         x_tile_decimal -= cls._x_origin
         y_tile_decimal -= cls._y_origin
-        x_display = x_tile_decimal * cls._tilesize
-        y_display = y_tile_decimal * cls._tilesize
+        x_display = (x_tile_decimal * cls._tilesize) + cls._fudge['x']
+        y_display = y_tile_decimal * cls._tilesize - cls._fudge['y']
         return (x_display, y_display)
 
     # The deg2num function derived from:
@@ -383,8 +394,11 @@ class MapTile():
         :returns: Map position in longitude and latitude degrees
         :rtype: :class:`Map.MapPosition`
         '''
-        x_tile_decimal = display_x / cls._tilesize
-        y_tile_decimal = display_y / cls._tilesize
+        x_tile_decimal = (display_x - cls._fudge['x']) / cls._tilesize
+        y_tile_decimal = (display_y + cls._fudge['y']) / cls._tilesize
+        cls.logger.info("x_tile %f, y_tile %f",
+                        x_tile_decimal, y_tile_decimal)
+
         tile_pos = cls.num2deg(x_tile_decimal + cls._x_origin,
                                y_tile_decimal + cls._y_origin)
         return tile_pos

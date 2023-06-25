@@ -354,7 +354,7 @@ def deg2dm(decdeg):
     :param decdeg: Degrees value
     :type decdeg: float
     :returns: Tuple of degree and minutes
-    :rtype: tuple[float, float]
+    :rtype: tuple[int, float]
     '''
     deg = int(decdeg)
     minutes = (decdeg - deg) * 60.0
@@ -373,11 +373,8 @@ def nmea2deg(nmea, direction="N"):
     :returns: Degrees
     :rtype: float
     '''
-    deg = int(nmea) / 100
-    try:
-        minutes = nmea % (deg * 100)
-    except ZeroDivisionError:
-        minutes = int(nmea)
+    deg = int(nmea / 100)
+    minutes = nmea - (deg * 100)
 
     if direction in ["S", "W"]:
         multiplier = -1
@@ -527,9 +524,9 @@ class GPSPosition():
     :param station: Station, default "UNKNOWN"
     :type station: str
     '''
+    logger = logging.getLogger("GPSPosition")
 
     def __init__(self, lat=0, lon=0, station=None):
-        self.logger = logging.getLogger("GPSPosition")
         self.valid = False
         self.altitude = 0
         self.satellites = 0
@@ -958,10 +955,10 @@ class NMEAGPSPosition(GPSPosition):
     :param station: Station, default _("UNKNOWN")
     :raises: GpsGpggaException classes on error.
     '''
+    logger = logging.getLogger("NMEAGPSPosition")
 
     def __init__(self, sentence, station=None):
         GPSPosition.__init__(self)
-        self.logger = logging.getLogger("NMEAGPSPosition")
         self.latitude = None
         self.longitude = None
 
@@ -1110,12 +1107,12 @@ class NMEAGPSPosition(GPSPosition):
 
 class APRSGPSPosition(GPSPosition):
     '''APRS GPS Position.'''
+    logger = logging.getLogger("APRSGPSPosition")
 
     def __init__(self, message):
         self.latitude = None
         self.longitude = None
         GPSPosition.__init__(self)
-        self.logger = logging.getLogger("APRSGPSPosition")
 
         self._from_aprs(message)
 
@@ -1228,9 +1225,9 @@ class MapImage():
 
     :param center: Center of map
     '''
+    logger = logging.getLogger("MapImage")
 
     def __init__(self, center):
-        self.logger = logging.getLogger("MapImage")
         self.key = "ABQIAAAAWot3KuWpenfCAGfQ65FdzRTaP0xjRaMPpcw6bBbU" \
                    "2QUEXQBgHBR5Rr2HTGXYVWkcBFNkPvxtqV4VLg"
         self.center = center
@@ -1324,9 +1321,9 @@ class GPSSource():
     :param rate: Baud rate, default=4800
     :type rate: int
     '''
+    logger = logging.getLogger("GPSSource")
 
     def __init__(self, port, rate=4800):
-        self.logger = logging.getLogger("GPSSource")
         self.port = port
         self.enabled = False
         self.broken = None
@@ -1425,10 +1422,10 @@ class NetworkGPSSource(GPSSource):
     :param port: Radio port
     :type port: str
     '''
+    logger = logging.getLogger("NetworkGPSSource")
 
     # pylint: disable=super-init-not-called
     def __init__(self, port):
-        self.logger = logging.getLogger("NetworkGPSSource")
         self.port = port
         self.enabled = False
         self.thread = None
@@ -1554,10 +1551,10 @@ class StaticGPSSource(GPSSource):
     :param station: Station for source, default 'Unknown'
     :type station: str
     '''
+    logger = logging.getLogger("StaticGPSSource")
 
     # pylint: disable=super-init-not-called
     def __init__(self, lat, lon, alt=0, station=None):
-        self.logger = logging.getLogger("StaticGPSSource")
         self.lat = lat
         self.lon = lon
         self.alt = alt
