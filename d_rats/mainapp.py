@@ -997,8 +997,8 @@ class MainApp(Gtk.Application):
         localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
         self.logger.info("_refresh_lang: Setting localedirfromconfig to: %s", localedirfromconfig)
-
-
+        
+        
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
         try:
@@ -1011,7 +1011,7 @@ class MainApp(Gtk.Application):
             lang.install()
             _ = lang.gettext         
             #Gtk.glade.bindtextdomain("D-RATS", localedir)
-            #Gtk.glade.textdomain("D-RATS")                    
+            #Gtk.glade.textdomain("D-RATS")            
         except FileNotFoundError:
             self.logger.error("_refresh_lang: Messages catalog file missing "
                               " for %s.  Need to use 'msgfmt tool to generate.",
@@ -1031,13 +1031,13 @@ class MainApp(Gtk.Application):
         except Exception as error:
             self.logger.error("_refresh_lang: other error: %s", error)
         
-        #check if gettext works ... but it doesnt work !  
+        #check if gettext works ...  
         try:
-            self.logger.info("_refresh_lang: gettext: Hello world: ",(_("HELLO_WORLD"))) 
+            self.logger.info("_refresh_lang: gettext: Hello world: %s",(_("HELLO_WORLD"))) 
         except Exception as error:
             self.logger.error("_refresh_lang: other error: %s", error)
-                
         
+
     def _load_map_overlays(self):
         '''Load Map Overlays.'''
         self.stations_overlay = None

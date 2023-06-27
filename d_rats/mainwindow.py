@@ -86,6 +86,8 @@ class MainWindow(MainWindowElement):
     def __init__(self, application):
         config = application.config
         wtree = Gtk.Builder()
+        wtree.set_translation_domain("D-RATS")
+        
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
         MainWindowElement.__init__(self, wtree, config)
@@ -323,8 +325,9 @@ class MainWindow(MainWindowElement):
         cfg = self._config
 
         wtree = Gtk.Builder()
-        wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
         wtree.set_translation_domain("D-RATS")
+        
+        wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
         dlg = wtree.get_object("dquery_dialog")
         cmd = wtree.get_object("dq_cmd")
         dlg.set_modal(True)

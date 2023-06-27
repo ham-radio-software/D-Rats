@@ -29,10 +29,9 @@ import gettext
 import logging
 import sys
 
+
 def main():
     '''Main function for unit testing.'''
-
-
 
     gettext.install("D-RATS")
 
