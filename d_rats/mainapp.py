@@ -983,33 +983,33 @@ class MainApp(Gtk.Application):
     def _refresh_lang(self):
         '''Refresh Language.'''
         # load the localized labels
-        locales = {"English" : "en",
+        locales = {"Dutch" : "nl",
+                   "English" : "en",
                    "German" : "de",
-                   "Italiano" : "it",
-                   "Dutch" : "nl",
+                   "Italian" : "it",
+                   "Spanish" : "es",
                    }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        self.logger.info("_refresh_lang: Loading locale `%s'", locale)
+        self.logger.info("_refresh_lang: Setting locale to: `%s'", locale)
 
-        localedir = os.path.join(Platform.get_platform().sys_data(),
+        localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
-        self.logger.info("_refresh_lang: Locale dir is: %s", localedir)
+        self.logger.info("_refresh_lang: Setting localedirfromconfig to: %s", localedirfromconfig)
+
 
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
-
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
             global _
             lang = gettext.translation("D-RATS",
-                                       localedir=localedir,
+                                       localedir=localedirfromconfig,
                                        languages=[locale])
             lang.install()
-            _ = lang.gettext
-
-            # Gtk.glade.bindtextdomain("D-RATS", localedir)
-            # Gtk.glade.textdomain("D-RATS")
+            _ = lang.gettext         
+            #Gtk.glade.bindtextdomain("D-RATS", localedir)
+            #Gtk.glade.textdomain("D-RATS")                    
         except FileNotFoundError:
             self.logger.error("_refresh_lang: Messages catalog file missing "
                               " for %s.  Need to use 'msgfmt tool to generate.",
@@ -1026,7 +1026,16 @@ class MainApp(Gtk.Application):
                               locale, exc_info=True)
             gettext.install("D-RATS")
             _ = gettext.gettext
-
+        except Exception as error:
+            self.logger.error("_refresh_lang: other error: %s", error)
+        
+        #check if gettext works ... but it doesnt work !  
+        try:
+            self.logger.info("_refresh_lang: gettext: Hello world: ",(_("HELLO_WORLD"))) 
+        except Exception as error:
+            self.logger.error("_refresh_lang: other error: %s", error)
+                
+        
     def _load_map_overlays(self):
         '''Load Map Overlays.'''
         self.stations_overlay = None
@@ -1084,6 +1093,7 @@ class MainApp(Gtk.Application):
         self._refresh_gps()
         self._refresh_mail_threads()
         self._refresh_map()
+        self._refresh_lang()
 
     def _refresh_map(self):
         '''
