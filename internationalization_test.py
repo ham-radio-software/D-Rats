@@ -38,11 +38,28 @@ def main():
 
     # Need to find out how to auto select locale from the environment and
     # default to english if it is not specified.
+    
+    # setting locale folder
+    localedir="./locale"
+    print("Localedir: ", localedir)
+    
+    # Available languages for D-rats are:
+    #  locales = {"Dutch" : "nl",
+    #             "English" : "en",
+    #             "German" : "de",
+    #             "Italian" : "it",
+    #             "Spanish" : "es",
+    #            }
+
+    # Note from Maurizio: While waiting to load from D-Rats config, I am forcing language to see
+    #    if it gets loaded as in D-rats gettext does't make any visible effect
     lang = gettext.translation("D-RATS",
-                               localedir="locale",
+                               localedir,
+                               languages=['de'], #forcing to DE
                                fallback=True)
     lang.install()
     _ = lang.gettext
+
 
     # We should use a package to parse configuration options here
     # for now this will be need to be edited as needed.
