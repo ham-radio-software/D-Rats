@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: D-Rats-EV\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-06-22 17:33+0200\n"
-"PO-Revision-Date: 2023-06-27 02:25+0200\n"
+"PO-Revision-Date: 2023-06-27 13:54+0200\n"
 "Last-Translator: IZ2LXI maurizio \n"
 "Language-Team: \n"
 "Language: es\n"
@@ -49,7 +49,7 @@ msgstr "HELLO_WORLD"
 
 #: internationalization_test.py:77
 msgid "COMMAND ARGS NOT IMPLEMENTED!"
-msgstr "ES: tobetransatesd -- COMMAND ARGS NOT IMPLEMENTED! --"
+msgstr "(ES) COMMAND ARGS NOT IMPLEMENTED! --"
 
 #: internationalization_test.py:80
 #, fuzzy
