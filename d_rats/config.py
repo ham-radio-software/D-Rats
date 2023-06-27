@@ -2684,7 +2684,7 @@ class DratsConfig(configparser.ConfigParser):
             return configparser.ConfigParser.getboolean(self, sec, key,
                                                         fallback=False)
         except ValueError:
-            self.logger.info("Failed to get boolean: %s/%s", sec, key)
+            self.logger.debug("Failed to get boolean: %s/%s", sec, key)
             return False
 
     # This is an intentional method override.
@@ -2713,7 +2713,7 @@ class DratsConfig(configparser.ConfigParser):
             ret_val = configparser.ConfigParser.getint(self, section, key)
         except ValueError:
             ret_val_str = configparser.ConfigParser.get(self, section, key)
-            self.logger.info(
+            self.logger.debug(
                 "Error in config file: %s/%s data %s is not an int",
                 section, key, ret_val_str)
             ret_val = int(float(ret_val_str))
