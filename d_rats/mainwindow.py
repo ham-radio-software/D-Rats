@@ -57,7 +57,8 @@ from d_rats.version import \
     AUTHORS, \
     COPYRIGHT, \
     TRANSLATIONS, \
-    WEBSITE
+    WEBSITE,\
+    LICENSE
 
 from d_rats import formbuilder
 from d_rats import signals
@@ -86,7 +87,7 @@ class MainWindow(MainWindowElement):
     def __init__(self, application):
         config = application.config
         wtree = Gtk.Builder()
-        wtree.set_translation_domain("D-RATS")
+        wtree.set_translation_domain('D-RATS')
         
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
@@ -215,7 +216,8 @@ class MainWindow(MainWindowElement):
         dialog.set_comments(DRATS_DESCRIPTION)
         dialog.set_translator_credits(TRANSLATIONS)
         dialog.set_comments(verinfo)
-
+        #dialog.set_license(LICENSE)
+        dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.run()
         dialog.destroy()
 
