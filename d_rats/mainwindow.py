@@ -31,6 +31,8 @@ import subprocess
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+
 from gi.repository import GLib
 
 if not '_' in locals():
@@ -207,7 +209,7 @@ class MainWindow(MainWindowElement):
             Gtk.MAJOR_VERSION,
             Gtk.MINOR_VERSION,
             Gtk.MICRO_VERSION)
-
+        
         dialog.set_name(DRATS_NAME)
         dialog.set_version(DRATS_VERSION)
         dialog.set_copyright(COPYRIGHT)
@@ -218,6 +220,12 @@ class MainWindow(MainWindowElement):
         dialog.set_comments(verinfo)
         #dialog.set_license(LICENSE)
         dialog.set_license_type(Gtk.License.GPL_3_0)
+        
+        
+        logo = GdkPixbuf.Pixbuf.new_from_file_at_size("d-rats2.png", 64, 64)
+        #dialog.set_logo_icon_name(None)
+        dialog.set_logo(logo)
+        
         dialog.run()
         dialog.destroy()
 
