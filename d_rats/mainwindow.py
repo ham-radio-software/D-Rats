@@ -222,7 +222,7 @@ class MainWindow(MainWindowElement):
         dialog.set_license_type(Gtk.License.GPL_3_0)
         
         
-        logo = GdkPixbuf.Pixbuf.new_from_file_at_size("d-rats2.png", 64, 64)
+        logo = GdkPixbuf.Pixbuf.new_from_file_at_size("images/d-rats2.png", 64, 64)
         #dialog.set_logo_icon_name(None)
         dialog.set_logo(logo)
         
