@@ -984,10 +984,10 @@ class MainApp(Gtk.Application):
         '''Refresh Language.'''
         # load the localized labels
         locales = {"Dutch" : "nl",
-                   "English" : "en",
-                   "German" : "de",
-                   "Italian" : "it",
-                   "Spanish" : "es",
+                 "English" : "en",
+                  "German" : "de",
+                 "Italian" : "it",
+                 "Spanish" : "es",
                    }
         locale = locales.get(self.config.get("prefs", "language"), "English")
         self.logger.info("_refresh_lang: Setting locale to: `%s'", locale)
@@ -999,6 +999,11 @@ class MainApp(Gtk.Application):
         
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
+
+        #forcing language to be set as configured by the user
+        os.environ["LANGUAGE"] = locale
+
+        self.logger.info("OS Locale set to: %s", os.environ["LANGUAGE"]) 
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
@@ -1011,7 +1016,7 @@ class MainApp(Gtk.Application):
             #Gtk.glade.bindtextdomain("D-RATS", localedir)
             #Gtk.glade.textdomain("D-RATS")            
         except FileNotFoundError:
-            self.logger.error("_refresh_lang: Messages catalog file missing "
+            self.logger.error("_refresh_lang: Messages catalog file missing ",
                               " for %s.  Need to use 'msgfmt tool to generate.",
                               locale)
             gettext.install("D-RATS")
