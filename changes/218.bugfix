@@ -1,3 +1,3 @@
 Fix loading of translations #218
 Updated About Dialog 
-Added recoures folder for icons and images and moved *.ico into it
+Moved icons into images folder for icons and images and moved *.ico into it
