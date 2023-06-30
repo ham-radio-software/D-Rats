@@ -13,25 +13,6 @@ APP_NAME = "D-RATS"
 class MultiLanguageApp(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title=_("D-RATS"))
-        self.set_default_size(250, 150)
-
-        # Create a label
-        label = Gtk.Label()
-        label.set_label(_("HELLO_WORLD"))
-
-        # Create a button
-        button = Gtk.Button.new_with_label(_("Click Me"))
-
-        # Connect button click event
-        button.connect("clicked", self.on_button_clicked)
-
-        # Create a vertical box and add the label and button to it
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.pack_start(label, True, True, 0)
-        box.pack_start(button, True, True, 0)
-
-        # Add the box to the window
-        self.add(box)
 
         # D-RATS IMPORTED INTERFACE
         # Update the text of translatable objects from the Glade file
@@ -62,12 +43,6 @@ class MultiLanguageApp(Gtk.Window):
 
 
 
-
-    def on_button_clicked(self, button):
-        print(_("HELLO_WORLD"))
-        label_from_builder = wtree.get_object("main_menu_importmsg")
-        label_from_builder.set_label(_("IMPORTATO"))    
-
     def run(self):
         self.show_all()
         Gtk.main()
@@ -82,8 +57,6 @@ def main():
     os.environ["PYTHONUTF8"] = "1"
 
     # Initialize gettext for localization
-    gettext.bindtextdomain(APP_NAME, "locale")
-    gettext.textdomain(APP_NAME)
     gettext.bindtextdomain(APP_NAME, "locale")
     gettext.textdomain(APP_NAME)
 
