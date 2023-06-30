@@ -19,6 +19,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+
+#The script imports the required modules and libraries, including GTK, logging, and subprocess.
+#It defines a class called MainWindow that inherits from MainWindowElement.
+#The MainWindow class initializes the main window by loading a Glade UI file (mainwindow.glade) using Gtk.Builder().
+#The UI elements are accessed and stored in instance variables of the MainWindow class.
+#Various signals and event handlers are defined for menu items and buttons.
+#The MainWindow class has methods to handle actions such as saving and quitting, displaying the About dialog, opening the debug log, opening the preferences dialog, showing the map display, managing message templates, pinging a station, connecting to the internet, managing station pane visibility, executing dquery commands, and starting a local D-RATS repeater.
+#The MainWindow class also connects these actions to the corresponding menu items and buttons.
+#The script sets up the main window and starts the GTK main loop.
+
+
+
+
 from __future__ import absolute_import
 from __future__ import print_function
 
@@ -130,6 +143,21 @@ class MainWindow(MainWindowElement):
             self._window.set_default_size(height, width)
         else:
             self._window.resize(height, width)
+        
+        # Retrieve other translatable objects and set their text
+        label_from_builder = wtree.get_object("main_menu_bcast")
+        label_from_builder.set_label(_("Broadcast Text File"))
+        
+        label_from_builder = wtree.get_object("main_menu_exportmsg")                                      
+        label_from_builder.set_label(_("Export Message"))
+
+        label_from_builder = wtree.get_object("main_menu_importmsg")
+        label_from_builder.set_label(_("Import Message"))        
+        self.logger.info(" ********************  MAIN WINDOW ***** %s", (_("HELLO_WORLD")))
+         
+        button_from_builder = wtree.get_object("button1")
+        button_from_builder.set_label(_("Click Me"))
+
 
         try:
             # Pylance can not detect this import on a linux system.
@@ -144,18 +172,7 @@ class MainWindow(MainWindowElement):
 
         self._window.show()
   
-        # Retrieve other translatable objects and set their text
-        label_from_builder = wtree.get_object("main_menu_bcast")
-        label_from_builder.set_label(_("Broadcast Text File"))
-        
-        label_from_builder = wtree.get_object("main_menu_exportmsg")                                      
-        label_from_builder.set_label(_("Export Message"))
 
-        label_from_builder = wtree.get_object("main_menu_importmsg")
-        label_from_builder.set_label(_("HELLO_WORLD"))        
-        self.logger.info(" ********************  MAIN WINDOW ***** %s", (_("HELLO_WORLD")))
-        button_from_builder = wtree.get_object("button1")
-        button_from_builder.set_label(_("Click Me"))
 
 
   
