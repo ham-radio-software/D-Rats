@@ -51,7 +51,7 @@ class MultiLanguageApp(Gtk.Window):
         label_from_builder.set_label(_("Export Message"))
 
         label_from_builder = wtree.get_object("main_menu_importmsg")
-        label_from_builder.set_label(_("main_menu_exportmsg"))        
+        label_from_builder.set_label(_("Import Message"))        
         
         button_from_builder = wtree.get_object("button1")
         button_from_builder.set_label(_("Click Me"))
@@ -64,7 +64,9 @@ class MultiLanguageApp(Gtk.Window):
 
 
     def on_button_clicked(self, button):
-        print(_("Button clicked!"))
+        print(_("HELLO_WORLD"))
+        label_from_builder = wtree.get_object("main_menu_importmsg")
+        label_from_builder.set_label(_("IMPORTATO"))    
 
     def run(self):
         self.show_all()
