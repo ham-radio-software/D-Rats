@@ -91,8 +91,10 @@ class MainWindow(MainWindowElement):
         wtree = Gtk.Builder()
         wtree.set_translation_domain('D-RATS')
         
+        #Loading Glade UI
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
+
         MainWindowElement.__init__(self, wtree, config)
         self._application = application
         self._window = self._wtree.get_object("mainwindow")
@@ -141,6 +143,22 @@ class MainWindow(MainWindowElement):
             pass
 
         self._window.show()
+  
+        # Retrieve other translatable objects and set their text
+        label_from_builder = wtree.get_object("main_menu_bcast")
+        label_from_builder.set_label(_("Broadcast Text File"))
+        
+        label_from_builder = wtree.get_object("main_menu_exportmsg")                                      
+        label_from_builder.set_label(_("Export Message"))
+
+        label_from_builder = wtree.get_object("main_menu_importmsg")
+        label_from_builder.set_label(_("HELLO_WORLD"))        
+        self.logger.info(" ********************  MAIN WINDOW ***** %s", (_("HELLO_WORLD")))
+        button_from_builder = wtree.get_object("button1")
+        button_from_builder.set_label(_("Click Me"))
+
+
+  
 
         GLib.timeout_add(3000, self.__update_status)
 
