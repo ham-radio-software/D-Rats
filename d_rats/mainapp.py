@@ -992,20 +992,17 @@ class MainApp(Gtk.Application):
                  "Spanish" : "es",
                    }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        self.logger.info("_refresh_lang: Setting locale to: `%s'", locale)
+        self.logger.info("_refresh_lang: ***** Setting locale to: `%s'", locale)
 
         localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
-        self.logger.info("_refresh_lang: Setting localedirfromconfig to: %s", localedirfromconfig)
+        self.logger.info("_refresh_lang: ***** Setting localedirfromconfig to: %s", localedirfromconfig)
         
         
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
 
-        #forcing language to be set as configured by the user
-        os.environ["LANGUAGE"] = locale
-
-        self.logger.info("OS Locale set to: %s", os.environ["LANGUAGE"]) 
+        self.logger.info("_refresh_lang: ***** OS Locale set to: %s", os.environ["LANGUAGE"]) 
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
@@ -1015,7 +1012,7 @@ class MainApp(Gtk.Application):
                                        languages=[locale])
             lang.install()
             _ = lang.gettext         
-            #Gtk.glade.bindtextdomain("D-RATS", localedir)
+            #Gtk.glade.bindtextdomain("D-RATS", localedirfromconfig)
             #Gtk.glade.textdomain("D-RATS")            
         except FileNotFoundError:
             self.logger.error("_refresh_lang: Messages catalog file missing ",
