@@ -95,7 +95,6 @@ class MapTile():
     _proxy = None
     _tile_lifetime = 0
     _zoom = 0
-    _fudge = {'x': 2, 'y': 12.5}
     _num_tiles = 0
     _map_widget = None
     _tilesize = 256
@@ -121,7 +120,6 @@ class MapTile():
             self.x_tile, self.y_tile, self.x_fraction, self.y_fraction = \
                self.deg2tile(self.position)
             # Convert the tile coordinates back to the latitude, longitude
-            # as a possible way to determine a future fudge factor.
             self.tile_position = self.num2deg(self.x_tile + self.x_fraction,
                                               self.y_tile + self.y_fraction)
         else:
@@ -291,17 +289,16 @@ class MapTile():
         # off by this approximate amount, which seems to be
         # related to the zoom level until zoom level 14, and
         # then becomes constant.
-        divisor = 2 ** (18 - cls._zoom)
-        # cls._fudge['x'] = max(16 / divisor, 2)
-        cls._fudge['x'] = 0
-        cls._fudge['y'] = max(208 / (divisor), 12)
-        cls.logger.debug("fudge %s", cls._fudge)
+        cls.logger.info("zoom: x_tile %s y_tile %s",
+                        cls.center.x_tile, cls.center.y_tile)
+        cls._set_x_origin()
         if not cls._center:
             return
-        cls._set_x_origin()
 
     # The deg2xxx functions derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+    # On Jul 1, 2023, the python example there is wrong,
+    # look at the algorithm and the ruby example.
     @classmethod
     def deg2num(cls, position):
         '''
@@ -351,8 +348,8 @@ class MapTile():
         x_tile_decimal, y_tile_decimal = cls.deg2num(position)
         x_tile_decimal -= cls._x_origin
         y_tile_decimal -= cls._y_origin
-        x_display = (x_tile_decimal * cls._tilesize) + cls._fudge['x']
-        y_display = y_tile_decimal * cls._tilesize - cls._fudge['y']
+        x_display = x_tile_decimal * cls._tilesize
+        y_display = y_tile_decimal * cls._tilesize
         return (x_display, y_display)
 
     # The deg2num function derived from:
@@ -394,8 +391,8 @@ class MapTile():
         :returns: Map position in longitude and latitude degrees
         :rtype: :class:`Map.MapPosition`
         '''
-        x_tile_decimal = (display_x - cls._fudge['x']) / cls._tilesize
-        y_tile_decimal = (display_y + cls._fudge['y']) / cls._tilesize
+        x_tile_decimal = (display_x ) / cls._tilesize
+        y_tile_decimal = (display_y ) / cls._tilesize
         cls.logger.info("x_tile %f, y_tile %f",
                         x_tile_decimal, y_tile_decimal)
 
