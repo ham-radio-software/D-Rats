@@ -285,15 +285,9 @@ class MapTile():
         '''
         cls._zoom = zoom
         cls._num_tiles = pow(2, cls._zoom)
-        # For some unknown reason positions on the map are
-        # off by this approximate amount, which seems to be
-        # related to the zoom level until zoom level 14, and
-        # then becomes constant.
-        cls.logger.info("zoom: x_tile %s y_tile %s",
-                        cls.center.x_tile, cls.center.y_tile)
-        cls._set_x_origin()
         if not cls._center:
             return
+        cls._set_x_origin()
 
     # The deg2xxx functions derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
