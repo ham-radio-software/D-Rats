@@ -385,11 +385,8 @@ class MapTile():
         :returns: Map position in longitude and latitude degrees
         :rtype: :class:`Map.MapPosition`
         '''
-        x_tile_decimal = (display_x ) / cls._tilesize
-        y_tile_decimal = (display_y ) / cls._tilesize
-        cls.logger.info("x_tile %f, y_tile %f",
-                        x_tile_decimal, y_tile_decimal)
-
+        x_tile_decimal = display_x / cls._tilesize
+        y_tile_decimal = display_y / cls._tilesize
         tile_pos = cls.num2deg(x_tile_decimal + cls._x_origin,
                                y_tile_decimal + cls._y_origin)
         return tile_pos
