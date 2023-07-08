@@ -110,16 +110,16 @@ class MapTile():
     center = None
     _last_fetch_time = None
     _last_fetch_lock = threading.Lock()
+    logger = logging.getLogger("MapTile")
+
 
     def __init__(self, position=None, x_axis=None, y_axis=None):
 
-        self.logger = logging.getLogger("MapTile")
         if position:
             self.position = position
             self.x_tile, self.y_tile, self.x_fraction, self.y_fraction = \
                self.deg2tile(self.position)
             # Convert the tile coordinates back to the latitude, longitude
-            # as a possible way to determine a future fudge factor.
             self.tile_position = self.num2deg(self.x_tile + self.x_fraction,
                                               self.y_tile + self.y_fraction)
         else:
@@ -291,6 +291,8 @@ class MapTile():
 
     # The deg2xxx functions derived from:
     #   http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+    # On Jul 1, 2023, the python example there is wrong,
+    # look at the algorithm and the ruby example.
     @classmethod
     def deg2num(cls, position):
         '''
