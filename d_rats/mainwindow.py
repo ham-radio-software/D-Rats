@@ -100,17 +100,63 @@ class MainWindow(MainWindowElement):
     logger = logging.getLogger("MainWindow")
 
     def __init__(self, application):
+
+        
         config = application.config
         wtree = Gtk.Builder()
         wtree.set_translation_domain('D-RATS')
 
+        
         #Loading Glade UI
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
-
         MainWindowElement.__init__(self, wtree, config)
+        
+        # Reapply gettect configuration to have UI labels translated
+        gettext.bindtextdomain('D-RATS', "locale")
+        gettext.textdomain('D-RATS')        
+        _ = gettext.gettext
+        
         self._application = application
         self._window = self._wtree.get_object("mainwindow")
+        
+        # Retrieve other translatable objects and set their text
+        self.logger.info(" Forcing UI labels translation:") 
+        
+        label_from_builder = wtree.get_object("mnu_tools")
+        label_from_builder.set_label(_("Tools"))
+        label_from_builder = wtree.get_object("main_menu_importmsg")
+        label_from_builder.set_label(_("Import Message"))       
+        label_from_builder = wtree.get_object("main_menu_exportmsg")                                      
+        label_from_builder.set_label(_("Export Message"))
+        label_from_builder = wtree.get_object("main_menu_msgtemplates")
+        label_from_builder.set_label(_("Message Templates"))
+        label_from_builder = wtree.get_object("main_menu_ping")
+        label_from_builder.set_label(_("Ping Station"))
+        label_from_builder = wtree.get_object("main_menu_conninet")
+        label_from_builder.set_label(_("Connected to Internet"))
+        label_from_builder = wtree.get_object("menuitem3")
+        label_from_builder.set_label(_("_View"))                
+        
+        label_from_builder = wtree.get_object("menuitem4") 
+        label_from_builder.set_label(_("_Help"))
+        label_from_builder = wtree.get_object("main_menu_debuglog")
+        label_from_builder.set_label(_("Show debug log"))
+        label_from_builder = wtree.get_object("main_menu_about")
+        label_from_builder.set_label(_("About"))
+        
+        
+        label_from_builder = wtree.get_object("tab_label_msg")
+        #label_from_builder.set_text(_("Messages"))      
+        
+        #Event Log Tab
+        label_from_builder = wtree.get_object("label6")
+        label_from_builder.set_label(_("Show event type:"))        
+        label_from_builder = wtree.get_object("label7")
+        label_from_builder.set_label(_("Containing text:")) 
+      
+        #------------
+        
         self._window.set_application(application)
         self._tabs = self._wtree.get_object("main_tabs")
         self._tabs.connect("switch-page", self._tab_switched)
@@ -144,20 +190,7 @@ class MainWindow(MainWindowElement):
         else:
             self._window.resize(height, width)
         
-        # At this point the configuration of the locale seems lost.
-        # Retrieve other translatable objects and set their text
-        self.logger.info(" Try to force UI labels translation: Broadcast Text File: %s", _("Broadcast Text File")) 
-        label_from_builder = wtree.get_object("main_menu_bcast")
-        label_from_builder.set_label(_("Broadcast Text File"))
-        self.logger.info(" Try to force UI labels translation: Export Message: %s", _("Export Message")) 
-        label_from_builder = wtree.get_object("main_menu_exportmsg")                                      
-        label_from_builder.set_label(_("Export Message"))
-        label_from_builder = wtree.get_object("main_menu_importmsg")
-        label_from_builder.set_label(_("Import Message"))        
-        button_from_builder = wtree.get_object("button1")
-        button_from_builder.set_label(_("Click Me"))
-        self.logger.info(" translation checkpoint after forcing UI labels %s", (_("HELLO_WORLD")))
-         
+
         try:
             # Pylance can not detect this import on a linux system.
             import gtkmacintegration # type: ignore
