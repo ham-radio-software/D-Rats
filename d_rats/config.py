@@ -37,9 +37,11 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
+from .keyedlistwidget import KeyedListWidget
 from .filenamebox import FilenameBox
+from .latlonentry import LatLonEntry
 from . import utils
-from . import miscwidgets
+from .miscwidgets import make_choice
 from . import inputdialog
 
 from .dplatform import Platform
@@ -689,7 +691,7 @@ class DratsConfigWidget(Gtk.Box):
         if self.value not in choices:
             choices.append(self.value)
 
-        widget = miscwidgets.make_choice(choices, editable, self.value)
+        widget = make_choice(choices, editable, self.value)
         widget.connect("changed", changed)
         widget.set_size_request(size, -1)
         widget.show()
@@ -735,7 +737,7 @@ class DratsConfigWidget(Gtk.Box):
             LatlonEntry changed handler.
 
             :param entry: Entry widget
-            :type entry: :class:`miscwidgets.LatLonEntry`
+            :type entry: :class:`latlonentry.LatLonEntry`
             :param conf_widget: Configuration Widgets
             :type conf_widget: :class:`DratsConfigWidget`
             '''
@@ -747,7 +749,7 @@ class DratsConfigWidget(Gtk.Box):
                 self.logger.debug("Invalid Coords: %s", err)
                 conf_widget.value = "0"
 
-        entry = miscwidgets.LatLonEntry()
+        entry = LatLonEntry()
         entry.connect("changed", changed, self)
         self.logger.debug("Setting LatLon value: %s", self.value)
         entry.set_text(self.value)
@@ -969,19 +971,19 @@ class DratsListConfigWidget(DratsConfigWidget):
             List Widget item-set handler.
 
             :param _widget: Widget signaled, unused
-            :type _widget: :class:`miscwidgets.KeyedListWidget`
+            :type _widget: :class:`keyedlistWidget.KeyedListWidget`
             :param _key: key for widget, unused
             :type _key: any
             '''
 
-        list_widget = miscwidgets.KeyedListWidget(cols)
+        list_widget = KeyedListWidget(cols)
 
         def item_toggled(_widget, _ident, _value):
             '''
             List Widget item-toggled handler
 
             :param _widget: Widget signaled, unused
-            :type _widget: :class:`miscwidgets.KeyedListWidget`
+            :type _widget: :class:`keyedwidget.KeyedListWidget`
             :param _ident: Identification item toggled
             :type _ident: str
             :param _value: Toggled value
@@ -2118,8 +2120,8 @@ class DratsInEmailPanel(DratsPanel):
         dlg = inputdialog.FieldDialog()
         for n_field, t_field, d_field in fields:
             if n_field in list(self.choices.keys()):
-                entry = miscwidgets.make_choice(self.choices[n_field],
-                                                False, d_field)
+                entry = make_choice(self.choices[n_field],
+                                    False, d_field)
             elif n_field == _("Password"):
                 entry = Gtk.Entry()
                 entry.set_visibility(False)
@@ -2356,8 +2358,8 @@ class DratsEmailAccessPanel(DratsPanel):
         dlg = inputdialog.FieldDialog()
         for n_field, t_field, d_field in fields:
             if n_field in list(self.choices.keys()):
-                choice = miscwidgets.make_choice(self.choices[n_field],
-                                                 False, d_field)
+                choice = make_choice(self.choices[n_field],
+                                     False, d_field)
             else:
                 choice = Gtk.Entry()
                 choice.set_text(str(d_field))

@@ -38,8 +38,9 @@ from gi.repository import GObject
 
 from ..dplatform import Platform
 from .. import inputdialog
+from ..latlonentry import LatLonEntry
 from .. import map_sources
-from .. import miscwidgets
+from ..treewidget import SetItemError
 from .. import signals
 from .. import map_source_editor
 from ..gps import GPSPosition
@@ -810,8 +811,8 @@ class MapWindow(Gtk.ApplicationWindow):
         desc_e = Gtk.Entry()
         desc_e.set_max_length(20)
         dialog.add_field(_("Description"), desc_e)
-        dialog.add_field(_("Latitude"), miscwidgets.LatLonEntry())
-        dialog.add_field(_("Longitude"), miscwidgets.LatLonEntry())
+        dialog.add_field(_("Latitude"), LatLonEntry())
+        dialog.add_field(_("Longitude"), LatLonEntry())
         if self._newcenter:
             lat = self._newcenter.latitude
             lon = self._newcenter.longitude
@@ -1112,7 +1113,7 @@ class MapWindow(Gtk.ApplicationWindow):
                                       point.get_longitude(),
                                       center.distance_from(this),
                                       center.bearing_to(this))
-        except miscwidgets.SetItemError as err:
+        except SetItemError as err:
             if str(err) == "Item not found":
                 # this is evil
                 self.logger.info("Adding point instead of updating")
