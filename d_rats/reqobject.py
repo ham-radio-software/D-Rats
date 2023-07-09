@@ -27,7 +27,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
-from . import miscwidgets
+from .keyedlistwidget import KeyedListWidget
 
 if not '_' in locals():
     import gettext
@@ -42,14 +42,15 @@ class RequestRemoteObjectUI(Gtk.Dialog):
     :param _station: Unused
     :param _parent: parent widget, default None
     '''
+    logger = logging.getLogger("RequestRemoteObjectUI")
+
     def __init__(self, _rpcsession, _station, parent=None):
         Gtk.Dialog.__init__(self, parent=parent)
 
-        self.logger = logging.getLogger("RequestRemoteObjectUI")
         self.set_title(_("Request remote object"))
         self.add_button(_("Retrieve"), Gtk.ResponseType.OK)
         self.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
-        self.__list = miscwidgets.KeyedListWidget(\
+        self.__list = KeyedListWidget(
             [(GObject.TYPE_STRING, "_ID"),
              (GObject.TYPE_STRING, "Name"),
              (GObject.TYPE_STRING, "Info")])

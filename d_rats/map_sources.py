@@ -224,10 +224,10 @@ def _xdoc_getnodeval(doc, nodespec, namespaces=None):
 class MapPointThreaded(MapPoint):
     '''Map Point Threaded.'''
 
+    logger = logging.getLogger("MapPointThreaded")
     def __init__(self):
         MapPoint.__init__(self)
 
-        self.logger = logging.getLogger("MapPointThreaded")
         self.__thread = None
         self.__ts = 0
 
@@ -260,10 +260,10 @@ class MapUSGSRiver(MapPointThreaded):
 
     :param site: Site information.
     '''
+    logger = logging.getLogger("MapUSGSRiver")
 
     def __init__(self, site):
         MapPointThreaded.__init__(self)
-        self.logger = logging.getLogger("MapUSGSRiver")
         self.__site = site
         self.__have_site = False
         self._height_ft = None
@@ -358,10 +358,10 @@ class MapNBDCBuoy(MapPointThreaded):
 
     :param buoy: Buoy information
     '''
+    logger = logging.getLogger("MapNBDCBuoy")
 
     def __init__(self, buoy):
         MapPointThreaded.__init__(self)
-        self.logger = logging.getLogger("MapNBDCBuoy")
         self.__buoy = buoy
         self.__url = "http://www.ndbc.noaa.gov/data/latest_obs/%s.rss" % buoy
 
@@ -581,29 +581,30 @@ class MapFileSource(MapSource):
     :param _create: Unused default to False
     :type _create: bool
     '''
+    logger = logging.getLogger("MapFileSource")
 
     def __init__(self, name, description, filename, _create=False):
         MapSource.__init__(self, name, description)
 
-        self.logger = logging.getLogger("MapFileSource")
         self._fn = filename
 
         self._need_save = 0
 
+        lines = []
         try:
-            input_handle = open(filename)
+            with open(filename) as input_handle:
+                lines = input_handle.read().splitlines()
         except (PermissionError, FileNotFoundError) as err:
             msg = "Failed to open %s: %s" % (filename, err)
             self.logger.info("Failed to open %s: %s")
-            # pylint: disable=raise-missing-from
-            raise MapSourceFailedToConnect(msg)
+            raise MapSourceFailedToConnect(msg) from err
 
-        lines = input_handle.readlines()
         for line in lines:
-            try:
-                point = self.__parse_line(line)
-            except MapSourcePointError:
-                continue
+            if line:
+                try:
+                    point = self.__parse_line(line)
+                except MapSourcePointError:
+                    continue
 
             self._points[point.get_name()] = point
 
@@ -653,10 +654,10 @@ class MapFileSource(MapSource):
 
         try:
             ident, icon, lat, lon, alt, comment, show = line.split(",", 6)
-        except ValueError:
-            self.logger.info("parse_line failed (%s)")
-            # pylint: disable=raise-missing-from
-            raise MapSourcePointError
+        except ValueError as err:
+            self.logger.info("parse_line failed in file %s (%s)",
+                             self._fn, line)
+            raise MapSourcePointError from err
 
         if alt:
             alt = float(alt)
@@ -673,17 +674,19 @@ class MapFileSource(MapSource):
     def save(self):
         '''Save.'''
         self._need_save = 0
-        handle = open(self._fn, "w")
+        # This needs to be a CSV or a YAML save routine.
+        with open(self._fn, "w") as handle:
 
-        for point in self.get_points():
-            handle.write("%s,%s,%f,%f,%f,%s,%s%s" % (point.get_name(),
-                                                     point.get_aprs_symbol(),
-                                                     point.get_latitude(),
-                                                     point.get_longitude(),
-                                                     point.get_altitude(),
-                                                     point.get_comment(),
-                                                     point.get_visible(),
-                                                     os.linesep))
+            for point in self.get_points():
+                handle.write("%s,%s,%f,%f,%f,%s,%s%s" %
+                             (point.get_name(),
+                              point.get_aprs_symbol(),
+                              point.get_latitude(),
+                              point.get_longitude(),
+                              point.get_altitude(),
+                              point.get_comment(),
+                              point.get_visible(),
+                              os.linesep))
         handle.close()
 
     def get_filename(self):
@@ -713,8 +716,8 @@ class MapUSGSRiverSource(MapSource):
                 point = MapUSGSRiver(site)
                 point.connect("updated", self._point_updated)
 
-    @staticmethod
-    def open_source_by_name(config, name, _create=False):
+    @classmethod
+    def open_source_by_name(cls, config, name, _create=False):
         '''
         Open Source By Name.
 
@@ -739,9 +742,8 @@ class MapUSGSRiverSource(MapSource):
             # pylint: disable=no-member
             _name = config.get("rivers", "%s.label" % name)
         except (NoSectionError, NoOptionError):
-            logger = logging.getLogger("MapUSGSRiverSource_static:")
-            logger.info("_open_source_by_name: No option %s.label",
-                        name, exc_info=True)
+            cls.logger.info("_open_source_by_name: No option %s.label",
+                            name, exc_info=True)
             _name = name
 
         return MapUSGSRiverSource(_name, "NWIS Rivers", *sites)
@@ -817,8 +819,8 @@ class MapNBDCBuoySource(MapSource):
             point = MapNBDCBuoy(buoy)
             point.connect("updated", self._point_updated)
 
-    @staticmethod
-    def open_source_by_name(config, name, _create=False):
+    @classmethod
+    def open_source_by_name(cls, config, name, _create=False):
         '''
         Open Source By Name.
 
@@ -843,12 +845,10 @@ class MapNBDCBuoySource(MapSource):
             # pylint: disable=no-member
             _name = config.get("buoys", "%s.label" % name)
         except (NoSectionError, NoOptionError):
-            logger = logging.getLogger("MapNBDCBuoySource")
-            logger.info("_open_source_by_name: No option %s.label",
-                        name, exc_info=True)
+            cls.logger.info("_open_source_by_name: No option %s.label",
+                            name, exc_info=True)
             _name = name
-        # pylint: disable=unnecessary-comprehension, consider-using-generator
-        sites = tuple([x for x in _sites])
+        sites = tuple(x for x in _sites)
 
         return MapNBDCBuoySource(_name, "NBDC Buoys", *sites)
 

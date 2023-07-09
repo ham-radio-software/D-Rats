@@ -29,7 +29,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
-from .. import miscwidgets
+from ..treewidget import TreeWidget
 from .. import map as Map
 
 # This makes pylance happy with out overriding settings
@@ -39,7 +39,7 @@ if not '_' in locals():
     _ = gettext.gettext
 
 
-class MapMarkerList(miscwidgets.TreeWidget):
+class MapMarkerList(TreeWidget):
     '''
     Map Marker List.
     :param map_window: Parent Map window
@@ -53,7 +53,7 @@ class MapMarkerList(miscwidgets.TreeWidget):
                (GObject.TYPE_FLOAT, _("Direction"))]
 
     def __init__(self, map_window):
-        miscwidgets.TreeWidget.__init__(self, self.columns, 1, parent=False)
+        TreeWidget.__init__(self, self.columns, 1, parent=False)
         self.map_window = map_window
         self.toggle_cb.append(self.map_window.toggle_show)
         self.connect("click-on-list", self.map_window.make_marker_popup)

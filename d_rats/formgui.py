@@ -41,7 +41,8 @@ if not '_' in locals():
 
 MODULE_LOGGER = logging.getLogger("Formgui")
 
-from .miscwidgets import make_choice, KeyedListWidget
+from .keyedlistwidget import KeyedListWidget
+from .miscwidgets import make_choice
 from .utils import run_or_error
 from .ui.main_common import ask_for_confirmation
 from .dplatform import Platform

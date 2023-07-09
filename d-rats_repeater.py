@@ -49,8 +49,8 @@ from d_rats.version import DRATS_VERSION
 from d_rats.dplatform import Platform
 from d_rats import transport
 from d_rats import comm
+from d_rats.listwidget import ListWidget
 from d_rats.miscwidgets import make_choice
-from d_rats import miscwidgets
 from d_rats.config import prompt_for_port
 
 
@@ -750,8 +750,8 @@ class RepeaterGUI(RepeaterUI):
 
         hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 2)
 
-        self.dev_list = miscwidgets.ListWidget([(GObject.TYPE_STRING, "Device"),
-                                                (GObject.TYPE_STRING, "Param")])
+        self.dev_list = ListWidget([(GObject.TYPE_STRING, "Device"),
+                                    (GObject.TYPE_STRING, "Param")])
         self.dev_list.show()
         self.load_devices()
 
@@ -993,7 +993,7 @@ class RepeaterGUI(RepeaterUI):
         '''
         frame = Gtk.Frame.new("Connected Paths")
 
-        idlist = miscwidgets.ListWidget([(GObject.TYPE_STRING, "ID")])
+        idlist = ListWidget([(GObject.TYPE_STRING, "ID")])
         idlist.show()
 
         self.conn_list = Gtk.ScrolledWindow()

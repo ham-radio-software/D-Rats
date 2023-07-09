@@ -2,7 +2,7 @@
 '''Geocode UI.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John Malmberg - Python 3 Conversion
+# Copyright 2021-2023 John Malmberg - Python 3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 
-from . import miscwidgets
+from .listwidget import ListWidget
 
 # setup of d-rats user_agent
 from . import version
@@ -129,12 +129,12 @@ class AddressAssistant(Gtk.Assistant):
         Make Address Selection.
 
         :returns: listbox
-        :rtype: :class:`miscwidgets.ListWidget`
+        :rtype: :class:`listwidget.ListWidget`
         '''
         cols = [(GObject.TYPE_STRING, _("Address")),
                 (GObject.TYPE_FLOAT, _("Latitude")),
                 (GObject.TYPE_FLOAT, _("Longitude"))]
-        listbox = miscwidgets.ListWidget(cols)
+        listbox = ListWidget(cols)
 
         self.vals["AddressList"] = listbox
 

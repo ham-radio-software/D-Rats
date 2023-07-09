@@ -205,8 +205,24 @@ d\_rats.inputdialog module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.latlonentry module
+--------------------------
+
+.. automodule:: d_rats.latlonentry
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.listwidget module
+-------------------------
+
+.. automodule:: d_rats.listwidget
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.lzhuf module
-----------------------
+--------------------
 
 .. automodule:: d_rats.lzhuf
     :members:
@@ -285,6 +301,14 @@ d\_rats.pluginsrv module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.progressdialog module
+-----------------------------
+
+.. automodule:: d_rats.progressdialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.qst module
 ------------------
 
@@ -345,6 +369,14 @@ d\_rats.transport module
 ------------------------
 
 .. automodule:: d_rats.transport
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.treewidget module
+-------------------------
+
+.. automodule:: d_rats.treewidget
     :members:
     :undoc-members:
     :show-inheritance:

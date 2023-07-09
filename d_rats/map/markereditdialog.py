@@ -30,6 +30,7 @@ from gi.repository import Gtk
 
 from .. import map_sources
 from .. import inputdialog
+from ..latlonentry import LatLonEntry
 from .. import miscwidgets
 from .. import utils
 from ..gps import DPRS_TO_APRS
@@ -61,9 +62,9 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         self.add_field(_("Group"), miscwidgets.make_choice([], True))
         self.name_entry = Gtk.Entry()
         self.add_field(_("Name"), self.name_entry)
-        self.lat_entry = miscwidgets.LatLonEntry()
+        self.lat_entry = LatLonEntry()
         self.add_field(_("Latitude"), self.lat_entry)
-        self.lon_entry = miscwidgets.LatLonEntry()
+        self.lon_entry = LatLonEntry()
         self.add_field(_("Longitude"), self.lon_entry)
         if self.address_assist.geocoders:
             lookup_button = Gtk.Button.new_with_label(_("By Address"))
