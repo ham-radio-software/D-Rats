@@ -992,17 +992,17 @@ class MainApp(Gtk.Application):
                  "Spanish" : "es",
                    }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        self.logger.info("_refresh_lang: ***** Setting locale to: `%s'", locale)
+        self.logger.info("_refresh_lang: Setting locale to: %s", locale)
 
         localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
-        self.logger.info("_refresh_lang: ***** Setting localedirfromconfig to: %s", localedirfromconfig)
+        self.logger.info("_refresh_lang: Setting localedirfromconfig to: %s", localedirfromconfig)
         
         
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
 
-        self.logger.info("_refresh_lang: ***** OS Locale set to: %s", os.environ["LANGUAGE"]) 
+        self.logger.info("_refresh_lang: OS Locale set to: %s", os.environ["LANGUAGE"]) 
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
@@ -1035,7 +1035,7 @@ class MainApp(Gtk.Application):
         
         #check if gettext works ...  
         try:
-            self.logger.info("_refresh_lang: gettext: Hello world: %s",(_("HELLO_WORLD"))) 
+            self.logger.info("_refresh_lang: gettext: Check Hello world translation:  %s",(_("HELLO_WORLD"))) 
         except Exception as error:
             self.logger.error("_refresh_lang: other error: %s", error)
         
@@ -1097,6 +1097,10 @@ class MainApp(Gtk.Application):
         self._refresh_gps()
         self._refresh_mail_threads()
         self._refresh_map()
+
+        # The following line is needed to force language after config load 
+        # (not having this, the language is reverted back to untranslated labels
+        # also if at D-Rats startup it was load (l))
         self._refresh_lang()
 
     def _refresh_map(self):

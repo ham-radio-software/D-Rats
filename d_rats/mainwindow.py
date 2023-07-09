@@ -103,7 +103,7 @@ class MainWindow(MainWindowElement):
         config = application.config
         wtree = Gtk.Builder()
         wtree.set_translation_domain('D-RATS')
-        
+
         #Loading Glade UI
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
@@ -144,21 +144,20 @@ class MainWindow(MainWindowElement):
         else:
             self._window.resize(height, width)
         
+        # At this point the configuration of the locale seems lost.
         # Retrieve other translatable objects and set their text
+        self.logger.info(" Try to force UI labels translation: Broadcast Text File: %s", _("Broadcast Text File")) 
         label_from_builder = wtree.get_object("main_menu_bcast")
         label_from_builder.set_label(_("Broadcast Text File"))
-        
+        self.logger.info(" Try to force UI labels translation: Export Message: %s", _("Export Message")) 
         label_from_builder = wtree.get_object("main_menu_exportmsg")                                      
         label_from_builder.set_label(_("Export Message"))
-
         label_from_builder = wtree.get_object("main_menu_importmsg")
         label_from_builder.set_label(_("Import Message"))        
-        self.logger.info(" ********************  MAIN WINDOW ***** %s", (_("HELLO_WORLD")))
-         
         button_from_builder = wtree.get_object("button1")
         button_from_builder.set_label(_("Click Me"))
-
-
+        self.logger.info(" translation checkpoint after forcing UI labels %s", (_("HELLO_WORLD")))
+         
         try:
             # Pylance can not detect this import on a linux system.
             import gtkmacintegration # type: ignore
@@ -173,9 +172,6 @@ class MainWindow(MainWindowElement):
         self._window.show()
   
 
-
-
-  
 
         GLib.timeout_add(3000, self.__update_status)
 
