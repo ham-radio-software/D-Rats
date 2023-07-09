@@ -199,26 +199,7 @@ def xml_unescape(string):
     return out
 
 
-# pylint wants at least 2 public methods
-# pylint: disable=too-few-public-methods
-class FormWriter():
-    '''Form Writer.'''
-
-    @staticmethod
-    def write(form_xml, outfile):
-        '''
-        Write.
-
-        :param form_xml: String with form in XML
-        :type form_xml: str
-        :param outfile: File to write out
-        :type outfile: str
-        '''
-        doc = etree.fromstring(form_xml)
-        doc.write(outfile, pretty_print=True)
-
-
-class HTMLFormWriter(FormWriter):
+class HTMLFormWriter():
     '''
     HTML Form Writer.
 
@@ -227,9 +208,9 @@ class HTMLFormWriter(FormWriter):
     :param xsl_dir: Directory path for xsl file
     :type xsl_dir: str
     '''
+    logger = logging.getLogger("HTMLFormWriter")
 
     def __init__(self, form_type, xsl_dir):
-        self.logger = logging.getLogger("HTMLFormWriter")
         self.xslpath = os.path.join(xsl_dir, "%s.xsl" % form_type)
         if not os.path.exists(self.xslpath):
             self.xslpath = os.path.join(xsl_dir, "default.xsl")
@@ -275,10 +256,10 @@ class FieldWidget():
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("ToggleWidget")
 
     def __init__(self, node, config):
 
-        self.logger = logging.getLogger("ToggleWidget")
         self.node = node
         self.config = config
         self.caption = "Untitled Field"
@@ -371,12 +352,12 @@ class TextWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("FieldWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
 
         text = ""
-        # if node.text and node.getchildren():
         if node.text:
             text = xml_unescape(node.text.strip())
 
@@ -412,6 +393,7 @@ class ToggleWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("ToggleWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
@@ -446,6 +428,8 @@ class MultilineWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("MultilineWidget")
+
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
@@ -520,10 +504,10 @@ class DateWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("DateWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
-        self.logger = logging.getLogger("DateWidget")
         text = node.text
         if text:
             try:
@@ -578,10 +562,10 @@ class TimeWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("TimeWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
-        self.logger = logging.getLogger("TimeWidget")
         text = ''
         if node.text:
             text = node.text.strip()
@@ -642,10 +626,11 @@ class NumericWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("NumericWidget")
+
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
 
-        self.logger = logging.getLogger("NumericWidget")
         limit = {}
         limit['min'] = 0
         limit['max'] = 1000000.0
@@ -701,17 +686,15 @@ class ChoiceWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("ChoiceWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
 
-        self.logger = logging.getLogger("ChoiceWidget")
         self.choices = []
         self.default = None
 
-        children = node.getchildren()
-
-        for child in children:
+        for child in node.iter():
             self.parse_choice(child)
 
         self.widget = make_choice(self.choices, False, self.default)
@@ -750,13 +733,11 @@ class ChoiceWidget(FieldWidget):
         if not value:
             return
 
-        children = self.node.getchildren()
-        for child in children:
-            if etree.tostring(child) == value:
-                if not child.hasProp("set"):
-                    child.newProp("set", "y")
+        for child in self.node.iter():
+            if child.text == value:
+                child.set('set', 'y')
             else:
-                child.unsetProp("set")
+                child.attrib.pop('set', None)
 
 
 class MultiselectWidget(FieldWidget):
@@ -768,17 +749,16 @@ class MultiselectWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("MultiselectWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
 
-        self.logger = logging.getLogger("MultiselectWidget")
         self.choices = []
         self.widget = self.make_selector()
         self.widget.show()
 
-        children = node.getchildren()
-        for child in children:
+        for child in node.iter():
             self.parse_choice(child)
 
     def parse_choice(self, node):
@@ -881,17 +861,12 @@ class MultiselectWidget(FieldWidget):
             vals[name] = set_value
             iter_value = self.store.iter_next(iter_value)
 
-        children = self.node.getchildren()
-        for child in children:
+        for child in self.node.iter():
             choice = etree.tostring(child).strip()
-            # pylint: disable=consider-iterating-dictionary
-            if choice not in list(vals.keys()):
+            if choice not in vals:
                 vals[choice] = False
 
-            if not child.hasProp("set"):
-                child.newProp("set", vals[choice] and "y" or "n")
-            else:
-                child.setProp("set", vals[choice] and "y" or "n")
+            child.set('set', vals[choice] and "y" or "n")
 
 
 class LabelWidget(FieldWidget):
@@ -903,6 +878,7 @@ class LabelWidget(FieldWidget):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("LabelWidget")
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
@@ -1015,9 +991,7 @@ class FormField():
         self.caption = None
         self.entry = None
 
-        children = self.node.getchildren()
-
-        for child in children:
+        for child in self.node.iter():
             if child.tag == "caption":
                 cap_node = child
             elif child.tag == "entry":
@@ -1069,15 +1043,15 @@ class FormFile():
     :type filename: str
     :raises: FormguiFormFileEmpty exception
     '''
+    logger = logging.getLogger("FormFile")
+
     def __init__(self, filename):
-        self.logger = logging.getLogger("FormFile")
         self._filename = filename
         try:
             self.doc = etree.parse(self._filename)
         except etree.XMLSyntaxError as err:
-            # pylint: disable=raise-missing-from
             raise FormguiFileNotValid("Form file %s is not valid! (%s)" %
-                                      (filename, err))
+                                      (filename, err)) from err
 
         self.fields = []
         self.xsl_dir = 'forms'
@@ -1472,10 +1446,10 @@ class FormDialog(FormFile, Gtk.Dialog):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("FormDialog")
 
     def __init__(self, title, filename, parent=None, config=None):
         self.config = config
-        self.logger = logging.getLogger("FormDialog")
         Gtk.Dialog.__init__(self, parent=parent)
         FormFile.__init__(self, filename)
 
@@ -1588,10 +1562,8 @@ class FormDialog(FormFile, Gtk.Dialog):
         :type _button: :class:`Gtk.Button`
         :param _data: Not used
         '''
-        # pylint: disable=consider-using-with
-        outfile = tempfile.NamedTemporaryFile(suffix=".html")
-        name = outfile.name
-        outfile.close()
+        with tempfile.NamedTemporaryFile(suffix=".html") as outfile:
+            name = outfile.name
         self.export(name)
 
         self.logger.info("button_printable: Exported to temporary file: %s",
@@ -1739,13 +1711,11 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param _button: Button widget
             :type _button: :class:`GtkWidget`
             '''
-            # pylint: disable=consider-using-with
             fname = Platform.get_platform().gui_open_file()
             if fname:
                 name = os.path.basename(fname)
-                file_handle = open(fname, "rb")
-                data = file_handle.read()
-                file_handle.close()
+                with open(fname, "rb") as file_handle:
+                    data = file_handle.read()
                 self.add_attachment(name, data)
                 self.attachment_box.set_item(name, name, len(data))
 
@@ -1785,13 +1755,11 @@ class FormDialog(FormFile, Gtk.Dialog):
                 return
             fname = Platform.get_platform().gui_save_file(default_name=name)
             if fname:
-                # pylint: disable=consider-using-with
-                file_handle = open(fname, "wb")
                 data = self.get_attachment(name)
                 if not data:
                     raise FormguiFileInvalidAtt("Unable to extract attachment")
-                file_handle.write(data)
-                file_handle.close()
+                with open(fname, "wb") as file_handle:
+                    file_handle.write(data)
 
         save_button = Gtk.Button.new_with_label(_("Save"))
         save_button.connect("clicked", button_save)
@@ -2012,6 +1980,7 @@ class FormDialog(FormFile, Gtk.Dialog):
                 chk_field = field
             elif field.ident == "_auto_message":
                 msg_field = field
+            # Need to figure out what needs to be fixed.
             # pylint: disable=fixme
             elif field.ident == "_auto_senderX": # FIXME
                 if not field.entry.widget.get_text():

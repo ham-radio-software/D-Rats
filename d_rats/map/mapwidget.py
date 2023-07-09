@@ -64,11 +64,11 @@ class MapWidget(Gtk.DrawingArea):
     #_color_black = None
     LAT_MAX = 90
     LON_MAX = 180
+    logger = logging.getLogger("MapWidget")
 
     def __init__(self, width, height, window=None):
         Gtk.DrawingArea.__init__(self)
 
-        self.logger = logging.getLogger("MapWidget")
         self.height = height
         self.width = width
 
@@ -89,6 +89,7 @@ class MapWidget(Gtk.DrawingArea):
 
         self.map_tiles = []
         self.map_visible = {}
+        self.scale_distance = None
 
         self.set_size_request(self.tilesize * self.width,
                               self.tilesize * self.height)
@@ -145,12 +146,11 @@ class MapWidget(Gtk.DrawingArea):
                                             width, height)
         pixbuf.savev(filename, "png", [], [])
 
-    def map_scale_pango_layout(self):
+    def zoom_changed(self):
         '''
-        Map Scale Pango Layout.
+        Map Zoom changed handling.
 
-        :returns: Map scale text in a pango layout
-        :rtype: :class:`Pango.Layout`
+        This is called when the map zoom changes to set the map scale.
         '''
         pos_a = Map.Tile.display2deg(self.tilesize, self.tilesize)
         pos_b = Map.Tile.display2deg(self.tilesize * 2, self.tilesize)
@@ -158,11 +158,21 @@ class MapWidget(Gtk.DrawingArea):
         # calculate width of one tile to show below the ladder scale
         d_width = pos_a.distance(pos_b) * (float(self.pixels) / self.tilesize)
 
-        dist = value_with_units(d_width)
+        self.scale_distance = value_with_units(d_width)
+
+    def map_scale_pango_layout(self):
+        '''
+        Map Scale Pango Layout.
+
+        :returns: Map scale text in a pango layout
+        :rtype: :class:`Pango.Layout`
+        '''
+        if not self.scale_distance:
+            self.zoom_changed()
 
         # This layout needs to be replaced when the map_widget pango_context
         # is changed.
-        pango_layout = self.create_pango_layout(dist)
+        pango_layout = self.create_pango_layout(self.scale_distance)
         return pango_layout
 
     def point_is_visible(self, point):
