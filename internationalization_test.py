@@ -37,11 +37,11 @@ def main():
 
     # Need to find out how to auto select locale from the environment and
     # default to english if it is not specified.
-    
+
     # setting locale folder
     localedir="./locale"
     print("Localedir: ", localedir)
-    
+
     # Available languages for D-rats are:
     #  locales = {"Dutch" : "nl",
     #             "English" : "en",
