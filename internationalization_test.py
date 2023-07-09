@@ -51,7 +51,7 @@ def main():
     #            }
 
     # Note from Maurizio: While waiting to load from D-Rats config, I am forcing language to see
-    #    if it gets loaded as in D-rats gettext does't make any visible effect
+    #    if it gets loaded as in D-rats gettext doesn't make any visible effect
     lang = gettext.translation("D-RATS",
                                localedir,
                                languages=['de'], #forcing to DE
