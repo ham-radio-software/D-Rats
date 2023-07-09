@@ -72,8 +72,9 @@ from d_rats.version import \
     AUTHORS, \
     COPYRIGHT, \
     TRANSLATIONS, \
-    WEBSITE,\
-    LICENSE
+    WEBSITE
+# ,\
+#    LICENSE
 
 from d_rats import formbuilder
 from d_rats import signals
