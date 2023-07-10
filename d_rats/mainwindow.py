@@ -588,7 +588,7 @@ class MainWindow(MainWindowElement):
         call_bar.push(0, call)
 
 
-class TestMainWindow(Gtk.Application):
+class TestMainWindow(Gtk.Application):  # pylint: disable=too-few-public-methods
     '''
     Test MainWindow application.
     '''

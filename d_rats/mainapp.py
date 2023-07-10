@@ -1013,7 +1013,7 @@ class MainApp(Gtk.Application):
             _ = lang.gettext
             #Gtk.glade.bindtextdomain("D-RATS", localedirfromconfig)
             #Gtk.glade.textdomain("D-RATS")
-        except FileNotFoundError: 
+        except FileNotFoundError:
             #pylint: disable=logging-too-many-args
             self.logger.error("_refresh_lang: Messages catalog file missing ",
                               " for %s.  Need to use 'msgfmt tool to generate.",
@@ -1030,8 +1030,8 @@ class MainApp(Gtk.Application):
                               locale, exc_info=True)
             gettext.install("D-RATS")
             _ = gettext.gettext
-        # pylint: disable=too-general-exception
-        except Exception as error:
+
+        except Exception as error: # pylint: disable=broad-except
             self.logger.error("_refresh_lang: other error: %s", error)
 
         ##check if gettext works
