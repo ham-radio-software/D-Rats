@@ -995,12 +995,11 @@ class MainApp(Gtk.Application):
         localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
         self.logger.info("_refresh_lang: Setting localedirfromconfig to: %s", localedirfromconfig)
-        
-        
+
         if "LANGUAGE" not in os.environ:
             os.environ["LANGUAGE"] = locale
 
-        self.logger.info("_refresh_lang: OS Locale set to: %s", os.environ["LANGUAGE"]) 
+        self.logger.info("_refresh_lang: OS Locale set to: %s", os.environ["LANGUAGE"])
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
@@ -1009,9 +1008,9 @@ class MainApp(Gtk.Application):
                                        localedir=localedirfromconfig,
                                        languages=[locale])
             lang.install()
-            _ = lang.gettext         
+            _ = lang.gettext
             #Gtk.glade.bindtextdomain("D-RATS", localedirfromconfig)
-            #Gtk.glade.textdomain("D-RATS")            
+            #Gtk.glade.textdomain("D-RATS")
         except FileNotFoundError:
             self.logger.error("_refresh_lang: Messages catalog file missing ",
                               " for %s.  Need to use 'msgfmt tool to generate.",
@@ -1030,13 +1029,14 @@ class MainApp(Gtk.Application):
             _ = gettext.gettext
         except Exception as error:
             self.logger.error("_refresh_lang: other error: %s", error)
-        
-        #check if gettext works ...  
+
+        #check if gettext works
         try:
-            self.logger.info("_refresh_lang: gettext: Check Hello world translation:  %s",(_("HELLO_WORLD"))) 
+            self.logger.info("_refresh_lang: gettext: Check Hello world translation:  %s",
+                (_("HELLO_WORLD")))
         except Exception as error:
             self.logger.error("_refresh_lang: other error: %s", error)
-        
+
 
     def _load_map_overlays(self):
         '''Load Map Overlays.'''
@@ -1096,7 +1096,7 @@ class MainApp(Gtk.Application):
         self._refresh_mail_threads()
         self._refresh_map()
 
-        # The following line is needed to force language after config load 
+        # The following line is needed to force language after config load
         # (not having this, the language is reverted back to untranslated labels
         # also if at D-Rats startup it was load (l))
         self._refresh_lang()
@@ -1128,6 +1128,7 @@ class MainApp(Gtk.Application):
         # pylint: disable=fixme
         # todo: A change here should trigger a refresh of the new
         # map window after that a config reload/change is done
+        # pylint: disable=broad-except
         self.logger.info("_refresh_map: reconfigured mapurl to: %s", mapurl)
         self.logger.info("_refresh_map: reconfigured mapkey to: %s", mapkey)
         Map.Window.set_base_dir(os.path.join(
