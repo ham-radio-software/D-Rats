@@ -240,7 +240,7 @@ class KeyedListWidget(Gtk.Box):
             (store, iter_val) = self.__view.get_selection().get_selected()
             return store.get(iter_val, 0)[0]
         except TypeError:
-            self.logger.info("get_selected: Nothing was selected")
+            self.logger.debug("get_selected: Nothing was selected")
             return None
 
     # WB8TYW: I can not find a caller of this method.
@@ -364,13 +364,28 @@ class KeyedListWidget(Gtk.Box):
         :param column: Column
         :type column: int
         '''
-        def render_password(_foo, rend, model, iter_val, _data):
-            val = model.get(iter_val, column+1)[0]
-            rend.set_property("text", "*" * len(val))
+        def render_password(_cell_layout, cell, tree_model,
+                            tree_iter, data):
+            '''
+            Render password callback.
 
-        col = self.__view.get_column(column)
-        rnd = Gtk.CellRendererText()
-        col.set_cell_data_func(rnd, render_password)
+            :param _cell_layout:, Gtk.Cell Layout, unused
+            :type _cell_layout: :class:`Gtk.CellLayout`
+            :param cell: Cell renderer to be set
+            :type cell: :class:`Gtk.CellRenderer`
+            :param tree_model: The model
+            :type tree_model: :class:`Gtk.TreeModel`
+            :param tree_iter: A :class:`Gtk.TreeIter` indicating the row
+            :type tree_iter: :class:`Gtk.TreeIter`
+            :param data: Column Number
+            :type _data: int
+            '''
+            value = tree_model.get(tree_iter, data + 1)[0]
+            cell.set_property("text", "*" * len(value))
+
+        view_column = self.__view.get_column(column)
+        renderer = Gtk.CellRendererText()
+        view_column.set_cell_data_func(renderer, render_password, column)
 
 
 def test():

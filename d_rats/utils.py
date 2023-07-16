@@ -1,6 +1,6 @@
 '''utility Methods.'''
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com> python3 gtk3 update
+# Copyright 2021-2023 John Malmberg <wb8tyw@gmail.com> python3 gtk3 update
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -208,65 +208,6 @@ def run_safe(function):
     return runner
 
 
-# deprecated with Gtk 3.
-def run_gtk_locked(function):
-    '''
-    Run function with gtk locked.
-
-    :param function: Function to run
-    :type function: function
-    :returns: function result or raise error
-    :rtype: any
-    '''
-
-    def runner(*args, **kwargs):
-        Gdk.threads_enter()
-        try:
-            function(*args, **kwargs)
-        # pylint: disable=broad-except
-        except Exception:
-            logger = logging.getLogger("Utils.run_gtk_locked")
-            logger.info("broad-exception", exc_info=True)
-            Gdk.threads_leave()
-            raise
-
-        Gdk.threads_leave()
-
-    return runner
-
-
-def run_or_error(function):
-    '''
-    Run Function or raise an error.
-
-    :param function: function to run
-    :type function: function
-    :returns: Function result or raise error
-    '''
-    # pylint: disable=import-outside-toplevel
-    from d_rats.ui import main_common
-
-    def runner(*args, **kwargs):
-        try:
-            function(*args, **kwargs)
-        # pylint: disable=broad-except
-        except Exception as err:
-            logger = logging.getLogger("Utils.run_or_error")
-            logger.info("broad-exception", exc_info=True)
-            log_exception()
-            main_common.display_error(_("An error occurred: ") + str(err))
-
-    return runner
-
-# possibly deprecated to be replaced by logging module.
-def print_stack():
-    '''Print Stack'''
-    # pylint: disable=import-outside-toplevel
-    import traceback
-    import sys
-    traceback.print_stack(file=sys.stdout)
-
-
 def get_sub_image(iconmap, h_offset, v_offset, size=20):
     '''
     Get sub image from iconmap
@@ -362,9 +303,9 @@ class NetFile(FileIO):
     :param buffering: Buffering level, default 1
     :type buffering: int
     '''
+    logger = logging.getLogger("NetFile")
 
     def __init__(self, uri, mode="r", buffering=1):
-        self.logger = logging.getLogger("NetFile")
         self.__fn = uri
         self.is_temp = False
 

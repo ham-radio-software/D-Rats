@@ -2,7 +2,7 @@
 '''Main Messages Message List.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -168,10 +168,11 @@ class MessageList(MainWindowElement):
                                      (GObject.TYPE_STRING,)),
                     }
 
+    logger = logging.getLogger("MessageList")
+
     def __init__(self, wtree, config):
         MainWindowElement.__init__(self, wtree, config, "msg")
 
-        self.logger = logging.getLogger("MessageList")
         msglist = self._get_widget("msglist")
 
         self.store = Gtk.ListStore(GObject.TYPE_OBJECT,
@@ -267,10 +268,10 @@ class MessageList(MainWindowElement):
             if msgrouting.msg_is_locked(filename):
                 msgrouting.msg_unlock(filename)
             if response in saveable_actions:
-                self.logger.info("open_msg: Saving to %s", filename)
+                self.logger.debug("open_msg: Saving to %s", filename)
                 dlg.save_to(filename)
             else:
-                self.logger.info("open_msg : Not saving")
+                self.logger.debug("open_msg : Not saving")
             dlg.destroy()
             self.refresh(filename)
             if call_back:
@@ -309,7 +310,7 @@ class MessageList(MainWindowElement):
         def close_msg_cb(response, info):
             if self.current_info == info:
                 msg_iter = self.iter_from_fn(path)
-                self.logger.info("_open_msg: Updating iter for close %s",
+                self.logger.debug("_open_msg: Updating iter for close %s",
                                  msg_iter)
                 if msg_iter:
                     self._update_message_info(msg_iter)
@@ -320,7 +321,7 @@ class MessageList(MainWindowElement):
         self.open_msg(path, editable, close_msg_cb, self.current_info)
         self.current_info.set_msg_read(path, True)
         msg_iter = self.iter_from_fn(path)
-        self.logger.info("_open_msg: Updating iter %s", msg_iter)
+        self.logger.debug("_open_msg: Updating iter %s", msg_iter)
         if msg_iter:
             self._update_message_info(msg_iter)
 
@@ -467,7 +468,7 @@ class MessageList(MainWindowElement):
             # Same folder, or duplicate message id
             return path
 
-        self.logger.info("move_message Moving %s -> %s", path, newfn)
+        self.logger.debug("move_message Moving %s -> %s", path, newfn)
         shutil.copy(path, newfn)
         info.delete(path)
 

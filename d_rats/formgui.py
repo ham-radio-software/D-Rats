@@ -2,7 +2,7 @@
 # pylint wants only 1000 lines per module
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,7 +43,6 @@ MODULE_LOGGER = logging.getLogger("Formgui")
 
 from .keyedlistwidget import KeyedListWidget
 from .miscwidgets import make_choice
-from .utils import run_or_error
 from .ui.main_common import ask_for_confirmation
 from .dplatform import Platform
 from . import spell
@@ -399,7 +398,6 @@ class ToggleWidget(FieldWidget):
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
 
-        self.logger = logging.getLogger("ToggleWidget")
         status = False
         if node.text:
             text = node.text.strip().lower()
@@ -430,7 +428,6 @@ class MultilineWidget(FieldWidget):
     :type config: :class:`DratsConfig`
     '''
     logger = logging.getLogger("MultilineWidget")
-
 
     def __init__(self, node, config):
         FieldWidget.__init__(self, node, config)
@@ -1132,14 +1129,6 @@ class FormFile():
         else:
             self.logo_path = None
 
-    @staticmethod
-    def __set_content(node, content):
-        node.text = content
-
-    def __get_xpath(self, path):
-        result = self.doc.xpath(path)
-        return result
-
     def get_path(self):
         '''
         Get path.
@@ -1148,35 +1137,33 @@ class FormFile():
         :rtype: list[str]
         '''
         path_elements = []
-        for element in self.__get_xpath("//form/path/e"):
+        for element in self.doc.xpath("//form/path/e"):
             if element.text:
                 text = element.text.strip()
                 if text:
                     path_elements.append(text)
         return path_elements
 
-    def __get_path(self):
-        els = self.__get_xpath("//form/path")
-        if not els:
+    def _add_path_element(self, name, element, append=False):
+        els = self.doc.xpath("//form/path")
+        if els:
+            path = els[0]
+        else:
             form = self.doc.xpath("//form")
-            return etree.SubElement(form[0], "path")
-        return els[0]
-
-    def __add_path_element(self, name, element, append=False):
-        path = self.__get_path()
+            path = etree.SubElement(form[0], "path")
 
         if append:
             child = etree.SubElement(path, name)
-            self.__set_content(child, element)
+            child.text = element
             return
 
-        els = self.__get_xpath("//form/path/%s" % name)
+        els = self.doc.xpath("//form/path/%s" % name)
         if not els:
             child = etree.SubElement(path, name)
-            self.__set_content(child, element)
+            child.text = element
             return
 
-        self.__set_content(els[0], element)
+        els[0].text = element
 
     def add_path_element(self, element):
         '''
@@ -1185,7 +1172,7 @@ class FormFile():
         :param element: Element to add
         :type element: :class:`etree._Element`
         '''
-        self.__add_path_element("e", element, True)
+        self._add_path_element("e", element, True)
 
     def set_path_src(self, src):
         '''
@@ -1194,7 +1181,7 @@ class FormFile():
         :param src: source
         :type element: :class:`etree._Element`
         '''
-        self.__add_path_element("src", src)
+        self._add_path_element("src", src)
 
     def set_path_dst(self, dst):
         '''
@@ -1203,7 +1190,7 @@ class FormFile():
         :param dst: Add destination to
         :type dst: :class:`etree._Element`
         '''
-        self.__add_path_element("dst", dst)
+        self._add_path_element("dst", dst)
 
     def set_path_mid(self, mid):
         '''
@@ -1212,10 +1199,10 @@ class FormFile():
         :param mid: mid
         :type mid: :class:`etree._Element`
         '''
-        self.__add_path_element("mid", mid)
+        self._add_path_element("mid", mid)
 
-    def __get_path_element(self, name):
-        els = self.__get_xpath("//form/path/%s" % name)
+    def _get_path_element(self, name):
+        els = self.doc.xpath("//form/path/%s" % name)
         if els and els[0].text:
             return els[0].text.strip()
         return ""
@@ -1227,7 +1214,7 @@ class FormFile():
         :returns: Path source
         :rtype: str
         '''
-        return self.__get_path_element("src")
+        return self._get_path_element("src")
 
     def get_path_dst(self):
         '''
@@ -1236,7 +1223,7 @@ class FormFile():
         :returns: Destination element
         :rtype: str
         '''
-        return self.__get_path_element("dst")
+        return self._get_path_element("dst")
 
     def get_path_mid(self):
         '''
@@ -1245,7 +1232,7 @@ class FormFile():
         :returns: mid element
         :rtype: str
         '''
-        return self.__get_path_element("mid")
+        return self._get_path_element("mid")
 
     def get_field_value(self, field_id):
         '''
@@ -1257,7 +1244,7 @@ class FormFile():
         :rtype: str
         :raises: FormguiFileMultipleIds when multiple IDs are in a form
         '''
-        els = self.__get_xpath("//form/field[@id='%s']/entry" % field_id)
+        els = self.doc.xpath("//form/field[@id='%s']/entry" % field_id)
         if len(els) > 1:
             raise FormguiFileMultipleIds("More than one id=%s node!" %
                                          field_id)
@@ -1275,7 +1262,7 @@ class FormFile():
         :rtype: str
         :raises: FormguiFileMultipleIds when multiple IDs are in a form
         '''
-        els = self.__get_xpath("//form/field[@id='%s']/caption" % field_id)
+        els = self.doc.xpath("//form/field[@id='%s']/caption" % field_id)
         if len(els) > 1:
             raise FormguiFileMultipleIds("More than one id=%s node!" %
                                          field_id)
@@ -1292,7 +1279,7 @@ class FormFile():
         :param value: Value to set
         :type value: str
         '''
-        els = self.__get_xpath("//form/field[@id='%s']/entry" % field_id)
+        els = self.doc.xpath("//form/field[@id='%s']/entry" % field_id)
         self.logger.info("Setting %s to %s (%i)", field_id, value, len(els))
         if len(els) == 1:
             multiline = False
@@ -1301,9 +1288,9 @@ class FormFile():
                     multiline = value == 'multiline'
                     break
             if multiline:
-                self.__set_content(els[0], value)
+                els[0].text=value
             else:
-                self.__set_content(els[0], value.strip())
+                els[0].text=value.strip()
 
     def _try_get_fields(self, *names):
         for field in names:
@@ -1362,7 +1349,7 @@ class FormFile():
         :rtype: list[tuple[str, int]]
         '''
         atts = []
-        els = self.__get_xpath("//form/att")
+        els = self.doc.xpath("//form/att")
         for element in els:
             name = None
             for attrib, value in els[0].items():
@@ -1384,7 +1371,7 @@ class FormFile():
         :rtype: bytes
         :raises: :class:`FormguiFileMultipleAtts` if more than one attachment
         '''
-        els = self.__get_xpath("//form/att[@name='%s']" % name)
+        els = self.doc.xpath("//form/att[@name='%s']" % name)
         if len(els) == 1:
             data = etree.tostring(els[0])
             data = base64.b64decode(data)
@@ -1413,25 +1400,24 @@ class FormFile():
             raise FormguiFileDuplicateAtt(
                 "Already have an attachment named `%s'" % name)
 
-        els = self.__get_xpath("//form")
+        els = self.doc.xpath("//form")
         if len(els) == 1:
             attachment_node = etree.Element('att')
             els[0].append(attachment_node)
             attachment_node.set('name', name)
             data = zlib.compress(data, 9)
             data = base64.b64encode(data)
-            self.__set_content(attachment_node, data)
+            attachment_node.text = data
 
-    def del_attachment(self, name):
+    def remove_attachment(self, name):
         '''
-        Del attachment.
+        Remove Attachment from document.
 
         :param name: Name of attachment
         :type name: str
         '''
-        els = self.__get_xpath("//form/att[@name='%s']" % name)
-        if len(els) == 1:
-            els[0].unlinkNode()
+        for attachment in self.doc.xpath("//form/att[@name='%s']" % name):
+            attachment.getparent().remove(attachment)
 
 
 class FormDialog(FormFile, Gtk.Dialog):
@@ -1458,6 +1444,7 @@ class FormDialog(FormFile, Gtk.Dialog):
         self.title_text = title
         self.set_title(self.title_text)
         self.attachment_box = None
+        self.attachment_buttons=[]
         self._source_box = None
         self._destination_box = None
 
@@ -1655,6 +1642,17 @@ class FormDialog(FormFile, Gtk.Dialog):
 
         return expander
 
+    def set_att_buttons(self, sensitive=False):
+        '''
+        Set Attachment Button Sensitivity.
+
+        The Save and Remove attachment buttons should
+        not be enabled unless something is selected.
+        '''
+        for button in self.attachment_buttons:
+            button.set_sensitive(sensitive)
+            button.show()
+
     # pylint wants only 15 local variables
     # pylint wants only 50 statements
     # pylint: disable=too-many-locals, too-many-statements
@@ -1681,17 +1679,30 @@ class FormDialog(FormFile, Gtk.Dialog):
 
         hbox.pack_start(scrollw, 1, 1, 1)
 
-        def item_set(_box, key):
+        def item_selected(_box, selection):
             '''
-            Item Set Handler for KeyedListWidget.
+            Item Selected Handler for KeydListWidget.
 
             :param _box: Widget that was signaled
             :type _box: :class:`KeyedListWidget`
-            :param key: Key that was set
-            :type key: str
+            :param selection: selection item name
+            :type selection: str
+            '''
+            active = False
+            if selection:
+                active = True
+            self.set_att_buttons(sensitive=active)
+
+        def item_set(_box, _key):
+            '''
+            Item Set Handler for KeyedListWidget.
+
+            :param _box: Widget that was signaled, Unused
+            :type _box: :class:`KeyedListWidget`
+            :param _key: Key that was set, Unused
+            :type _key: str
             '''
             natt = len(self.attachment_box.get_keys())
-            self.logger.info("Item %s set: %i", key, natt)
             if natt:
                 msg = _("Attachments") + " (%i)" % natt
                 attachment_exp.set_label("<span color='blue'>%s</span>" % msg)
@@ -1699,12 +1710,12 @@ class FormDialog(FormFile, Gtk.Dialog):
                 attachment_exp.set_label(_("Attachments"))
 
         self.attachment_box.connect("item-set", item_set)
+        self.attachment_box.connect("item-selected", item_selected)
 
         bbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 2)
         bbox.show()
         hbox.pack_start(bbox, 0, 0, 0)
 
-        @run_or_error
         def button_add(_button):
             '''
             Add button handler.
@@ -1712,6 +1723,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param _button: Button widget
             :type _button: :class:`GtkWidget`
             '''
+            self.set_att_buttons()
             fname = Platform.get_platform().gui_open_file()
             if fname:
                 name = os.path.basename(fname)
@@ -1725,7 +1737,6 @@ class FormDialog(FormFile, Gtk.Dialog):
         add.show()
         bbox.pack_start(add, 0, 0, 0)
 
-        @run_or_error
         def button_remove(_button):
             '''
             Remove button handler.
@@ -1733,17 +1744,19 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param _button: Button activated, Unused
             :type _button: :class:`Gtk.Button`
             '''
+            self.set_att_buttons()
             name = self.attachment_box.get_selected()
-            self.del_attachment(name)
+            self.remove_attachment(name)
             self.attachment_box.del_item(name)
             item_set(None, name)
 
-        rem = Gtk.Button.new_with_label(_("Remove"))
-        rem.connect("clicked", button_remove)
-        rem.show()
-        bbox.pack_start(rem, 0, 0, 0)
+        remove_button = Gtk.Button.new_with_label(_("Remove"))
+        remove_button.set_sensitive(False)
+        remove_button.connect("clicked", button_remove)
+        remove_button.show()
+        self.attachment_buttons.append(remove_button)
+        bbox.pack_start(remove_button, 0, 0, 0)
 
-        @run_or_error
         def button_save(_button):
             '''
             Button Save Handler.
@@ -1751,6 +1764,7 @@ class FormDialog(FormFile, Gtk.Dialog):
             :param _button: Button that was pressed, Unused
             :type _button: :class:`Gtk.Widget`
             '''
+            self.set_att_buttons()
             name = self.attachment_box.get_selected()
             if not name:
                 return
@@ -1763,8 +1777,10 @@ class FormDialog(FormFile, Gtk.Dialog):
                     file_handle.write(data)
 
         save_button = Gtk.Button.new_with_label(_("Save"))
+        save_button.set_sensitive(False)
         save_button.connect("clicked", button_save)
         save_button.show()
+        self.attachment_buttons.append(save_button)
         bbox.pack_start(save_button, 0, 0, 0)
 
         attachment_exp = Gtk.Expander.new(_("Attachments"))
@@ -1803,7 +1819,6 @@ class FormDialog(FormFile, Gtk.Dialog):
             :returns: True to stop other handlers from processing this signal
             :rtype: bool
             '''
-            self.logger.info("build_toolbar Closing")
             if editable:
                 dialog = ask_for_confirmation("Close without saving?", self)
                 if not dialog:
