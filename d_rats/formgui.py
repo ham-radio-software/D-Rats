@@ -1361,9 +1361,24 @@ class FormFile():
 
         return atts
 
+    def have_attachment(self, name):
+        ''''
+        Check if attachment exists.
+
+        D-Rats requires that each attachment has a unique name when a
+        message is created.  It currently uses the original filename instead
+        of assigning creating a new name, and does not check for attachments
+        with identical content.
+
+        :returns: Number of attachments with that name.
+        :rtype: int
+        '''
+        elements = self.doc.xpath("//form/att[@name='%s']" % name)
+        return len(elements)
+
     def get_attachment(self, name):
         '''
-        Get attachment.
+        Get attachment data
 
         :param name: Name of attachment
         :type name: str
@@ -1371,14 +1386,18 @@ class FormFile():
         :rtype: bytes
         :raises: :class:`FormguiFileMultipleAtts` if more than one attachment
         '''
-        els = self.doc.xpath("//form/att[@name='%s']" % name)
-        if len(els) == 1:
-            data = etree.tostring(els[0])
-            data = base64.b64decode(data)
-            return zlib.decompress(data)
+        elements = self.doc.xpath("//form/att[@name='%s']" % name)
+        if len(elements) == 1:
+            data = elements[0].text
+            b64data = base64.b64decode(data)
+            return zlib.decompress(b64data)
 
+        # currently this can only happen if something other than
+        # D-Rats creates the message form that ends up in one of
+        # D-Rats.  In the future, we should figure out a way to
+        # handle this.
         raise FormguiFileMultipleAtts(
-            "Internal Error: %i attachments named `%s'" % (len(els), name))
+            "Internal Error: %i attachments named `%s'" % (len(elements), name))
 
     def add_attachment(self, name, data):
         '''
@@ -1388,26 +1407,24 @@ class FormFile():
         :type name: str
         :param data: data of attachment
         :type data: bytes
-        :raises: :class:`FormguiFileDuplicateAtt` if duplicate attachments
+        # :raises: :class:`FormguiFileDuplicateAtt` if duplicate attachments
         '''
-        try:
-            att = self.get_attachment(name)
-        except FormguiFileMultipleAtts:
-            self.logger.debug("add_attachment", exc_info=True)
-            att = None
+        att_count = self.have_attachment(name)
+        if att_count:
+            error_message = "Already have an attachment named `%s'" % name
+            self.logger.info("add_attachment: %s", error_message)
+            # No point in raising this as an exception.
+            # raise FormguiFileDuplicateAtt(error_message)
+            return
 
-        if att is not None:
-            raise FormguiFileDuplicateAtt(
-                "Already have an attachment named `%s'" % name)
-
-        els = self.doc.xpath("//form")
-        if len(els) == 1:
+        elements = self.doc.xpath("//form")
+        if len(elements) == 1:
             attachment_node = etree.Element('att')
-            els[0].append(attachment_node)
+            elements[0].append(attachment_node)
             attachment_node.set('name', name)
-            data = zlib.compress(data, 9)
-            data = base64.b64encode(data)
-            attachment_node.text = data
+            zdata = zlib.compress(data, 9)
+            b64data = base64.b64encode(zdata)
+            attachment_node.text = b64data
 
     def remove_attachment(self, name):
         '''

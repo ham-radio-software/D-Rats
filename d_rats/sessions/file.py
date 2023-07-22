@@ -1,7 +1,7 @@
 '''Sessions file.py'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2023 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import struct
 import os
 import time
 import zlib
-import sys # python 2 support only
 
 from collections import UserDict
 
@@ -74,10 +73,10 @@ class FileTransferSession(stateful.StatefulSession):
     '''
 
     type = base.T_FILEXFER
+    logger = logging.getLogger("FileTransferSession")
 
     def __init__(self, name, status_cb=None, **kwargs):
         stateful.StatefulSession.__init__(self, name, **kwargs)
-        self.logger = logging.getLogger("FileTransferSession")
         if not status_cb:
             self.status_cb = self.internal_status
         else:
@@ -229,8 +228,7 @@ class FileTransferSession(stateful.StatefulSession):
 
             if data:
                 break
-            else:
-                time.sleep(0.5)
+            time.sleep(0.5)
 
         if not data:
             self.status(_("No start block received!"))
@@ -312,8 +310,8 @@ class FileTransferSession(stateful.StatefulSession):
         self.status(_("Complete"))
         return filename
 
-    # pylint: disable=no-self-use
-    def get_file_data(self, filename):
+    @staticmethod
+    def get_file_data(filename):
         '''
         Get file data amd compress it.
 
@@ -322,14 +320,13 @@ class FileTransferSession(stateful.StatefulSession):
         :returns: Compressed data
         :rtype: bytes
         '''
-        file_handle = open(filename, "rb")
-        data = file_handle.read()
-        file_handle.close()
+        with open(filename, "rb") as file_handle:
+            data = file_handle.read()
 
         return zlib.compress(data, 9)
 
-    # pylint: disable=no-self-use
-    def get_file_partial_data(self, filename):
+    @staticmethod
+    def get_file_partial_data(filename):
         '''
         Get file data from a previous partial transfer..
 
@@ -338,13 +335,12 @@ class FileTransferSession(stateful.StatefulSession):
         :returns: data
         :rtype: bytes
         '''
-        file_handle = open(filename, "rb")
-        data = file_handle.read()
-        file_handle.close()
+        with open(filename, "rb") as file_handle:
+            data = file_handle.read()
         return data
 
-    # pylint: disable=no-self-use
-    def put_file_data(self, filename, zdata):
+    @staticmethod
+    def put_file_data(filename, zdata):
         '''
         Put file data that is compressed.
 
@@ -355,18 +351,14 @@ class FileTransferSession(stateful.StatefulSession):
         :raises: :class:`zlib.err` if can not decompress
         '''
         try:
-            if sys.version_info[0] > 2:
-                data = zlib.decompress(zdata)
-            else:
-                comp_data = zlib.decompress(str(zdata))
-                data = bytearray(comp_data)
-            file_handle = open(filename, "wb")
-            file_handle.write(data)
-            file_handle.close()
+            data = zlib.decompress(zdata)
+            with open(filename, "wb") as file_handle:
+                file_handle.write(data)
         except zlib.error as err:
             raise err
 
-    def put_file_partial_data(self, filename, data):
+    @staticmethod
+    def put_file_partial_data(filename, data):
         '''
         Put file partial data.
 
@@ -375,6 +367,5 @@ class FileTransferSession(stateful.StatefulSession):
         :param data: data
         :type zdata: bytes
         '''
-        file_handle = open(filename, "wb")
-        file_handle.write(data)
-        file_handle.close()
+        with open(filename, "wb") as file_handle:
+            file_handle.write(data)
