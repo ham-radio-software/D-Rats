@@ -965,6 +965,8 @@ class DratsListConfigWidget(DratsConfigWidget):
         :type cols: list
         :param make_key: key for columns, default None
         :type make_key: function(any)
+        :returns: List widget for updating
+        :rtype: :class:`keyedlistwidget.KeyedListWidget`
         '''
         def item_set(_list_widget, _key):
             '''

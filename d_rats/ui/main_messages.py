@@ -87,11 +87,10 @@ class MessagesTab(MainWindowTab):
         }
 
     _signals = __gsignals__
+    logger = logging.getLogger("MessagesTab")
 
     def __init__(self, wtree, config, window):
         MainWindowTab.__init__(self, wtree, config, window=window, prefix="msg")
-
-        self.logger = logging.getLogger("MessagesTab")
         self._init_toolbar()
         self.folders = MessageFolders(wtree, config, window)
         self._messages = MessageList(wtree, config)
@@ -414,7 +413,7 @@ class MessagesTab(MainWindowTab):
 
         menu_item = Gtk.MenuItem("Outbox")
         try:
-            menu_item.set_tooltip_text("Send messages in the Outbox")
+            menu_item.set_tooltip_text(_("Send messages in the Outbox"))
         except AttributeError:
             pass
         menu_item.connect("activate", self._sndrcv)
@@ -423,7 +422,7 @@ class MessagesTab(MainWindowTab):
 
         menu_item = Gtk.MenuItem("WL2K")
         try:
-            menu_item.set_tooltip_text("Check Winlink messages")
+            menu_item.set_tooltip_text(_("Check Winlink messages"))
         except AttributeError:
             pass
         menu_item.connect("activate", self._sndrcv, "@WL2K")
@@ -435,7 +434,8 @@ class MessagesTab(MainWindowTab):
             lab = "%s on %s" % (info[1], info[0])
             menu_item = Gtk.MenuItem(lab)
             try:
-                menu_item.set_tooltip_text("Check for new mail on this account")
+                menu_item.set_tooltip_text(
+                    _("Check for new mail on this account"))
             except AttributeError:
                 pass
             menu_item.connect("activate", self._sndrcv, section)
@@ -453,7 +453,7 @@ class MessagesTab(MainWindowTab):
             label = msg_type.replace("_", " ")
             menu_item = Gtk.MenuItem(label)
             try:
-                menu_item.set_tooltip_text("Create a new %s form" % label)
+                menu_item.set_tooltip_text(_("Create a new %s form") % label)
             except AttributeError:
                 pass
             menu_item.connect("activate", self._new_msg, msg_type)
