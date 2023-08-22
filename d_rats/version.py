@@ -59,7 +59,7 @@ AUTHORS = "Dan Smith, KK7DS \n" \
           "Marius Petrescu, YO2LOJ \n" \
           "John E. Malmberg, WB8TYW \n\n"
 AUTHORS_EMAIL = "Dan Smith KK7DS <dsmith@danplanet.com>\n"  \
-          "Maurizio Andreotti IZ2LXI <maurizioandreotti lc@gmail.com>\n" \
+          "Maurizio Andreotti IZ2LXI <maurizioandreottilc@gmail.com>\n" \
           "Marius Petrescu YO2LOJ <marius@yo2loj.ro>\n" \
           "John E. Malmberg WB8TYW <wb8tyw@wsl.net>"
 AUTHOR_COPYRIGHT = "2008-2010 Dan Smith (KK7DS)\n" \

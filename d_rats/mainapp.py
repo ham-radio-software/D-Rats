@@ -992,7 +992,7 @@ class MainApp(Gtk.Application):
                  "Spanish" : "es",
                    }
         locale = locales.get(self.config.get("prefs", "language"), "English")
-        self.logger.info("_refresh_lang: xxx Setting locale to: %s", locale)
+        self.logger.info("_refresh_lang: Setting locale to: %s", locale)
 
         localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
                                  "locale")
