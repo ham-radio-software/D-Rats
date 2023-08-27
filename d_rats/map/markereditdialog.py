@@ -1,6 +1,6 @@
 '''Map Marker Dialog Module.'''
 #
-# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2023 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -33,7 +33,7 @@ from .. import inputdialog
 from ..latlonentry import LatLonEntry
 from .. import miscwidgets
 from .. import utils
-from ..gps import DPRS_TO_APRS
+from ..aprs_dprs import AprsDprsCodes
 from ..geocode_ui import AddressAssistant
 
 # This makes pylance happy with out overriding settings
@@ -45,14 +45,13 @@ if not '_' in locals():
 class MarkerEditDialog(inputdialog.FieldDialog):
     '''Marker Edit Dialog.'''
 
+    logger = logging.getLogger("MarkerEditDialog")
+
     def __init__(self):
         inputdialog.FieldDialog.__init__(self, title=_("Add Marker"))
-        self.logger = logging.getLogger("MarkerEditDialog")
-        self.logger.info("class init")
-
         self.icons = []
-        self.logger.info("Before sorting DPRS_TO_APRS")
-        for sym in sorted(DPRS_TO_APRS.values()):
+        aprs_dict = AprsDprsCodes.get_aprs_to_dprs()
+        for sym in sorted(aprs_dict):
             icon = utils.get_icon(sym)
             if icon:
                 self.icons.append((icon, sym))
@@ -135,11 +134,11 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         if isinstance(point, map_sources.MapStation):
             symlist = [y for x, y in self.icons]
             try:
-                iidx = symlist.index(point.get_aprs_symbol())
+                iidx = symlist.index(point.get_aprs_code())
                 iconsel.set_active(iidx)
             except ValueError:
                 self.logger.info("set_point: No such symbol `%s'",
-                                 point.get_aprs_symbol())
+                                 point.get_aprs_code())
         else:
             iconsel.set_sensitive(False)
 

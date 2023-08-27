@@ -3,7 +3,7 @@
 # pylint: disable=too-many-lines
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Python3 update Copyright 2021-2022 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2021-2023 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -139,8 +139,9 @@ def decode_dict(string):
     for element in elements:
         try:
             key, value = element.split(ASCII_US)
-        except ValueError:
-            raise MalformedRPCDictEncoding("Malformed dict encoding")
+        except ValueError as err:
+            msg = "Malformed dict encoding"
+            raise MalformedRPCDictEncoding(msg) from err
         # sockets and pipe routines return bytes type
         # which on python2 is almost the same str type, but not quite.
         if not isinstance(key, str):
@@ -170,10 +171,10 @@ class RPCJob(GObject.GObject):
         }
 
     STATES = ["complete", "timeout", "running"]
+    logger = logging.getLogger("RPCJob")
 
     def __init__(self, dest, desc):
         GObject.GObject.__init__(self)
-        self.logger = logging.getLogger("RPCJob")
         self.__dest = dest
         self.__desc = desc
         self._args = {}
@@ -583,22 +584,27 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
 
     T_RPCREQ = 0
     T_RPCACK = 1
+    logger = logging.getLogger("RPCSession")
 
     def __init__(self, *args, **kwargs):
         GObject.GObject.__init__(self)
 
-        self.logger = logging.getLogger("RPCSession")
         try:
             self.__rpcactions = kwargs["rpcactions"]
             del kwargs["rpcactions"]
-        except KeyError:
-            raise RPCActionSetRequired("RPCSession requires RPCActionSet")
+        except KeyError as err:
+            msg = "RPCSession requires RPCActionSet"
+            raise RPCActionSetRequired(msg) from err
 
         stateless.StatelessSession.__init__(self, *args, **kwargs)
         self.__jobs = {}
+        # Need to verify if pylint is right.
+        # pylint: disable=unused-private-member
         self.__jobq = []
         self.__jobc = 0
         self.__t_retry = 30
+        # Need to verify if pylint is right.
+        # pylint: disable=unused-private-member
         self.__enabled = True
 
         GLib.timeout_add(1000, self.__worker)
@@ -728,6 +734,8 @@ class RPCSession(GObject.GObject, stateless.StatelessSession):
 
     def stop(self):
         '''Stop Session.'''
+        # Need to verify if pylint is right.
+        # pylint: disable=unused-private-member
         self.__enabled = False
 
 
@@ -751,9 +759,9 @@ class RPCActionSet(GObject.GObject):
         }
 
     _signals = __gsignals__
+    logger = logging.getLogger("RPCActionSet")
 
     def __init__(self, config, port):
-        self.logger = logging.getLogger("RPCActionSet")
         self.__config = config
         self.__port = port
 
@@ -791,7 +799,8 @@ class RPCActionSet(GObject.GObject):
             result["rc"] = "True"
             symtab = self.__config.get("settings", "aprssymtab")
             symbol = self.__config.get("settings", "aprssymbol")
-            result["msg"] = fix.to_aprs(symtab=symtab, symbol=symbol)
+            code = symtab + symbol
+            result["msg"] = fix.to_aprs(code=code)
 
         except NoOptionError:
             self.logger.info("rpc_pos_report: Case KO: Exception while getting"
@@ -917,7 +926,7 @@ class RPCActionSet(GObject.GObject):
         _permlist = self.__config.get("settings", "delete_from")
         try:
             permlist = _permlist.upper().split(",")
-        except ValueError as err:
+        except ValueError:
             result["rc"] = "Access list not properly configured"
             return result
 
@@ -992,6 +1001,9 @@ class RPCActionSet(GObject.GObject):
         result["os"] = self.__config.platform.os_version_string()
         result["pyver"] = ".".join([str(x) for x in sys.version_info[:3]])
         try:
+            # We should already have this as part of starting up D-rats
+            # so this eventually needs to be fixed.
+            # pylint: disable=import-outside-toplevel
             from gi.repository import Gtk
             # No more pygtk. but need to keep this field for compatibility
             result["pygtkver"] = 'None'

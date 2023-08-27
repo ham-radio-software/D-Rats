@@ -2,7 +2,7 @@
 '''Map Sources'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2022-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -175,7 +175,7 @@ class MapStation(MapPoint):
         self.set_altitude(alt)
         self.set_name(call)
         self.set_comment(comment)
-        self._aprs_sym = ""
+        self._aprs_code = ""
         # pylint: disable=fixme
         # FIXME: Set icon from DPRS comment
 
@@ -186,15 +186,15 @@ class MapStation(MapPoint):
         :param symbol: Symbol to set icon
         '''
         self.set_icon(utils.get_icon(symbol))
-        self._aprs_sym = symbol
+        self._aprs_code = symbol
 
-    def get_aprs_symbol(self):
+    def get_aprs_code(self):
         '''
-        Get Aprs Symbol.
+        Get Aprs Code.
 
-        :returns: APRS symbol
+        :returns: APRS code
         '''
-        return self._aprs_sym
+        return self._aprs_code
 
 
 def _xdoc_getnodeval(doc, nodespec, namespaces=None):

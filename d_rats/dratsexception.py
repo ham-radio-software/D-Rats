@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# All exceptions unique to D-rats should be based on this class.
-# This class it self should not be ever raised.
-
 
 class DataPathError(Exception):
     '''Data Path Error.'''
@@ -42,3 +39,15 @@ class LatLonEntryValueError(LatLonEntryException):
 
 class LatLonEntryParseDMSError(LatLonEntryException):
     '''LatLonEntry Parse DMS Error.'''
+
+
+class DPRSException(Exception):
+    '''Generic DPRS Exception.'''
+
+
+class DPRSInvalidCode(Exception):
+    '''Invalid DPRS Code.'''
+
+
+class DPRSUnknownCode(Exception):
+    '''Unknown DPRS Code.'''

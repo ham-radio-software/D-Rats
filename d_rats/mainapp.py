@@ -84,6 +84,8 @@ from .emailgw import PeriodicAccountMailThread
 from .emailgw import AccountMailThread
 from .emailgw import validate_incoming
 from .emailgw import EmailGatewayException
+from .aprs_dprs import AprsDprsCodes
+from .dratsexception import DPRSInvalidCode
 from .ui import main_events
 from .ui.main_common import prompt_for_station
 
@@ -1153,13 +1155,17 @@ class MainApp(Gtk.Application):
             self.__map_point.set_comment(fix.comment)
             self.__map_point.set_name(fix.station)
 
+        comment = ''
         try:
             comment = self.config.get("settings", "default_gps_comment")
-            fix.aprs_icon = gps.dprs_to_aprs(comment)
-        except NoOptionError:
-            self.logger.info("_refresh_location", exc_info=True)
-            fix.aprs_icon = "\\?"
-        self.__map_point.set_icon_from_aprs_sym(fix.aprs_icon)
+            fix.aprs_code = AprsDprsCodes.dprs_to_aprs(comment[0:2])
+        except (NoOptionError, DPRSInvalidCode):
+            # silently fix this up.  Notifications here at info level will
+            # flood the console log.
+            self.logger.debug("_refresh_location comment='%s'",
+                              comment, exc_info=True)
+            fix.aprs_code = AprsDprsCodes.APRS_INFO_KIOSK_CODE
+        self.__map_point.set_icon_from_aprs_sym(fix.aprs_code)
 
         self.stations_overlay.add_point(self.__map_point)
         self.map.update_gps_status(self.gps.status_string())
@@ -1623,12 +1629,13 @@ class MainApp(Gtk.Application):
                                        fix.longitude,
                                        fix.altitude,
                                        fix.comment)
-        if fix.aprs_icon is None:
-            point.set_icon_from_aprs_sym('\\?')
+        if fix.aprs_code is None:
+            point.set_icon_from_aprs_sym(AprsDprsCodes.APRS_INFO_KIOSK_CODE)
             self.logger.info(
-                "__incoming_gps_fix: aprs_icon missing - forced to: \\? ")
+                "__incoming_gps_fix: aprs_code missing - forced to: %s ",
+                AprsDprsCodes.APRS_INFO_KIOSK_CODE)
         else:
-            point.set_icon_from_aprs_sym(fix.aprs_icon)
+            point.set_icon_from_aprs_sym(fix.aprs_code)
 
         source.add_point(point)
         source.save()

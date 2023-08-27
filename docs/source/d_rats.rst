@@ -133,6 +133,22 @@ d\_rats.dplatform module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.aprs\_dprs module
+-------------------------
+
+.. automodule:: d_rats.aprs_dprs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.aprs\_icons module
+-------------------------
+
+.. automodule:: d_rats.aprs_icons
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.dratsexception module
 -----------------------------
 
