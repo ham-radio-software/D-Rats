@@ -33,11 +33,13 @@ class AprsDprsCodes:
 
     APRS_PRIMARY_SYMBOL_TABLE = '/'
     APRS_ALTERNATE_SYMBOL_TABLE = '\\'
+    APRS_ADVISORY_CODE = '\\<'
     APRS_CAR_CODE = '/>'
     APRS_DIGI_CODD = '/#'
     APRS_DOT_CODE = '//'
     APRS_FALLBACK_CODE = '//'
     APRS_INFO_KIOSK_CODE = '\\?'
+    APRS_NAVIGATION_BUOY_CODE = '\\N'
     APRS_NUMBERED_AIRCRAFT_CODE = '\\^'
     APRS_NUMBERED_BOX_CODE= '\\A'
     APRS_NUMBERED_CAR_CODE = '\\>'
@@ -48,6 +50,7 @@ class AprsDprsCodes:
     APRS_NUMBERED_TRIANGLE_CODE = '\\n'
     APRS_NUMBERED_TRUCK_CODE = '\\u'
     APRS_NUMBERED_VAN_CODE = '\\v'
+    APRS_WATER_STATION_CODE = '/w'
     APRS_WEATHER_CODE = '/_'
 
     numerals = [chr (x) for x in range(ord('0'), ord('9') + 1)]

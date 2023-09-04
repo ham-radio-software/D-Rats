@@ -497,7 +497,7 @@ class GPSPosition():
             raise GpsDprsChecksumError("DPRS checksum failed")
 
         try:
-            self.aprs_code = AprsDprsCodes.dprs_to_aprs(dprs_code)
+            self.aprs_code = AprsDprsCodes.dprs_to_aprs(code=dprs_code)
         except DPRSException:
             # Make sure that we have a valid APRS code if we can not
             # parse the DPRS code.

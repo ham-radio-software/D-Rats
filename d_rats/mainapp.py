@@ -41,6 +41,7 @@ from gi.repository import GObject      # to manage multitasking
 from gi.repository import GLib
 
 from .dplatform import Platform
+from .aprs_icons import APRSicons
 
 logging.basicConfig(level=logging.INFO)
 
@@ -90,7 +91,6 @@ from .ui import main_events
 from .ui.main_common import prompt_for_station
 
 from .utils import NetFile
-from .utils import init_icon_maps
 from .sessions import rpc, chat, sniff
 
 # gettext module provides message translation and catalog management
@@ -101,7 +101,6 @@ if not '_' in locals():
     _ = gettext.gettext
 
 # lets init the basic functions of the mainapp module
-init_icon_maps()
 LOGTF = "%m-%d-%Y_%H:%M:%S"
 MAINAPP = None
 
@@ -358,6 +357,7 @@ class MainApp(Gtk.Application):
         self.stations_overlay = None
         self.__map_point = None
         self.connect("shutdown", self.ev_shutdown)
+        self.default_comment = None
 
         self.config = config.DratsConfig(self)
         self._refresh_lang()
@@ -1158,17 +1158,22 @@ class MainApp(Gtk.Application):
         comment = ''
         try:
             comment = self.config.get("settings", "default_gps_comment")
-            fix.aprs_code = AprsDprsCodes.dprs_to_aprs(comment[0:2])
+            if comment != self.default_comment:
+                dprs_info = APRSicons.parse_dprs_message(text=comment)
+                fix.aprs_code = AprsDprsCodes.dprs_to_aprs(
+                    code=dprs_info['code'] + dprs_info['overlay'])
+                self.default_comment = comment
         except (NoOptionError, DPRSInvalidCode):
             # silently fix this up.  Notifications here at info level will
             # flood the console log.
             self.logger.debug("_refresh_location comment='%s'",
                               comment, exc_info=True)
             fix.aprs_code = AprsDprsCodes.APRS_INFO_KIOSK_CODE
-        self.__map_point.set_icon_from_aprs_sym(fix.aprs_code)
+        if comment != self.default_comment:
+            self.__map_point.set_pixbuf_from_aprs_code(code=fix.aprs_code)
 
-        self.stations_overlay.add_point(self.__map_point)
-        self.map.update_gps_status(self.gps.status_string())
+            self.stations_overlay.add_point(self.__map_point)
+            self.map.update_gps_status(self.gps.status_string())
 
         return True
 
@@ -1630,12 +1635,13 @@ class MainApp(Gtk.Application):
                                        fix.altitude,
                                        fix.comment)
         if fix.aprs_code is None:
-            point.set_icon_from_aprs_sym(AprsDprsCodes.APRS_INFO_KIOSK_CODE)
+            point.set_pixbuf_from_aprs_code(
+                code=AprsDprsCodes.APRS_INFO_KIOSK_CODE)
             self.logger.info(
                 "__incoming_gps_fix: aprs_code missing - forced to: %s ",
                 AprsDprsCodes.APRS_INFO_KIOSK_CODE)
         else:
-            point.set_icon_from_aprs_sym(fix.aprs_code)
+            point.set_pixbuf_from_aprs_code(code=fix.aprs_code)
 
         source.add_point(point)
         source.save()

@@ -36,6 +36,7 @@ from gi.repository import Gdk
 from gi.repository import GLib
 from gi.repository import GObject
 
+from ..aprs_dprs import AprsDprsCodes
 from ..dplatform import Platform
 from .. import inputdialog
 from ..latlonentry import LatLonEntry
@@ -981,7 +982,7 @@ class MapWindow(Gtk.ApplicationWindow):
                                      self._newcenter.latitude,
                                      self._newcenter.longitude)
         self._newcenter = None
-        pos.set_icon_from_aprs_sym("\\<")
+        pos.set_pixbuf_from_aprs_code(code=AprsDprsCodes.APRS_ADVISORY_CODE)
         point, group = self.prompt_to_set_marker(pos)
         if not point:
             return

@@ -27,53 +27,12 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-
-from .dplatform import Platform
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
 if not '_' in locals():
     import gettext
     _ = gettext.gettext
-
-
-def open_icon_map(iconfn):
-    '''
-    Open icon map.
-
-    :param iconfn: Filename with icon file
-    :type iconfn: str
-    :returns: Icon Map or None
-    :rtype: :class:`GdkPixbuf.Pixbuf`
-    '''
-    logger = logging.getLogger("Utils.open_icon_map")
-    if not os.path.exists(iconfn):
-        logger.info("Icon file %s not found", iconfn)
-        return None
-
-    try:
-        return GdkPixbuf.Pixbuf.new_from_file(iconfn)
-    # pylint: disable=broad-except
-    except Exception:
-        logger.info("Error opening icon map %s", iconfn, exc_info=True)
-        return None
-
-
-ICON_MAPS = None
-
-
-def init_icon_maps():
-    '''init_icon_maps'''
-    # pylint: disable=global-statement
-    global ICON_MAPS
-
-    ICON_MAPS = {
-        "/" : open_icon_map(os.path.join(Platform.get_platform().sys_data(),
-                                         "images", "aprs_pri.png")),
-        "\\": open_icon_map(os.path.join(Platform.get_platform().sys_data(),
-                                         "images", "aprs_sec.png")),
-        }
 
 
 def byte_ord(raw_data):
@@ -206,90 +165,6 @@ def run_safe(function):
             return None
 
     return runner
-
-
-def get_sub_image(iconmap, h_offset, v_offset, size=20):
-    '''
-    Get sub image from iconmap
-
-    :param iconmap: Icon map
-    :type iconmap: :class:`GtkPixbuf.Pixbuf`
-    :param h_offset: horizontal pixel offset
-    :type h_offset: int
-    :param v_offset: Vertical pixel offset
-    :type v_offset: int
-    :param size: Size of icon, default 20
-    :returns: icon extracted from icon map
-    :rtype: :class:`GdkPixbuf.Pixbuf`
-    '''
-    # Account for division lines (1px per icon)
-    x_coord = (h_offset * size) + h_offset + 1
-    y_coord = (v_offset * size) + v_offset + 1
-
-    icon = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, size, size)
-    iconmap.copy_area(x_coord, y_coord, size, size, icon, 0, 0)
-
-    return icon
-
-
-def get_icon_from_map(iconmap, symbol):
-    '''
-    Get icon from map.
-
-    :param iconmap: Pixbuf with a number of icons
-    :type iconmap: :class:`GdkPixbuf.Pixbuf`
-    :param symbol: Symbol for icon
-    :type symbol: str
-    :returns: icon
-    :rtype: :class:`GdkPixbuf.Pixbuf`
-    '''
-    index = ord(symbol) - ord("!")
-
-    i = index % 16
-    j = int(index / 16)
-
-    # print ("Symbol `%s' is %i,%i" % (symbol, i, j))
-
-    return get_sub_image(iconmap, i, j)
-
-
-def get_icon(key):
-    '''
-    Get Icon
-
-    :param key: Name of icon
-    :type key: str
-    :returns: Icon or None
-    :rtype: :class:`GdkPixbuf.Pixbuf`
-    '''
-    if not key:
-        return None
-
-    logger = logging.getLogger("Utils.get_icon")
-    if len(key) == 2:
-        if key[0] == "/":
-            set_value = "/"
-        elif key[0] == "\\":
-            set_value = "\\"
-        else:
-            logger.info("Unknown APRS symbol table: %s", key[0])
-            return None
-
-        key = key[1]
-    elif len(key) == 1:
-        set_value = "/"
-    else:
-        logger.info("Unknown APRS symbol: `%s'", key)
-        return None
-
-    if not ICON_MAPS:
-        init_icon_maps()
-    try:
-        return get_icon_from_map(ICON_MAPS[set_value], key)
-    # pylint: disable=broad-except
-    except Exception:
-        logger.info("Error cutting icon %s", key, exc_info=True)
-        return None
 
 
 class NetFile(FileIO):

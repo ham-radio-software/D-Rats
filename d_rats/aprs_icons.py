@@ -15,22 +15,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
 
+import logging
 import os
+
+# Need Python Image Library for rendering "Numbered" ICON codes.
+# If package is not present, "Numbered" ICON codes will not have
+# their number code.
+HAVE_PIL = False
+try:
+    from PIL import Image
+    from PIL import ImageDraw
+    # from PIL import ImageFont
+    HAVE_PIL = True
+except (ModuleNotFoundError, ImportError):
+    pass
 
 import gi
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GLib
 from gi.repository import GdkPixbuf
+from gi.repository import GObject
 
 from .dplatform import Platform
 from .aprs_dprs import AprsDprsCodes
 from .dratsexception import DPRSException
 from .inputdialog import FieldDialog
 from .miscwidgets import make_choice
-from .miscwidgets import make_pixbuf_choice
 
 
 # This makes pylance happy with out overriding settings
@@ -43,7 +56,7 @@ if not '_' in locals():
 class APRSicons():
     '''APRS Icons.'''
 
-    logger = logging.getLogger("APRS_ICONS")
+    logger = logging.getLogger("APRSicons")
     ICON_MAPS = {}
     ICONS = []
 
@@ -64,7 +77,8 @@ class APRSicons():
         try:
             return GdkPixbuf.Pixbuf.new_from_file(iconfn)
         except GLib.Error:
-            cls.logger.info("Error opening icon map %s", iconfn, exc_info=True)
+            cls.logger.info("open_icon_map: Error opening icon map %s",
+                            iconfn, exc_info=True)
             return None
 
     @classmethod
@@ -101,22 +115,21 @@ class APRSicons():
         icon = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,
                                     True, 8, size, size)
         iconmap.copy_area(x_coord, y_coord, size, size, icon, 0, 0)
-
         return icon
 
     @classmethod
-    def get_icon_from_map(cls, iconmap, code):
+    def get_icon_from_map(cls, iconmap, symbol):
         '''
         Get icon from map.
 
-        param iconmap: Pixbuf with a number of icons
+        param iconmap: Pixbuf with icons for a APRS symbol table.
         :type iconmap: :class:`GdkPixbuf.Pixbuf`
-        :param code: APRS code for icon
-        :type code: str
+        :param symbol: APRS symbol for icon
+        :type symbol: str
         :returns: icon
         :rtype: :class:`GdkPixbuf.Pixbuf`
         '''
-        index = ord(code) - ord("!")
+        index = ord(symbol) - ord("!")
 
         i = index % 16
         j = int(index / 16)
@@ -125,41 +138,90 @@ class APRSicons():
         return cls.get_sub_image(iconmap, i, j)
 
     @classmethod
-    def get_icon(cls, key):
+    def add_aprs_overlay(cls, pixbuf, code):
+        '''
+        Add Overlay to APRS pixuf
+
+        :param pixbuf: Original Pixbuf of APRS icon
+        :type pixbuf: :class:`GdkPixbuf.Pixbuf`
+        :param code: APRS code
+        :type code: str
+        :returns: Pixbuf with optional overlay
+        :rtype: :class:`GdkPixbuf.Pixbuf`
+        '''
+        if not HAVE_PIL or code[0] not in AprsDprsCodes.APRS_OVERLAYS:
+            return pixbuf
+
+        pixels = pixbuf.get_pixels()
+        width = pixbuf.get_width()
+        height = pixbuf.get_height()
+        rowstride = pixbuf.get_rowstride()
+        mode = "RGB"
+        has_alpha = pixbuf.get_has_alpha()
+        if has_alpha:
+            mode = "RGBA"
+        image = Image.frombytes(mode, (width, height),
+                                pixels, "raw", mode, rowstride)
+
+        draw = ImageDraw.Draw(image)
+        draw.text(xy=(int(width * 3 / 8), int(height / 4)),
+                  text=code[0],fill=(0,0,0) )
+        new_pixels = image.tobytes()
+        display_pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+            GLib.Bytes.new(new_pixels),
+            GdkPixbuf.Colorspace.RGB,
+            has_alpha,
+            pixbuf.get_bits_per_sample(),
+            width, height,
+            rowstride)
+        return display_pixbuf.copy()
+
+    @classmethod
+    def get_icon(cls, code):
         '''
         Get Icon
 
-        :param key: Name of icon
+        :param code: Text code for icon
         :type key: str
         :returns: Icon or None
         :rtype: :class:`GdkPixbuf.Pixbuf`
         '''
-        if not key:
-            return None
-
-        if len(key) == 2:
-            if key[0] == AprsDprsCodes.APRS_PRIMARY_SYMBOL_TABLE:
-                set_value = AprsDprsCodes.APRS_PRIMARY_SYMBOL_TABLE
-            elif key[0] == AprsDprsCodes.APRS_ALTERNATE_SYMBOL_TABLE:
-                set_value = AprsDprsCodes.APRS_ALTERNATE_SYMBOL_TABLE
-            else:
-                cls.logger.info("Unknown APRS symbol table: %s", key[0])
-                return None
-
-            key = key[1]
-        elif len(key) == 1:
-            set_value = AprsDprsCodes.APRS_PRIMARY_SYMBOL_TABLE
-        else:
-            cls.logger.info("Unknown APRS code: `%s'", key)
+        if not code:
             return None
 
         if not cls.ICON_MAPS:
             cls.init_icon_maps()
+
+        if len(code) == 2:
+            table = code[0]
+            if table in AprsDprsCodes.APRS_OVERLAYS:
+                table = AprsDprsCodes.APRS_ALTERNATE_SYMBOL_TABLE
+            tables = [AprsDprsCodes.APRS_PRIMARY_SYMBOL_TABLE,
+                      AprsDprsCodes.APRS_ALTERNATE_SYMBOL_TABLE]
+            if table not in tables:
+                cls.logger.info("get_icon: Unknown APRS symbol table: %s",
+                                table)
+                return None
+
+            symbol = code[1]
+        elif len(code) == 1:
+            table = AprsDprsCodes.APRS_PRIMARY_SYMBOL_TABLE
+            symbol = code[0]
+        else:
+            cls.logger.info("get_icon: Unknown APRS code: `%s'", code)
+            return None
+
+        display_pixbuf = None
         try:
-            return cls.get_icon_from_map(cls.ICON_MAPS[set_value], key)
+            pixbuf = cls.get_icon_from_map(iconmap=cls.ICON_MAPS[table],
+                                           symbol=symbol)
+            display_pixbuf = cls.add_aprs_overlay(pixbuf=pixbuf, code=code)
+            # display_pixbuf = pixbuf
         except KeyError:
-            cls.logger.info("Error cutting icon %s", key, exc_info=True)
-        return None
+            cls.logger.info("get_icon: Error cutting icon %s",
+                            code, exc_info=True)
+
+        return display_pixbuf
 
     @staticmethod
     def parse_dprs_message(text=''):
@@ -242,7 +304,6 @@ class APRSicons():
             else:
                 oversel.set_sensitive(False)
 
-        cls.logger.info("aprs_dialog code '%s' overlay '%s'", code, overlay)
         cls.sort_icons()
         result={}
         dialog = FieldDialog(title=title)
@@ -260,11 +321,12 @@ class APRSicons():
             overlay = code[0]
             table = AprsDprsCodes.APRS_ALTERNATE_SYMBOL_TABLE
             default_code = table + code[1]
-        cls.logger.info("aprs_dialog default_code '%s' overlay '%s'", default_code, overlay)
-        iconsel = make_pixbuf_choice(options=cls.ICONS, default=default_code)
+        iconsel = cls.make_pixbuf_choice(options=cls.ICONS,
+                                         default=default_code)
         result['iconsel'] = iconsel
         overlaysel = make_choice(options=AprsDprsCodes.APRS_OVERLAYS + [''],
                                  editable=False, default=overlay)
+        overlaysel.set_sensitive(False)
         result['overlaysel'] = overlaysel
         iconsel.connect("changed", ev_sym_changed, overlaysel, cls.ICONS)
         ev_sym_changed(iconsel, overlaysel, cls.ICONS)
@@ -279,10 +341,10 @@ class APRSicons():
         if cls.ICONS:
             return
         aprs_dict = AprsDprsCodes.get_aprs_to_dprs()
-        for sym in sorted(aprs_dict):
-            icon = cls.get_icon(sym)
+        for code in sorted(aprs_dict):
+            icon = cls.get_icon(code=code)
             if icon:
-                cls.ICONS.append((icon, sym))
+                cls.ICONS.append((icon, code))
 
     @classmethod
     def aprs_selection(cls, code):
@@ -300,6 +362,10 @@ class APRSicons():
         aprs_code = None
         overlay = ''
         table = code[0]
+        if code in AprsDprsCodes.APRS_NUMBERED_ALT:
+            table = AprsDprsCodes.APRS_ALTERNATE_SYMBOL_TABLE
+            overlay = code[0]
+
         base_code = table + code[1]
 
         aprs_select = cls.aprs_dialog(title=_("APRS Symbol"),
@@ -332,7 +398,7 @@ class APRSicons():
         :returns: DPRS string with Checksum
         :rtype: str
         '''
-        dprs_info = cls.parse_dprs_message(initial)
+        dprs_info = cls.parse_dprs_message(text=initial)
         def_aprs_code = AprsDprsCodes.APRS_DIGI_CODD
 
         if 'code' in dprs_info:
@@ -388,6 +454,40 @@ class APRSicons():
             csum ^= ord(i)
         return "*%02X" % csum
 
+    @staticmethod
+    def make_pixbuf_choice(options, default=None):
+        '''
+        Make Pixbuf Choice.
+
+        :param options: Options
+        :type options: list[:class:`GdkPixbuf.Pixbuf`]
+        :param default: Default is None
+        :type: str
+        :returns: GtkBox object
+        :rtype: :class:`Gtk.Box`
+        '''
+        store = Gtk.ListStore(GdkPixbuf.Pixbuf, GObject.TYPE_STRING)
+        box = Gtk.ComboBox.new_with_model(store)
+
+        cell = Gtk.CellRendererPixbuf()
+        box.pack_start(cell, True)
+        box.add_attribute(cell, "pixbuf", 0)
+
+        cell = Gtk.CellRendererText()
+        box.pack_start(cell, True)
+        box.add_attribute(cell, "text", 1)
+
+        _default = None
+        for pic, value in options:
+            iter_val = store.append()
+            store.set(iter_val, 0, pic, 1, value)
+            if default == value:
+                _default = options.index((pic, value))
+
+        if _default:
+            box.set_active(_default)
+
+        return box
 
 def test():
     '''Unit Test'''
@@ -398,6 +498,13 @@ def test():
         print("DPRS Message is %s" % dprs)
     else:
         print("No DPRS code selected.")
+
+    aprs = APRSicons.aprs_selection(code=AprsDprsCodes.APRS_ADVISORY_CODE)
+
+    if aprs:
+        print("APRS code is %s" % aprs)
+    else:
+        print("No APRS code selected.")
 
 #    try:
 #        Gtk.main()
