@@ -1160,8 +1160,11 @@ class MainApp(Gtk.Application):
             comment = self.config.get("settings", "default_gps_comment")
             if comment != self.default_comment:
                 dprs_info = APRSicons.parse_dprs_message(text=comment)
+                dprs_code = dprs_info['code']
+                if 'overlay' in dprs_info:
+                    dprs_code = dprs_info['code'] + dprs_info['overlay']
                 fix.aprs_code = AprsDprsCodes.dprs_to_aprs(
-                    code=dprs_info['code'] + dprs_info['overlay'])
+                    code=dprs_code)
                 self.default_comment = comment
         except (NoOptionError, DPRSInvalidCode):
             # silently fix this up.  Notifications here at info level will

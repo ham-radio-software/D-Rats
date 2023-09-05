@@ -1386,8 +1386,11 @@ class DratsGPSPanel(DratsPanel):
                 config.set("settings", "default_gps_comment", dprs)
                 val.child_widget.set_text(dprs)
                 dprs_info = APRSicons.parse_dprs_message(text=dprs)
+                dprs_code = dprs_info['code']
+                if 'overlay' in dprs_info:
+                    dprs_code = dprs_info['code'] + dprs_info['overlay']
                 aprs_code = AprsDprsCodes.dprs_to_aprs(
-                    code=dprs_info['code'] + dprs_info['overlay'],
+                    code=dprs_code,
                     default=AprsDprsCodes.APRS_FALLBACK_CODE)
                 pixbuf = APRSicons.get_icon(code=aprs_code)
                 dprs_icon.set_from_pixbuf(pixbuf)
@@ -1397,8 +1400,11 @@ class DratsGPSPanel(DratsPanel):
         val.set_sensitive(False)
         dprs_comment = config.get("settings", "default_gps_comment")
         dprs_info = APRSicons.parse_dprs_message(text=dprs_comment)
+        dprs_code = dprs_info['code']
+        if 'overlay' in dprs_info:
+            dprs_code = dprs_info['code'] + dprs_info['overlay']
         aprs_code = AprsDprsCodes.dprs_to_aprs(
-            code=dprs_info['code'] + dprs_info['overlay'],
+            code=dprs_code,
             default=AprsDprsCodes.APRS_FALLBACK_CODE)
         pixbuf = APRSicons.get_icon(code=aprs_code)
         dprs_icon = Gtk.Image.new()
