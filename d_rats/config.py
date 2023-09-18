@@ -37,6 +37,8 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
+from .aprs_dprs import AprsDprsCodes
+from .aprs_icons import APRSicons
 from .keyedlistwidget import KeyedListWidget
 from .filenamebox import FilenameBox
 from .latlonentry import LatLonEntry
@@ -120,8 +122,8 @@ _DEF_SETTINGS = {
     "gpsport" : "",
     "gpsenabled" : "False",
     "gpsportspeed" : "4800",
-    "aprssymtab" : "/",
-    "aprssymbol" : ">",
+    "aprssymtab" : AprsDprsCodes.APRS_CAR_CODE[0],
+    "aprssymbol" : AprsDprsCodes.APRS_CAR_CODE[1],
     "compatmode" : "False",
     "inports" : "[]",
     "outports" : "[]",
@@ -1319,15 +1321,53 @@ class DratsGPSPanel(DratsPanel):
         disable_with_toggle(val.child_widget, port.child_widget)
         disable_with_toggle(val.child_widget, rate.child_widget)
 
+        def gpsa_symbol(_button, val1, val2, aprs_icon):
+            '''
+            GPS APRS symbol information.
+
+            :param _button: Button widget, unused
+            :type _button: :class:`Gtk.Button`
+            :param val1: APRS Table Configuration Widget
+            :type val1: :class:`DratsConfigWidget`
+            :param val2: APRS Symbol Configuration Widget
+            :type val1: :class:`DratsConfigWidget`
+            :param aprs_icon: Aprs Icon to update
+            :type aprs_icon: :class:`Gtk.Image`
+            '''
+            aprs_table = val1.child_widget.get_text()
+            aprs_symbol = val2.child_widget.get_text()
+            code = aprs_table + aprs_symbol
+            aprs = APRSicons.aprs_selection(code=code)
+            if aprs is not None:
+                config.set("settings", "aprssymtab", aprs[0])
+                config.set("settings", "aprssymbol", aprs[1])
+                val1.child_widget.set_text(aprs[0])
+                val2.child_widget.set_text(aprs[1])
+                pixbuf = APRSicons.get_icon(code=aprs)
+                aprs_icon.set_from_pixbuf(pixbuf)
+
         val1 = DratsConfigWidget(config, "settings", "aprssymtab")
         val1.add_text(1)
+        val1.set_sensitive(False)
         val2 = DratsConfigWidget(config, "settings", "aprssymbol")
         val2.add_text(1)
+        val2.set_sensitive(False)
+        aprs_icon = Gtk.Image.new()
+        aprs_table = val1.child_widget.get_text()
+        aprs_symbol = val2.child_widget.get_text()
+        aprs_code = aprs_table + aprs_symbol
+        pixbuf = APRSicons.get_icon(code=aprs_code)
+        aprs_icon.set_from_pixbuf(pixbuf)
+        aprs_button = Gtk.Button.new_with_label(_("Edit"))
+        aprs_button.connect("clicked", gpsa_symbol, val1, val2, aprs_icon)
+
         self.make_view(_("GPS-A Symbol"),
+                       aprs_button,
+                       aprs_icon,
                        Gtk.Label.new(_("Table:")), val1,
                        Gtk.Label.new(_("Symbol:")), val2)
 
-        def gps_comment_from_dprs(_button, val):
+        def gps_comment_from_dprs(_button, val, dprs_icon):
             '''
             GPS Comment from DPRS button clicked handler.
 
@@ -1335,21 +1375,43 @@ class DratsGPSPanel(DratsPanel):
             :type _button: :class:`Gtk.Button`
             :param val: GPS Enabled Configuration Widget
             :type val: :class:`DratsConfigWidget`
+            :param dprs_icon: Aprs Icon to update
+            :type dprs_icon: :class:`Gtk.Image`
             '''
-            # pylint: disable=import-outside-toplevel
-            from . import qst
-            dprs = qst.do_dprs_calculator(config.get("settings",
-                                                     "default_gps_comment"))
+            dprs = APRSicons.dprs_selection(
+                callsign=config.get("user", "callsign"),
+                initial=config.get("settings", "default_gps_comment"))
             self.logger.debug("Setting GPS comment to DPRS: %s ", dprs)
             if dprs is not None:
                 config.set("settings", "default_gps_comment", dprs)
                 val.child_widget.set_text(dprs)
+                dprs_info = APRSicons.parse_dprs_message(text=dprs)
+                dprs_code = dprs_info['code']
+                if 'overlay' in dprs_info:
+                    dprs_code = dprs_info['code'] + dprs_info['overlay']
+                aprs_code = AprsDprsCodes.dprs_to_aprs(
+                    code=dprs_code,
+                    default=AprsDprsCodes.APRS_FALLBACK_CODE)
+                pixbuf = APRSicons.get_icon(code=aprs_code)
+                dprs_icon.set_from_pixbuf(pixbuf)
 
         val = DratsConfigWidget(config, "settings", "default_gps_comment")
         val.add_text(20)
-        but = Gtk.Button.new_with_label(_("DPRS"))
-        but.connect("clicked", gps_comment_from_dprs, val)
-        self.make_view(_("Default GPS comment"), val, but)
+        val.set_sensitive(False)
+        dprs_comment = config.get("settings", "default_gps_comment")
+        dprs_info = APRSicons.parse_dprs_message(text=dprs_comment)
+        dprs_code = dprs_info['code']
+        if 'overlay' in dprs_info:
+            dprs_code = dprs_info['code'] + dprs_info['overlay']
+        aprs_code = AprsDprsCodes.dprs_to_aprs(
+            code=dprs_code,
+            default=AprsDprsCodes.APRS_FALLBACK_CODE)
+        pixbuf = APRSicons.get_icon(code=aprs_code)
+        dprs_icon = Gtk.Image.new()
+        dprs_icon.set_from_pixbuf(pixbuf)
+        dprs_button = Gtk.Button.new_with_label(_("Edit"))
+        dprs_button.connect("clicked", gps_comment_from_dprs, val, dprs_icon)
+        self.make_view(_("Default GPS comment"), dprs_button, dprs_icon, val)
 
 
 class DratsGPSExportPanel(DratsPanel):

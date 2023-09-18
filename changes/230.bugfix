@@ -1,0 +1,2 @@
+Fix D-Rats flooding of the console log with invalid DPRS symbol messages.
+Fix config dialog for selecting APRS and DPRS icons.

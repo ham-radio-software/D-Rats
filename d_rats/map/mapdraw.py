@@ -66,8 +66,6 @@ class LoadContext():
         return float(self.loaded_tiles) / float(self.total_tiles)
 
 
-# pylint wants only 7 instance attributes
-# pylint: disable=too-many-instance-attributes
 class MapDraw():
     '''
     Map Draw Handler thread.
@@ -88,6 +86,7 @@ class MapDraw():
     __center = None
     __center_changed = False
     __zoom_changed = False
+    logger = logging.getLogger("MapDraw")
 
     def __init__(self, map_widget, cairo_ctx):
         self.map_widget = map_widget
@@ -98,7 +97,6 @@ class MapDraw():
         self.map_visible = None
         self.rgba_red = Gdk.RGBA()
         self.rgba_red.parse('red')
-        self.logger = logging.getLogger("MapDraw")
 
     @classmethod
     def set_center(cls, pos):
@@ -271,10 +269,10 @@ class MapDraw():
         if label == self.map_widget.map_window.CROSSHAIR:
             self.draw_cross_marker_at(x_coord, y_coord)
         else:
-            img = point.get_icon()
+            pixbuf = point.get_icon()
             offset = 0
-            if img:
-                offset = self.draw_image_at(x_coord, y_coord, img)
+            if pixbuf:
+                offset = self.draw_image_at(x_coord, y_coord, pixbuf)
             self.draw_text_marker_at(x_coord, y_coord, offset, label)
 
     def draw_markers(self):

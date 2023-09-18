@@ -4,7 +4,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2020 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Python3 update Copyright 2022 John Malmberg <wb8tyw@qsl.net>
+# Python3 update Copyright 2023 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,6 +35,9 @@ import serial
 from .dplatform import Platform
 
 from . import utils
+from .aprs_dprs import AprsDprsCodes
+from .aprs_icons import APRSicons
+from .dratsexception import DPRSException
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -50,62 +53,7 @@ EARTH_UNITS = "mi"
 
 DEGREE = "\u00b0"
 
-DPRS_TO_APRS = {}
-
 GPS_LOGGER = logging.getLogger("gps")
-
-
-# The DPRS to APRS mapping is pretty horrific, but the following
-# attempts to create a mapping based on looking at the javascript
-# for DPRSCalc and a list of regular APRS symbols
-#
-# http://ham-shack.com/aprs_pri_symbols.html
-# http://www.aprs-is.net/DPRSCalc.aspx
-def init_dprs_to_aprs():
-    '''Initialize DPRS_TO_APRS data.'''
-    for indx in range(0, 26):
-        asciival = ord("A") + indx
-        char = chr(asciival)
-
-        pri = "/"
-        sec = "\\"
-
-        DPRS_TO_APRS["P%s" % char] = pri + char
-        DPRS_TO_APRS["L%s" % char] = pri + char.lower()
-        DPRS_TO_APRS["A%s" % char] = sec + char
-        DPRS_TO_APRS["S%s" % char] = sec + char.lower()
-
-        if indx <= 15:
-            pchar = chr(ord(" ") + indx)
-            DPRS_TO_APRS["B%s" % char] = pri + pchar
-            DPRS_TO_APRS["O%s" % char] = sec + pchar
-        elif indx >= 17:
-            pchar = chr(ord(" ") + indx + 9)
-            DPRS_TO_APRS["M%s" % char] = pri + pchar
-            DPRS_TO_APRS["N%s" % char] = sec + pchar
-
-        if indx <= 5:
-            char = chr(ord("S") + indx)
-            pchar = chr(ord("[") + indx)
-            DPRS_TO_APRS["H%s" % char] = pri + pchar
-            DPRS_TO_APRS["D%s" % char] = sec + pchar
-
-
-init_dprs_to_aprs()
-
-# for k in sorted(DPRS_TO_APRS.keys()):
-#    print "%s => %s" % (k, DPRS_TO_APRS[k])
-
-APRS_TO_DPRS = {}
-
-
-def init_aprs_to_dprs():
-    '''Initialize APRS to DPRS data.'''
-    for key, value in DPRS_TO_APRS.items():
-        APRS_TO_DPRS[value] = key
-
-
-init_aprs_to_dprs()
 
 
 class GpsException(Exception):
@@ -148,21 +96,6 @@ class GpsGpmrcParseError(GpsGprmcException):
 class GpsGpmrcChecksumError(GpsGprmcException):
     '''GPS GPRMC Checksum Error.'''
     # raise Exception("GPRMC has no checksum in 12 or 13")
-
-
-def dprs_to_aprs(symbol):
-    '''
-    DPRS to APRS.
-
-    :param symbol: DPRS Symbol
-    :type symbol: str
-    :returns: APRS Symbol
-    :rtype: str
-    '''
-    if len(symbol) < 2:
-        GPS_LOGGER.info("dprs_to_aprs: Invalid DPRS symbol: `%s'", symbol)
-        return None
-    return DPRS_TO_APRS.get(symbol[0:2], None)
 
 
 def parse_dms(string):
@@ -288,26 +221,6 @@ def gpsa_checksum(string):
         return (~icomcrc) & 0xffff
 
     return calc(string)
-
-
-def dprs_checksum(callsign, msg):
-    '''
-    DPRS Checksum.
-
-    :param callsign: Station for message
-    :type callsign: str
-    :param msg: DPRS message
-    :type msg: str
-    :returns: Checksum String
-    :rtype: str
-    '''
-    csum = 0
-    string = "%-8s,%s" % (callsign, msg)
-    for i in string:
-        csum ^= ord(i)
-
-    return "*%02X" % csum
-
 
 def deg2rad(deg):
     '''
@@ -539,7 +452,7 @@ class GPSPosition():
         self.date = datetime.datetime.now()
         self.speed = None
         self.direction = None
-        self.aprs_icon = None
+        self.aprs_code = None
         self._original_comment = ""
         self.latitude = None
         self.longitude = None
@@ -561,11 +474,12 @@ class GPSPosition():
         self.valid = True
 
     def _parse_dprs_comment(self):
-        symbol = self.comment[0:4].strip()
+        dprs_code = self.comment[0:4].strip()
         astidx = self.comment.rindex("*")
         checksum = self.comment[astidx:]
 
-        calc_checksum = dprs_checksum(self.station, self.comment[:astidx])
+        calc_checksum = APRSicons.dprs_checksum(callsign=self.station,
+                                                message=self.comment[:astidx])
 
         if int(calc_checksum[1:], 16) != int(checksum[1:], 16):
             self.logger.info("_parse_dprs_comment: Failed to parse "
@@ -582,7 +496,14 @@ class GPSPosition():
 
             raise GpsDprsChecksumError("DPRS checksum failed")
 
-        self.aprs_icon = dprs_to_aprs(symbol)
+        try:
+            self.aprs_code = AprsDprsCodes.dprs_to_aprs(code=dprs_code)
+        except DPRSException:
+            # Make sure that we have a valid APRS code if we can not
+            # parse the DPRS code.
+            self.aprs_code = AprsDprsCodes.APRS_FALLBACK_CODE
+            self.logger.debug("_parse_dprs_comment invalid dprs code: %s",
+                              dprs_code)
         self.comment = self.comment[4:astidx].strip()
 
     def __iadd__(self, update):
@@ -613,8 +534,8 @@ class GPSPosition():
             # pylint: disable=protected-access
             self._original_comment = update._original_comment
 
-        if update.aprs_icon:
-            self.aprs_icon = update.aprs_icon
+        if update.aprs_code:
+            self.aprs_code = update.aprs_code
 
         return self
 
@@ -781,19 +702,20 @@ class GPSPosition():
                                                  sta,
                                                  self.comment)
 
-    def to_aprs(self, dest="APRATS", symtab="/", symbol=">"):
+    def to_aprs(self, dest="APRATS",
+                code=AprsDprsCodes.APRS_CAR_CODE[1]):
         '''
         To APRS.
 
         :param dest: Destination, default "APRSATS"
         :param dest: str
-        :param symtab: Symbol tab, default "/"
-        :type symtab: str
-        :param symbol: Symbol, default ">"
-        :type symbol: str
+        :param code: APRS code, default APRS_CAR_CODE
+        :type code: str
         :returns: a GPS-A (APRS-compliant) string
         :rtype: str
         '''
+        symtab = code[0]
+        symbol = code[1]
         stamp = time.strftime("%H%M%S", time.gmtime())
 
         if " " in self.station:
@@ -1200,7 +1122,7 @@ class APRSGPSPosition(GPSPosition):
         self.longitude = nmea2deg(float(match.group(7)), match.group(8))
         self.comment = match.group(10).strip()
         self._original_comment = self.comment
-        self.aprs_icon = match.group(6) + match.group(9)
+        self.aprs_code = match.group(6) + match.group(9)
 
         if len(match.groups()) == 11 and match.group(11):
             _, alt = match.group(11).split("=")

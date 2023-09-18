@@ -1,8 +1,9 @@
 # pylint: disable=too-many-lines
+# pylint wants max of 1000 lines per module.
 '''QST.'''
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,13 +37,13 @@ if not '_' in locals():
 
 from .filenamebox import FilenameBox
 from .miscwidgets import make_choice
-from .miscwidgets import make_pixbuf_choice
 
+from .aprs_icons import APRSicons
 from .dplatform import Platform
-from . import inputdialog
+from .aprs_dprs import AprsDprsCodes
 from . import cap
 from . import gps
-from .utils import combo_select, get_icon
+from .utils import combo_select
 
 QST_LOGGER = logging.getLogger("QST")
 
@@ -58,75 +59,6 @@ try:
 except ImportError:
     QST_LOGGER.info("Installing hashlib replacement hack")
     from .utils import ExternalHash as md5
-
-
-# pylint: disable=too-many-locals
-def do_dprs_calculator(initial=""):
-    '''
-    Do DPRS Calculator.
-
-    :param initial: initial string, default ""
-    :type initial: str
-    :returns: DPRS string with Checksum
-    :rtype: str
-    '''
-    def ev_sym_changed(iconsel, oversel, icons):
-        oversel.set_sensitive(icons[iconsel.get_active()][1][0] == "\\")
-
-    dialog = inputdialog.FieldDialog(title=_("DPRS message"))
-    msg = Gtk.Entry()
-    msg.set_max_length(13)
-
-    overlays = [chr(x) for x in range(ord(" "), ord("_"))]
-
-    cur = initial
-    logger = logging.getLogger("QST_Do_DPRS_Calculator")
-
-    if cur and len(cur) >2 and cur[-3] == "*" and cur[3] == " ":
-        msg.set_text(cur[4:-3])
-        dsym = cur[:2]
-        deficn = gps.DPRS_TO_APRS.get(dsym, "/#")
-        defovr = cur[2]
-        if defovr not in overlays:
-            logger.info("Overlay %s not in list", defovr)
-            defovr = " "
-    else:
-        deficn = "/#"
-        defovr = " "
-
-    icons = []
-    for sym in sorted(gps.DPRS_TO_APRS.values()):
-        icon = get_icon(sym)
-        if icon:
-            icons.append((icon, sym))
-    iconsel = make_pixbuf_choice(icons, deficn)
-
-    oversel = make_choice(overlays, False, defovr)
-    iconsel.connect("changed", ev_sym_changed, oversel, icons)
-    ev_sym_changed(iconsel, oversel, icons)
-
-    dialog.add_field(_("Message"), msg)
-    dialog.add_field(_("Icon"), iconsel)
-    dialog.add_field(_("Overlay"), oversel)
-
-    result = dialog.run()
-    aicon = icons[iconsel.get_active()][1]
-    mstr = msg.get_text().upper()
-    over = oversel.get_active_text()
-    dialog.destroy()
-    if result != Gtk.ResponseType.OK:
-        return None
-
-    dicon = gps.APRS_TO_DPRS[aicon]
-
-    # pylint: disable=import-outside-toplevel
-    from . import mainapp # Hack to force import of mainapp
-    callsign = mainapp.get_mainapp().config.get("user", "callsign")
-    string = "%s%s %s" % (dicon, over, mstr)
-
-    check = gps.dprs_checksum(callsign, string)
-
-    return string + check
 
 
 class QSTText(GObject.GObject):
@@ -183,10 +115,10 @@ class QSTExec(QSTText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTExec")
 
     def __init__(self, config, content, key):
         QSTText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTExec")
 
     def do_qst(self):
         '''
@@ -215,10 +147,10 @@ class QSTFile(QSTText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTFile")
 
     def __init__(self, config, content, key):
         QSTText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTFile")
 
     def do_qst(self):
         '''
@@ -229,15 +161,11 @@ class QSTFile(QSTText):
         '''
         size_limit = self.config.getint("settings", "qst_size_limit")
         try:
-            # pylint: disable=consider-using-width
-            file_handle = open(self.text)
+            with open(self.text) as file_handle:
+                text = file_handle.read()
         except (PermissionError, FileNotFoundError) as err:
             self.logger.info("Unable to open file `%s': %s", self.text, err)
             return None
-
-        text = file_handle.read()
-        file_handle.close()
-
         return text[:size_limit]
 
 
@@ -252,10 +180,10 @@ class QSTGPS(QSTText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTGPS")
 
     def __init__(self, config, content, key):
         QSTText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTGPS")
 
         self.prefix = ""
         self.raw = True
@@ -317,8 +245,9 @@ class QSTGPSA(QSTGPS):
             self.text = self.text[1:]
 
         if fix.valid:
-            return fix.to_aprs(symtab=self.config.get("settings", "aprssymtab"),
-                               symbol=self.config.get("settings", "aprssymbol"))
+            aprs_code = self.config.get("settings", "aprssymtab") + \
+                        self.config.get("settings", "aprssymbol")
+            return fix.to_aprs(code=aprs_code)
         return None
 
 
@@ -333,9 +262,10 @@ class QSTWX(QSTGPS):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QST")
+
     def __init__(self, config, content, key):
         QSTGPS.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QST")
 
     def do_qst(self):
         '''
@@ -348,12 +278,10 @@ class QSTWX(QSTGPS):
 #        linecache.checkcache(self.text)
 #        wx = linecache.getline(self.text, 2).strip()
 # /* from here
-        # pylint: disable=consider-using-width
-        file_handle = open(self.text)
-       # f = NetFile(self.text)
-        wx_line = file_handle.readline()
-        wx_line = file_handle.readline().rstrip()
-        file_handle.close()
+
+        with open(self.text) as file_handle:
+            wx_line = file_handle.readline()
+            wx_line = file_handle.readline().rstrip()
 #*/ to here is working on Windows and python
 
         if not self.fix:
@@ -365,11 +293,7 @@ class QSTWX(QSTGPS):
             fix.set_station(fix.station, wx_line[:200])
 
         if fix.valid:
-            return fix.to_aprs(symtab="/",
-                               symbol="_")
-#       WX symbol will be used for WXGPS-A.
-#       return fix.to_aprs(symtab=self.config.get("settings", "aprssymtab"),
-#                          symbol=self.config.get("settings", "aprssymbol")
+            return fix.to_aprs(code=AprsDprsCodes.APRS_WEATHER_CODE)
         self.logger.info("do_qst: "
                          "GPS position is not valid, so not sent")
         return None
@@ -386,10 +310,10 @@ class QSTThreadedText(QSTText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTThreadedText")
 
     def __init__(self, config, content, key):
         QSTText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTThreadedText")
 
         self.thread = None
 
@@ -414,8 +338,7 @@ class QSTThreadedText(QSTText):
 
         # This is a race, but probably pretty safe :)
         self.thread = threading.Thread(target=self.threaded_fire)
-        # pylint: disable=deprecated-method
-        self.thread.setDaemon(True)
+        self.thread.daemon = True
         self.thread.start()
         self.logger.info("Started a thread for QST data...")
 
@@ -431,10 +354,10 @@ class QSTRSS(QSTThreadedText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTRSS")
 
     def __init__(self, config, content, key):
         QSTThreadedText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTRSS")
 
         self.last_id = ""
 
@@ -481,10 +404,10 @@ class QSTCAP(QSTThreadedText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTCAP")
 
     def __init__(self, config, content, key):
         QSTThreadedText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTCAP")
 
         self.last_date = None
 
@@ -542,10 +465,10 @@ class QSTWeatherWU(QSTThreadedText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QST_Weather_WU")
 
     def __init__(self, config, content, key):
         QSTThreadedText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QST_Weather_WU")
         self.logger.info("QSTWeatherWU class retired")
 
 
@@ -560,12 +483,14 @@ class QSTOpenWeather(QSTThreadedText):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTOpenWeather")
 
     def __init__(self, config, content, key):
         QSTThreadedText.__init__(self, config, content, key)
-        self.logger = logging.getLogger("QSTOpenWeather")
 
-    # pylint: disable=too-many-statements
+    # pylint wants only 15 local variables in a method.
+    # pylint wants only 83 statemetns in a method
+    # pylint: disable=too-many-statements. too-many-locals
     def do_qst(self):
         '''
         Do QST.
@@ -591,8 +516,8 @@ class QSTOpenWeather(QSTThreadedText):
             url = owuri +"weather?"+ \
                 urllib.parse.urlencode({'q': s_qst, 'appid': owappid})
             self.logger.info("URL=%s", url)
-            # pylint: disable=consider-using-with
-            url_read = urllib.request.urlopen(url).read()
+            with urllib.request.urlopen(url) as response:
+                url_read = response.read()
             data_json = json.loads(url_read)
             self.logger.info(data_json)
 
@@ -743,6 +668,7 @@ class QSTStation(QSTGPSA):
     :param key: Name for QST
     :type key: str
     '''
+    logger = logging.getLogger("QSTStation")
 
     def __init__(self, config, content, key):
         QSTGPSA.__init__(self, config, content, key)
@@ -1049,6 +975,7 @@ class QSTGPSEditWidget(QSTEditWidget):
     def __init__(self, config):
         QSTEditWidget.__init__(self, spacing=2)
 
+        self.config = config
         lab = Gtk.Label.new(_("Enter your GPS message:"))
         lab.set_line_wrap(True)
         lab.show()
@@ -1080,7 +1007,9 @@ class QSTGPSEditWidget(QSTEditWidget):
 
         :param _button: Unused.
         '''
-        dprs = do_dprs_calculator(self.__msg.get_text())
+        dprs = APRSicons.dprs_selection(
+            callsign=self.config.get("user", "callsign"),
+            initial=self.__msg.get_text())
         if dprs is None:
             return
         self.__msg.set_text(dprs)
@@ -1283,13 +1212,13 @@ class QSTWUEditWidget(QSTEditWidget):
     '''QST WU Edit Widget.'''
 
     label_text = _("Enter an Open Weather station name:")
+    logger = logging.getLogger("QSTWUEditWidget")
 
     def __init__(self):
         QSTEditWidget.__init__(self, spacing=2)
 
         lab = Gtk.Label.new(self.label_text)
         lab.show()
-        self.logger = logging.getLogger("QSTWUEditWidget")
 
         self.pack_start(lab, 1, 1, 1)
 
@@ -1343,7 +1272,8 @@ class QSTWUEditWidget(QSTEditWidget):
         return self.to_qst()
 
 
-# pylint: disable=too-many-instance-attributes, too-few-public-methods
+# Pylint wants at least 2 public methods
+# pylint: disable=too-few-public-methods
 class QSTEditDialog(Gtk.Dialog):
     '''
     QST Edit Dialog.
@@ -1355,9 +1285,9 @@ class QSTEditDialog(Gtk.Dialog):
     :param parent: Parent widget
     :type parent: :class:`Gtk.Widget`
     '''
+    logger = logging.getLogger("QSTEditDialog")
 
     def __init__(self, config, ident, parent=None):
-        self.logger = logging.getLogger("QSTEditDialog")
 
         self.logger.info("defining qst types")
         self._types = {

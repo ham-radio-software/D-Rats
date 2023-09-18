@@ -18,8 +18,6 @@
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from gi.repository import GdkPixbuf
-from gi.repository import GObject
 
 
 def make_choice(options, editable=True, default=None):
@@ -50,38 +48,3 @@ def make_choice(options, editable=True, default=None):
         except ValueError:
             pass
     return sel
-
-
-def make_pixbuf_choice(options, default=None):
-    '''
-    Make Pixbuf Choice.
-
-    :param options: Options
-    :type options: list[:class:`GdkPixbuf.Pixbuf`]
-    :param default: Default is None
-    :type: str
-    :returns: GtkBox object
-    :rtype: :class:`Gtk.Box`
-    '''
-    store = Gtk.ListStore(GdkPixbuf.Pixbuf, GObject.TYPE_STRING)
-    box = Gtk.ComboBox.new_with_model(store)
-
-    cell = Gtk.CellRendererPixbuf()
-    box.pack_start(cell, True)
-    box.add_attribute(cell, "pixbuf", 0)
-
-    cell = Gtk.CellRendererText()
-    box.pack_start(cell, True)
-    box.add_attribute(cell, "text", 1)
-
-    _default = None
-    for pic, value in options:
-        iter_val = store.append()
-        store.set(iter_val, 0, pic, 1, value)
-        if default == value:
-            _default = options.index((pic, value))
-
-    if _default:
-        box.set_active(_default)
-
-    return box

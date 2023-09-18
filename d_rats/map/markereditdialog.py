@@ -1,6 +1,6 @@
 '''Map Marker Dialog Module.'''
 #
-# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2023 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -28,13 +28,13 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from .. import map_sources
+from ..aprs_dprs import AprsDprsCodes
+from ..aprs_icons import APRSicons
+from ..geocode_ui import AddressAssistant
 from .. import inputdialog
 from ..latlonentry import LatLonEntry
+from .. import map_sources
 from .. import miscwidgets
-from .. import utils
-from ..gps import DPRS_TO_APRS
-from ..geocode_ui import AddressAssistant
 
 # This makes pylance happy with out overriding settings
 # from the invoker of the class
@@ -42,20 +42,21 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
+# Pylint wants only 7 instance attributes
+# pylint: disable=too-many-instance-attributes
 class MarkerEditDialog(inputdialog.FieldDialog):
     '''Marker Edit Dialog.'''
 
+    logger = logging.getLogger("MarkerEditDialog")
+
     def __init__(self):
         inputdialog.FieldDialog.__init__(self, title=_("Add Marker"))
-        self.logger = logging.getLogger("MarkerEditDialog")
-        self.logger.info("class init")
-
         self.icons = []
-        self.logger.info("Before sorting DPRS_TO_APRS")
-        for sym in sorted(DPRS_TO_APRS.values()):
-            icon = utils.get_icon(sym)
-            if icon:
-                self.icons.append((icon, sym))
+        aprs_dict = AprsDprsCodes.get_aprs_to_dprs()
+        for code in sorted(aprs_dict):
+            pixbuf = APRSicons.get_icon(code=code)
+            if pixbuf:
+                self.icons.append((pixbuf, code))
 
         self.address_assist = AddressAssistant()
         lookup_button = Gtk.Button.new_with_label(_("By Address"))
@@ -71,14 +72,18 @@ class MarkerEditDialog(inputdialog.FieldDialog):
             lookup_button.connect("clicked", self.do_address)
             self.add_field(_("Lookup"), lookup_button)
         self.add_field(_("Comment"), Gtk.Entry())
-        self.add_field(_("Icon"), miscwidgets.make_pixbuf_choice(self.icons))
-
+        aprs_button = Gtk.Button.new_with_label(_("Edit"))
+        self.aprs_image = Gtk.Image.new()
+        self.aprs_label = Gtk.Label.new()
+        aprs_button.connect("clicked", self.aprs_symbol)
+        self.add_field(_("Edit APRS"), aprs_button)
+        self.add_field(_("Icon"), self.aprs_image)
+        self.add_field(_("APRS Code"), self.aprs_label)
         self._point = None
-        self.logger.info("init done")
 
     def do_address(self, _button):
         '''
-        Do Address Lookup.
+        Do Address Lookup Handler.
 
         :param _button: Button widget, unused
         :type _button: :class:`Gtk.Button`
@@ -88,6 +93,20 @@ class MarkerEditDialog(inputdialog.FieldDialog):
             self.name_entry.set_text(self.address_assist.place)
             self.lat_entry.set_text("%.5f" % self.address_assist.lat)
             self.lon_entry.set_text("%.5f" % self.address_assist.lon)
+
+    def aprs_symbol(self, _button):
+        '''
+        APRS symbol information button Handler.
+
+        :param _button: Button widget, unused
+        :type _button: :class:`Gtk.Button`
+        '''
+        aprs_code = self.aprs_label.get_text()
+        aprs = APRSicons.aprs_selection(code=aprs_code)
+        if aprs is not None:
+            self.aprs_label.set_text(aprs)
+            pixbuf = APRSicons.get_icon(code=aprs)
+            self.aprs_image.set_from_pixbuf(pixbuf)
 
     def set_groups(self, groups, group=None):
         '''
@@ -131,15 +150,13 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         self.get_field(_("Longitude")).set_text("%.4f" % point.get_longitude())
         self.get_field(_("Comment")).set_text(point.get_comment())
 
-        iconsel = self.get_field(_("Icon"))
+        iconsel = self.get_field(_("Edit APRS"))
         if isinstance(point, map_sources.MapStation):
-            symlist = [y for x, y in self.icons]
-            try:
-                iidx = symlist.index(point.get_aprs_symbol())
-                iconsel.set_active(iidx)
-            except ValueError:
-                self.logger.info("set_point: No such symbol `%s'",
-                                 point.get_aprs_symbol())
+            aprs_code = point.get_aprs_code()
+            self.get_field(_("APRS Code")).set_text(aprs_code)
+            pixbuf = APRSicons.get_icon(code=aprs_code)
+            self.get_field(_("Icon")).set_from_pixbuf(pixbuf)
+            iconsel.set_sensitive(True)
         else:
             iconsel.set_sensitive(False)
 
@@ -155,7 +172,7 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         lat = self.get_field(_("Latitude")).value()
         lon = self.get_field(_("Longitude")).value()
         comment = self.get_field(_("Comment")).get_text()
-        idx = self.get_field(_("Icon")).get_active()
+        aprs_code = self.get_field(_("APRS Code")).get_text()
 
         self._point.set_name(name)
         self._point.set_latitude(lat)
@@ -163,6 +180,6 @@ class MarkerEditDialog(inputdialog.FieldDialog):
         self._point.set_comment(comment)
 
         if isinstance(self._point, map_sources.MapStation):
-            self._point.set_icon_from_aprs_sym(self.icons[idx][1])
+            self._point.set_pixbuf_from_aprs_code(aprs_code)
 
         return self._point

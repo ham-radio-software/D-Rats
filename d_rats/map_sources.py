@@ -2,7 +2,7 @@
 '''Map Sources'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2022-2023 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import csv
 import logging
 import re
 import time
@@ -34,6 +35,8 @@ from gi.repository import GLib
 from gi.repository import GObject
 
 from . import utils
+from .aprs_dprs import AprsDprsCodes
+from .aprs_icons import APRSicons
 from .dplatform import Platform
 
 
@@ -88,7 +91,7 @@ class MapPoint(GObject.GObject):
         self.__altitude = 0.0
         self.__name = ""
         self.__comment = ""
-        self.__icon = None
+        self.__icon = None  # Really a pixbuf
         self.__timestamp = time.time()
         self.__visible = True
 
@@ -175,26 +178,26 @@ class MapStation(MapPoint):
         self.set_altitude(alt)
         self.set_name(call)
         self.set_comment(comment)
-        self._aprs_sym = ""
+        self._aprs_code = ""
         # pylint: disable=fixme
         # FIXME: Set icon from DPRS comment
 
-    def set_icon_from_aprs_sym(self, symbol):
+    def set_pixbuf_from_aprs_code(self, code):
         '''
-        Set Icon From APRS symbol.
+        Set Icon From APRS code.
 
-        :param symbol: Symbol to set icon
+        :param code: Code to set icon
         '''
-        self.set_icon(utils.get_icon(symbol))
-        self._aprs_sym = symbol
+        self.set_icon(APRSicons.get_icon(code=code))
+        self._aprs_code = code
 
-    def get_aprs_symbol(self):
+    def get_aprs_code(self):
         '''
-        Get Aprs Symbol.
+        Get Aprs Code.
 
-        :returns: APRS symbol
+        :returns: APRS code
         '''
-        return self._aprs_sym
+        return self._aprs_code
 
 
 def _xdoc_getnodeval(doc, nodespec, namespaces=None):
@@ -225,6 +228,7 @@ class MapPointThreaded(MapPoint):
     '''Map Point Threaded.'''
 
     logger = logging.getLogger("MapPointThreaded")
+
     def __init__(self):
         MapPoint.__init__(self)
 
@@ -269,7 +273,8 @@ class MapUSGSRiver(MapPointThreaded):
         self._height_ft = None
         self._basename = None
 
-        self.set_icon(utils.get_icon("/w"))
+        self.set_icon(APRSicons.get_icon(
+            code=AprsDprsCodes.APRS_WATER_STATION_CODE))
 
     def do_update(self):
         '''Do update.'''
@@ -365,7 +370,8 @@ class MapNBDCBuoy(MapPointThreaded):
         self.__buoy = buoy
         self.__url = "http://www.ndbc.noaa.gov/data/latest_obs/%s.rss" % buoy
 
-        self.set_icon(utils.get_icon("\\N"))
+        self.set_icon(APRSicons.get_icon(
+            code=AprsDprsCodes.APRS_NAVIGATION_BUOY_CODE))
 
     def do_update(self):
         '''Do Update.'''
@@ -590,23 +596,22 @@ class MapFileSource(MapSource):
 
         self._need_save = 0
 
-        lines = []
         try:
-            with open(filename) as input_handle:
-                lines = input_handle.read().splitlines()
+            with open(filename, newline='') as csvfile:
+                rows = csv.reader(csvfile)
+                for row in rows:
+                    if row:
+                        try:
+                            point = self.__parse_line(row)
+                        except MapSourcePointError:
+                            continue
+                    self._points[point.get_name()] = point
+
         except (PermissionError, FileNotFoundError) as err:
             msg = "Failed to open %s: %s" % (filename, err)
             self.logger.info("Failed to open %s: %s")
             raise MapSourceFailedToConnect(msg) from err
 
-        for line in lines:
-            if line:
-                try:
-                    point = self.__parse_line(line)
-                except MapSourcePointError:
-                    continue
-
-            self._points[point.get_name()] = point
 
     @staticmethod
     def enumerate(config):
@@ -650,13 +655,13 @@ class MapFileSource(MapSource):
         return MapFileSource(name, "Static file", path)
 
     # open_source_by_name = Callable(_open_source_by_name)
-    def __parse_line(self, line):
+    def __parse_line(self, row):
 
         try:
-            ident, icon, lat, lon, alt, comment, show = line.split(",", 6)
+            ident, icon, lat, lon, alt, comment, show = row
         except ValueError as err:
             self.logger.info("parse_line failed in file %s (%s)",
-                             self._fn, line)
+                             self._fn, row)
             raise MapSourcePointError from err
 
         if alt:
@@ -667,27 +672,23 @@ class MapFileSource(MapSource):
         point = MapStation(ident, float(lat), float(lon), float(alt), comment)
         point.set_visible(show.upper().strip() == "TRUE")
         if icon and icon != "None":
-            point.set_icon_from_aprs_sym(icon)
+            point.set_pixbuf_from_aprs_code(code = icon)
 
         return point
 
     def save(self):
         '''Save.'''
         self._need_save = 0
-        # This needs to be a CSV or a YAML save routine.
-        with open(self._fn, "w") as handle:
-
+        with open(self._fn, "w", newline='') as handle:
+            writer = csv.writer(handle, quoting=csv.QUOTE_MINIMAL)
             for point in self.get_points():
-                handle.write("%s,%s,%f,%f,%f,%s,%s%s" %
-                             (point.get_name(),
-                              point.get_aprs_symbol(),
-                              point.get_latitude(),
-                              point.get_longitude(),
-                              point.get_altitude(),
-                              point.get_comment(),
-                              point.get_visible(),
-                              os.linesep))
-        handle.close()
+                writer.writerow([point.get_name(),
+                                 point.get_aprs_code(),
+                                 point.get_latitude(),
+                                 point.get_longitude(),
+                                 point.get_altitude(),
+                                 point.get_comment(),
+                                 point.get_visible()])
 
     def get_filename(self):
         '''Get Filename'''
