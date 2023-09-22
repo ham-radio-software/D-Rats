@@ -365,7 +365,7 @@ class Version:
                 cls._parse_version(raw_version)
                 cls._get_pep440_version()
                 cls._update_pkg_info(pkg_info_file)
-            except subprocess.CalledProcessError:
+            except (FileNotFoundError, subprocess.CalledProcessError):
                 cls.logger.info('Unable to get version number from git tags')
 
         if not cls._version:
