@@ -81,7 +81,7 @@ def main():
     # encoding in spite of examples showing othersise/
     # export LC_ALL=en_US.UTF-8
 
-    # How to find what lanaguges are available
+    # How to find what languages are available
     localedir="./locale"
 
     for mo_file in glob.glob("locale/*/LC_MESSAGES/D-RATS.mo"):
