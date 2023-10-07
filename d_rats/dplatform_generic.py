@@ -416,6 +416,30 @@ class PlatformGeneric():
         return "Unknown Operating System"
 
     @staticmethod
+    def get_locales():
+        '''
+        Get locales on a system.
+
+        There is no python package to get the list of locales actually
+        installed on a system.
+
+        The "locale -a" command will return a list of locales on Linux
+        and msys2 on Windows.
+
+        :returns: List of UTF-8 locales
+        :rtype: list(str)
+        '''
+        locale_list = []
+        raw_output = subprocess.run(['locale', '-a'],
+                                    capture_output=True,
+                                    check=False,
+                                    text=True).stdout
+        for line in raw_output.split():
+            if line.endswith('.utf8'):
+                locale_list.append(line.split('.')[0])
+        return locale_list
+
+    @staticmethod
     def run_sync(command):
         '''
         Run Sync.

@@ -12,6 +12,7 @@ dynamic = ["version"]
 dependencies = [
     "lxml",
     "pycairo",
+    "pycountry",
     "PyGObject",
     "pyserial",
     "Pillow",

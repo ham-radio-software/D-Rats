@@ -12,7 +12,8 @@ pacman -Syu --noconfirm \
     "${mingw}-python-pywin32" \
     "${mingw}-python-lxml" \
     "${mingw}-python-pyserial" \
-    "${mingw}-python-pillow"
+    "${mingw}-python-pillow" \
+    "${mingw}-python-pycountry"
 
 if [[ "$1" == dev* ]]; then
   # packaging

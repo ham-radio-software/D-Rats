@@ -119,49 +119,15 @@ class MainWindow(MainWindowElement):
         wtree.add_from_file(file_name)
         MainWindowElement.__init__(self, wtree, config)
 
-        # Reapply gettect configuration to have UI labels translated
+        # Reapply gettext configuration to have UI labels translated
         gettext.bindtextdomain('D-RATS', "locale")
         gettext.textdomain('D-RATS')
+        # pylint: disable=global-statement
+        global _
         _ = gettext.gettext
 
         self._application = application
         self._window = self._wtree.get_object("mainwindow")
-
-        # Retrieve other translatable objects and set their text
-        self.logger.info(" Forcing UI labels translation:")
-
-        label_from_builder = wtree.get_object("mnu_tools")
-        label_from_builder.set_label(_("Tools"))
-        label_from_builder = wtree.get_object("main_menu_importmsg")
-        label_from_builder.set_label(_("Import Message"))
-        label_from_builder = wtree.get_object("main_menu_exportmsg")
-        label_from_builder.set_label(_("Export Message"))
-        label_from_builder = wtree.get_object("main_menu_msgtemplates")
-        label_from_builder.set_label(_("Message Templates"))
-        label_from_builder = wtree.get_object("main_menu_ping")
-        label_from_builder.set_label(_("Ping Station"))
-        label_from_builder = wtree.get_object("main_menu_conninet")
-        label_from_builder.set_label(_("Connected to Internet"))
-        label_from_builder = wtree.get_object("menuitem3")
-        label_from_builder.set_label(_("_View"))
-
-        label_from_builder = wtree.get_object("menuitem4")
-        label_from_builder.set_label(_("_Help"))
-        label_from_builder = wtree.get_object("main_menu_debuglog")
-        label_from_builder.set_label(_("Show debug log"))
-        label_from_builder = wtree.get_object("main_menu_about")
-        label_from_builder.set_label(_("About"))
-
-        label_from_builder = wtree.get_object("tab_label_msg")
-        #label_from_builder.set_text(_("Messages"))
-
-        #Event Log Tab
-        label_from_builder = wtree.get_object("label6")
-        label_from_builder.set_label(_("Show event type:"))
-        label_from_builder = wtree.get_object("label7")
-        label_from_builder.set_label(_("Containing text:"))
-
-        #------------
 
         self._window.set_application(application)
         self._tabs = self._wtree.get_object("main_tabs")

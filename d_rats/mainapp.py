@@ -20,8 +20,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from configparser import NoOptionError
+import locale
 import logging
 import os
+HAVE_PYCOUNTRY = False
+try:
+    from pycountry import countries
+    from pycountry import languages
+    HAVE_PYCOUNTRY = True
+except (ModuleNotFoundError, ImportError):
+    pass
 import sys
 
 # this to generate timestamps associated to GPS fixes
@@ -984,40 +992,84 @@ class MainApp(Gtk.Application):
 
     def _refresh_lang(self):
         '''Refresh Language.'''
-        # load the localized labels
-        locales = {"Dutch" : "nl",
-                 "English" : "en",
-                  "German" : "de",
-                 "Italian" : "it",
-                 "Spanish" : "es",
-                   }
-        locale = locales.get(self.config.get("prefs", "language"), "English")
-        self.logger.info("_refresh_lang: Setting locale to: %s", locale)
 
-        localedirfromconfig = os.path.join(Platform.get_platform().sys_data(),
-                                 "locale")
-        self.logger.info("_refresh_lang: Setting localedirfromconfig to: %s", localedirfromconfig)
+        country_name = self.config.get("prefs", "country")
+        language_name = self.config.get("prefs", "language")
+        self.logger.info("_refresh_lang: Setting language to: %s",
+                         language_name)
 
-        if "LANGUAGE" not in os.environ:
-            os.environ["LANGUAGE"] = locale
+        localedir = os.path.join(Platform.get_platform().sys_data(),
+                                           "locale")
+        self.logger.debug("_refresh_lang: Setting localedirfromconfig to: %s",
+                          localedir)
 
-        self.logger.info("_refresh_lang: OS Locale set to: %s", os.environ["LANGUAGE"])
+        locale_name = 'en'
+        country_code = 'US'
+        envs = ['LANG', 'LC_NAME', 'LC_ALL']
+        for env in envs:
+            # Need to guess the country
+            if env in os.environ:
+                value = os.environ[env]
+                locale_name = value[0:1]
+                country_code = value[3:5]
+                break
+
+        if HAVE_PYCOUNTRY:
+            language = None
+            try:
+                language = languages.get(name=language_name)
+            except LookupError:
+                self.logger.info(
+                    "System does not have %s locale package installed.",
+                    language_name)
+
+            try:
+                country = countries.get(name=country_name)
+                country_code = country.alpha_2
+            except LookupError:
+                self.logger.info("System does not know about country %s.",
+                                 country_name)
+
+            if language:
+                try:
+                    locale_name = language.alpha_2
+
+                    lang_code = locale_name + "_" + \
+                                country_code + '.UTF-8'
+                    locale.setlocale(locale.LC_ALL, lang_code)
+                    self.logger.info("_refresh_lang: OS Locale set to: %s",
+                                     lang_code)
+                    # This is reported to be needed for GTK to pick up the
+                    # the environment.
+                    os.environ["LANGUAGE"] = lang_code
+                except locale.Error:
+                    self.logger.info(
+                        "_refresh_lang: Unable to set OS locale to %s",
+                        lang_code)
+        else:
+            self.logger.info("Python pcountry package needed for selecting"
+                             " lanagages.")
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
             global _
             lang = gettext.translation("D-RATS",
-                                       localedir=localedirfromconfig,
-                                       languages=[locale])
+                                       localedir=localedir,
+                                       languages=[locale_name],
+                                       fallback=True)
             lang.install()
             _ = lang.gettext
-            #Gtk.glade.bindtextdomain("D-RATS", localedirfromconfig)
-            #Gtk.glade.textdomain("D-RATS")
+            try:
+                gettext.bindtextdomain("D-RATS", localedir)
+                gettext.textdomain("D-RATS")
+            except AttributeError:
+                self.logger.info("System may not support setting GTK locale.")
+
         except FileNotFoundError:
             #pylint: disable=logging-too-many-args
-            self.logger.error("_refresh_lang: Messages catalog file missing ",
-                              " for %s.  Need to use 'msgfmt tool to generate.",
-                              locale)
+            self.logger.error("_refresh_lang: Messages catalog file missing "
+                              " for %s.  Need to use 'build_pot.sh' to "
+                              "generate.", locale)
             gettext.install("D-RATS")
             _ = gettext.gettext
         except LookupError:
@@ -1030,18 +1082,6 @@ class MainApp(Gtk.Application):
                               locale, exc_info=True)
             gettext.install("D-RATS")
             _ = gettext.gettext
-
-        except Exception as error: # pylint: disable=broad-except
-            self.logger.error("_refresh_lang: other error: %s", error)
-
-        ##check if gettext works
-        #try:
-        #    self.logger.info("_refresh_lang: gettext: Check Hello world translation:  %s",
-        #        (_("HELLO_WORLD")))
-        # pylint: disable=too-general-exception
-        # except Exception as error:
-        #    self.logger.error("_refresh_lang: other error: %s", error)
-
 
     def _load_map_overlays(self):
         '''Load Map Overlays.'''
@@ -1104,6 +1144,9 @@ class MainApp(Gtk.Application):
         # The following line is needed to force language after config load
         # (not having this, the language is reverted back to untranslated labels
         # also if at D-Rats startup it was load (l))
+        # Thts will not update preset text from the glade files.  That must
+        # be set befroe the glade file is loaded, so a complete restart
+        # of D-Rats will be needed.
         self._refresh_lang()
 
     def _refresh_map(self):
@@ -1133,7 +1176,6 @@ class MainApp(Gtk.Application):
         # pylint: disable=fixme
         # todo: A change here should trigger a refresh of the new
         # map window after that a config reload/change is done
-        # pylint: disable=broad-except
         self.logger.info("_refresh_map: reconfigured mapurl to: %s", mapurl)
         self.logger.info("_refresh_map: reconfigured mapkey to: %s", mapkey)
         Map.Window.set_base_dir(os.path.join(
@@ -1186,7 +1228,7 @@ class MainApp(Gtk.Application):
                 fix.aprs_code = AprsDprsCodes.dprs_to_aprs(
                     code=dprs_code)
                 self.default_comment = comment
-        except (NoOptionError, DPRSInvalidCode):
+        except (KeyError, NoOptionError, DPRSInvalidCode):
             # silently fix this up.  Notifications here at info level will
             # flood the console log.
             self.logger.debug("_refresh_location comment='%s'",
@@ -2109,6 +2151,10 @@ class MainApp(Gtk.Application):
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def main(self):
         '''Main.'''
+
+        # Need to set our locale
+        self._refresh_lang()
+
         # Copy default forms before we start
         distdir = Platform.get_platform().sys_data()
         userdir = self.config.form_source_dir()

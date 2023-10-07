@@ -35,7 +35,6 @@ def default_build():
     data_files.append(('share/d-rats/forms', section_files))
 
     section_files = glob("images/*")
-    section_files.append("d-rats2.ico")
     section_files.append("share/d-rats2.xpm")
     data_files.append(('share/d-rats/images', section_files))
 

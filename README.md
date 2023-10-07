@@ -155,11 +155,20 @@ Microsoft Windows.
 The installation steps are quite easy (assuming one has all the needed Python
 libs installed):
 
+D-Rats will now default to attempting to use the default locale as specified
+for the system.  Some of the locale setting API settings are not working for
+Msys2 on Windows-7 and currently have only been tested on Anti-X Linux.
+
+A restart of D-Rats is needed after changing the country and language settings
+in the configuration.  Invalid country and language setting changes will
+probably result in some type of fallback behavior.
+
 Debian packages needed for running or development.
 
-Below if you are not in a locale that is english, you will need the aspell-
-variant dictionary for your locale.  Developers may need aspell- variant
+Below if you are not in a locale that is english, you will probably want the
+aspell-variant dictionary for your locale.  Developers may need aspell-variant
 dictionaries for all locales that D-rats has message files for.
+Not all platforms may have all aspell locales.
 
 Anti-x 22 Can not run the older D-rats on Python 2.
 
@@ -167,8 +176,9 @@ aspell aspell-en aspell-it bandit(future) codespell gedit glade libcairo2-dev
 libgirepository1.0-dev libxml2-utils pkg-config pylint pylint3 python3
 python3-dev python3-feedparser python3-flask python3-geopy python3-gevent
 python3-gi python3-gi-cairo python3-greenlet python3-ipykernel python3-lxml
-python3-pil python3-pip python3-pyaudio python3-pydub python3-serial
-python3-simplejson python3-sphinx python3_venv shellcheck yamllint
+python3-pil python3-pip python3-pyaudio python3_pycountry python3-pydub
+python3-serial python3-simplejson python3-sphinx python3_venv shellcheck
+yamllint
 
 Other Python interpreters on other distributions should be similar.  If the
 Python distribution does not supply all of the packages, then PIP can be
@@ -224,6 +234,9 @@ D-rats is currently hosted on github.com as a git repository.
 
 See the <https://github.com/ham-radio-software/D-Rats/wiki>
 for the most current procedures for submitting Pull Requests.
+
+Make sure that you set your editors to use line-feeds line ends,
+which may not be the default for Microsoft Windows tools.
 
 ### Build for INSTALL ON LINUX and MSYS2 and others
 
