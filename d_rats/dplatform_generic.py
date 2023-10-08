@@ -435,7 +435,7 @@ class PlatformGeneric():
                                     check=False,
                                     text=True).stdout
         for line in raw_output.split():
-            if line.endswith('.utf8'):
+            if line.endswith('.utf8') or line.endswith('.UTF-8'):
                 locale_list.append(line.split('.')[0])
         return locale_list
 
