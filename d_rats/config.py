@@ -1221,7 +1221,8 @@ class DratsPrefsPanel(DratsPanel):
                     # Allow the pycountry package to be
                     if HAVE_PYCOUNTRY:
                         language = languages.get(alpha_2=language_code)
-                        language_name = language.name
+                        if language:
+                            language_name = language.name
                     lang_info = {}
                     lang_info['code'] = language_code
                     lang_info['name'] = language_name
@@ -1260,7 +1261,8 @@ class DratsPrefsPanel(DratsPanel):
             if HAVE_PYCOUNTRY:
                 try:
                     language = languages.get(name=my_language)
-                    language_code = language.alpha_2
+                    if language:
+                        language_code = language.alpha_2
                 except LookupError:
                     self.logger.info(
                         "System does not have %s locale package installed.",
