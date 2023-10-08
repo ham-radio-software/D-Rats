@@ -163,6 +163,17 @@ A restart of D-Rats is needed after changing the country and language settings
 in the configuration.  Invalid country and language setting changes will
 probably result in some type of fallback behavior.
 
+The shell command "locale" will show you what locale is set by default for
+your system.  Changing the "LC_ALL" setting is what will affect D-Rats locale
+use.
+
+The shell command "locale -a" will show you all the locales that are
+installed on your system.  D-Rats will only use the locales with the ".utf8"
+suffix.
+
+You may need to install additional locales on your system.
+
+
 Debian packages needed for running or development.
 
 Below if you are not in a locale that is english, you will probably want the

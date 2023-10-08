@@ -77,6 +77,7 @@ _DEF_USER = {
 }
 
 DEFAULT_LANGUAGE = "English"
+DEFAULT_LANGUAGE_CODE = 'en'
 # getdefaultlocale being removed from python.
 # DEFAULT_LOCALE = locale.getdefaultlocale()
 DEFAULT_LOCALE = "en_US.UTF-8"
@@ -94,6 +95,7 @@ if HAVE_PYCOUNTRY:
     LANGUAGE_OBJECT = languages.get(alpha_2=DEFAULT_LOCALE[0][0:2])
     if LANGUAGE_OBJECT:
         DEFAULT_LANGUAGE = LANGUAGE_OBJECT.name
+        DEFAULT_LANGUAGE_CODE = LANGUAGE_OBJECT.alpha_2
 
 _DEF_PREFS = {
     "download_dir" : ".",
@@ -1251,7 +1253,8 @@ class DratsPrefsPanel(DratsPanel):
 
         def get_countries(my_language):
             '''Return list of countries for a language.'''
-            language_code = 'en'
+            language_code = DEFAULT_LANGUAGE_CODE
+            country_names = [DEFAULT_COUNTRY]
             if len(my_language) == 2:
                 language_code = my_language
             if HAVE_PYCOUNTRY:
@@ -1262,7 +1265,9 @@ class DratsPrefsPanel(DratsPanel):
                     self.logger.info(
                         "System does not have %s locale package installed.",
                         my_language)
-            return drats_languages[language_code]['countries']
+                if language_code in drats_languages:
+                    country_names = drats_languages[language_code]['countries']
+            return country_names
 
         def lang_changed(language_box, country_box):
             '''
