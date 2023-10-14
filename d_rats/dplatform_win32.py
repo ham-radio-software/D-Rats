@@ -147,7 +147,8 @@ class Win32Platform(PlatformGeneric):
 
                 except pywintypes.error as err:  # type: ignore
                     # Error code 5 Apparently if the serial port is in use.
-                    if err.args[0] not in [2, 5]:
+                    # Error code 121 Apparently if timeout in operation.
+                    if err.args[0] not in [2, 5, 121]:
                         self.logger.info("list_serial_ports", exc_info=True)
         except NameError:
             self.logger.info("Unable to look up serial ports, "

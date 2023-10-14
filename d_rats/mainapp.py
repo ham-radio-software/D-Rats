@@ -990,6 +990,25 @@ class MainApp(Gtk.Application):
                 self.logger.info("_refresh_mail_threads: "
                                  "Unable to start POP3 server", exc_info=True)
 
+
+    def set_locale(self, lang_code):
+        '''Best effort to set locale.'''
+        for suffix in ['.UTF-8', '.utf8', '']:
+            try:
+                locale_name = lang_code + suffix
+                locale.setlocale(locale.LC_ALL, locale_name)
+                self.logger.info("set_locale: OS Locale set to: %s",
+                                 locale_name)
+                # This is reported to be needed for GTK to pick up the
+                # the environment.
+                os.environ["LANGUAGE"] = locale_name
+                return
+            except locale.Error:
+                self.logger.debug("set_locale: Unable to set OS locale to %s",
+                                  locale_name)
+        self.logger.info("set_locale: Unable to set OS locale to %s",
+                         lang_code)
+
     def _refresh_lang(self):
         '''Refresh Language.'''
 
@@ -1003,14 +1022,14 @@ class MainApp(Gtk.Application):
         self.logger.debug("_refresh_lang: Setting localedirfromconfig to: %s",
                           localedir)
 
-        locale_name = 'en'
+        language_code = 'en'
         country_code = 'US'
         envs = ['LANG', 'LC_NAME', 'LC_ALL']
         for env in envs:
             # Need to guess the country
             if env in os.environ:
                 value = os.environ[env]
-                locale_name = value[0:1]
+                language_code = value[0:2]
                 country_code = value[3:5]
                 break
 
@@ -1018,6 +1037,7 @@ class MainApp(Gtk.Application):
             language = None
             try:
                 language = languages.get(name=language_name)
+                language_code = language.alpha_2
             except LookupError:
                 self.logger.info(
                     "System does not have %s locale package installed.",
@@ -1031,31 +1051,18 @@ class MainApp(Gtk.Application):
                                  country_name)
 
             if language:
-                try:
-                    locale_name = language.alpha_2
-
-                    lang_code = locale_name + "_" + \
-                                country_code + '.UTF-8'
-                    locale.setlocale(locale.LC_ALL, lang_code)
-                    self.logger.info("_refresh_lang: OS Locale set to: %s",
-                                     lang_code)
-                    # This is reported to be needed for GTK to pick up the
-                    # the environment.
-                    os.environ["LANGUAGE"] = lang_code
-                except locale.Error:
-                    self.logger.info(
-                        "_refresh_lang: Unable to set OS locale to %s",
-                        lang_code)
+                locale_code = language_code + "_" + country_code
+                self.set_locale(locale_code)
         else:
             self.logger.info("Python pcountry package needed for selecting"
-                             " lanagages.")
+                             " languages.")
         try:
             # This global statement is needed for internationalization
             # pylint: disable=global-statement
             global _
             lang = gettext.translation("D-RATS",
                                        localedir=localedir,
-                                       languages=[locale_name],
+                                       languages=[language_code],
                                        fallback=True)
             lang.install()
             _ = lang.gettext
@@ -1069,17 +1076,17 @@ class MainApp(Gtk.Application):
             #pylint: disable=logging-too-many-args
             self.logger.error("_refresh_lang: Messages catalog file missing "
                               " for %s.  Need to use 'build_pot.sh' to "
-                              "generate.", locale)
+                              "generate.", language_name)
             gettext.install("D-RATS")
             _ = gettext.gettext
         except LookupError:
             self.logger.error("_refresh_lang: Unable to load language `%s'",
-                              locale, exc_info=True)
+                              language_name, exc_info=True)
             gettext.install("D-RATS")
             _ = gettext.gettext
         except IOError:
             self.logger.error("_refresh_lang: Unable to load translation for %s",
-                              locale, exc_info=True)
+                              language_name, exc_info=True)
             gettext.install("D-RATS")
             _ = gettext.gettext
 
