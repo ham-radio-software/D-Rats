@@ -1005,8 +1005,10 @@ class MainApp(Gtk.Application):
                 return
             except locale.Error:
                 self.logger.debug("set_locale: Unable to set OS locale to %s",
-                                  locale_name)
-        self.logger.info("set_locale: Unable to set OS locale to %s",
+                                  locale_name, exc_info=True)
+                os.environ["LANGUAGE"] = locale_name
+
+        self.logger.debug("set_locale: Unable to set OS locale to %s",
                          lang_code)
 
     def _refresh_lang(self):

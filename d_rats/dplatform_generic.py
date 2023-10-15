@@ -435,6 +435,9 @@ class PlatformGeneric():
                                     check=False,
                                     text=True).stdout
         for line in raw_output.split():
+            # Filter out ones not in the xx_XX.<encoding> format.
+            if line[5:6] != '.' or line[2:3] != '_':
+                continue
             if line.endswith('.utf8') or line.endswith('.UTF-8'):
                 locale_list.append(line.split('.')[0])
         return locale_list
