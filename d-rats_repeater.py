@@ -1097,7 +1097,7 @@ class RepeaterGUI(RepeaterUI):
         # self.config.set("settings", "idfreq", idfreq)
         self.config.set("settings", "netport", port)
         self.config.set("settings", "acceptnet", acceptnet)
-        self.config.set("settings", "devices", devices)
+        self.config.set("settings", "devices", str(devices))
         self.config.set("settings", "require_auth", str(auth))
         self.config.set("settings", "trust_local", str(local))
         self.config.set("settings", "gpsport", gpsport)

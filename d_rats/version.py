@@ -367,9 +367,7 @@ class Version:
                 cls._parse_version(raw_version)
                 cls._get_pep440_version()
                 cls._update_pkg_info(pkg_info_file)
-            # Error should be CalledProcessError,
-            # Microsoft Windows throws FileNotFoundError
-            except (subprocess.CalledProcessError, FileNotFoundError):
+            except (FileNotFoundError, subprocess.CalledProcessError):
                 cls.logger.info('Unable to get version number from git tags')
 
         if not cls._version:
