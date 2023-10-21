@@ -54,12 +54,12 @@ if __name__ == "__main__":
 DRATS_NAME = "d-rats"
 DRATS_DESCRIPTION = "D-RATS"
 DRATS_LONG_DESCRIPTION = _("A communications tool for D-STAR")
-AUTHORS = "Dan Smith, KK7DS" \
-          " Maurizio Andreotti, IZ2LXI" \
-          " Marius Petrescu, YO2LOJ" \
-          " John E. Malmberg, WB8TYW"
+AUTHORS = "Dan Smith, KK7DS \n" \
+          "Maurizio Andreotti, IZ2LXI \n" \
+          "Marius Petrescu, YO2LOJ \n" \
+          "John E. Malmberg, WB8TYW \n\n"
 AUTHORS_EMAIL = "Dan Smith KK7DS <dsmith@danplanet.com>\n"  \
-          "Maurizio Andreotti IZ2LXI <maurizio.iz2lxi@gmail.com>\n" \
+          "Maurizio Andreotti IZ2LXI <maurizioandreottilc@gmail.com>\n" \
           "Marius Petrescu YO2LOJ <marius@yo2loj.ro>\n" \
           "John E. Malmberg WB8TYW <wb8tyw@wsl.net>"
 AUTHOR_COPYRIGHT = "2008-2010 Dan Smith (KK7DS)\n" \
@@ -72,11 +72,13 @@ DATA_COPYRIGHT = "Location and Map data Copyright www.thunderforest.com and\n" \
           "Weather data provided by OpenWeather (TM), openweathermap.org"
 COPYRIGHT = 'Copyright ' + AUTHOR_COPYRIGHT + '\n' + DATA_COPYRIGHT
 LICENSE = "You should have received a copy of the" \
-	      " GNU General Public License along with this program." \
+	      " GNU General Public License along with this program.\n" \
 		  "  If not, see <http://www.gnu.org/licenses/>."
 WEBSITE = "https://groups.io/g/d-rats"
-TRANSLATIONS = "Italian: Leo, IZ5FSA"
-
+TRANSLATIONS = "Dutch: \n" \
+            "Italian: Leo, IZ5FSA / Maurizio IZ2LXI \n" \
+                "German: \n"\
+                "Spanish: \n"
 
 # DRATS_VERSION_NUM can not have "-" characters in it.
 # That will break w2lk

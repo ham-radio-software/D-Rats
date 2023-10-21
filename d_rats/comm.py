@@ -359,24 +359,39 @@ class SWFSerial(serial.Serial):
                                  self.name)
             self.dsr_seen = True
         time.sleep(0.01)
-        if self.in_waiting == 0:
-            return self.state
-        char = serial.Serial.read(self, 1)
-        if char == ASCII_XOFF:
-            if self.__swf_debug:
-                self.logger.info("is_xon: ************* Got XOFF")
-            self.state = False
-        elif char == ASCII_XON:
-            if self.__swf_debug:
-                self.logger.info("is_xon ------------- Got XON")
-            self.state = True
-        elif len(char) == 1:
-            self.logger.info("is_xon: Aiee! Read a non-XOFF char: 0x%02x `%s`",
-                             char, char)
-            self.state = True
-            self.logger.info("is_xon: Assuming IXANY behavior")
+        self.state = True  # Pending re-write
+        return True
+        # Code below has has always been wrong and will randomly result in
+        # data being lost.
+        # To avoid this D-Rats has been changed to use the serial driver
+        # xon/xoff protocol handling instead of this broken code.
+        #
+        # Bug #1 No code is present to detect if an XOFF or XON appears in
+        # the middle of a data stream.
+        # Bug #2 The XOFF/XON is not guaranteed to show up at the
+        # beginnng of a read packet.
+        # Bug #3 If this code does not receive an XON or XOFF character
+        # it simply discards it, which breaks the radio transfer.
 
-        return self.state
+        ### if self.in_waiting == 0:
+        ###     return self.state
+        ### char = serial.Serial.read(self, 1)
+        ### if char == ASCII_XOFF:
+        ###     if self.__swf_debug:
+        ###         self.logger.info("is_xon: ************* Got XOFF")
+        ###     self.state = False
+        ### elif char == ASCII_XON:
+        ###     if self.__swf_debug:
+        ###         self.logger.info("is_xon ------------- Got XON")
+        ###     self.state = True
+        ### #
+        ### elif len(char) == 1:
+        ###    self.logger.info("is_xon: Aiee! Read a non-XOFF char: `%s`")
+        ###    self.logger.info("This is bug in this code!")
+        ###    self.state = True
+        ###    self.logger.info("is_xon: Assuming IXANY behavior")
+        ###
+        ### return self.state
 
     def _write(self, data):
         if self.use_dsr and not self.dsr:
@@ -646,7 +661,7 @@ class SerialDataPath(DataPath):
                                      baudrate=self.baud,
                                      timeout=self.timeout,
                                      write_timeout=self.timeout,
-                                     xonxoff=0)
+                                     xonxoff=True)
         except (ValueError, serial.SerialException) as err:
             # pylint: disable=raise-missing-from
             raise DataPathNotConnectedError("Unable to open serial port %s" %
@@ -793,7 +808,7 @@ class TNCDataPath(SerialDataPath):
                                  baudrate=self.baud,
                                  timeout=self.timeout,
                                  write_timeout=self.timeout*10,
-                                 xonxoff=0)
+                                 xonxoff=True)
 
     def __str__(self):
         return "[TNC %s@%s]" % (self.port, self.baud)

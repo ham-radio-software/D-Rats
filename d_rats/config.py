@@ -21,7 +21,16 @@
 '''D-Rats Configuration Module.'''
 
 import ast
+import glob
 import os
+from pathlib import Path
+HAVE_PYCOUNTRY = False
+try:
+    from pycountry import countries
+    from pycountry import languages
+    HAVE_PYCOUNTRY = True
+except (ModuleNotFoundError, ImportError):
+    pass
 import random
 import logging
 import configparser
@@ -67,6 +76,27 @@ _DEF_USER = {
     "units" : _("Metric"),
 }
 
+DEFAULT_LANGUAGE = "English"
+DEFAULT_LANGUAGE_CODE = 'en'
+# getdefaultlocale being removed from python.
+# DEFAULT_LOCALE = locale.getdefaultlocale()
+DEFAULT_LOCALE = "en_US.UTF-8"
+DEFAULT_COUNTRY = "United States"
+DEFAULT_COUNTRY_CODE = "US"
+envs = ['LC_ALL', 'LC_CTYPE', 'LANG', 'LANGUAGE']
+for env in envs:
+    # Need to guess the country
+    if env in os.environ:
+        DEFAULT_LOCALE = os.environ[env]
+        DEFAULT_COUNTRY_CODE = DEFAULT_LOCALE[3:5]
+        break
+
+if HAVE_PYCOUNTRY:
+    LANGUAGE_OBJECT = languages.get(alpha_2=DEFAULT_LOCALE[0][0:2])
+    if LANGUAGE_OBJECT:
+        DEFAULT_LANGUAGE = LANGUAGE_OBJECT.name
+        DEFAULT_LANGUAGE_CODE = LANGUAGE_OBJECT.alpha_2
+
 _DEF_PREFS = {
     "download_dir" : ".",
     "blinkmsg" : "False",
@@ -91,7 +121,8 @@ _DEF_PREFS = {
     "scrollback" : "1024",
     "restore_stations" : "True",
     "useutc" : "False",
-    "language" : "English",
+    "country": DEFAULT_COUNTRY,
+    "language" : DEFAULT_LANGUAGE,
     "allow_remote_files" : "True",
     "blink_chat" : "True",
     "blink_messages" : "True",
@@ -1169,9 +1200,99 @@ class DratsPrefsPanel(DratsPanel):
         val.add_text(hint=_("Version and OS Info"))
         self.make_view(_("Ping reply"), val)
 
+        # Need to know all the locales on the system
+        locale_list = Platform.get_locales()
+
+        drats_languages = {}
+        language_list = []
+        # Now look for what languages we have translations for.
+        localedir = os.path.join(Platform.get_platform().sys_data(),
+                                 "locale","*","LC_MESSAGES","D-RATS.mo")
+        for mo_file in glob.glob(localedir):
+            parts = Path(mo_file).parts
+            indx = 0
+            for part in parts:
+                indx += 1
+                if part == 'locale':
+                    language_code = parts[indx]
+                    # Fall back to the language name.
+                    language_name = language_code
+                    language = None
+                    # Allow the pycountry package to be
+                    if HAVE_PYCOUNTRY:
+                        language = languages.get(alpha_2=language_code)
+                        if language:
+                            language_name = language.name
+                    lang_info = {}
+                    lang_info['code'] = language_code
+                    lang_info['name'] = language_name
+                    lang_info['countries'] = []
+                    drats_languages[language_code] = lang_info
+                    language_list.append(_(language_name))
+
+        # Now need to find the locales on the system to go with the
+        # drats languages installed.
+        # This should be eventually be cached at first call the the
+        # config UI.
+        for sys_locale in locale_list:
+            sys_lang_code = sys_locale[0:2]
+            if not sys_lang_code in drats_languages:
+                continue
+            # found a language we have now get the country for it.
+            country_code = sys_locale[3:5]
+            country_name = country_code
+            if HAVE_PYCOUNTRY:
+                country = countries.get(alpha_2=country_code)
+                if country:
+                    country_name = country.name
+            drats_languages[sys_lang_code]['countries'].append(country_name)
+
         val = DratsConfigWidget(config, "prefs", "language")
-        val.add_combo(["English", "German", "Italiano", "Dutch"])
+        val.add_combo(language_list)
         self.make_view(_("Language"), val)
+        language_val = val
+
+        def get_countries(my_language):
+            '''Return list of countries for a language.'''
+            language_code = DEFAULT_LANGUAGE_CODE
+            country_names = [DEFAULT_COUNTRY]
+            if len(my_language) == 2:
+                language_code = my_language
+            if HAVE_PYCOUNTRY:
+                try:
+                    language = languages.get(name=my_language)
+                    if language:
+                        language_code = language.alpha_2
+                except LookupError:
+                    self.logger.info(
+                        "System does not have %s locale package installed.",
+                        my_language)
+                if language_code in drats_languages:
+                    country_names = drats_languages[language_code]['countries']
+            return country_names
+
+        def lang_changed(language_box, country_box):
+            '''
+            Combo Box changed handler.
+
+            :param combo_box: Entry widget
+            :type combo_box: :class:`Gtk.ComboBoxText`
+            '''
+            new_language = language_box.get_active_text()
+            country_box.remove_all()
+            new_countries = get_countries(new_language)
+            for country in new_countries:
+                country_box.append_text(country)
+            country_box.set_active(0)
+
+        val = DratsConfigWidget(config, "prefs", "country")
+        my_language = config.get('prefs', 'language')
+        country_list = get_countries(my_language)
+        val.add_combo(country_list)
+        language_val.child_widget.connect("changed",
+                                          lang_changed, val.child_widget)
+
+        self.make_view(_("Country"), val)
 
         mval = DratsConfigWidget(config, "prefs", "blink_messages")
         mval.add_bool()
@@ -1386,23 +1507,27 @@ class DratsGPSPanel(DratsPanel):
                 config.set("settings", "default_gps_comment", dprs)
                 val.child_widget.set_text(dprs)
                 dprs_info = APRSicons.parse_dprs_message(text=dprs)
-                dprs_code = dprs_info['code']
-                if 'overlay' in dprs_info:
-                    dprs_code = dprs_info['code'] + dprs_info['overlay']
-                aprs_code = AprsDprsCodes.dprs_to_aprs(
-                    code=dprs_code,
-                    default=AprsDprsCodes.APRS_FALLBACK_CODE)
-                pixbuf = APRSicons.get_icon(code=aprs_code)
-                dprs_icon.set_from_pixbuf(pixbuf)
+                if 'code' in dprs_info:
+                    dprs_code = dprs_info['code']
+                    if 'overlay' in dprs_info:
+                        dprs_code = dprs_info['code'] + dprs_info['overlay']
+                    aprs_code = AprsDprsCodes.dprs_to_aprs(
+                        code=dprs_code,
+                        default=AprsDprsCodes.APRS_FALLBACK_CODE)
+                    pixbuf = APRSicons.get_icon(code=aprs_code)
+                    dprs_icon.set_from_pixbuf(pixbuf)
 
         val = DratsConfigWidget(config, "settings", "default_gps_comment")
         val.add_text(20)
         val.set_sensitive(False)
         dprs_comment = config.get("settings", "default_gps_comment")
         dprs_info = APRSicons.parse_dprs_message(text=dprs_comment)
-        dprs_code = dprs_info['code']
-        if 'overlay' in dprs_info:
-            dprs_code = dprs_info['code'] + dprs_info['overlay']
+        if 'code' in dprs_info:
+            dprs_code = dprs_info['code']
+            if 'overlay' in dprs_info:
+                dprs_code = dprs_info['code'] + dprs_info['overlay']
+        else:
+            dprs_code = '  '
         aprs_code = AprsDprsCodes.dprs_to_aprs(
             code=dprs_code,
             default=AprsDprsCodes.APRS_FALLBACK_CODE)

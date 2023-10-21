@@ -44,6 +44,14 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
+# Make sure no one tries to run this with privileges.
+try:
+    if os.geteuid() == 0:
+        print("Refusing to run with unneeded privileges!")
+        sys.exit(1)
+except AttributeError:
+    pass
+
 from d_rats.version import __version__
 from d_rats.version import DRATS_VERSION
 from d_rats.dplatform import Platform
@@ -359,6 +367,27 @@ class Repeater:
         pipe.write(b"500 Not authorized\r\n")
         return False
 
+    @staticmethod
+    def address_to_string(address):
+        '''
+        Address to string.
+
+        Multiple ways that a address can be converted to a string.
+        :param address: an Address Family
+        :type address: string or tuple
+        :returns: A string representing the address
+        :rtype: str
+        '''
+        # https://docs.python.org/3/library/socket.html
+        if isinstance(address, str):
+            return address
+        ret_str = ''
+        for part in address:
+            if ret_str:
+                ret_str += ','
+            ret_str += str(part)
+        return ret_str
+
     def accept_new(self):
         '''Accept new.'''
         if not self.socket:
@@ -369,7 +398,7 @@ class Repeater:
         except BlockingIOError:
             return
 
-        addr_str = "%s:%i" % addr
+        addr_str = self.address_to_string(addr)
         self.logger.info("accept_new: Accepted new client %s", addr_str)
 
         path = comm.SocketDataPath(csocket)
@@ -388,7 +417,7 @@ class Repeater:
         except BlockingIOError:
             return
 
-        addr_str = "%s:$i" % addr
+        addr_str = self.address_to_string(addr)
         self.logger.info("accept_new_gps: Accepted new GPS client %s", addr_str)
         self.gps_sockets.append(csocket)
 

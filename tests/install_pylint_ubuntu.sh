@@ -30,4 +30,5 @@ sudo -S -E apt-get --assume-yes install \
     python3-gi-cairo \
     python3-lxml \
     python3-pil \
+    python3-pycountry \
     python3-serial

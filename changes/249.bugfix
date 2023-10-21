@@ -1,0 +1,1 @@
+Fix build_pot.sh to also rebuild the binary message databases.

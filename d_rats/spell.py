@@ -27,6 +27,10 @@ class SpellBadResponseError(SpellException):
     '''Spelling Bad response error.'''
 
 
+class SpellProgramExited(SpellException):
+    '''Spell program unexpected exited.'''
+
+
 class Spelling:
     '''
     Spelling.
@@ -36,9 +40,9 @@ class Spelling:
     :param persist: Keep subprocess to spelling program running
     :type persis: bool
     '''
+    logger = logging.getLogger("Spelling")
 
     def __init__(self, aspell="aspell", persist=True):
-        self.logger = logging.getLogger("Spelling")
         self.__aspell = aspell
         self.__persist = persist
         self.__pipe = None
@@ -109,22 +113,26 @@ class Spelling:
             raise SpellNoSpellCheckerError("Program %s not present" %
                                            self.__aspell)
 
-        self.__pipe.stdin.write("%s%s" %(wiq, os.linesep))
-        suggest_str = self.__pipe.stdout.readline()
+        try:
+            self.__pipe.stdin.write("%s%s" %(wiq, os.linesep))
+            suggest_str = self.__pipe.stdout.readline()
 
-        self.logger.debug("spell: suggest_str = %s", suggest_str)
-        if not self.__persist:
-            self.__close_aspell()
+            self.logger.debug("spell: suggest_str = %s", suggest_str)
+            if not self.__persist:
+                self.__close_aspell()
 
-        if suggest_str.startswith("*"):
-            return []
-        if not suggest_str.startswith("&"):
-            self._spell_good = False
-            raise SpellBadResponseError("Unknown response from aspell: %s" %
-                                        suggest_str)
+            if suggest_str.startswith("*"):
+                return []
+            if not suggest_str.startswith("&"):
+                self._spell_good = False
+                raise SpellBadResponseError(
+                    "Unknown response from aspell: %s" %
+                    suggest_str)
 
-        suggestions = suggest_str.split()
-        return suggestions[4:]
+            suggestions = suggest_str.split()
+            return suggestions[4:]
+        except BrokenPipeError as err:
+            raise SpellProgramExited("Spell program exited.") from err
 
     def test(self):
         '''
@@ -145,7 +153,7 @@ class Spelling:
                               exc_info=True)
             return False
 
-        except SpellBadResponseError:
+        except (SpellBadResponseError, SpellProgramExited):
             self.logger.info("Spelling failed check",
                              exc_info=True)
             return False

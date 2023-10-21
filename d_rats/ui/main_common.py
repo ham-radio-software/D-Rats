@@ -123,7 +123,7 @@ def prompt_for_station(station_list, config, parent=None):
             display_error(_("You must enter a station callsign.  " +
                             "You cannot use an email address here"), dialog)
             continue
-        elif not re.match(STATION_REGEX, station_text):
+        if not re.match(STATION_REGEX, station_text):
             display_error(_("Invalid character in callsign"), dialog)
             continue
         break
@@ -248,7 +248,7 @@ class MainWindowTab(MainWindowElement):
             menu_label = self._notebook.get_menu_label_text(self._menu_tab)
             # The menu_label text set is set by glade.
             # The tab_label is set for display.
-            self._notebook.set_tab_label_text(self._menu_tab, menu_label)
+            self._notebook.set_tab_label_text(self._menu_tab, _(menu_label))
             self._tab_label = self._notebook.get_tab_label(self._menu_tab)
 
     def reconfigure(self):

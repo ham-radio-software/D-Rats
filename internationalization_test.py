@@ -6,7 +6,7 @@ This is for testing and demonstrating code maintenance for D-Rats
 developers.
 '''
 #
-# Copyright 2021 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2023 John Malmberg <wb8tyw@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,26 +26,16 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import gettext
+import glob
 import logging
+import os
+from pathlib import Path
 import sys
+import pycountry
+
 
 def main():
     '''Main function for unit testing.'''
-
-
-
-    gettext.install("D-RATS")
-
-    # Need to find out how to auto select locale from the environment and
-    # default to english if it is not specified.
-    lang = gettext.translation("D-RATS",
-                               localedir="locale",
-                               fallback=True)
-    lang.install()
-    _ = lang.gettext
-
-    # We should use a package to parse configuration options here
-    # for now this will be need to be edited as needed.
 
     # This logging config must be done before logging anything.
     # Default is "WARNING" is tracked.
@@ -57,7 +47,68 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     # Each class should have their own logger.
-    logger = logging.getLogger("language_test")
+    logger = logging.getLogger("language test")
+
+    # Get the current locale information
+    # Was a nice idea, however this function is being removed from python3
+    # default_locale = locale.getdefaultlocale()
+    default_locale='en_US.UTF-8'
+    envs = ['LC_ALL', 'LC_CTYPE', 'LANG', 'LANGUAGE']
+    for env in envs:
+        # Need to guess the country
+        if env in os.environ:
+            default_locale = os.environ[env]
+            # default_country_code = default_locale[3:5]
+            break
+
+    language = None
+    language = pycountry.languages.get(alpha_2=default_locale[0][0:2])
+
+    # Demonstrate exception handling if locale is not found.
+    try:
+        language_name = language.name
+    except AttributeError:
+        language_name = None
+
+    logger.info("defaults language code: %s, encoding: %s, language %s",
+                default_locale[0], default_locale[1], language_name)
+
+    gettext.install("D-RATS")
+
+    # the os.environ['LC_ALL'] is the value that Anti-X Linux uses to
+    # determine what the default locale.  For Anti-X Linux it needs to
+    # be set to a string that specifies the language, country. and
+    # encoding in spite of examples showing othersise/
+    # export LC_ALL=en_US.UTF-8
+
+    # How to find what languages are available
+    localedir="./locale"
+
+    for mo_file in glob.glob("locale/*/LC_MESSAGES/D-RATS.mo"):
+        parts = Path(mo_file).parts
+        indx = 0
+        for part in parts:
+            indx += 1
+            if part == 'locale':
+                locale_name = parts[indx]
+                language = pycountry.languages.get(alpha_2=locale_name)
+                language_name = locale_name  # fallback should not be needed.
+                if language:
+                    language_name = language.name
+                logger.info("Language found %s", language_name)
+
+    # Note from Maurizio: While waiting to load from D-Rats config,
+    # am forcing language to see if it gets loaded as in D-rats gettext
+    # doesn't make any visible effect
+    lang = gettext.translation("D-RATS",
+                               localedir,
+                               languages=['it'], #forcing to 'it'
+                               fallback=True)
+    lang.install()
+    _ = lang.gettext
+
+    # We should use a package to parse configuration options here
+    # for now this will be need to be edited as needed.
 
     # The text inside the _() function is the default text that
     # is displayed if there is not a international language in use.

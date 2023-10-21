@@ -5,6 +5,7 @@ Pillow
 pycairo
 PyGObject
 pyserial
+pycountry
 # packages recommended for running
 geopy
 feedparser

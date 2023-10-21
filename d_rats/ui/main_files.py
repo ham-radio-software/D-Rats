@@ -135,9 +135,10 @@ class LocalFileView(FileView):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("LocalFileV")
+
     def __init__(self, view, path, config):
         FileView.__init__(self, view, path, config)
-        self.logger = logging.getLogger("LocalFileV")
 
     def refresh(self):
         '''Refresh'''
@@ -168,10 +169,10 @@ class RemoteFileView(FileView):
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
+    logger = logging.getLogger("RemoteFileV")
 
     def __init__(self, view, path, config):
         FileView.__init__(self, view, path, config)
-        self.logger = logging.getLogger("RemoteFileV")
 
     def _file_list_cb(self, _job, state, result):
         '''
@@ -264,10 +265,10 @@ class FilesTab(MainWindowTab):
         }
 
     _signals = __gsignals__
+    logger = logging.getLogger("FilesTab")
 
     def __init__(self, wtree, config):
         MainWindowTab.__init__(self, wtree, config, prefix="files")
-        self.logger = logging.getLogger("FilesTab")
 
         lview = self._get_widget("local_list")
         rview = self._get_widget("remote_list")
@@ -343,7 +344,8 @@ class FilesTab(MainWindowTab):
             return
 
         if not self._remote or self._remote.get_path() != sta:
-            self._remote = RemoteFileView(view, sta, self._config)
+            self._remote = RemoteFileView(view=view, path=None,
+                                          config=self._config)
 
         throbber = self._get_widget("remote_throb")
         img = self._config.ship_obj_fn(os.path.join("images", THROB_IMAGE))

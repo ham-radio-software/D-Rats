@@ -19,6 +19,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+
+# The script imports the required modules and libraries, including GTK,
+# logging, and subprocess.
+# It defines a class called MainWindow that inherits from MainWindowElement.
+# The MainWindow class initializes the main window by loading a Glade UI file
+# (mainwindow.glade) using Gtk.Builder().
+# The UI elements are accessed and stored in instance variables of the MainWindow class.
+# Various signals and event handlers are defined for menu items and buttons.
+# The MainWindow class has methods to handle actions such as saving and quitting,
+# displaying the About dialog,
+# opening the debug log, opening the preferences dialog, showing the map display,
+# managing message templates, pinging a station, connecting to the internet,managing
+# station pane visibility,executing dquery commands.
+# The MainWindow class also connects these actions to the corresponding menu items
+# and buttons.
+# The script sets up the main window and starts the GTK main loop.
+
+
+
+
 from __future__ import absolute_import
 from __future__ import print_function
 
@@ -31,6 +51,8 @@ import subprocess
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+
 from gi.repository import GLib
 
 if not '_' in locals():
@@ -58,6 +80,8 @@ from d_rats.version import \
     COPYRIGHT, \
     TRANSLATIONS, \
     WEBSITE
+# ,\
+#    LICENSE
 
 from d_rats import formbuilder
 from d_rats import signals
@@ -83,14 +107,28 @@ class MainWindow(MainWindowElement):
 
     logger = logging.getLogger("MainWindow")
 
+    # pylint wants a maximum of 50 statements
+    # pylint: disable=too-many-statements
     def __init__(self, application):
         config = application.config
         wtree = Gtk.Builder()
+        wtree.set_translation_domain('D-RATS')
+
+        #Loading Glade UI
         file_name = os.path.join(config.ship_obj_fn("ui/mainwindow.glade"))
         wtree.add_from_file(file_name)
         MainWindowElement.__init__(self, wtree, config)
+
+        # Reapply gettext configuration to have UI labels translated
+        gettext.bindtextdomain('D-RATS', "locale")
+        gettext.textdomain('D-RATS')
+        # pylint: disable=global-statement
+        global _
+        _ = gettext.gettext
+
         self._application = application
         self._window = self._wtree.get_object("mainwindow")
+
         self._window.set_application(application)
         self._tabs = self._wtree.get_object("main_tabs")
         self._tabs.connect("switch-page", self._tab_switched)
@@ -126,6 +164,7 @@ class MainWindow(MainWindowElement):
 
         try:
             # Pylance can not detect this import on a linux system.
+            # pylint: disable=import-outside-toplevel
             import gtkmacintegration # type: ignore
             mbar = self._wtree.get_object("menubar1")
             mbar.hide()
@@ -213,13 +252,19 @@ class MainWindow(MainWindowElement):
         dialog.set_comments(DRATS_DESCRIPTION)
         dialog.set_translator_credits(TRANSLATIONS)
         dialog.set_comments(verinfo)
+        #dialog.set_license(LICENSE)
+        dialog.set_license_type(Gtk.License.GPL_3_0)
+
+        logo = GdkPixbuf.Pixbuf.new_from_file_at_size("images/d-rats2.png", 64, 64)
+        #dialog.set_logo_icon_name(None)
+        dialog.set_logo(logo)
 
         dialog.run()
         dialog.destroy()
 
     def _activate_debug(self, _button):
         '''
-        Activate About handler.
+        Activate Debug handler.
 
         :param _button: Signaled Widget, unused
         :type _button: :class:`Gtk.ImageMenuItem`
@@ -323,8 +368,9 @@ class MainWindow(MainWindowElement):
         cfg = self._config
 
         wtree = Gtk.Builder()
-        wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
         wtree.set_translation_domain("D-RATS")
+
+        wtree.add_from_file(cfg.ship_obj_fn("ui/mainwindow.glade"))
         dlg = wtree.get_object("dquery_dialog")
         cmd = wtree.get_object("dq_cmd")
         dlg.set_modal(True)
@@ -508,17 +554,19 @@ class MainWindow(MainWindowElement):
         call_bar.push(0, call)
 
 
-class TestMainWindow(Gtk.Application):
+class TestMainWindow(Gtk.Application):  # pylint: disable=too-few-public-methods
     '''
     Test MainWindow application.
     '''
 
     def __init__(self):
+        # pylint: disable=import-outside-toplevel
         from gi.repository import Gio
         Gtk.Application.__init__(self,
                                  application_id='localhost.d-rats.test_mw',
                                  flags=Gio.ApplicationFlags.NON_UNIQUE)
 
+        # pylint: disable=import-outside-toplevel
         from . import config
         self.config = config.DratsConfig(None)
 

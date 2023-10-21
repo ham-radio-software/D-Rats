@@ -34,10 +34,17 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+# Make sure no one tries to run this with privileges.
+try:
+    if os.geteuid() == 0:
+        print("Refusing to run with unneeded privileges!")
+        sys.exit(1)
+except AttributeError:
+    pass
+
 from d_rats.version import __version__
 from d_rats.version import DRATS_VERSION
 from d_rats.dplatform import Platform
-
 
 # Default gettext function which is needed for pylance
 # This global variable will be overridden by the mainapp module.
