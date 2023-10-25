@@ -69,6 +69,13 @@ class KeyedListWidget(Gtk.Box):
         self._make_view()
         self.__view.show()
 
+    @property
+    def treeview(self):
+        '''
+        :returns: TreeView widget
+        :rtype: `:class:Gtk.Treeview`'''
+        return self.__view
+
     def _toggle(self, _rend, path, colnum):
         '''
         Internal Toggle handler.
