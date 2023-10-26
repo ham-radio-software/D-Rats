@@ -389,7 +389,7 @@ class SWFSerial(serial.Serial):
         # Now we have a problem, it is a valid character.
         # old behavior was to discard it.
         elif len(char) == 1:
-            self.logger.info("is_xon: Aiee! Read a non-XOFF char: `%s`")
+            self.logger.info("is_xon: Aiee! Read a non-XOFF char: `%s`", char)
             self.state = True
             self.logger.info("is_xon: Assuming IXANY behavior")
             self.read_buffer += char
@@ -674,7 +674,7 @@ class SerialDataPath(DataPath):
                                      baudrate=self.baud,
                                      timeout=self.timeout,
                                      write_timeout=self.timeout,
-                                     xonxoff=True)
+                                     xonxoff=False)
         except (ValueError, serial.SerialException) as err:
             # pylint: disable=raise-missing-from
             raise DataPathNotConnectedError("Unable to open serial port %s" %
@@ -821,7 +821,7 @@ class TNCDataPath(SerialDataPath):
                                  baudrate=self.baud,
                                  timeout=self.timeout,
                                  write_timeout=self.timeout*10,
-                                 xonxoff=True)
+                                 xonxoff=False)
 
     def __str__(self):
         return "[TNC %s@%s]" % (self.port, self.baud)
