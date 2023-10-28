@@ -5,6 +5,17 @@ from __future__ import print_function
 import logging
 import tempfile
 import os
+if __name__ == "__main__":
+    import sys
+
+HAVE_PIL = False
+try:
+    from PIL import Image
+    from PIL import UnidentifiedImageError
+    HAVE_PIL = True
+except ImportError:
+    # This needs to be moved out of main_common
+    from .ui.main_common import ask_for_confirmation
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -118,8 +129,11 @@ def build_image_dialog(filename, image, dialog_parent=None):
     dialog.size = miscwidgets.make_choice(SIZES, False, SIZES[1])
     dialog.size.connect("changed", lambda x: update())
     dialog.add_field(_("Resize to"), dialog.size)
-
-    quality = Gtk.HScale(Gtk.Adjustment.new(50, 1, 100, 10, 10, 0))
+    adjustment = Gtk.Adjustment.new(value=50, lower=1, upper=100,
+                                    step_increment=10, page_increment=10,
+                                    page_size=0)
+    quality = Gtk.Scale.new(orientation=Gtk.Orientation.HORIZONTAL,
+                            adjustment=adjustment)
     quality.connect("format-value",
                     lambda s, v: "%i" % v)
     quality.connect("change-value", set_quality, dialog)
@@ -153,12 +167,11 @@ def send_image(filename, dialog_parent=None):
     :returns: Path to temporary image file
     :rtype: str
     '''
-    try:
-        from PIL import Image, UnidentifiedImageError
-    except ImportError:
+    logger = logging.getLogger("update_image")
+    if not HAVE_PIL:
+        logger.info("Python pillow library is not installed.")
         msg = _("No support for resizing images.  Send unaltered?")
-        from .ui import main_common
-        if main_common.ask_for_confirmation(msg, dialog_parent):
+        if ask_for_confirmation(msg, dialog_parent):
             return filename
         return None
     try:
@@ -184,8 +197,6 @@ def send_image(filename, dialog_parent=None):
 
 def main():
     '''Main for Unit testing.'''
-
-    import sys
 
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
                         datefmt="%m/%d/%Y %H:%M:%S",
