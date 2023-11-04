@@ -19,6 +19,7 @@ from . import utils
 from . import agw
 from .dratsexception import DataPathIOError
 from .dratsexception import DataPathNotConnectedError
+from .utils import hexprintlog
 
 
 ASCII_XON = 17 # chr(17)
@@ -313,6 +314,7 @@ class SWFSerial(serial.Serial):
 
     __swf_debug = False
     logger = logging.getLogger("SWFSerial")
+    log_file = None
 
     def __init__(self, **kwargs):
         self.logger.info("Software XON/XOFF control initialized")
@@ -331,6 +333,34 @@ class SWFSerial(serial.Serial):
             del kwargs["dsr_control"]
         self.dsr_seen = False
         self.read_buffer = b''
+
+    @classmethod
+    def set_log_file(cls, log_file):
+        '''
+        Set a serial port log file.
+
+        :param log_file: File to log for serial ports
+        :type log_file: str
+        '''
+        cls.log_file = log_file
+
+    def log_data(self, description, data):
+        '''
+        Log Serial Data to file.
+
+        :param description: Description of data
+        :type: description: str
+        :param data: data to log
+        :type data: bytes
+        '''
+        if not self.log_file:
+            return
+        save_stdout = sys.stdout
+        with open(self.log_file, 'a') as file_handle:
+            sys.stdout = file_handle
+            print(description)
+            hexprintlog(data)
+            sys.stdout = save_stdout
 
     def reconnect(self):
         '''Reconnect.'''
@@ -378,6 +408,8 @@ class SWFSerial(serial.Serial):
         if self.in_waiting == 0:
             return self.state
         char = serial.Serial.read(self, 1)
+        if len(char) == 1:
+            self.log_data('is_xoff read 1 character %s', char)
         if char == ASCII_XOFF:
             if self.__swf_debug:
                 self.logger.info("is_xon: ************* Got XOFF")
@@ -411,6 +443,8 @@ class SWFSerial(serial.Serial):
                 self.logger.info("_write: Sending %i-%i of %i",
                                  pos, pos+chunk, len(data))
             serial.Serial.write(self, data[pos:pos+chunk])
+            self.log_data('Write chunk', data[pos:pos+chunk])
+
             self.flush()
             pos += chunk
             start = time.time()
@@ -473,7 +507,10 @@ class SWFSerial(serial.Serial):
                                  self.name)
                 self.dsr_seen = True
         read_buf = serial.Serial.read(self, needed)
+        if len(read_buf):
+            self.log_data("Read %s from serial" % needed, read_buf)
         return local_buffer + read_buf
+
 
 class DataPath():
     '''

@@ -168,11 +168,23 @@ class RemoteFileView(FileView):
     :type path: str
     :param config: Configuration data
     :type config: :class:`DratsConfig`
+    :param station; Remote Station, Optional
+    :type station: str
     '''
     logger = logging.getLogger("RemoteFileV")
 
-    def __init__(self, view, path, config):
+    def __init__(self, view, path, config, station=None):
         FileView.__init__(self, view, path, config)
+
+        self._station = station
+
+    @property
+    def station(self):
+        '''
+        :returns: Remote Station
+        :rtype: str
+        '''
+        return self._station
 
     def _file_list_cb(self, _job, state, result):
         '''
@@ -322,6 +334,14 @@ class FilesTab(MainWindowTab):
             self._disconnect(None, None)
 
     def _disconnect(self, _button, _rfview):
+        '''
+        Disconnect Button Handler.
+
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _rfview: remote fileview, unused
+        :type _rfview: `:class:RemoteFileView`
+        '''
         if self._remote:
             view = self._remote.get_view()
             view.set_sensitive(False)
@@ -334,7 +354,14 @@ class FilesTab(MainWindowTab):
         self.emit("status", "Disconnected")
 
     def _connect_remote(self, _button, _rfview):
+        '''
+        Connect Button Handler.
 
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _rfview: remote fileview, unused
+        :type _rfview: `:class:RemoteFileView`
+        '''
         view = self._get_widget("remote_list")
         ssel, psel = self._get_ssel()
         sta = ssel.get_active_text().upper()
@@ -345,7 +372,8 @@ class FilesTab(MainWindowTab):
 
         if not self._remote or self._remote.get_path() != sta:
             self._remote = RemoteFileView(view=view, path=None,
-                                          config=self._config)
+                                          config=self._config,
+                                          station=sta)
 
         throbber = self._get_widget("remote_throb")
         img = self._config.ship_obj_fn(os.path.join("images", THROB_IMAGE))
@@ -361,7 +389,15 @@ class FilesTab(MainWindowTab):
 
             self.emit("submit-rpc-job", job, prt)
 
-    def _refresh_local(self, *_args):
+    def _refresh_local(self, _button=None, _lfview=None):
+        '''
+        Refresh Local Button Handler.
+
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _lfview: local fileview, unused
+        :type _lfview: `:class:LocalFileView`
+        '''
         self._local.refresh()
 
     def refresh_local(self):
@@ -370,6 +406,14 @@ class FilesTab(MainWindowTab):
         self._refresh_local()
 
     def _del(self, _button, _fileview):
+        '''
+        Delete Button Handler.
+
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _fileview: local fileview, unused
+        :type _fileview: `:class:LocalFileView`
+        '''
         fname = self._local.get_selected_filename()
         if not fname:
             return
@@ -385,12 +429,23 @@ class FilesTab(MainWindowTab):
         self._local.refresh()
 
     def _upload(self, _button, _lfview):
+        '''
+        Upload Button Handler
+
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _lfview: local fileview, unused
+        :type _lfview: `:class:LocalFileView`
+        '''
         fname = self._local.get_selected_filename()
         if not fname:
+            # button should not be enabled to allow this condition.
             return
 
         file_name = os.path.join(self._config.get("prefs", "download_dir"),
                                  fname)
+        # Need to validate that the file still exists or an exception could
+        # be fired.
 
         fnl = file_name.lower()
         if fnl.endswith(".jpg") or \
@@ -405,7 +460,7 @@ class FilesTab(MainWindowTab):
         port = psel.get_active_text()
 
         if self._remote:
-            station = self._remote.get_path()
+            station = self._remote.station
             self._remote.outstanding[fname] = os.stat(file_name).st_size
         else:
             station = ssel.get_active_text().upper()
@@ -414,8 +469,17 @@ class FilesTab(MainWindowTab):
             return
 
         self.emit("user-send-file", station, port, file_name, fname)
+        self.logger.info("_upload: emit user-send-file")
 
     def _download(self, _button, _rfview):
+        '''
+        Download Button Handler.
+
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _rfview: remote fileview, unused
+        :type _rfview: `:class:RemoteFileView`
+        '''
         if not self._remote:
             return
 
@@ -441,6 +505,14 @@ class FilesTab(MainWindowTab):
         # FIXME: Need an event here
 
     def _delete(self, _button, _rfview):
+        '''
+        Delete Button Handler.
+
+        :param _button: Button Widget, unused
+        :type _button: `:class:Gtk.Button`
+        :param _rfview: remote fileview, unused
+        :type _rfview: `:class:RemoteFileView`
+        '''
         station = self._remote.get_path()
 
         dialog = inputdialog.TextInputDialog()
