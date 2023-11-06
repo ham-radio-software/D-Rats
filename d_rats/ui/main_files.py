@@ -77,7 +77,12 @@ class FileView():
         self.outstanding = {}
 
     def get_path(self):
-        '''Get the Path.'''
+        '''
+        Get the local directory Path.
+
+        :returns: directory path
+        :rtype: str
+        '''
         return self._path
 
     def set_path(self, path):
@@ -250,7 +255,7 @@ class RemoteFileView(FileView):
         '''
         self._store.clear()
 
-        job = rpc.RPCFileListJob(self.get_path(), "File list request")
+        job = rpc.RPCFileListJob(dest=self.station, desc="File list request")
         job.connect("state-change", self._file_list_cb)
 
         return job
@@ -322,7 +327,7 @@ class FilesTab(MainWindowTab):
         if not self._remote:
             return
 
-        if self._remote.get_path() != job.get_dest():
+        if self._remote.station != job.get_dest():
             return
 
         self._stop_throb()
@@ -370,7 +375,7 @@ class FilesTab(MainWindowTab):
         if not sta or sta.upper() == REMOTE_HINT.upper():
             return
 
-        if not self._remote or self._remote.get_path() != sta:
+        if not self._remote or self._remote.station != sta:
             self._remote = RemoteFileView(view=view, path=None,
                                           config=self._config,
                                           station=sta)
@@ -483,7 +488,7 @@ class FilesTab(MainWindowTab):
         if not self._remote:
             return
 
-        station = self._remote.get_path()
+        station = self._remote.station
         file_name = self._remote.get_selected_filename()
 
         _ssel, psel = self._get_ssel()
@@ -496,7 +501,8 @@ class FilesTab(MainWindowTab):
                                                             result_code))
                 self._emit("event", event)
 
-        job = rpc.RPCPullFileJob(station, "Request file %s" % file_name)
+        job = rpc.RPCPullFileJob(dest=station,
+                                 desc="Request file %s" % file_name)
         job.connect("state-change", log_failure)
         job.set_file(file_name)
 
@@ -513,7 +519,7 @@ class FilesTab(MainWindowTab):
         :param _rfview: remote fileview, unused
         :type _rfview: `:class:RemoteFileView`
         '''
-        station = self._remote.get_path()
+        station = self._remote.station
 
         dialog = inputdialog.TextInputDialog()
         dialog.label.set_text(_("Password for %s (blank if none):" % station))
