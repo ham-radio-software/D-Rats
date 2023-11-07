@@ -1731,14 +1731,17 @@ class DratsRadioPanel(DratsPanel):
         list_widget = port_config_list.add_list(cols, make_key)
         add = Gtk.Button.new_with_label(_("Add"))
         add.connect("clicked", self.but_add, list_widget)
-        mod = Gtk.Button.new_with_label(_("Edit"))
-        mod.connect("clicked", self.but_mod, list_widget)
-        rem = Gtk.Button.new_with_label(_("Remove"))
-        rem.connect("clicked", self.but_rem, list_widget)
+        self.mod = Gtk.Button.new_with_label(_("Edit"))
+        self.mod.set_sensitive(False)
+        self.mod.connect("clicked", self.but_mod, list_widget)
+        self.rem = Gtk.Button.new_with_label(_("Remove"))
+        self.rem.set_sensitive(False)
+        self.rem.connect("clicked", self.but_rem, list_widget)
+        list_widget.treeview.connect("cursor-changed", self.cursor_changed)
 
         port_config_list.set_sort_column(6)
 
-        self.make_view(_("Paths"), port_config_list, add, mod, rem)
+        self.make_view(_("Paths"), port_config_list, add, self.mod, self.rem)
 
         list_widget.set_resizable(1, False)
 
@@ -1771,6 +1774,18 @@ class DratsRadioPanel(DratsPanel):
             self.attach_next_to(box, widgets[0], Gtk.PositionType.BOTTOM,
                                 1, box_height)
 
+    def cursor_changed(self, _tree_view):
+        '''
+        Cursor Changed Handler.
+
+        Triggered when the cursor for the row get changed.
+        :param _tree_view: List box with data, Unused
+        :type _tree_view: `:class:Gtk.TreeView`
+        '''
+        self.logger.info("cursor_changed tree_view: %s",
+                         type(_tree_view))
+        self.mod.set_sensitive(True)
+        self.rem.set_sensitive(True)
 
     @staticmethod
     def but_add(_button, list_widget):

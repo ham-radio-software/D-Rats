@@ -19,6 +19,7 @@ from . import utils
 from . import agw
 from .dratsexception import DataPathIOError
 from .dratsexception import DataPathNotConnectedError
+from .utils import hexprintlog
 
 
 ASCII_XON = 17 # chr(17)
@@ -313,6 +314,7 @@ class SWFSerial(serial.Serial):
 
     __swf_debug = False
     logger = logging.getLogger("SWFSerial")
+    log_file = None
 
     def __init__(self, **kwargs):
         self.logger.info("Software XON/XOFF control initialized")
@@ -330,6 +332,35 @@ class SWFSerial(serial.Serial):
             self.use_dsr = kwargs["dsr_control"]
             del kwargs["dsr_control"]
         self.dsr_seen = False
+        self.read_buffer = b''
+
+    @classmethod
+    def set_log_file(cls, log_file):
+        '''
+        Set a serial port log file.
+
+        :param log_file: File to log for serial ports
+        :type log_file: str
+        '''
+        cls.log_file = log_file
+
+    def log_data(self, description, data):
+        '''
+        Log Serial Data to file.
+
+        :param description: Description of data
+        :type: description: str
+        :param data: data to log
+        :type data: bytes
+        '''
+        if not self.log_file:
+            return
+        save_stdout = sys.stdout
+        with open(self.log_file, 'a') as file_handle:
+            sys.stdout = file_handle
+            print(description)
+            hexprintlog(data)
+            sys.stdout = save_stdout
 
     def reconnect(self):
         '''Reconnect.'''
@@ -346,7 +377,10 @@ class SWFSerial(serial.Serial):
         '''
         Is in xon state?
 
-        :returns: True if data transmissions are allowed
+        Sets self.state if an XON/XOFF character is received.
+        Returns a character if anything other than XON/XOFF is received.
+
+        :returns: Current self.state
         :rtype: bool
         :raises: :class:`DataPathNotConnectedError` on serial port disconnect
         '''
@@ -360,38 +394,38 @@ class SWFSerial(serial.Serial):
             self.dsr_seen = True
         time.sleep(0.01)
         self.state = True  # Pending re-write
-        return True
-        # Code below has has always been wrong and will randomly result in
-        # data being lost.
-        # To avoid this D-Rats has been changed to use the serial driver
-        # xon/xoff protocol handling instead of this broken code.
+        # Code below is not optimmal, for some reason it almost works
+        #
+        # Using the serial driver xon/xoff protocol handling instead of
+        # this has been found not work in some cases.
         #
         # Bug #1 No code is present to detect if an XOFF or XON appears in
         # the middle of a data stream.
         # Bug #2 The XOFF/XON is not guaranteed to show up at the
         # beginnng of a read packet.
-        # Bug #3 If this code does not receive an XON or XOFF character
-        # it simply discards it, which breaks the radio transfer.
-
-        ### if self.in_waiting == 0:
-        ###     return self.state
-        ### char = serial.Serial.read(self, 1)
-        ### if char == ASCII_XOFF:
-        ###     if self.__swf_debug:
-        ###         self.logger.info("is_xon: ************* Got XOFF")
-        ###     self.state = False
-        ### elif char == ASCII_XON:
-        ###     if self.__swf_debug:
-        ###         self.logger.info("is_xon ------------- Got XON")
-        ###     self.state = True
-        ### #
-        ### elif len(char) == 1:
-        ###    self.logger.info("is_xon: Aiee! Read a non-XOFF char: `%s`")
-        ###    self.logger.info("This is bug in this code!")
-        ###    self.state = True
-        ###    self.logger.info("is_xon: Assuming IXANY behavior")
-        ###
-        ### return self.state
+        # Apparently the serial device is expected to send at least XON/XOFF to
+        # back to D-rats for every packet sent to it.
+        if self.in_waiting == 0:
+            return self.state
+        char = serial.Serial.read(self, 1)
+        if len(char) == 1:
+            self.log_data('is_xoff read 1 character %s', char)
+        if char == ASCII_XOFF:
+            if self.__swf_debug:
+                self.logger.info("is_xon: ************* Got XOFF")
+            self.state = False
+        elif char == ASCII_XON:
+            if self.__swf_debug:
+                self.logger.info("is_xon ------------- Got XON")
+            self.state = True
+        # Now we have a problem, it is a valid character.
+        # old behavior was to discard it.
+        elif len(char) == 1:
+            self.logger.info("is_xon: Aiee! Read a non-XOFF char: `%s`", char)
+            self.state = True
+            self.logger.info("is_xon: Assuming IXANY behavior")
+            self.read_buffer += char
+        return None
 
     def _write(self, data):
         if self.use_dsr and not self.dsr:
@@ -409,6 +443,8 @@ class SWFSerial(serial.Serial):
                 self.logger.info("_write: Sending %i-%i of %i",
                                  pos, pos+chunk, len(data))
             serial.Serial.write(self, data[pos:pos+chunk])
+            self.log_data('Write chunk', data[pos:pos+chunk])
+
             self.flush()
             pos += chunk
             start = time.time()
@@ -451,6 +487,17 @@ class SWFSerial(serial.Serial):
         :returns: data read
         :rtype: bytes
         '''
+        local_buffer = b''
+        # First return any bytes received while looking for
+        # XON/XOFF
+        buffer_count = len(self.read_buffer)
+        needed = size - buffer_count
+        if buffer_count > 0:
+            local_buffer = self.read_buffer[0:size]
+            self.read_buffer = self.read_buffer[size:]
+            if needed <= 0:
+                return local_buffer
+
         if self.use_dsr and not self.dsr:
             raise DataPathNotConnectedError("Serial port disconnected %s" %
                                             self.name)
@@ -459,7 +506,10 @@ class SWFSerial(serial.Serial):
                 self.logger.info("Serial port Connection Confirmed %s",
                                  self.name)
                 self.dsr_seen = True
-        return serial.Serial.read(self, size)
+        read_buf = serial.Serial.read(self, needed)
+        if len(read_buf):
+            self.log_data("Read %s from serial" % needed, read_buf)
+        return local_buffer + read_buf
 
 
 class DataPath():
@@ -661,7 +711,7 @@ class SerialDataPath(DataPath):
                                      baudrate=self.baud,
                                      timeout=self.timeout,
                                      write_timeout=self.timeout,
-                                     xonxoff=True)
+                                     xonxoff=False)
         except (ValueError, serial.SerialException) as err:
             # pylint: disable=raise-missing-from
             raise DataPathNotConnectedError("Unable to open serial port %s" %
@@ -808,7 +858,7 @@ class TNCDataPath(SerialDataPath):
                                  baudrate=self.baud,
                                  timeout=self.timeout,
                                  write_timeout=self.timeout*10,
-                                 xonxoff=True)
+                                 xonxoff=False)
 
     def __str__(self):
         return "[TNC %s@%s]" % (self.port, self.baud)

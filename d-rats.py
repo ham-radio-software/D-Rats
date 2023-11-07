@@ -45,6 +45,10 @@ except AttributeError:
 from d_rats.version import __version__
 from d_rats.version import DRATS_VERSION
 from d_rats.dplatform import Platform
+from d_rats import mainapp
+
+# Temporary to allow enabling serial port logging.
+from d_rats.comm import SWFSerial
 
 # Default gettext function which is needed for pylance
 # This global variable will be overridden by the mainapp module.
@@ -208,6 +212,9 @@ def main():
                         action="store_true",
                         help="Show version.")
 
+    parser.add_argument("--sdebug",
+                        action="store_true",
+                        help="Log serial port data.")
 
     args = parser.parse_args()
 
@@ -223,10 +230,10 @@ def main():
         MODULE_LOGGER.info("main: args.config = %s", args.config)
         platform.set_config_dir(args.config)
 
-
-    # import the D-Rats main application
-    # pylint: disable=import-outside-toplevel
-    from d_rats import mainapp
+    # This is temporary for debugging serial port radio transfers
+    if args.sdebug:
+        serial_log_file = platform.log_file('serial')
+        SWFSerial.set_log_file(serial_log_file)
 
      # stores away the value of sys.excepthook
     install_excepthook()
