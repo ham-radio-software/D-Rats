@@ -139,6 +139,32 @@ See also <https://github.com/ham-radio-software/D-Rats/wiki>
 You must have a compatible python3 and GTK 3 installed on the system to run
 D-Rats as listed above.
 
+The MobyXterm package contains a local Cygwin environment that is good
+enough to run D-Rats.
+
+The free MobyXterm can be download from <https://mobaxterm.mobatek.net/download.html>
+and then installed on a Microsoft Windows system.
+
+From the local terminal use the wget command to fetch the install script.
+
+> wget https://github.com/ham-radio-software/D-Rats/blob/master/d-rats_in_mobyxterm_install.sh
+
+The permission of the script may need to be fixed.
+> chmod 0755 d-rats_in_mobyxterm_install.sh
+
+Then run the script.  It will run for a bit and install everything needed to run
+D-Rats
+> ./d-rats_in_mobyxterm_install.sh
+
+Then to run use:
+
+> ./d-rats
+
+The MobyXterm installs or updates d-rats from the master branch of the git repository.
+The MobyXterm is a new install and will not use any pre-existing D-Rats configuration.
+In MobyXterm, files in your windows drives can be accessed by starting the path with
+/drives, as in /drives/c/ instead of c:\.
+
 For msys2, the script msys2_packages.sh will hopefully install all the
 needed packages after you have installed msys2.  The "dev" parameter
 is passed to install extra images needed for development, or installing
