@@ -26,21 +26,14 @@ $apt_get -y install \
 pypi_dir=/usr/local/lib/pypi
 $mkdir -p "$pypi_dir"
 
-pathadd() {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        PATH="$1${PATH:+":$PATH"}"
-    fi
-}
 
 if [ -e "$pypi_dir/bin/pip3" ]; then
-  pathadd "$pypi_dir/bin"
+  echo 'Pip already updated'
 else
   # Pip always complains if a newer version is available until
   # you upgrade to it.
-  ls "$pypi_dir/bin"
   echo "upgrading pip, this will warn that pip needs upgrading"
   pip3 install --upgrade --target="$pypi_dir" pip
-  pathadd "$pypi_dir/bin"
   ls "$pypi_dir/bin"
 fi
 # Need to set PYTHONPATH to use the PyPi packages
