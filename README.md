@@ -145,6 +145,11 @@ enough to run D-Rats.
 The free MobaXterm can be download from <https://mobaxterm.mobatek.net/download.html>
 and then installed on a Microsoft Windows system.
 
+If you already have a copy of the install script downloaded then you need
+to delete it:
+
+> rm -f d-rats_in_mobaxterm_install.sh
+
 From the local terminal use the wget command to fetch the install script.
 
 > wget https://github.com/ham-radio-software/D-Rats/blob/master/d-rats_in_mobaxterm_install.sh
@@ -170,7 +175,7 @@ In MobaXterm, files in your windows drives can be accessed by starting the path 
 
 Cygwin install has not yet been tested.  MobaXterm uses Cygwin for some of its Linux emulation,
 with a few changes.  MobaXterm uses a program named busybox instead of the separate programs
-that Cygwin and Linux ues and then creates aliases to make it appear that the separate programs
+that Cygwin and Linux use and then creates aliases to make it appear that the separate programs
 are installed.  Those can not be used in the install script and busybox must be used instead,
 and Cygwin does not use an apt installer.
 
