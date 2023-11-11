@@ -68,6 +68,20 @@ else
   popd
 fi
 
+# Handle lzhuf
+if [ ! -e /usr/bin/lzhuf ]; then
+   lzexe="/drives/c/Program Files/lzhuf/lzhuf.exe"
+   if [ -e "$lzexe" ]; then
+     ln -s "$lzexe" /usr/bin/lzhuf
+   else
+     echo "lzhuf is not installed!  Install from"
+     echo "https://groups.io/g/d-rats/files/D-Rats/Windows"
+     echo "groups.io d-rats free membership required"
+     echo "Then re-run this script."
+   fi
+fi
+
+
 if [ ! -e "$HOME/d-rats" ]; then
   cat << 'EOF' > "$HOME/d-rats"
 #!/bin/bash
