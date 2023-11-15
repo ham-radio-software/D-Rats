@@ -139,6 +139,50 @@ See also <https://github.com/ham-radio-software/D-Rats/wiki>
 You must have a compatible python3 and GTK 3 installed on the system to run
 D-Rats as listed above.
 
+The MobaXterm package contains a local Cygwin environment that is good
+enough to run D-Rats.
+
+The free MobaXterm can be download from <https://mobaxterm.mobatek.net/download.html>
+and then installed on a Microsoft Windows system.
+
+If you already have a copy of the install script downloaded then you need
+to delete it:
+
+> rm -f d-rats_in_mobaxterm_install.sh
+
+From the local terminal use the wget command to fetch the install script.
+
+> wget https://github.com/ham-radio-software/D-Rats/blob/master/d-rats_in_mobaxterm_install.sh
+
+If you are testing a github Pull Request for a new copy of this script, they you need to look
+up the "raw" URL for the script or you will be getting
+
+The permission of the script may need to be fixed.
+> chmod 0755 d-rats_in_mobaxterm_install.sh
+
+Then run the script.  It will run for a bit and install everything needed to run
+D-Rats
+> ./d-rats_in_mobaxterm_install.sh
+
+Then to run use:
+
+> ./d-rats
+
+The MobaXterm installs or updates d-rats from the master branch of the git repository.
+The MobaXterm is a new install and will not use any pre-existing D-Rats configuration.
+In MobaXterm, files in your windows drives can be accessed by starting the path with
+/drives, as in /drives/c/ instead of c:\.
+
+Cygwin install has not yet been tested.  MobaXterm uses Cygwin for some of its Linux emulation,
+with a few changes.  MobaXterm uses a program named busybox instead of the separate programs
+that Cygwin and Linux use and then creates aliases to make it appear that the separate programs
+are installed.  Those can not be used in the install script and busybox must be used instead,
+and Cygwin does not use an apt installer.
+
+In theory with Cygwin, you can install all the packages that the MobaXterm script installs
+with the Cygwin Gui installer and then use the commands from the script for PIP installs,
+D-Rats should install on Cygwin.
+
 For msys2, the script msys2_packages.sh will hopefully install all the
 needed packages after you have installed msys2.  The "dev" parameter
 is passed to install extra images needed for development, or installing
@@ -172,7 +216,6 @@ installed on your system.  D-Rats will only use the locales with the ".utf8"
 suffix.
 
 You may need to install additional locales on your system.
-
 
 Debian packages needed for running or development.
 
