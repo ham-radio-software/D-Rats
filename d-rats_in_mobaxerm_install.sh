@@ -17,7 +17,7 @@ $apt_get -y upgrade
 $apt_get -y install \
   aspell aspell-de aspell-en aspell-es aspell-it \
   ffmpeg \
-  gedit gettext git gcc-core \
+  gedit gettext gettext-devel git gcc-core \
   libgtk3_0 libjpeg-devel libportaudio-devel \
   python39 python39-devel python39-gi python39-lxml \
   python3-pip python39-sphinx \
@@ -60,6 +60,11 @@ else
     git pull
   popd
 fi
+
+# Update the locale database
+pushd "$HOME/d-rats-git"
+  ./build_pot.sh
+popd
 
 # Handle lzhuf
 if [ ! -e /usr/bin/lzhuf ]; then
