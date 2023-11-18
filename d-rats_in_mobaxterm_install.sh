@@ -56,9 +56,7 @@ if [ ! -e "$HOME/d-rats-git" ]; then
   git clone https://github.com/ham-radio-software/D-Rats.git \
     "$HOME/d-rats-git"
 else
-  pushd "$HOME/d-rats-git"
-    git pull
-  popd
+  git -C d-rats-git pull || echo "unable to pull updates for PRs here"
 fi
 
 # Update the locale database
