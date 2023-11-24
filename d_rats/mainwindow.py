@@ -68,6 +68,7 @@ from d_rats.ui.main_common import MainWindowElement
 from d_rats.ui.main_common import prompt_for_station
 from d_rats.ui.main_common import ask_for_confirmation
 
+from d_rats.dplatform import Platform
 from d_rats.menu_helpers import add_menu_theme_image
 from d_rats.menu_helpers import add_menu_accel_file_image
 from d_rats.menu_helpers import add_menu_accel_theme_image
@@ -254,10 +255,10 @@ class MainWindow(MainWindowElement):
         dialog.set_comments(verinfo)
         #dialog.set_license(LICENSE)
         dialog.set_license_type(Gtk.License.GPL_3_0)
-
-        logo = GdkPixbuf.Pixbuf.new_from_file_at_size("images/d-rats2.png", 64, 64)
-        #dialog.set_logo_icon_name(None)
-        dialog.set_logo(logo)
+        sys_data = Platform.get_platform().sys_data()
+        image = os.path.join(sys_data, "images", "d-rats2.png")
+        d_rats_pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(image, 64, 64)
+        dialog.set_logo(d_rats_pixbuf)
 
         dialog.run()
         dialog.destroy()

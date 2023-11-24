@@ -140,7 +140,7 @@ class APRSicons():
     @classmethod
     def add_aprs_overlay(cls, pixbuf, code):
         '''
-        Add Overlay to APRS pixuf
+        Add Overlay to APRS pixbuf
 
         :param pixbuf: Original Pixbuf of APRS icon
         :type pixbuf: :class:`GdkPixbuf.Pixbuf`

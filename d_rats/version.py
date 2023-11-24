@@ -63,9 +63,9 @@ AUTHORS_EMAIL = "Dan Smith KK7DS <dsmith@danplanet.com>\n"  \
           "Marius Petrescu YO2LOJ <marius@yo2loj.ro>\n" \
           "John E. Malmberg WB8TYW <wb8tyw@wsl.net>"
 AUTHOR_COPYRIGHT = "2008-2010 Dan Smith (KK7DS)\n" \
-          "2014-2022 Maurizio Andreotti (IZ2LXI) &\n"  \
+          "2014-2023 Maurizio Andreotti (IZ2LXI) &\n"  \
           "Marius Petrescu (YO2LOJ)\n" \
-          "2021-2022 John E. Malmberg (WB8TYW)."
+          "2021-2023 John E. Malmberg (WB8TYW)."
 DATA_COPYRIGHT = "Location and Map data Copyright www.thunderforest.com and\n" \
           "copyright OpenStreetMap Contributors, www.osm.org/copyright.\n" \
           "Some Map Data courtesy of the U.S. Geological Survey.\n" \
@@ -361,7 +361,8 @@ class Version:
 
         if isdir(join(module_dir, '.git')):
             # Get the version using "git describe".
-            cmd = 'git describe --tags --dirty'.split()
+            cmd = 'git -C %s describe --tags --dirty' % module_dir
+            cmd = cmd.split()
             try:
                 raw_version = subprocess.check_output(cmd).decode().strip()
                 cls._parse_version(raw_version)

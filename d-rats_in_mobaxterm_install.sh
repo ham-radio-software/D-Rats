@@ -17,7 +17,7 @@ $apt_get -y upgrade
 $apt_get -y install \
   aspell aspell-de aspell-en aspell-es aspell-it \
   ffmpeg \
-  gedit gettext git gcc-core \
+  gedit gettext gettext-devel git gcc-core \
   libgtk3_0 libjpeg-devel libportaudio-devel \
   python39 python39-devel python39-gi python39-lxml \
   python3-pip python39-sphinx \
@@ -56,10 +56,13 @@ if [ ! -e "$HOME/d-rats-git" ]; then
   git clone https://github.com/ham-radio-software/D-Rats.git \
     "$HOME/d-rats-git"
 else
-  pushd "$HOME/d-rats-git"
-    git pull
-  popd
+  git -C d-rats-git pull || echo "unable to pull updates for PRs here"
 fi
+
+# Update the locale database
+pushd "$HOME/d-rats-git"
+  ./build_pot.sh
+popd
 
 # Handle lzhuf
 if [ ! -e /usr/bin/lzhuf ]; then
