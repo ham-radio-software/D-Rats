@@ -2,6 +2,46 @@ For the python 2 version see the changelog file.
 
 .. towncrier release notes start
 
+D_Rats.Version 0.4.2 (2023-11-28)
+=================================
+
+Bugfixes
+--------
+
+- Changed to use Python csv module for csv file. (#119)
+- User's default html and text viewer applications will now be used. (#129)
+- D-Rats Repeater should not try to run a GUI console when not possible. (#176)
+- Fix version fallback when running from GitHub archive. (#187)
+- Fixed sound on Linux and enabled it for Mac OS. (#191)
+- Optional Lookup of longitude and Latitude by address now available
+  in the GPS configuration dialog. (#199)
+- Add version reporting to d-rats_repeater. (#200)
+- Fix password validation for Ratflectors. (#201)
+- Add --version qualifier to d-rats.py (#204)
+- Fix Shebang on internationalization_test.py #209 (#209)
+- Fix NMEA to decimal degree conversions. (#211)
+- Fix Form save/send/print not working. (#215)
+- Fix loading of translations.
+  Updated About Dialog.
+  Moved icons into images folder for icons and images and moved *.ico into it. (#218)
+- Fix crash in adding e-mail accounts. (#224)
+- Fixed crash on removing attachments from a message. (#226)
+- Fix message attachment extraction (#228)
+- Fix D-Rats flooding of the console log with invalid DPRS symbol messages.
+  Fix config dialog for selecting APRS and DPRS icons. (#230)
+- Use the locale environment variables for default locale. (#236)
+- Added APRS Overlay support. (#237)
+- Fix d-rats_repeater device entry. (#243)
+- version.py version lookup fails if git is not installed. (#245)
+- Fix build_pot.sh to also rebuild the binary message databases. (#249)
+- Do not run D-rats client or repeater with privileges (#250)
+- Fix formatting error in d-rats Repater code. (#251)
+- Use serial driver XON/XOFF Handling (#253)
+- File transfer was creating directory with remote station name in
+  the current working directory. (#257)
+- Fix sending image resize dialog. (#265)
+
+
 D_Rats.Version 0.4.1 (2023-05-13)
 =================================
 
