@@ -1,8 +1,11 @@
-'''Form GUI'''
+# File: d_rats/formgui.py
+
+'''Form GUI.'''
+
 # pylint wants only 1000 lines per module
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2024 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -252,7 +255,7 @@ class FieldWidget():
     Field Widget.
 
     :param node: Form data elements
-    :type node: :class:ElementTree
+    :type node: :class:`ElementTree`
     :param config: Configuration data
     :type config: :class:`DratsConfig`
     '''
@@ -677,7 +680,7 @@ class NumericWidget(FieldWidget):
 
 class ChoiceWidget(FieldWidget):
     '''
-    Choice Widget
+    Choice Widget.
 
     :param node: Form data for a choice
     :type node: :class:`ElementTree`
@@ -740,7 +743,7 @@ class ChoiceWidget(FieldWidget):
 
 class MultiselectWidget(FieldWidget):
     '''
-    Multi Selection Widget
+    Multi Selection Widget.
 
     :param node: Field data node
     :type node: :class:`ElementTree`
@@ -2123,8 +2126,8 @@ def main():
     current_info = None
 
     # pylint: disable=import-outside-toplevel
-    from . import config
-    config_data = config.DratsConfig(None)
+    from .dratsconfig import DratsConfig
+    config_data = DratsConfig()
 
     def form_done(_dlg, response, info):
         act = "unknown"

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+# File: d_rats_repeater.py
+
 '''D-Rats Repeater.'''
+
 # pylint wants only 1000 lines per module.
 # pylint does not like the module name, wants "snake_case" compliance.
 # pylint: disable=too-many-lines, invalid-name
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Python3 conversion Copyright 2022 John Malmberg <wb8tyw@qsl.net>
+# Python3 conversion Copyright 2022-2024 John Malmberg <wb8tyw@qsl.net>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,7 +62,7 @@ from d_rats import transport
 from d_rats import comm
 from d_rats.listwidget import ListWidget
 from d_rats.miscwidgets import make_choice
-from d_rats.config import prompt_for_port
+from d_rats.configui.dratsradiopanel import prompt_for_port
 
 
 gettext.install("D-RATS")

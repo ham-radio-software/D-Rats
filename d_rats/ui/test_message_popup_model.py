@@ -1,6 +1,6 @@
 '''Test Message Mouse Popup Menu Model.'''
 #
-# Copyright 2022 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2022-2024 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -31,6 +31,7 @@ from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import GObject
 
+from d_rats.dratsconfig import DratsConfig
 from d_rats.ui.main_common import prompt_for_string
 from d_rats.ui.message_folder_info import MessageFolderInfo
 from d_rats.ui.message_popup_model import MessagePopupModel
@@ -48,15 +49,13 @@ class TestMsgModelWindow():
 
     :param application: MainApp application
     :type: application: :class:`MainApp`
-    :param config: Configuration object
-    :type config: :class:`DratsConfig`
     '''
+    config = DratsConfig()
 
-    def __init__(self, application, config):
+    def __init__(self, application):
 
         self.logger = logging.getLogger("TestMsgModelWindow")
         self.logger.info("__init__ called")
-        self.config = config
 
         scrolled_window = Gtk.ScrolledWindow()
 
@@ -276,7 +275,8 @@ class TestMsgModelWindow():
             return self._folder_menu(view, event)
         return None
 
-
+# Pylint wants at least two public methods in a class
+# pylint: disable=too-few-public-methods
 class TestMsgModel(Gtk.Application):
     '''
     Test application.
@@ -288,8 +288,6 @@ class TestMsgModel(Gtk.Application):
                                  flags=Gio.ApplicationFlags.NON_UNIQUE)
 
         logging.basicConfig(level=logging.INFO)
-        from .. import config
-        self.config = config.DratsConfig(None)
 
     # pylint can not detect this for GTK classes.
     # pylint: disable=arguments-differ
@@ -299,7 +297,7 @@ class TestMsgModel(Gtk.Application):
 
         Emits a :class:`Gio.Application` signal to the application.
         '''
-        _test_window = TestMsgModelWindow(self, self.config)
+        _test_window = TestMsgModelWindow(self)
         Gtk.Application.do_activate(self)
 
 

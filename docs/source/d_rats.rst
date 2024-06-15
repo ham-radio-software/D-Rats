@@ -21,6 +21,22 @@ d\_rats.agw module
     :undoc-members:
     :show-inheritance:
 
+d\_rats.aprs\_dprs module
+-------------------------
+
+.. automodule:: d_rats.aprs_dprs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+d\_rats.aprs\_icons module
+--------------------------
+
+.. automodule:: d_rats.aprs_icons
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 d\_rats.ax25 module
 -------------------
 
@@ -49,22 +65,6 @@ d\_rats.comm module
 -------------------
 
 .. automodule:: d_rats.comm
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-d\_rats.config module
----------------------
-
-.. automodule:: d_rats.config
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-d\_rats.config\_tips module
----------------------------
-
-.. automodule:: d_rats.config_tips
     :members:
     :undoc-members:
     :show-inheritance:
@@ -129,22 +129,6 @@ d\_rats.dplatform module
 ------------------------
 
 .. automodule:: d_rats.dplatform
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-d\_rats.aprs\_dprs module
--------------------------
-
-.. automodule:: d_rats.aprs_dprs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-d\_rats.aprs\_icons module
--------------------------
-
-.. automodule:: d_rats.aprs_icons
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,6 +1,8 @@
+# File map/mapdisplay.py
+
 '''Map Display Unit Test for GTK3'''
 #
-# Copyright 2021-2022 John Malmberg <wb8tyw@gmail.com>
+# Copyright 2021-2024 John Malmberg <wb8tyw@gmail.com>
 # Portions derived from works:
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2019 Maurizio Andreotti  <iz2lxi@yahoo.it>
@@ -28,7 +30,7 @@ from gi.repository import Gio
 from gi.repository import Gtk
 
 from d_rats.dplatform import Platform
-from d_rats import config
+from d_rats.dratsconfig import DratsConfig
 from d_rats import map_sources
 
 import d_rats.map as Map
@@ -57,7 +59,7 @@ class MapDisplay(Gtk.Application):
         # Each class should have their own logger.
         self.logger = logging.getLogger("mapdisplay")
 
-        self.config = config.DratsConfig(None)
+        self.config = DratsConfig()
         self.cmd_args = cmd_args
         Platform.get_platform(cmd_args.config)
 

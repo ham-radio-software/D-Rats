@@ -1,10 +1,13 @@
+# File: d_rats/mainapp.py
+
 '''mainapp'''
+
 # pylint wants only 1000 lines
 # pylint: disable=too-many-lines
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2024 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,6 +53,7 @@ from gi.repository import GLib
 
 from .dplatform import Platform
 from .aprs_icons import APRSicons
+from .dratsconfig import DratsConfig
 
 logging.basicConfig(level=logging.INFO)
 
@@ -74,7 +78,7 @@ else:
 
 # these modules are imported from the d_rats folder
 from . import mainwindow
-from . import config
+from .configui import DratsConfigUI
 from . import gps
 from . import map as Map
 from . import map_sources
@@ -298,17 +302,28 @@ class CallList():
 # pylint: disable=too-many-instance-attributes
 class MainApp(Gtk.Application):
     '''
-    Main App.
-
-    :param __args: Not used, Ignored
+    Main Application Singleton.
     '''
+    config = DratsConfig()
+    logger = logging.getLogger("MainApp")
+    _instance = None
+    _inited = False
 
-    def __init__(self, **_args):
+    # pylint: disable=unused-argument
+    def __new__(cls, safe=False):
+        if not cls._instance:
+            cls.instance = super(MainApp, cls).__new__(cls)
+        else:
+            cls._inited = True
+        return cls.instance
+
+    def __init__(self, *args, **kwargs):
+        if self._inited:
+            return
         Gtk.Application.__init__(self,
                                  application_id='localhost.d-rats',
                                  flags=Gio.ApplicationFlags.NON_UNIQUE)
 
-        self.logger = logging.getLogger("MainApp")
         self.handlers = {
             "status" : self.__status,
             "user-stop-session" : self.__user_stop_session,
@@ -367,7 +382,6 @@ class MainApp(Gtk.Application):
         self.connect("shutdown", self.ev_shutdown)
         self.default_comment = None
 
-        self.config = config.DratsConfig(self)
         self._refresh_lang()
 
         self._announce_self()
@@ -385,7 +399,7 @@ class MainApp(Gtk.Application):
             dialog.set_markup(message)
             dialog.run()
             dialog.destroy()
-            if not self.config.show():
+            if not DratsConfigUI.show_config():
                 raise MainappConfigCanceled("User canceled configuration")
             message = _("You must enter a callsign to continue")
 
@@ -628,9 +642,9 @@ class MainApp(Gtk.Application):
         try:
             # try getting the config params from splitting the config line
             enb, port, rate, dosniff, raw, name = spec.split(",")
-            enb = (enb == "True")          # means port is enabled
-            dosniff = (dosniff == "True")  # means traffic sniffing to be active
-            raw = (raw == "True")          # means raw to be active
+            enb = enb == "True"          # means port is enabled
+            dosniff = dosniff == "True"  # means traffic sniffing to be active
+            raw = raw == "True"          # means raw to be active
         except ValueError:
             self.logger.info("Start_comms: Failed to parse portspec %s",
                              spec, exc_info=True)
@@ -744,7 +758,8 @@ class MainApp(Gtk.Application):
             smgr.set_sniffer_session(sses._id)
             sses.connect("incoming_frame", sniff_event, name)
 
-            scoord = session_coordinator.SessionCoordinator(self.config, smgr)
+            scoord = session_coordinator.SessionCoordinator(
+                session_manager=smgr)
             self.__connect_object(scoord, name)
 
             smgr.register_session_cb(scoord.session_cb, None)
@@ -818,25 +833,33 @@ class MainApp(Gtk.Application):
             self.logger.info("check_comms_status: portid %s", portid)
 
             # load from the "ports" config the line related to portid
+            # Until issue #269 is fixed, all sorts of ways this can go wrong
+            # from bad user input
             spec = self.config.get("ports", portid)
             try:
                 # try getting the config params from splitting the config line
                 enb, _port, _rate, dosniff, raw, name = spec.split(",")
-                enb = (enb == "True")           # means port is enabled
-                dosniff = (dosniff == "True")   # means traffic sniffing to be
-                                                # active
-                raw = (raw == "True")           # means raw to be active
+                enb = enb == "True"           # means port is enabled
+                dosniff = dosniff == "True"   # means traffic sniffing to be
+                                              # active
+                raw = raw == "True"           # means raw to be active
             except ValueError:
                 self.logger.info(
                     "check_comms_status: Failed to parse portspec %s",
                     spec, exc_info=True)
 
-            if name in self.__pipes:
-                self.logger.info("check_comms_status: Port %s already started!",
-                                 name)
-            else:
-                self.logger.info("check_comms_status: Port %s not started",
-                                 name)
+            try:
+                if name in self.__pipes:
+                    self.logger.info(
+                        "check_comms_status: Port %s already started!",
+                        name)
+                else:
+                    self.logger.info(
+                        "check_comms_status: Port %s not started",
+                        name)
+            except UnboundLocalError:
+                self.logger.info("Bad data in radio specification %s",
+                                 spec, exc_info=True)
 
     def check_stations_status(self):
         '''
@@ -1021,7 +1044,7 @@ class MainApp(Gtk.Application):
 
         localedir = os.path.join(Platform.get_platform().sys_data(),
                                            "locale")
-        self.logger.debug("_refresh_lang: Setting localedirfromconfig to: %s",
+        self.logger.debug("_refresh_lang: Setting localedir from config to: %s",
                           localedir)
 
         language_code = 'en'
@@ -1056,7 +1079,7 @@ class MainApp(Gtk.Application):
                 locale_code = language_code + "_" + country_code
                 self.set_locale(locale_code)
         else:
-            self.logger.info("Python pcountry package needed for selecting"
+            self.logger.info("Python pycountry package needed for selecting"
                              " languages.")
         try:
             # This global statement is needed for internationalization
@@ -1153,8 +1176,8 @@ class MainApp(Gtk.Application):
         # The following line is needed to force language after config load
         # (not having this, the language is reverted back to untranslated labels
         # also if at D-Rats startup it was load (l))
-        # Thts will not update preset text from the glade files.  That must
-        # be set befroe the glade file is loaded, so a complete restart
+        # This will not update preset text from the glade files.  That must
+        # be set before the glade file is loaded, so a complete restart
         # of D-Rats will be needed.
         self._refresh_lang()
 

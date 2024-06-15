@@ -35,6 +35,9 @@ from d_rats.sessions import base
 from d_rats.sessions import file as sessions_file
 from d_rats.sessions import form
 from d_rats.sessions import sock
+
+from .dratsconfig import DratsConfig
+
 from .utils import run_safe
 from . import formgui
 
@@ -72,10 +75,10 @@ class SessionThread():
     :param data: Session thread data
     '''
     OUTGOING = False
+    logger = logging.getLogger("SessionThread")
 
     def __init__(self, coord, session, data):
 
-        self.logger = logging.getLogger("SessionThread")
         self.enabled = True
         self.coord = coord
         self.session = session
@@ -108,6 +111,7 @@ class FileBaseThread(SessionThread):
     '''
 
     progress_key = "recv_size"
+    config = DratsConfig()
 
     def __init__(self, *args):
         SessionThread.__init__(self, *args)
@@ -249,9 +253,10 @@ class FileSendThread(FileBaseThread):
 class FormRecvThread(FileBaseThread):
     '''Form Receive Thread.'''
 
+    logger = logging.getLogger("FormRecvThread")
+
     def __init__(self, *args):
         FileBaseThread.__init__(self, *args)
-        self.logger = logging.getLogger("FormRecvThread")
 
     def worker(self, _path):
         '''
@@ -259,7 +264,7 @@ class FormRecvThread(FileBaseThread):
 
         :param _path: Unused arguments
         '''
-        m_dir = os.path.join(self.coord.config.form_store_dir(), _("Inbox"))
+        m_dir = os.path.join(self.config.form_store_dir(), _("Inbox"))
         newfn = time.strftime(os.path.join(m_dir, "form_%m%d%Y_%H%M%S.xml"))
         if not msgrouting.msg_lock(newfn):
             self.logger.info("worker: "
@@ -273,8 +278,8 @@ class FormRecvThread(FileBaseThread):
 
         if file_name == newfn:
             worker_form = formgui.FormFile(file_name)
-            worker_form.add_path_element(self.coord.config.get("user",
-                                                               "callsign"))
+            worker_form.add_path_element(self.config.get("user",
+                                                         "callsign"))
             worker_form.save_to(file_name)
 
             self.completed("form")
@@ -313,10 +318,10 @@ class SocketThread(SessionThread):
     :param data: Session thread data
     '''
     OUTGOING = False
+    logger = logging.getLogger("SessionThread")
 
     def __init__(self, coord, session, data):
         SessionThread.__init__(self, coord, session, data)
-        self.logger = logging.getLogger("SessionThread")
 
     def status(self):
         '''Status.'''
@@ -424,9 +429,8 @@ class SessionCoordinator(GObject.GObject):
     '''
     Session Coordinator.
 
-    :param config: Configuration object
-    :type config: :class:`DratsConfig`
     :param session_manager: Session object
+    :type session_manager: :class:`sessionmgr.SessionManager`
     '''
 
     __gsignals__ = {
@@ -440,13 +444,13 @@ class SessionCoordinator(GObject.GObject):
         }
 
     _signals = __gsignals__
+    logger = logging.getLogger("SessionCoordinator")
+    config = DratsConfig()
 
-    def __init__(self, config, session_manager):
+    def __init__(self, session_manager):
         GObject.GObject.__init__(self)
 
-        self.logger = logging.getLogger("SessionCoordinator")
         self.session_manager = session_manager
-        self.config = config
 
         self.sthreads = {}
 

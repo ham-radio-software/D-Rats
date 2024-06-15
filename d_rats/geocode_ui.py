@@ -23,10 +23,7 @@ from __future__ import print_function
 import sys
 
 import logging
-try:
-    from urllib2 import URLError # type: ignore
-except ModuleNotFoundError:
-    from urllib.error import URLError
+from urllib.error import URLError
 
 # The geopy package is not in all platform distributions.
 # We do not want d-rats to fail to run if it is missing
