@@ -93,6 +93,10 @@ to contribute instructions on how to install on a Commercial Python to
 
 ### Microsoft Windows
 
+The installation is now primarily done from inside the MobaXterm application
+using.
+<https://github.com/ham-radio-software/D-Rats/wiki/010.020-Installation-of-D%E2%80%90Rats-on-Microsoft-Windows-with-MobaXterm>
+
 This generally requires installing the msys2 package from
 <https://www.msys2.org/wiki/MSYS2-installation/>, which is what is currently
 used for testing.
@@ -154,39 +158,40 @@ From the local terminal use the wget command to fetch the install script.
 
 > wget https://github.com/ham-radio-software/D-Rats/blob/master/d-rats_in_mobaxterm_install.sh
 
-If you are testing a github Pull Request for a new copy of this script, they you need to look
-up the "raw" URL for the script or you will be getting
+If you are testing a github Pull Request for a new copy of this script, then
+you need to look up the "raw" URL for the script or you will be getting
 
 The permission of the script may need to be fixed.
 > chmod 0755 d-rats_in_mobaxterm_install.sh
 
-Then run the script.  It will run for a bit and install everything needed to run
-D-Rats
+Then run the script.  It will run for a bit and install everything needed to
+run D-Rats
 > ./d-rats_in_mobaxterm_install.sh
 
 Then to run use:
 
 > ./d-rats
 
-The MobaXterm installs or updates d-rats from the master branch of the git repository.
-The MobaXterm is a new install and will not use any pre-existing D-Rats configuration.
-In MobaXterm, files in your windows drives can be accessed by starting the path with
-/drives, as in /drives/c/ instead of c:\.
+The MobaXterm installs or updates d-rats from the master branch of the git
+repository.  The MobaXterm is a new install and will not use any pre-existing
+D-Rats configuration.  In MobaXterm, files in your windows drives can be
+accessed by starting the path with /drives, as in /drives/c/ instead of c:\.
 
-Cygwin install has not yet been tested.  MobaXterm uses Cygwin for some of its Linux emulation,
-with a few changes.  MobaXterm uses a program named busybox instead of the separate programs
-that Cygwin and Linux use and then creates aliases to make it appear that the separate programs
-are installed.  Those can not be used in the install script and busybox must be used instead,
-and Cygwin does not use an apt installer.
+Cygwin install has not yet been tested.  MobaXterm uses Cygwin for some of its
+Linux emulation, with a few changes.  MobaXterm uses a program named busybox
+instead of the separate programs that Cygwin and Linux use and then creates
+aliases to make it appear that the separate programs are installed.  Those
+aliases can not be used in the install script and busybox must be used
+instead, and Cygwin does not use an apt installer.
 
-In theory with Cygwin, you can install all the packages that the MobaXterm script installs
-with the Cygwin Gui installer and then use the commands from the script for PIP installs,
-D-Rats should install on Cygwin.
+In theory with Cygwin, you can install all the packages that the MobaXterm
+script installs with the Cygwin Gui installer and then use the commands from
+the script for PIP installs, D-Rats should install on Cygwin.
 
 For msys2, the script msys2_packages.sh will hopefully install all the
 needed packages after you have installed msys2.  The "dev" parameter
 is passed to install extra images needed for development, or installing
- directly from a git archive.
+directly from a git archive.
 
 If the script is updating certain packages, it may need to have the msys2
 windows shutdown after running, and then need to be re-run to complete the
@@ -243,7 +248,7 @@ See: <https://github.com/ham-radio-software/D-Rats/wiki/101.010-Running-D-Rats-i
 
 And read the rest of this document for more tips.
 
-If you want to connect to WinLInk, you will need to install lzhuf.
+If you want to connect to WinLink, you will need to install lzhuf.
 
 The lzhuf source code is in its own repository and can easily be built on
 most Linux or OS-X based systems.

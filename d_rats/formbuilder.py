@@ -1,8 +1,11 @@
-'''Form Builder'''
+# File: d_rats/formbuilder.py
+
+'''Form Builder.'''
+
 # pylint wants a max of 1000 lines.
 # pylint: disable=too-many-lines
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2024 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1025,8 +1028,8 @@ class TestFormbuilderGUI(Gtk.Application):
                                  flags=Gio.ApplicationFlags.NON_UNIQUE)
 
         # pylint: disable=import-outside-toplevel
-        from . import config
-        self.config = config.DratsConfig(None)
+        from .dratsconfig import DratsConfig
+        self.config = DratsConfig()
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger("TestFormbuilderGUI")
         self.form_templates = "Form_Templates"

@@ -50,7 +50,7 @@ REMOTE_HINT = _("Enter remote callsign")
 
 class FileView():
     '''
-    FileView
+    FileView.
 
     :param view: view object
     :type view: :class:`Gtk.TreeView`
@@ -152,7 +152,7 @@ class LocalFileView(FileView):
         for file in files:
             if os.path.isdir(file):
                 continue
-            self.logger.info("refresh: Adding local file `%s'", file)
+            self.logger.debug("refresh: Adding local file `%s'", file)
             try:
                 stat = os.stat(file)
                 time_stamp = stat.st_mtime
@@ -474,7 +474,7 @@ class FilesTab(MainWindowTab):
             return
 
         self.emit("user-send-file", station, port, file_name, fname)
-        self.logger.info("_upload: emit user-send-file")
+        self.logger.debug("_upload: emit user-send-file")
 
     def _download(self, _button, _rfview):
         '''

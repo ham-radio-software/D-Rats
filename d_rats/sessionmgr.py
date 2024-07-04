@@ -39,9 +39,9 @@ class SessionManager():
     :param station: Call sign for session
     :type station: str
     '''
+    logger = logging.getLogger("SessionManager")
 
     def __init__(self, pipe, station, **kwargs):
-        self.logger = logging.getLogger("SessionManager")
         self.pipe = self.tport = None
         self.station = station
 
@@ -439,14 +439,17 @@ def main():
     '''Self test module'''
     # p = transport.TestPipe(dst="KI4IFW")
 
+    # pylint: disable=import-outside-toplevel
     from . import comm
+    # pylint: disable=import-outside-toplevel
     import sys
+    # pylint: disable=import-outside-toplevel
     from . import sessions
 
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
                         datefmt="%m/%d/%Y %H:%M:%S",
                         level=logging.INFO)
-    logger = logging.getLogger("SessionMgr")
+    logger = logging.getLogger("SessionMgr Test")
     # if sys.argv[1] == "KI4IFW":
     #     p = comm.SerialDataPath(("/dev/ttyUSB0", 9600))
     # else:

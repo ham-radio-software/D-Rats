@@ -1,9 +1,10 @@
-#!/usr/bin/python
-'''Main Window'''
-#
+# File: d_rats/mainwindow.py
+
+'''Main Window.'''
+
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2024 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,6 +60,7 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
+from d_rats.configui import DratsConfigUI
 from d_rats.ui.main_messages import MessagesTab
 from d_rats.ui.main_chat import ChatTab
 from d_rats.ui.event_tab import EventTab
@@ -167,9 +169,9 @@ class MainWindow(MainWindowElement):
             # Pylance can not detect this import on a linux system.
             # pylint: disable=import-outside-toplevel
             import gtkmacintegration # type: ignore
-            mbar = self._wtree.get_object("menubar1")
-            mbar.hide()
-            gtkmacintegration.gtk_mac_menu_set_menu_bar(mbar)
+            menu_bar = self._wtree.get_object("menubar1")
+            menu_bar.hide()
+            gtkmacintegration.gtk_mac_menu_set_menu_bar(menu_bar)
             gtkmacintegration.gtk_mac_menu_set_global_key_handler_enabled(False)
             self.logger.info("Enabled OSX menubar integration")
         except ImportError:
@@ -287,7 +289,7 @@ class MainWindow(MainWindowElement):
         :param _button: Signaled Widget, unused
         :type _button: :class:`Gtk.ImageMenuItem`
         '''
-        saved = self._config.show(parent=self._window)
+        saved = DratsConfigUI.show_config(parent=self._window)
         if saved:
             self.emit("config-changed")
             for tabs in self.tabs.values():
@@ -568,8 +570,8 @@ class TestMainWindow(Gtk.Application):  # pylint: disable=too-few-public-methods
                                  flags=Gio.ApplicationFlags.NON_UNIQUE)
 
         # pylint: disable=import-outside-toplevel
-        from . import config
-        self.config = config.DratsConfig(None)
+        from .dratsconfig import DratsConfig
+        self.config = DratsConfig()
 
     # pylint can not detect this for GTK classes.
     # pylint: disable=arguments-differ

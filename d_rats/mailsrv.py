@@ -1,8 +1,9 @@
-#!/usr/bin/python
+# File: d_rats/mailsrv.py
+
 '''Mail Server.'''
-#
+
 # Copyright 2010 Dan Smith <dsmith@danplanet.com>
-# Copyright 2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2022-2024 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +25,7 @@ from glob import glob
 
 import logging
 import threading
+# pylint: disable=deprecated-module
 import smtpd
 # pylint: disable=deprecated-module
 import asyncore
@@ -611,13 +613,13 @@ def main():
     '''Main program for unit testing.'''
 
     # pylint: disable=import-outside-toplevel
-    from d_rats import config
+    from d_rats.dratsconfig import DratsConfig
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
                         datefmt="%m/%d/%Y %H:%M:%S",
                         level=logging.INFO)
 
     pop3s = DratsPOP3Server(("localhost", 9090), DratsPOP3Handler)
-    my_config = config.DratsConfig(None)
+    my_config = DratsConfig()
 
     pop3s.set_config(my_config)
     pop3s.serve_forever()
