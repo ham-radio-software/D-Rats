@@ -108,8 +108,8 @@ serial devices.
 
 ### Linux and MAC OS-X
 
-Current testing is primarily done with Ubuntu 22.04 Linux which is a Debian
-based distribution.
+Current testing is primarily done with Raspbian Bookworm and Ubuntu 22.04
+which are a Debian Linux based distributions.
 
 This version requires Python 3.7+ and GTK-3.
 
@@ -146,7 +146,8 @@ D-Rats as listed above.
 The MobaXterm package contains a local Cygwin environment that is good
 enough to run D-Rats.
 
-The free MobaXterm can be download from <https://mobaxterm.mobatek.net/download.html>
+The free MobaXterm can be download from
+<https://mobaxterm.mobatek.net/download.html>
 and then installed on a Microsoft Windows system.
 
 If you already have a copy of the install script downloaded then you need
@@ -156,7 +157,9 @@ to delete it:
 
 From the local terminal use the wget command to fetch the install script.
 
-> wget https://github.com/ham-radio-software/D-Rats/blob/master/d-rats_in_mobaxterm_install.sh
+<!-- markdownlint-disable MD034 -->
+> wget https://raw.githubusercontent.com/ham-radio-software/D-Rats/master/d-rats_in_mobaxterm_install.sh
+<!-- markdownlint-enable MD034 -->
 
 If you are testing a github Pull Request for a new copy of this script, then
 you need to look up the "raw" URL for the script or you will be getting
