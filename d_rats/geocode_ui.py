@@ -2,7 +2,7 @@
 '''Geocode UI.'''
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
-# Copyright 2021-2023 John Malmberg - Python 3 Conversion
+# Copyright 2021-2024 John Malmberg - Python 3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -101,22 +101,36 @@ class AddressAssistant(Gtk.Assistant):
         :returns: Gtk.Box with page
         :rtype: :class:`Gtk.Box`
         '''
-        def complete_cb(label, page):
-            self.set_page_complete(page, len(label.get_text()) > 1)
+        def complete_cb(entry, page):
+            '''
+            Complete Callback for :class:`Gtk.Assistant` widget.
+
+            :param entry: Editable widget
+            :type entry: :class:`Gtk.Editable`
+            :param page: Page widget
+            :type page: :class:`Gtk.Box`
+            '''
+            current_width = entry.get_width_chars()
+            text_length = entry.get_text_length()
+            if text_length > current_width:
+                entry.set_width_chars(text_length)
+                entry.show()
+            self.set_page_complete(page, text_length > 1)
 
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
 
-        lab = Gtk.Label.new(
+        label = Gtk.Label.new(
             _("Enter an address, postal code, or intersection") + ":")
-        lab.show()
-        vbox.pack_start(lab, 1, 1, 1)
+        label.show()
+        vbox.pack_start(label, 1, 1, 1)
 
-        ent = Gtk.Entry()
-        ent.connect("changed", complete_cb, vbox)
-        ent.show()
-        vbox.pack_start(ent, 0, 0, 0)
+        entry = Gtk.Entry()
+        entry.set_width_chars(label.get_width_chars())
+        entry.connect("changed", complete_cb, vbox)
+        entry.show()
+        vbox.pack_start(entry, 0, 0, 0)
 
-        self.vals["_address"] = ent
+        self.vals["_address"] = entry
 
         vbox.show()
         return vbox
@@ -128,9 +142,9 @@ class AddressAssistant(Gtk.Assistant):
         :returns: listbox
         :rtype: :class:`listwidget.ListWidget`
         '''
-        cols = [(GObject.TYPE_STRING, _("Address")),
-                (GObject.TYPE_FLOAT, _("Latitude")),
-                (GObject.TYPE_FLOAT, _("Longitude"))]
+        cols = [(GObject.TYPE_FLOAT, _("Latitude")),
+                (GObject.TYPE_FLOAT, _("Longitude")),
+                (GObject.TYPE_STRING, _("Address"))]
         listbox = ListWidget(cols)
 
         self.vals["AddressList"] = listbox
@@ -190,20 +204,20 @@ class AddressAssistant(Gtk.Assistant):
             places = service.geocode(address, exactly_one=False)
             self.set_page_complete(page, True)
         except URLError:
-            self.logger.info("Did not find `%s'", address, exc_info=True)
             places = []
+
+        if not places:
+            self.logger.debug("Did not find `%s'", address, exc_info=True)
             lat = lon = 0
-            self.set_page_complete(page, False)
+            page.hide()
+            self.set_current_page(self.get_current_page() + 1)
+            return
 
         i = 0
         self.vals["AddressList"].set_values([])
         for place, (lat, lon) in places:
             i += 1
-            self.vals["AddressList"].add_item(place, lat, lon)
-
-        if i == -1:
-            page.hide()
-            self.set_current_page(self.get_current_page() + 1)
+            self.vals["AddressList"].add_item(lat, lon, place)
 
     def prepare_conf(self, _assistant, page):
         '''
@@ -214,14 +228,21 @@ class AddressAssistant(Gtk.Assistant):
         :param page: Gtk.Box object with page
         :type page: :class:`Gtk.Widget`
         '''
-        self.place, self.lat, self.lon = \
-            self.vals["AddressList"].get_selected(True)
+        try:
+            self.lat, self.lon, self.place = \
+                self.vals["AddressList"].get_selected(True)
 
-        self.vals[_("Address")].set_text(self.place)
-        self.vals[_("Latitude")].set_text("%.5f" % self.lat)
-        self.vals[_("Longitude")].set_text("%.5f" % self.lon)
-
-        self.set_page_complete(page, True)
+            self.vals[_("Address")].set_text(self.place)
+            self.vals[_("Latitude")].set_text("%.5f" % self.lat)
+            self.vals[_("Longitude")].set_text("%.5f" % self.lon)
+            self.set_page_complete(page, True)
+        except TypeError:
+            address = self.vals["_address"].get_text()
+            self.logger.debug("No information Found for %s",
+                              address, exc_info=True)
+            page.hide()
+            self.set_page_complete(page, False)
+            return
 
     def prepare_page(self, assistant, page):
         '''
@@ -233,22 +254,19 @@ class AddressAssistant(Gtk.Assistant):
         :type page: :class:`Gtk.Widget`
         '''
         if page == self.pages['selection']:
-            self.logger.info("Selection")
             self.prepare_sel(assistant, page)
             return
         if page == self.pages['confirm']:
-            self.logger.info("Confirmation")
             self.prepare_conf(assistant, page)
             return
         if page == self.pages['entry']:
-            self.logger.info("Entry")
             self.pages['selection'].show()
         else:
-            self.logger.info("I dunno")
+            self.logger.info("I dunno, this should not have happened!")
 
     def exit(self, _assistant, response):
         '''
-        Cancel and Apply handler .
+        Cancel and Apply handler.
 
         :param _assistant: Unused
         :type _assistant: :class:`Gtk.Assistant`
