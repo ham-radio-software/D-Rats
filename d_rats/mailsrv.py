@@ -3,7 +3,7 @@
 '''Mail Server.'''
 
 # Copyright 2010 Dan Smith <dsmith@danplanet.com>
-# Copyright 2022-2024 John. E. Malmberg - Python3 Conversion
+# Copyright 2022-2025 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,10 +25,32 @@ from glob import glob
 
 import logging
 import threading
-# pylint: disable=deprecated-module
-import smtpd
-# pylint: disable=deprecated-module
-import asyncore
+SMTPD_AVAILABLE = False
+try:
+    # pylint: disable=deprecated-module
+    import smtpd
+    SMTPD_AVAILABLE = True
+except ModuleNotFoundError:
+    print("SMTP Module no longer available!")
+
+    # pylint: disable=invalid-name, too-few-public-methods
+    class smtpd():
+        '''Fake SMTP server class.'''
+        # pylint: disable=too-few-public-methods
+        class SMTPServer():
+            '''Fake SMTPServer class.'''
+
+# It looks like full solution is to rewrite this module to use
+# either smtp_lib or aiosmtpd module.
+
+ASYNCORE_AVAILABLE = False
+try:
+    # pylint: disable=deprecated-module
+    import asyncore
+    ASYNCORE_AVAILABLE = True
+except ModuleNotFoundError:
+    print("ASYNCORE Module no longer available!")
+
 import email
 import random
 import time
@@ -597,10 +619,13 @@ class DratsSMTPServerThread(threading.Thread):
 
     def run(self):
         '''Run SMTP Server.'''
-        self.logger.info("[SMTP] Starting server")
-        self.__server = DratsSMTPServer(self.__config)
-        asyncore.loop(timeout=1)
-        self.logger.info("[SMTP] Stopped")
+        if SMTPD_AVAILABLE and ASYNCORE_AVAILABLE:
+            self.logger.info("[SMTP] Starting server")
+            self.__server = DratsSMTPServer(self.__config)
+            asyncore.loop(timeout=1)
+            self.logger.info("[SMTP] Stopped")
+        else:
+            self.logger.info("[SMTP] SMTP Server not available.")
 
     def stop(self):
         '''Stop SMTP Server.'''
@@ -618,9 +643,11 @@ def main():
                         datefmt="%m/%d/%Y %H:%M:%S",
                         level=logging.INFO)
 
-    pop3s = DratsPOP3Server(("localhost", 9090), DratsPOP3Handler)
     my_config = DratsConfig()
+    smtpsrv = DratsSMTPServerThread(my_config)
+    smtpsrv.start()
 
+    pop3s = DratsPOP3Server(("localhost", 9090), DratsPOP3Handler)
     pop3s.set_config(my_config)
     pop3s.serve_forever()
 
