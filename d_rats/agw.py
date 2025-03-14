@@ -683,14 +683,14 @@ def transmit_data(conn, dcall, spath, data):
     # left one bit
     dst_str = "".join([chr(ord(x) << 1) for x in call])
     dst_str += encode_ssid(sid)
-    dst = dst_str.encode('utf-8', 'replace')
+    dst = bytes(dst_str, 'latin1')
 
     src_str = ""
     for scall in spath:
         call, sid = ssid(scall)
         src_str += "".join([chr(ord(x) << 1) for x in call])
         src_str += encode_ssid(sid, spath[-1] == scall)
-        src = src_str.encode('utf-8', 'replace')
+    src = bytes(src_str, 'latin1')
 
     data_frame = struct.pack("!B7s%isBB" % len(src),
                              0x00,    # Space for flag (?)
