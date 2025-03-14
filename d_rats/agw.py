@@ -696,7 +696,7 @@ def transmit_data(conn, dcall, spath, data):
                              0x00,    # Space for flag (?)
                              dst,     # Dest Call
                              src,     # Source Path
-                             0x13,    # Info
+                             0x13,    # Unnumbered Info
                              0xF0)    # PID: No layer 3
     data_frame += data
 
