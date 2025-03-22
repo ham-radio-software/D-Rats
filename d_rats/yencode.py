@@ -20,7 +20,7 @@
 from __future__ import absolute_import
 import sys
 
-DEFAULT_BANNED = b"\x11\x13\x1A\00\xFD\xFE\xFF"
+DEFAULT_BANNED = b"\x11\x13\x1A\00\x84\xFD\xFE\xFF"
 OFFSET = 64
 
 
