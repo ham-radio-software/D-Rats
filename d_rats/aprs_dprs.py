@@ -35,7 +35,7 @@ class AprsDprsCodes:
     APRS_ALTERNATE_SYMBOL_TABLE = '\\'
     APRS_ADVISORY_CODE = '\\<'
     APRS_CAR_CODE = '/>'
-    APRS_DIGI_CODD = '/#'
+    APRS_DIGI_CODE = '/#'
     APRS_DOT_CODE = '//'
     APRS_FALLBACK_CODE = '//'
     APRS_INFO_KIOSK_CODE = '\\?'
@@ -85,7 +85,7 @@ class AprsDprsCodes:
         and a list of regular APRS symbols
 
         `DPRS information <https://www.aprs-is.net/DPRS.aspx>`_
-        `DPRS Caldulator <http://www.aprs-is.net/DPRSCalc.aspx>_
+        `DPRS calculator <http://www.aprs-is.net/DPRSCalc.aspx>_
         '''
 
         if cls._dprs_to_aprs:

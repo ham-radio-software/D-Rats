@@ -3,7 +3,7 @@
 #
 # Copyright 2008 Dan Smith <dsmith@danplanet.com>
 #
-# Copyright 2021-2022 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2025 John. E. Malmberg - Python3 Conversion
 # # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -20,7 +20,22 @@
 from __future__ import absolute_import
 import sys
 
-DEFAULT_BANNED = b"\x11\x13\x1A\00\xFD\xFE\xFF"
+# 0X00 NULL
+# 0x11 XON
+# 0x13 XOFF
+# 0x76 XOFF (Alternate?)
+# 0x84 (packet loss notification)
+# 0xE7 (packet loss notification)
+# 0xFE (packet loss notification)
+# 0xFD Icom switch to radio control mode?
+# 0xFF Unknown
+#
+# 0xC0 FEND  Ax25 KISS Frame end
+# 0xDB FESC  Ax25 KISS Frame escape
+# 0xDC TFEND Ax25 KISS Transposed Frame End - Should not need blocking
+# 0xDD TFESC Ax25 KISS Transposed Frame Escape - Should not need blocking
+# looks like these frames may be passed through KISS links
+DEFAULT_BANNED = b"\x11\x13\x1A\00\x84\xE7\xFD\xFE\xFF\xC0\xDB"
 OFFSET = 64
 
 
