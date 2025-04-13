@@ -30,7 +30,8 @@ import threading
 import socket
 
 from math import pi, cos, acos, sin, atan2
-import serial
+import gettext
+import serial  # type: ignore
 
 from .dplatform import Platform
 
@@ -39,11 +40,7 @@ from .aprs_dprs import AprsDprsCodes
 from .aprs_icons import APRSicons
 from .dratsexception import DPRSException
 
-# This makes pylance happy with out overriding settings
-# from the invoker of the class
-if not '_' in locals():
-    import gettext
-    _ = gettext.gettext
+_ = gettext.gettext
 
 TEST = "$GPGGA,180718.02,4531.3740,N,12255.4599,W,1,07,1.4," \
        "50.6,M,-21.4,M,,*63 KE7JSS  ,440.350+ PL127.3"
@@ -213,7 +210,7 @@ def gpsa_checksum(string):
         for _char in buf:
             char = ord(_char)
             for _indx in range(0, 8):
-                xorflag = (((icomcrc ^ char) & 0x01) == 0x01)
+                xorflag = ((icomcrc ^ char) & 0x01) == 0x01
                 icomcrc = (icomcrc >> 1) & 0x7fff
                 if xorflag:
                     icomcrc ^= 0x8408
@@ -707,14 +704,14 @@ class GPSPosition():
         '''
         To APRS.
 
-        :param dest: Destination, default "APRSATS"
+        :param dest: Destination, default "APRATS"
         :param dest: str
         :param code: APRS code, default APRS_CAR_CODE
         :type code: str
         :returns: a GPS-A (APRS-compliant) string
         :rtype: str
         '''
-        symtab = code[0]
+        symbol_table = code[0]
         symbol = code[1]
         stamp = time.strftime("%H%M%S", time.gmtime())
 
@@ -726,25 +723,25 @@ class GPSPosition():
         sta_str = "%s>%s,DSTAR*:/%sh" % (sta, dest, stamp)
 
         if self.latitude > 0:
-            northsouth = "N"
+            north_south = "N"
             lat_m = 1
         else:
-            northsouth = "S"
+            north_south = "S"
             lat_m = -1
 
         if self.longitude > 0:
-            eastwest = "E"
+            east_west = "E"
             lon_m = 1
         else:
-            eastwest = "W"
+            east_west = "W"
             lon_m = -1
 
         sta_str += "%07.2f%s%s%08.2f%s%s" % \
                    (deg2nmea(self.latitude * lat_m),
-                    northsouth,
-                    symtab,
+                    north_south,
+                    symbol_table,
                     deg2nmea(self.longitude * lon_m),
-                    eastwest,
+                    east_west,
                     symbol)
         if self.speed and self.direction:
             sta_str += "%03.0f/%03.0f" % \
@@ -891,7 +888,7 @@ class NMEAGPSPosition(GPSPosition):
         else:
             self.logger.info("Unsupported GPS sentence type: %s", sentence)
 
-    def _test_checksum(self, string, csum):
+    def _test_checksum(self, string, checksum):
         try:
             idx = string.index("*")
         except ValueError:
@@ -901,14 +898,14 @@ class NMEAGPSPosition(GPSPosition):
 
         segment = string[1:idx]
 
-        csum = csum.upper()
-        calc_csum = nmea_checksum(segment).upper()
+        checksum = checksum.upper()
+        calc_checksum = nmea_checksum(segment).upper()
 
-        if csum != calc_csum:
+        if checksum != calc_checksum:
             self.logger.info("_test_checksum: Failed checksum: %s != %s",
-                             csum, calc_csum)
+                             checksum, calc_checksum)
 
-        return csum == calc_csum
+        return checksum == calc_checksum
 
     def _parse_gpgga(self, string):
         elements = string.split(",", 14)
@@ -934,7 +931,7 @@ class NMEAGPSPosition(GPSPosition):
         if not match:
             raise GpsGppgaChecksumError("No checksum (%s)" % elements[14])
 
-        csum = match.group(2)
+        checksum = match.group(2)
         if "," in match.group(3):
             sta, com = match.group(3).split(",", 1)
             if not sta.strip().startswith("$"):
@@ -945,7 +942,7 @@ class NMEAGPSPosition(GPSPosition):
         if len(self.comment) >= 7 and "*" in self.comment[-3:-1]:
             self._parse_dprs_comment()
 
-        self.valid = self._test_checksum(string, csum)
+        self.valid = self._test_checksum(string, checksum)
 
     def _parse_gprmc(self, string):
         if "\r\n" in string:
@@ -984,7 +981,7 @@ class NMEAGPSPosition(GPSPosition):
             self.logger.info("_parse_gprmc: Invalid end: %s", elements[end])
             return
 
-        csum = match.group(1)
+        checksum = match.group(1)
         if "," in station:
             sta, com = station.split(",", 1)
             self.station = utils.filter_to_ascii(sta.strip())
@@ -1000,7 +997,7 @@ class NMEAGPSPosition(GPSPosition):
                              elements[2])
         else:
             self.logger.info("_parse_gprmc: GPRMC is valid")
-            self.valid = self._test_checksum(string, csum)
+            self.valid = self._test_checksum(string, checksum)
 
     def _from_nmea_gpgga(self, string):
         string = string.replace('\r', ' ')
@@ -1378,7 +1375,7 @@ class NetworkGPSSource(GPSSource):
         :rtype: bool
         '''
         try:
-            _, host, port = self.port.split(":", 3)
+            _proto, host, port = self.port.split(":", 3)
             port = int(port)
         except ValueError as err:
             self.logger.info("connect: Unable to parse %s (%s)",

@@ -11,11 +11,11 @@ import struct
 import time
 import re
 import random
-import gi
+import gi  # type: ignore
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib
-from gi.repository import GObject
+from gi.repository import GLib  # type: ignore
+from gi.repository import GObject  # type: ignore
 
 from d_rats import version
 from d_rats import formgui
@@ -393,8 +393,9 @@ class WinLinkMessage:
         data = self.__lzh_content
 
         # filename \0 length(0) \0
-        header_str = self.__name + "\x00" + chr(len(data) & 0xFF) + "\x00"
-        header = header_str.encode('utf-8', 'replace')
+        data_len = chr(len(data) & 0xFF)
+        header = self.__name.encode('utf-8', 'replace') + b'\x00' + \
+            data_len.to_bytes(1,'little') + b'\x00'
         sock.send(struct.pack("<BB", FBB_BLOCK_HDR, len(header)) + header)
 
         checksum = 0
@@ -680,7 +681,7 @@ class WinLinkCMS:
             cs_octet += ord("\r")
             self._send(proposal)
 
-        cs_octet = ((~cs_octet & 0xFF) + 1)
+        cs_octet = (~cs_octet & 0xFF) + 1
         data_str = "F> %02X" % cs_octet
         self._send(data_str.encode('utf-8', 'replace'))
         resp = self._recv()

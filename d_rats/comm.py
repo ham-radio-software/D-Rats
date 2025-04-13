@@ -13,7 +13,7 @@ import select
 # Needed for python2+python3 support
 import sys
 
-import serial
+import serial  # type: ignore
 
 from . import utils
 from . import agw
@@ -394,7 +394,7 @@ class SWFSerial(serial.Serial):
             self.dsr_seen = True
         time.sleep(0.01)
         self.state = True  # Pending re-write
-        # Code below is not optimmal, for some reason it almost works
+        # Code below is not optimal, for some reason it almost works
         #
         # Using the serial driver xon/xoff protocol handling instead of
         # this has been found not work in some cases.
@@ -402,7 +402,7 @@ class SWFSerial(serial.Serial):
         # Bug #1 No code is present to detect if an XOFF or XON appears in
         # the middle of a data stream.
         # Bug #2 The XOFF/XON is not guaranteed to show up at the
-        # beginnng of a read packet.
+        # beginning of a read packet.
         # Apparently the serial device is expected to send at least XON/XOFF to
         # back to D-rats for every packet sent to it.
         if self.in_waiting == 0:
@@ -947,19 +947,13 @@ class TNCAX25DataPath(TNCDataPath):
         :type buf: bytes
         '''
         spath = [self.__call,] + self.__path.split(",")
-        src = ""
         for scall in spath:
-            call, sid = agw.ssid(scall)
-            src += "".join([chr(ord(x) << 1) for x in call])
-            src += agw.encode_ssid(sid, spath[-1] == scall)
+            last = spath[-1] == scall
+            send_src = agw.encode_call(callsign=scall, last=last)
 
-        call, sid = agw.ssid("DRATS")
-        dst = "".join([chr(ord(x) << 1) for x in call])
-        dst += agw.encode_ssid(sid)
-        send_dst = dst.encode('utf-8', 'replace')
-        send_src = src.encode('utf-8', 'replace')
+        send_dst = agw.encode_call(callsign="DRATS")
 
-        hdr = struct.pack("!7s%isBB" % len(src),
+        hdr = struct.pack("!7s%isBB" % len(send_src),
                           send_dst,     # Dest call
                           send_src,     # Source path
                           0x03,         # Control

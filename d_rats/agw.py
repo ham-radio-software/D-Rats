@@ -637,7 +637,7 @@ def ssid(call):
     try:
         sid = int(sid)
     except ValueError:
-        raise InvalidCallsignError("Invalid SSID `%s'" % sid)
+        raise InvalidCallsignError("Invalid SSID `%s'" % sid) from None
 
     if sid < 0 or sid > 7:
         raise InvalidCallsignError("Invalid SSID `%i'" % sid)
@@ -645,22 +645,42 @@ def ssid(call):
     return callsign, sid
 
 
-def encode_ssid(sid, last=False):
+def encode_ssid(sid, last=False) -> bytes:
     '''
     Encode SSID for transmission.
 
     :param sid: Station ID number
     :type sid: int
-    :param last: last flag, unused
+    :param last: last flag, indicates last call in a list of calls.
     :type last: bool
     :returns: Encoded Station ID character
-    :rtype: str
+    :rtype: bytes
     '''
     if last:
         mask = 0x61
     else:
         mask = 0x60
-    return chr((sid << 1) | mask)
+    result = (sid << 1) | mask
+    return result.to_bytes(1,'little')
+
+
+def encode_call(callsign: str, last=False) -> bytes:
+    '''
+    Encode callsign to AX25 call sign field.
+
+    :param callsign: Call sign with SSID
+    :type callsign: str
+    :param last: last flag, indicates last call in a list of calls.
+    :type last: bool
+    :returns: Encoded call sign
+    :rtype: bytes
+    '''
+    call, sid = ssid(callsign)
+    # Encode the call by grabbing each character and shifting
+    # left one bit
+    ax25_call = b"".join([chr(ord(x) << 1) for x in call])
+    ax25_call += encode_ssid(sid=sid, last=last)
+    return ax25_call
 
 
 def transmit_data(conn, dcall, spath, data):
@@ -677,26 +697,18 @@ def transmit_data(conn, dcall, spath, data):
     :type data: bytes
     '''
     global_logger.info("transmit_data:")
-    call, sid = ssid(dcall)
 
-    # Encode the call by grabbing each character and shifting
-    # left one bit
-    dst_str = "".join([chr(ord(x) << 1) for x in call])
-    dst_str += encode_ssid(sid)
-    dst = dst_str.encode('utf-8', 'replace')
+    dst = encode_call(callsign=dcall)
 
-    src_str = ""
     for scall in spath:
-        call, sid = ssid(scall)
-        src_str += "".join([chr(ord(x) << 1) for x in call])
-        src_str += encode_ssid(sid, spath[-1] == scall)
-        src = src_str.encode('utf-8', 'replace')
+        last = spath[-1] == scall
+        src = encode_call(callsign=scall, last=last)
 
     data_frame = struct.pack("!B7s%isBB" % len(src),
                              0x00,    # Space for flag (?)
                              dst,     # Dest Call
                              src,     # Source Path
-                             0x3E,    # Info
+                             0x03,    # Unnumbered Info
                              0xF0)    # PID: No layer 3
     data_frame += data
 
@@ -747,6 +759,7 @@ def test_server(host="127.0.0.1", port=8000):
     '''
     # Quick and dirty simulator for agwpe unit tests.
     global_logger.info("test_server: starting %s:%i", host, port)
+    # pylint: disable=import-outside-toplevel
     from time import sleep
 
     agw = AGWConnection(host, port, timeout=10, server=True)
@@ -775,6 +788,7 @@ def main():
                         datefmt="%m/%d/%Y %H:%M:%S",
                         level=logging.INFO)
 
+    # pylint: disable=import-outside-toplevel
     from time import sleep
     server = threading.Thread(target=test_server)
     server.start()

@@ -16,7 +16,7 @@ export DEBIAN_FRONTEND
 $apt_get -y upgrade
 $apt_get -y install \
   aspell aspell-de aspell-en aspell-es aspell-it \
-  ffmpeg \
+  busybox ffmpeg \
   gedit gettext gettext-devel git gcc-core \
   libgtk3_0 libjpeg-devel libportaudio-devel \
   python39 python39-devel python39-gi python39-lxml \

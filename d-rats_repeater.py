@@ -42,10 +42,10 @@ if not '_' in locals():
     import gettext
     _ = gettext.gettext
 
-import gi
+import gi  # type: ignore
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from gi.repository import GObject
+from gi.repository import Gtk  # type: ignore
+from gi.repository import GObject  # type: ignore
 
 # Make sure no one tries to run this with privileges.
 try:
