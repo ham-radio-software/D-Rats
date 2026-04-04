@@ -20,13 +20,15 @@
 import logging
 # import mimetypes
 import os
-import shutil
+from shutil import which
 import subprocess
 import sys
+from contextlib import contextmanager
+from urllib.request import urlretrieve
+from serial.tools.list_ports import comports
 
 # Need all of these packages for sound to work on a generic platform
 # The pydub package not currently available on msys2 mingw64.
-from contextlib import contextmanager
 HAVE_AUDIO = False
 if not os.name == "nt":
     try:
@@ -56,9 +58,6 @@ else:
         '''Mocked routine when sound is not available.'''
         sound_type = type(sound)
         print(f'Unable to play sound {sound_type} is unsupported')
-
-
-import urllib.request
 
 # This version of D-Rats requires GTK 3.0, but not for doing unit
 # tests.   This allows the default unit tests to pass on a system with
@@ -134,7 +133,6 @@ class PlatformGeneric():
         return os.linesep.join(text)
 
     def set_config_dir(self, basepath):
-
         '''
         Set the configuration directory.
 
@@ -200,14 +198,14 @@ class PlatformGeneric():
         '''
         # Make trivial check from the normal paths
         # known false positive in pylance
-        exe_path = shutil.which(name)  # type: ignore
+        exe_path = which(name)  # type: ignore
         if exe_path:
             return exe_path
         programfiles = os.getenv("PROGRAMFILES")
         if programfiles:
             for program in [programfiles, programfiles + " (x86)"]:
                 test_path=os.path.join(program, name)
-                exe_path = shutil.which(name, path=test_path)  # type: ignore
+                exe_path = which(name, path=test_path)  # type: ignore
                 if exe_path:
                     return exe_path
         return None
@@ -285,15 +283,17 @@ class PlatformGeneric():
         gio_path = Gio.File.parse_name(path)
         appinfo.launch([gio_path], None)
 
-    def list_serial_ports(self):
+    @staticmethod
+    def list_serial_ports():
         '''
         List Serial Ports.
 
-        :returns: empty list
-        :rtype: list
+        :returns: The serial ports
+        :rtype: list of str
         '''
-        self.logger.info("list_serial_ports not available on this platform")
-        return []
+        ports = [port.device for port in comports()]
+        return ports
+
 
     @staticmethod
     def default_dir():
@@ -491,7 +491,7 @@ class PlatformGeneric():
         :returns: Data from URL
         '''
         if self._connected:
-            return urllib.request.urlretrieve(url)
+            return urlretrieve(url)
 
         raise NotConnectedError("Not connected")
 

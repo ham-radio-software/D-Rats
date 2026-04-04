@@ -2,7 +2,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023,2026 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,14 +36,6 @@ except ImportError:
     pass
 try:
     from win32com.shell import shell # type: ignore
-except ImportError:
-    pass
-try:
-    import win32con # type: ignore
-except ImportError:
-    pass
-try:
-    import win32file # type: ignore
 except ImportError:
     pass
 try:
@@ -120,44 +112,6 @@ class Win32Platform(PlatformGeneric):
             filename = filename.replace(char, "")
 
         return filename
-
-    def list_serial_ports(self):
-        '''
-        List Serial Ports.
-
-        :returns: List of serial ports
-        :rtype: list[str]
-        '''
-        ports = []
-        try:
-            for i in range(1, 257):
-                try:
-                    portname = "COM%i" % i
-                    mode = win32con.GENERIC_READ  # type: ignore
-                    mode |= win32con.GENERIC_WRITE  # type: ignore
-                    port = win32file.CreateFile(  # type: ignore
-                        portname,
-                        mode,
-                        win32con.FILE_SHARE_READ,  # type: ignore
-                        None,
-                        win32con.OPEN_EXISTING,  # type: ignore
-                        0,
-                        None)
-                    ports.append(portname)
-                    win32file.CloseHandle(port)  # type: ignore
-                    port = None
-
-                # On cross platform IDEs pylint may false positive.
-                # pylint: disable=no-member
-                except pywintypes.error as err:  # type: ignore
-                    # Error code 5 Apparently if the serial port is in use.
-                    # Error code 121 Apparently if timeout in operation.
-                    if err.args[0] not in [2, 5, 121]:
-                        self.logger.info("list_serial_ports", exc_info=True)
-        except NameError:
-            self.logger.info("Unable to look up serial ports, "
-                             "win32con or other python package missing!")
-        return ports
 
     @staticmethod
     def _mime_to_filter(mime_types):

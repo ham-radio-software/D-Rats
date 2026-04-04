@@ -2,7 +2,7 @@
 #
 # Copyright 2009 Dan Smith <dsmith@danplanet.com>
 # review 2015 Maurizio Andreotti  <iz2lxi@yahoo.it>
-# Copyright 2021-2023 John. E. Malmberg - Python3 Conversion
+# Copyright 2021-2023,2026 John. E. Malmberg - Python3 Conversion
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import glob
 import os
 import subprocess
 
@@ -78,15 +77,6 @@ class UnixPlatform(PlatformGeneric):
         :rtype: str
         '''
         return filename.replace("/", "")
-
-    def list_serial_ports(self):
-        '''
-        List Serial Ports.
-
-        :returns: The serial ports
-        :rtype: list of str
-        '''
-        return sorted(glob.glob("/dev/ttyS*") + glob.glob("/dev/ttyUSB*"))
 
     def os_version_string(self):
         '''
